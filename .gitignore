@@ -1,0 +1,11 @@
+.DS_Store
+
+.idea/
+.gradle/
+build/
+/dist
+workspace.xml
+
+*.iml
+*.class
+META-INF/
