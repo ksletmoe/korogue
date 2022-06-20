@@ -1,0 +1,5 @@
+- AsciiSubpanel takes defaultCharacterData
+- By default AsciiSubpanelGroup bounds should be max. UI should set bounds when it's added
+- AsciiSubpanel should accept UI not AsciiPanel
+- AsciiSubpanel write accept AsciiCharacterData
+- Simplify AsciiSubpanel translation code (use Rectangle.translated?)

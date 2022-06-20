@@ -1,68 +1,55 @@
 package com.sletmoe.krogue
 
+import com.sletmoe.krogue.ui.AsciiPanelUi
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import mu.KotlinLogging
-import java.awt.Color
-import java.awt.event.KeyEvent
-import java.awt.event.MouseEvent
-import kotlin.random.Random
+import java.awt.event.InputEvent
 import kotlin.system.measureNanoTime
 import kotlin.time.Duration.Companion.nanoseconds
 
-class Game(
-    title: String,
+abstract class Game(
     targetFps: Int,
-    windowWidthCols: Int = 80,
-    windowWidthRows: Int = 24,
-    random: Random = Random.Default,
+    protected val ui: AsciiPanelUi,
 ) {
-    companion object {
-        protected val logging = KotlinLogging.logger {}
-        private val wallTile = Tile(
-            "stone wall", '#', color = Color.white, backgroundColor = Color.black, isBlocked = true
-        )
-        private val groundTile = Tile(
-            "stone floor", '.', color = Color.white, backgroundColor = Color.black, isBlocked = false
-        )
-    }
-
-    private var isRunning = false
-    private val ui = UserInterface(title, screenWidth = windowWidthCols, screenHeight = windowWidthRows)
-    private val player = Character(10, 10, "You", '@', Color.green)
+    protected val logging = KotlinLogging.logger {}
+    private var stop = false
     private val nanosecondsPerFrame = 1_000_000_000 / targetFps
-    private val world = World.builder(windowWidthCols, windowWidthRows, random)
-        .withPlayableCharacter(player)
-        .fill(wallTile)
-        .withRandomWalkCave(10, 10, 6000, groundTile)
-        .build()
+    private var _ticks: Long = 0
+    val ticks: Long
+        get() = _ticks
+
+    // overrideable callbacks
+    protected open fun onInput(inputEvent: InputEvent) {}
+    protected open fun onTick(ticks: Long) {}
+    protected open fun onStartup() {}
+    protected open fun onShutdown() {}
+
+    // internal game engine logic
 
     private fun processInput() {
-        val event = ui.nextInput
-
-        if (event is KeyEvent) {
-            when (event.keyCode) {
-                KeyEvent.VK_LEFT -> player.move(-1, 0)
-                KeyEvent.VK_RIGHT -> player.move(1, 0)
-                KeyEvent.VK_UP -> player.move(0, -1)
-                KeyEvent.VK_DOWN -> player.move(0, 1)
-            }
-        } else if (event is MouseEvent) {
-            //
+        val input = ui.getInput()
+        if (input != null) {
+            onInput(input)
         }
     }
 
+    private fun tick() {
+        _ticks += 1
+        onTick(_ticks)
+    }
+
     private fun render() {
-        ui.clear()
-        ui.drawChar(player.glyph, player.x, player.y, player.color)
         ui.refresh()
     }
 
     suspend fun run() = coroutineScope {
-        isRunning = true
-        while (isRunning) {
+        stop = false
+        onStartup()
+        while (!stop) {
             val elapsedFrameNanoseconds = measureNanoTime {
                 processInput()
+                tick()
                 render()
             }
 
@@ -71,5 +58,11 @@ class Game(
                 delay(remainingFrameNanoseconds.nanoseconds)
             }
         }
+
+        onShutdown()
+    }
+
+    fun stop() {
+        stop = true
     }
 }
