@@ -33,13 +33,13 @@ class MyGame(
 ) : Game(targetFps, AsciiPanelUi(title, gameWindowSizeRowsCols, font)) {
     private val player = Creature(10, 10, "You", '@', Color.yellow)
 
-    private val topBar = AsciiDisplay.create(ui.asciiPanel) {
+    private val topBar = AsciiDisplay.create(ui) {
         minimumSize = Dimension(80, 3)
         preferredSize = Dimension(Int.MAX_VALUE, 5)
         maximumSize = Dimension(Int.MAX_VALUE, 5)
         border = Borders.singleLine(Color.blue, Color.black)
     }
-    private val sideBar = AsciiDisplay.create(ui.asciiPanel) {
+    private val sideBar = AsciiDisplay.create(ui) {
         minimumSize = Dimension(20, 20)
         preferredSize = Dimension((ui.widthInCharacters * 0.2).toInt(), Int.MAX_VALUE)
         maximumSize = Dimension(60, Int.MAX_VALUE)
@@ -58,7 +58,7 @@ class MyGame(
     }
 
     private val camera = AsciiCamera.create(
-        ui.asciiPanel, world.currentZone, focusProvider = { Point(player.x, player.y) }, symmetricShadowCaster
+        ui, world.currentZone, focusProvider = { Point(player.x, player.y) }, symmetricShadowCaster
     ) {
         minimumSize = Dimension(60, 20)
         preferredSize = Dimension((ui.widthInCharacters * 0.8).toInt(), Int.MAX_VALUE)

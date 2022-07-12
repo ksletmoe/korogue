@@ -1,14 +1,14 @@
 package com.sletmoe.krogue.graphics
 
 import asciiPanel.AsciiCharacterData
-import asciiPanel.AsciiPanel
+import com.sletmoe.krogue.ui.UserInterface
 import com.sletmoe.krogue.utilities.Grid
 import com.sletmoe.krogue.utilities.initialize
 import com.sletmoe.krogue.utilities.plus
 import java.awt.Color
 import java.awt.Point
 
-class AsciiDisplay(asciiPanel: AsciiPanel) : AsciiSubpanel(asciiPanel) {
+class AsciiDisplay(ui: UserInterface) : AsciiSubpanel(ui) {
     private var contents: Grid<AsciiCharacterData> = Grid(bounds.width, bounds.height, defaultFillCharacter)
 
     override fun onNewBounds() {
@@ -49,8 +49,8 @@ class AsciiDisplay(asciiPanel: AsciiPanel) : AsciiSubpanel(asciiPanel) {
 
     companion object {
         fun create(
-            asciiPanel: AsciiPanel, init: AsciiDisplay.() -> Unit
-        ): AsciiDisplay = initialize(AsciiDisplay(asciiPanel), init)
+            ui: UserInterface, init: AsciiDisplay.() -> Unit
+        ): AsciiDisplay = initialize(AsciiDisplay(ui), init)
     }
 }
 

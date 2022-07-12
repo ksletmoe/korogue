@@ -1,8 +1,8 @@
 package com.sletmoe.krogue.graphics
 
 import asciiPanel.AsciiCharacterData
-import asciiPanel.AsciiPanel
 import com.sletmoe.krogue.test.utilities.KrogueArb
+import com.sletmoe.krogue.test.utilities.UserInterfaceStub
 import com.sletmoe.krogue.test.utilities.haveCharacterData
 import com.sletmoe.krogue.utilities.lastX
 import com.sletmoe.krogue.utilities.lastY
@@ -19,18 +19,18 @@ import java.awt.Rectangle
 class AsciiDisplayTest : FunSpec({
     test("fill") {
         checkAll(KrogueArb.asciiCharacterData, Arb.positiveInt(max = 50), Arb.positiveInt(max = 50)) { characterData, width, height ->
-            val asciiPanel = AsciiPanel(width, height)
-            val asciiDisplay = AsciiDisplay(asciiPanel)
+            val ui = UserInterfaceStub(width, height)
+            val asciiDisplay = AsciiDisplay(ui)
             asciiDisplay.fill(characterData)
 
-            asciiPanel.characters.flatten().forAll { it should haveCharacterData(characterData) }
+            ui.asciiPanel.characters.flatten().forAll { it should haveCharacterData(characterData) }
         }
     }
 
     test("writing characters") {
         checkAll(KrogueArb.asciiCharacterDataGrid) { charDataGrid ->
-            val asciiPanel = AsciiPanel(charDataGrid.width, charDataGrid.height)
-            val asciiDisplay = AsciiDisplay(asciiPanel)
+            val ui = UserInterfaceStub(charDataGrid.width, charDataGrid.height)
+            val asciiDisplay = AsciiDisplay(ui)
 
             charDataGrid.forEachIndexed { coordinate, charData ->
                 asciiDisplay.write(
@@ -43,7 +43,7 @@ class AsciiDisplayTest : FunSpec({
             }
 
             charDataGrid.forEachIndexed { coordinate, charData ->
-                asciiPanel.characters[coordinate.x][coordinate.y] should haveCharacterData(charData)
+                ui.asciiPanel.characters[coordinate.x][coordinate.y] should haveCharacterData(charData)
             }
         }
     }
@@ -86,21 +86,21 @@ class AsciiDisplayTest : FunSpec({
         ) { (_, border, fillCharacter) ->
             val emptyCharacter = AsciiCharacterData(' ', Color.white, Color.black)
 
-            val panel = AsciiPanel(20, 20)
-            panel.clear(emptyCharacter.character, emptyCharacter.foregroundColor, emptyCharacter.backgroundColor)
+            val ui = UserInterfaceStub(20, 20)
+            ui.asciiPanel.clear(emptyCharacter.character, emptyCharacter.foregroundColor, emptyCharacter.backgroundColor)
 
-            val display = AsciiDisplay.create(panel) {
+            val display = AsciiDisplay.create(ui) {
                 defaultFillCharacter = emptyCharacter
                 bounds = Rectangle(2, 2, 16, 16)
                 this.border = border
             }
             display.fill(fillCharacter)
 
-            checkAll(KrogueArb.coordinates(Rectangle(0, 0, panel.widthInCharacters, panel.heightInCharacters))) { point ->
+            checkAll(KrogueArb.coordinates(Rectangle(0, 0, ui.widthInCharacters, ui.heightInCharacters))) { point ->
                 val x = point.x
                 val y = point.y
 
-                val panelCharacter = panel.characters[x][y]
+                val panelCharacter = ui.asciiPanel.characters[x][y]
                 if (display.bounds.contains(x, y)) {
                     when (x) {
                         display.bounds.x -> {

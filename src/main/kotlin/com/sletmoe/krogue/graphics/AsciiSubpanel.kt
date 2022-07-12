@@ -1,10 +1,11 @@
 package com.sletmoe.krogue.graphics
 
 import asciiPanel.AsciiCharacterData
-import asciiPanel.AsciiPanel
+import com.sletmoe.krogue.ui.UserInterface
 import com.sletmoe.krogue.utilities.translated
 import java.awt.Color
 import java.awt.Dimension
+import java.awt.Point
 import java.awt.Rectangle
 import kotlin.math.min
 
@@ -18,7 +19,7 @@ object DefaultSubpanelSizes {
 }
 
 abstract class AsciiSubpanel(
-    private val asciiPanel: AsciiPanel,
+    private val ui: UserInterface,
     private var _border: AsciiBorder? = null,
     var defaultFillCharacter: AsciiCharacterData = AsciiCharacterData(' ', Color.white, Color.black),
     override var minimumSize: Dimension = DefaultSubpanelSizes.MINIMUM,
@@ -102,7 +103,7 @@ abstract class AsciiSubpanel(
                     }
                 }
 
-                asciiPanel.write(characterToWrite ?: defaultFillCharacter, bounds.x + x, bounds.y + y)
+                ui.drawCharacter(characterToWrite ?: defaultFillCharacter, bounds.x + x, bounds.y + y)
             }
         }
     }
@@ -125,7 +126,7 @@ abstract class AsciiSubpanel(
     }
 
     override fun refresh() {
-        asciiPanel.repaintCharacters(bounds)
+        ui.repaintCharacters(bounds)
     }
 
     private fun writableBounds(): Rectangle {
@@ -135,12 +136,25 @@ abstract class AsciiSubpanel(
         return Rectangle(
             super.bounds.x,
             super.bounds.y,
-            min(super.bounds.width, asciiPanel.widthInCharacters - super.bounds.x),
-            min(super.bounds.height, asciiPanel.heightInCharacters - super.bounds.y),
+            min(super.bounds.width, ui.widthInCharacters - super.bounds.x),
+            min(super.bounds.height, ui.heightInCharacters - super.bounds.y),
         )
     }
 
+
+    open fun write(characterData: AsciiCharacterData, x: Int, y: Int) {
+        ui.drawCharacter(characterData, contentBounds.x + x, contentBounds.y + y)
+    }
+
+    open fun write(characterData: AsciiCharacterData, coordinates: Point) {
+        write(characterData, coordinates.x, coordinates.y)
+    }
+
     open fun write(character: Char, foregroundColor: Color, backgroundColor: Color, x: Int, y: Int) {
-        asciiPanel.write(character, contentBounds.x + x, contentBounds.y + y, foregroundColor, backgroundColor)
+        ui.drawCharacter(character, foregroundColor, backgroundColor, contentBounds.x + x, contentBounds.y + y)
+    }
+
+    open fun write(character: Char, foregroundColor: Color, backgroundColor: Color, coordinates: Point) {
+        write(character, foregroundColor, backgroundColor, coordinates.x, coordinates.y)
     }
 }

@@ -1,8 +1,8 @@
 package com.sletmoe.krogue.graphics
 
 import asciiPanel.AsciiCharacterData
-import asciiPanel.AsciiPanel
 import com.sletmoe.krogue.algorithms.los.LineOfSightCalculator
+import com.sletmoe.krogue.ui.UserInterface
 import com.sletmoe.krogue.utilities.Grid
 import com.sletmoe.krogue.utilities.initialize
 import com.sletmoe.krogue.utilities.or
@@ -22,12 +22,12 @@ interface Camera {
 typealias CameraFocusProvider = () -> Point
 
 open class AsciiCamera(
-    asciiPanel: AsciiPanel,
+    ui: UserInterface,
     private var zone: Zone,
     private val focusProvider: CameraFocusProvider,
     var lineOfSightCalculator: LineOfSightCalculator,
     var maxViewDistance: Int = Int.MAX_VALUE,
-) : AsciiSubpanel(asciiPanel), Camera {
+) : AsciiSubpanel(ui), Camera {
     private var previouslyVisible = Grid(zone.width, zone.height, false)
 
     override val viewArea: Rectangle
@@ -118,11 +118,11 @@ open class AsciiCamera(
 
     companion object {
         fun create(
-            asciiPanel: AsciiPanel,
+            ui: UserInterface,
             zone: Zone,
             focusProvider: CameraFocusProvider,
             lineOfSightCalculator: LineOfSightCalculator,
             init: AsciiCamera.() -> Unit
-        ): AsciiCamera = initialize(AsciiCamera(asciiPanel, zone, focusProvider, lineOfSightCalculator), init)
+        ): AsciiCamera = initialize(AsciiCamera(ui, zone, focusProvider, lineOfSightCalculator), init)
     }
 }
