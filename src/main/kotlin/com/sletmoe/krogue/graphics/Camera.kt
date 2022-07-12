@@ -50,13 +50,7 @@ open class AsciiCamera(
 
     private fun flushBuffer(buffer: Grid<AsciiCharacterData>) {
         buffer.forEachIndexed { coordinate, characterData ->
-            write(
-                characterData.character,
-                characterData.foregroundColor,
-                characterData.backgroundColor,
-                coordinate.x,
-                coordinate.y,
-            )
+            write(characterData, coordinate)
         }
     }
 

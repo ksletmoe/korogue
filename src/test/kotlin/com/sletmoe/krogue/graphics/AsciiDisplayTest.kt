@@ -18,7 +18,11 @@ import java.awt.Rectangle
 
 class AsciiDisplayTest : FunSpec({
     test("fill") {
-        checkAll(KrogueArb.asciiCharacterData, Arb.positiveInt(max = 50), Arb.positiveInt(max = 50)) { characterData, width, height ->
+        checkAll(
+            KrogueArb.asciiCharacterData,
+            Arb.positiveInt(max = 50),
+            Arb.positiveInt(max = 50)
+        ) { characterData, width, height ->
             val ui = UserInterfaceStub(width, height)
             val asciiDisplay = AsciiDisplay(ui)
             asciiDisplay.fill(characterData)
@@ -47,11 +51,12 @@ class AsciiDisplayTest : FunSpec({
             }
         }
     }
-    
+
     context("with a border") {
         data class BorderTestSpec(
             val description: String, val border: AsciiBorder, val displayFillCharacter: AsciiCharacterData
         )
+
         val displayFillCharacter = AsciiCharacterData('#', Color.blue, Color.black)
 
         withData<BorderTestSpec>(
@@ -87,7 +92,11 @@ class AsciiDisplayTest : FunSpec({
             val emptyCharacter = AsciiCharacterData(' ', Color.white, Color.black)
 
             val ui = UserInterfaceStub(20, 20)
-            ui.asciiPanel.clear(emptyCharacter.character, emptyCharacter.foregroundColor, emptyCharacter.backgroundColor)
+            ui.asciiPanel.clear(
+                emptyCharacter.character,
+                emptyCharacter.foregroundColor,
+                emptyCharacter.backgroundColor
+            )
 
             val display = AsciiDisplay.create(ui) {
                 defaultFillCharacter = emptyCharacter
@@ -131,8 +140,12 @@ class AsciiDisplayTest : FunSpec({
                         }
                         else -> {
                             when (y) {
-                                display.bounds.y -> panelCharacter should haveCharacterData(border.topEdge ?: fillCharacter)
-                                display.bounds.lastY -> panelCharacter should haveCharacterData(border.bottomEdge ?: fillCharacter)
+                                display.bounds.y -> panelCharacter should haveCharacterData(
+                                    border.topEdge ?: fillCharacter
+                                )
+                                display.bounds.lastY -> panelCharacter should haveCharacterData(
+                                    border.bottomEdge ?: fillCharacter
+                                )
                                 else -> panelCharacter should haveCharacterData(fillCharacter)
                             }
                         }

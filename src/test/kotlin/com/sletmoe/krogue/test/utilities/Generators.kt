@@ -16,8 +16,8 @@ import java.awt.Rectangle
 object KrogueArb {
     fun coordinates(bounds: Rectangle): Exhaustive<Point> {
         val coordinates: MutableList<Point> = mutableListOf()
-        (bounds.x .. bounds.lastX).forEach { x ->
-            (bounds.y .. bounds.lastY).forEach { y ->
+        (bounds.x..bounds.lastX).forEach { x ->
+            (bounds.y..bounds.lastY).forEach { y ->
                 coordinates.add(Point(x, y))
             }
         }

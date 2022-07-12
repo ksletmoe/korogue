@@ -113,16 +113,16 @@ abstract class AsciiSubpanel(
     }
 
     fun fill(character: Char, foregroundColor: Color, backgroundColor: Color) {
-        drawBorder()
-        (0 until contentBounds.width).forEach { x ->
-            (0 until contentBounds.height).forEach { y ->
-                write(character, foregroundColor, backgroundColor, x, y)
-            }
-        }
+        fill(AsciiCharacterData(character, foregroundColor, backgroundColor))
     }
 
     fun fill(characterData: AsciiCharacterData) {
-        fill(characterData.character, characterData.foregroundColor, characterData.backgroundColor)
+        drawBorder()
+        (0 until contentBounds.width).forEach { x ->
+            (0 until contentBounds.height).forEach { y ->
+                write(characterData, x, y)
+            }
+        }
     }
 
     override fun refresh() {

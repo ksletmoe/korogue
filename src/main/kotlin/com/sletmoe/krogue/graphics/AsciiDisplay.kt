@@ -18,20 +18,15 @@ class AsciiDisplay(ui: UserInterface) : AsciiSubpanel(ui) {
 
         oldContents.forEachIndexed { point, asciiCharacterData ->
             if (relativeContentBounds.contains(point)) {
-                write(
-                    asciiCharacterData.character,
-                    asciiCharacterData.foregroundColor,
-                    asciiCharacterData.backgroundColor,
-                    point.x,
-                    point.y,
-                )
+                write(asciiCharacterData, point)
             }
         }
     }
 
     override fun write(character: Char, foregroundColor: Color, backgroundColor: Color, x: Int, y: Int) {
-        contents[x, y] = AsciiCharacterData(character, foregroundColor, backgroundColor)
-        super.write(character, foregroundColor, backgroundColor, x, y)
+        val charData = AsciiCharacterData(character, foregroundColor, backgroundColor)
+        contents[x, y] = charData
+        super.write(charData, x, y)
     }
 
     fun write(str: String, foregroundColor: Color, backgroundColor: Color, startingAt: Point) {

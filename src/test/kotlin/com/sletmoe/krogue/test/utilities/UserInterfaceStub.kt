@@ -18,7 +18,9 @@ class UserInterfaceStub(override val widthInCharacters: Int, override val height
         TODO("Not yet implemented")
     }
 
-    override fun getInput(): InputEvent? { return null }
+    override fun getInput(): InputEvent? {
+        return null
+    }
 
     override fun drawCharacter(character: Char, foregroundColor: Color, backgroundColor: Color, x: Int, y: Int) {
         drawCharacter(AsciiCharacterData(character, foregroundColor, backgroundColor), x, y)
