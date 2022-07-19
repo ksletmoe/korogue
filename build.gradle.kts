@@ -10,8 +10,7 @@ version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
-    // maven("https://jitpack.io" )
-    mavenLocal()
+    maven("https://jitpack.io" )
 }
 
 val kotestVersion = "5.3.1"
@@ -23,9 +22,7 @@ dependencies {
     implementation("org.slf4j:slf4j-log4j12:1.7.36")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.3.2")
     implementation("org.apache.commons:commons-math3:3.6.1")
-    // implementation("com.github.trystan:AsciiPanel:master-SNAPSHOT")
-    // TODO
-    implementation("net.trystan:ascii-panel:1.2-SNAPSHOT")
+    implementation("com.github.trystan:AsciiPanel:master-SNAPSHOT")
 
     testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
     testImplementation("io.kotest:kotest-assertions-core:$kotestVersion")
