@@ -61,12 +61,12 @@ class MyGame(
         ui, world.currentZone, focusProvider = { Point(player.x, player.y) }, symmetricShadowCaster
     ) {
         minimumSize = Dimension(60, 20)
-        preferredSize = Dimension((ui.widthInCharacters * 0.8).toInt(), Int.MAX_VALUE)
+        preferredSize = Dimension(Int.MAX_VALUE, Int.MAX_VALUE)
         border = Borders.singleLine(Color.blue, Color.black).withoutLeft()
     }
 
     init {
-        ui.setContents(
+        ui.setSubpanelGroup(
             AsciiSubpanelVerticalGroup.create {
                 addComponent(topBar)
                 addComponent(
@@ -201,7 +201,7 @@ class MyGame(
 }
 
 fun main(args: Array<String>) = runBlocking {
-    val font = AsciiFont.CP437_10x10
+    val font = AsciiFont.CP437_12x12
     val game = MyGame("Krogue", 60, Dimension(120, 48), font)
     game.run()
 }

@@ -2,6 +2,7 @@ package com.sletmoe.krogue.utilities
 
 import java.awt.Point
 import java.awt.Rectangle
+import java.util.concurrent.locks.ReentrantLock
 
 operator fun Point.plus(other: Point): Point = Point(x + other.x, y + other.y)
 operator fun Point.minus(other: Point): Point = Point(x - other.x, y - other.y)
@@ -28,6 +29,15 @@ inline fun <T> Iterable<T>.nonOverflowingSumOf(selector: (T) -> Int): Int {
         accumulator = nonOverflowingAdd(accumulator, selector(element))
     }
     return accumulator
+}
+
+inline fun <T> ReentrantLock.withLock(action: () -> T) {
+    lock()
+    try {
+        action()
+    } finally {
+        unlock()
+    }
 }
 
 infix fun Grid<Boolean>.or(other: Grid<Boolean>): Grid<Boolean> {

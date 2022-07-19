@@ -2,11 +2,11 @@ package com.sletmoe.krogue.ui
 
 import asciiPanel.AsciiCharacterData
 import asciiPanel.AsciiFont
-import asciiPanel.AsciiPanel
-import com.sletmoe.krogue.graphics.AsciiSubpanelComponent
-import com.sletmoe.krogue.graphics.repaintCharacters
+import com.sletmoe.krogue.graphics.AsciiSubpanelGroup
 import java.awt.Color
 import java.awt.Dimension
+import java.awt.GridBagConstraints
+import java.awt.GridBagLayout
 import java.awt.Rectangle
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
@@ -18,64 +18,70 @@ import java.util.Queue
 import javax.swing.JFrame
 
 class AsciiPanelUi(
-    name: String?, size: Dimension, font: AsciiFont? = null
+    name: String?, sizeInCharacters: Dimension, font: AsciiFont, backgroundColor: Color = Color.black
 ) : JFrame(name), UserInterface, KeyListener, MouseListener {
     private val inputQueue: Queue<InputEvent> = LinkedList()
-    val asciiPanel = AsciiPanel(size.width, size.height, font)
-    private var contents: AsciiSubpanelComponent? = null
+    private val resizableAsciiPanel = ResizableAsciiPanel(sizeInCharacters, font, backgroundColor)
+
     override val widthInCharacters: Int
-        get() = asciiPanel.widthInCharacters
+        get() = resizableAsciiPanel.widthInCharacters
+
     override val heightInCharacters: Int
-        get() = asciiPanel.heightInCharacters
-    private val displayBounds: Rectangle
-        get() = Rectangle(0, 0, widthInCharacters, heightInCharacters)
+        get() = resizableAsciiPanel.heightInCharacters
+
+    var backgroundColor: Color
+        get() = resizableAsciiPanel.backgroundColor
+        set(value) {
+            resizableAsciiPanel.backgroundColor = value
+        }
 
     init {
-        add(asciiPanel)
-//        addComponentListener(
-//            object : ComponentAdapter() {
-//                override fun componentResized(e: ComponentEvent?) {
-//                    terminal.size = e!!.component.size
-//                }
-//            }
-//        )
+        contentPane.background = backgroundColor
+        contentPane.layout = GridBagLayout()
+        val gridBagConstraints = GridBagConstraints()
+        gridBagConstraints.gridx = 0
+        gridBagConstraints.gridy = 0
+        gridBagConstraints.gridwidth = GridBagConstraints.REMAINDER
+        gridBagConstraints.gridheight = GridBagConstraints.REMAINDER
+        gridBagConstraints.fill = GridBagConstraints.BOTH
+        gridBagConstraints.anchor = GridBagConstraints.CENTER
+        gridBagConstraints.weightx = 1.0
+        gridBagConstraints.weighty = 1.0
+
+        contentPane.add(resizableAsciiPanel, gridBagConstraints)
+
         addKeyListener(this)
         addMouseListener(this)
-        isVisible = true
+
         defaultCloseOperation = EXIT_ON_CLOSE
-        pack() //
-        repaint()
+
+        pack()
+        minimumSize = size
+
+        isVisible = true
     }
 
-    fun setContents(component: AsciiSubpanelComponent) {
-        val componentMinSize = component.minimumSize
-        if (displayBounds.contains(Rectangle(0, 0, componentMinSize.width, componentMinSize.height))) {
-            component.bounds = Rectangle(0, 0, widthInCharacters, heightInCharacters)
-            contents = component
-            refresh()
-        } else {
-            throw RuntimeException(
-                "AsciiSubpanelComponent with minimumSize $componentMinSize does not fit in AsciiPanel with bounds $displayBounds"
-            )
-        }
+    fun setSubpanelGroup(subpanelGroup: AsciiSubpanelGroup) {
+        resizableAsciiPanel.setSubpanelGroup(subpanelGroup)
+        refresh()
     }
 
     override fun repaintCharacters(bounds: Rectangle) {
-        asciiPanel.repaintCharacters(bounds)
+        resizableAsciiPanel.repaintCharacters(bounds)
     }
 
     override fun drawCharacter(character: Char, foregroundColor: Color, backgroundColor: Color, x: Int, y: Int) {
-        asciiPanel.write(character, x, y, foregroundColor, backgroundColor)
+        resizableAsciiPanel.drawCharacter(character, foregroundColor, backgroundColor, x, y)
     }
 
     override fun drawCharacter(characterData: AsciiCharacterData, x: Int, y: Int) {
-        asciiPanel.write(characterData, x, y)
+        resizableAsciiPanel.drawCharacter(characterData, x, y)
     }
 
     override fun getInput(): InputEvent? = inputQueue.poll()
 
     override fun refresh() {
-        contents?.refresh()
+        resizableAsciiPanel.refresh()
     }
 
     override fun keyPressed(e: KeyEvent) {
