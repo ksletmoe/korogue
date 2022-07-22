@@ -9,23 +9,35 @@ import java.awt.Point
 import java.awt.Rectangle
 import kotlin.math.min
 
+typealias DimensionProvider = () -> Dimension
+
 object DefaultSubpanelSizes {
-    val MINIMUM: Dimension
-        get() = Dimension(1, 1)
-    val PREFERRED: Dimension
-        get() = Dimension(Int.MAX_VALUE, Int.MAX_VALUE)
-    val MAXIMUM: Dimension
-        get() = Dimension(Int.MAX_VALUE, Int.MAX_VALUE)
+    val MINIMUM: DimensionProvider
+        get() = { Dimension(1, 1) }
+    val PREFERRED: DimensionProvider
+        get() = { Dimension(Int.MAX_VALUE, Int.MAX_VALUE) }
+    val MAXIMUM: DimensionProvider
+        get() = { Dimension(Int.MAX_VALUE, Int.MAX_VALUE) }
 }
+
 
 abstract class AsciiSubpanel(
     private val ui: UserInterface,
     private var _border: AsciiBorder? = null,
     var defaultFillCharacter: AsciiCharacterData = AsciiCharacterData(' ', Color.white, Color.black),
-    override var minimumSize: Dimension = DefaultSubpanelSizes.MINIMUM,
-    override var preferredSize: Dimension = DefaultSubpanelSizes.PREFERRED,
-    override var maximumSize: Dimension = DefaultSubpanelSizes.MAXIMUM,
+    var minimumSizeProvider: DimensionProvider = DefaultSubpanelSizes.MINIMUM,
+    var preferredSizeProvider: DimensionProvider = DefaultSubpanelSizes.PREFERRED,
+    var maximumSizeProvider: DimensionProvider = DefaultSubpanelSizes.MAXIMUM,
 ) : AsciiSubpanelComponent() {
+    override val minimumSize: Dimension
+        get() = minimumSizeProvider()
+
+    override val preferredSize: Dimension
+        get() = preferredSizeProvider()
+
+    override val maximumSize: Dimension
+        get() = maximumSizeProvider()
+
     override var bounds: Rectangle
         get() = writableBounds()
         set(value) {

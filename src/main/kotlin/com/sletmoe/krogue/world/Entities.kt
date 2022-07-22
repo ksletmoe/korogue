@@ -57,7 +57,7 @@ open class Creature(
         get() = !alive
 
     open fun attack(other: Creature) {
-        logging.info { "$name is attacking $other.name" }
+        logging.info { "$name is attacking ${other.name}" }
         other.damage(20)
     }
 

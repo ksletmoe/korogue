@@ -1,7 +1,7 @@
 import asciiPanel.AsciiCharacterData
 import asciiPanel.AsciiFont
 import com.sletmoe.krogue.Game
-import com.sletmoe.krogue.algorithms.los.LineOfSightCalculator
+import com.sletmoe.krogue.algorithms.los.OmnicientLineOfSightCalculator
 import com.sletmoe.krogue.algorithms.los.SymmetricShadowCaster
 import com.sletmoe.krogue.algorithms.zonegen.randomWalkCave
 import com.sletmoe.krogue.graphics.AsciiCamera
@@ -10,11 +10,11 @@ import com.sletmoe.krogue.graphics.AsciiSubpanelHorizontalGroup
 import com.sletmoe.krogue.graphics.AsciiSubpanelVerticalGroup
 import com.sletmoe.krogue.graphics.Borders
 import com.sletmoe.krogue.ui.AsciiPanelUi
-import com.sletmoe.krogue.utilities.Grid
 import com.sletmoe.krogue.utilities.plus
 import com.sletmoe.krogue.world.Creature
 import com.sletmoe.krogue.world.Tile
 import com.sletmoe.krogue.world.World
+import kotlin.math.ceil
 import kotlinx.coroutines.runBlocking
 import java.awt.Color
 import java.awt.Dimension
@@ -34,15 +34,15 @@ class MyGame(
     private val player = Creature(10, 10, "You", '@', Color.yellow)
 
     private val topBar = AsciiDisplay.create(ui) {
-        minimumSize = Dimension(80, 3)
-        preferredSize = Dimension(Int.MAX_VALUE, 5)
-        maximumSize = Dimension(Int.MAX_VALUE, 5)
+        minimumSizeProvider = { Dimension(80, 3) }
+        preferredSizeProvider = { Dimension(Int.MAX_VALUE, 5) }
+        maximumSizeProvider = { Dimension(Int.MAX_VALUE, 5) }
         border = Borders.singleLine(Color.blue, Color.black)
     }
     private val sideBar = AsciiDisplay.create(ui) {
-        minimumSize = Dimension(20, 20)
-        preferredSize = Dimension((ui.widthInCharacters * 0.2).toInt(), Int.MAX_VALUE)
-        maximumSize = Dimension(60, Int.MAX_VALUE)
+        minimumSizeProvider = { Dimension(16, 16) }
+        preferredSizeProvider = { Dimension((ui.widthInCharacters * 0.15).toInt(), Int.MAX_VALUE) }
+        maximumSizeProvider = { Dimension(20, Int.MAX_VALUE) }
         border = Borders.singleLine(Color.blue, Color.black) {
             topRightCorner = AsciiCharacterData(Char(194), Color.blue, Color.black)
             bottomRightCorner = AsciiCharacterData(Char(193), Color.blue, Color.black)
@@ -51,17 +51,13 @@ class MyGame(
 
     private val world = buildWorld(random)
     private val symmetricShadowCaster = SymmetricShadowCaster()
-    private val omnipresentLosCalculator = object : LineOfSightCalculator {
-        override fun calculateLineOfSight(origin: Point, tiles: Grid<Tile>, maxViewDistance: Int): Grid<Boolean> {
-            return Grid(tiles.width, tiles.height, true)
-        }
-    }
+    private val omnipresentLosCalculator = OmnicientLineOfSightCalculator()
 
     private val camera = AsciiCamera.create(
         ui, world.currentZone, focusProvider = { Point(player.x, player.y) }, symmetricShadowCaster
     ) {
-        minimumSize = Dimension(60, 20)
-        preferredSize = Dimension(Int.MAX_VALUE, Int.MAX_VALUE)
+        minimumSizeProvider = { Dimension(60, 20) }
+        preferredSizeProvider = { Dimension(ceil(ui.widthInCharacters * 0.85).toInt(), Int.MAX_VALUE) }
         border = Borders.singleLine(Color.blue, Color.black).withoutLeft()
     }
 
