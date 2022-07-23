@@ -5,5 +5,5 @@ import com.sletmoe.krogue.world.Tile
 import java.awt.Point
 
 interface LineOfSightCalculator {
-    fun calculateLineOfSight(origin: Point, tiles: Grid<Tile>, maxViewDistance: Int?): Grid<Boolean>
+    fun calculateLineOfSight(origin: Point, tiles: Grid<Tile>, maxViewDistance: Double?): Grid<Boolean>
 }

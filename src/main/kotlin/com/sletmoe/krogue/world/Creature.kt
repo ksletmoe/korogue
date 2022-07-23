@@ -1,41 +1,22 @@
 package com.sletmoe.krogue.world
 
-import asciiPanel.AsciiCharacterData
 import mu.KotlinLogging
 import java.awt.Color
 import java.awt.Point
-import java.lang.Integer.max
-import java.lang.Integer.min
 import kotlin.random.Random
 
-open class Entity(
-    val name: String,
-    val glyph: Char,
-    val color: Color,
-    val description: String? = null,
-)
-
 open class Creature(
-    x: Int,
-    y: Int,
+    position: Point,
     name: String,
     glyph: Char,
     color: Color,
     description: String? = null,
     val maxHp: Int = 100,
-) : Entity(name, glyph, color, description) {
+    var lightSource: LightSource? = null,
+) : MovableEntity(position, name, glyph, color, description) {
     companion object {
         protected val logging = KotlinLogging.logger { }
     }
-
-    private var _x = x
-    val x: Int
-        get() = _x
-    private var _y = y
-    val y: Int
-        get() = _y
-    val position: Point
-        get() = Point(x, y)
 
     private var _health = maxHp
     val health: Int
@@ -43,12 +24,12 @@ open class Creature(
     private val random = Random.Default
 
     open fun damage(hp: Int) {
-        _health = max(0, _health - hp)
+        _health = Integer.max(0, _health - hp)
         logging.info { "$name took $hp damage; $_health remaining" }
     }
 
     open fun heal(hp: Int) {
-        _health = min(maxHp, _health + hp)
+        _health = Integer.min(maxHp, _health + hp)
     }
 
     val alive: Boolean
@@ -62,12 +43,13 @@ open class Creature(
     }
 
     fun move(zone: Zone, dx: Int, dy: Int) {
-        val destinationX = x + dx
-        val destinationY = y + dy
+        val destinationX = position.x + dx
+        val destinationY = position.y + dy
 
         if (zone.isWalkable(destinationX, destinationY)) {
-            _x = destinationX
-            _y = destinationY
+            super.move(dx, dy)
+            lightSource?.move(dx, dy)
+            zone.recalculateLightMap()
         } else {
             val otherCreature = zone.creatureAt(destinationX, destinationY)
             otherCreature?.let { attack(otherCreature) }
@@ -92,41 +74,21 @@ open class Creature(
                 }
             }
         } else if (name == "zombie" && performAction > 98) {
-            val creatures = zone.getCreaturesInArea(x, y, 10, 10).filter { it != this }
+            val creatures = zone.getCreaturesInArea(position, 10, 10).filter { it != this }
 
             if (creatures.isNotEmpty()) {
                 val creature = creatures[0]
 
-                if (x > creature.x) {
+                if (position.x > creature.position.x) {
                     move(zone, -1, 0)
-                } else if (x < creature.x) {
+                } else if (position.x < creature.position.x) {
                     move(zone, 1, 0)
-                } else if (y > creature.y) {
+                } else if (position.y > creature.position.y) {
                     move(zone, 0, -1)
-                } else if (y < creature.y) {
+                } else if (position.y < creature.position.y) {
                     move(zone, 0, 1)
                 }
             }
         }
     }
 }
-
-open class Tile(
-    name: String,
-    glyph: Char,
-    color: Color,
-    val backgroundColor: Color,
-    val isWalkable: Boolean,
-    val blocksLineOfSight: Boolean,
-    description: String? = null,
-) : Entity(name, glyph, color, description)
-
-val BLANK_CHARACTER = AsciiCharacterData(' ', Color.white, Color.black)
-val BLANK_TILE = Tile(
-    "The Void",
-    BLANK_CHARACTER.character,
-    BLANK_CHARACTER.foregroundColor,
-    BLANK_CHARACTER.backgroundColor,
-    isWalkable = true,
-    blocksLineOfSight = false,
-)

@@ -1,6 +1,10 @@
 package com.sletmoe.krogue.utilities
 
 import java.awt.Point
+import java.awt.Rectangle
+import kotlin.math.ceil
+import kotlin.math.max
+import kotlin.math.min
 
 class Grid<T>(width: Int, height: Int, defaultValue: T) {
     private constructor(other: Grid<T>) : this(other.width, other.height, other[0, 0]) {
@@ -23,21 +27,24 @@ class Grid<T>(width: Int, height: Int, defaultValue: T) {
         }
     }
 
-    fun getElement(x: Int, y: Int): T {
+    private fun getElement(x: Int, y: Int): T {
         checkBounds(x, y)
         return rows[x][y]
     }
 
-    fun setElement(x: Int, y: Int, value: T) {
+    private fun setElement(x: Int, y: Int, value: T) {
         checkBounds(x, y)
         rows[x][y] = value
     }
 
     operator fun get(coord: Point): T = getElement(coord.x, coord.y)
     operator fun set(coord: Point, value: T) = setElement(coord.x, coord.y, value)
-
     operator fun get(x: Int, y: Int): T = getElement(x, y)
     operator fun set(x: Int, y: Int, value: T) = setElement(x, y, value)
+
+    fun fill(value: T) {
+        forEachCoordinate { set(it, value) }
+    }
 
     private fun checkBounds(x: Int, y: Int) {
         if (x < 0 || x > rows.lastIndex) {
@@ -61,6 +68,32 @@ class Grid<T>(width: Int, height: Int, defaultValue: T) {
                 action(Point(x, y))
             }
         }
+    }
+
+    fun forEachCoordinateInRadius(center: Point, radius: Double, action: (Point) -> Unit) {
+        val boundingBox = boundingBoxForCircle(center, radius)
+        val radiusSquared = radius * radius
+
+        (boundingBox.x until boundingBox.x + boundingBox.width).forEach { x ->
+            (boundingBox.y until boundingBox.y + boundingBox.height).forEach { y ->
+                val coordinate = Point(x, y)
+
+                if (center.distanceSq(coordinate) <= radiusSquared) {
+                    action(coordinate)
+                }
+            }
+        }
+    }
+
+    private fun boundingBoxForCircle(center: Point, radius: Double): Rectangle {
+        val radiusInt = ceil(radius).toInt()
+
+        val x = max(0, center.x - radiusInt)
+        val y = max(0, center.y - radiusInt)
+        val width = min(lastColumnIndex, center.x + radiusInt) - x
+        val height = min(lastRowIndex, center.y + radiusInt) - y
+
+        return Rectangle(x, y, width, height)
     }
 
     companion object {

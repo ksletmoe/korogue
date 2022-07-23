@@ -1,7 +1,9 @@
 package com.sletmoe.krogue.graphics
 
 import asciiPanel.AsciiCharacterData
+import com.sletmoe.krogue.algorithms.color.ColorBlending
 import com.sletmoe.krogue.algorithms.color.ColorTransformer
+import com.sletmoe.krogue.algorithms.color.toNormalizedRgb
 import com.sletmoe.krogue.algorithms.los.LineOfSightCalculator
 import com.sletmoe.krogue.ui.UserInterface
 import com.sletmoe.krogue.utilities.Grid
@@ -29,6 +31,7 @@ open class AsciiCamera(
     var visibilityConfiguration: VisibilityConfiguration,
 ) : AsciiSubpanel(ui), Camera {
     private var previouslyVisible = Grid(zone.width, zone.height, false)
+    private var currentlyVisible = Grid(zone.width, zone.height, false)
 
     override val viewArea: Rectangle
         get() {
@@ -65,30 +68,38 @@ open class AsciiCamera(
 
     private fun drawCreatures(cameraOrigin: Point, buffer: Grid<AsciiCharacterData>) {
         zone.creatures.forEach { creature ->
-            val subpanelTileX = creature.x - cameraOrigin.x
-            val subpanelTileY = creature.y - cameraOrigin.y
+            val subpanelTileX = creature.position.x - cameraOrigin.x
+            val subpanelTileY = creature.position.y - cameraOrigin.y
 
             if (
                 subpanelTileX in 0..buffer.lastColumnIndex
                 && subpanelTileY in 0..buffer.lastRowIndex
             ) {
-                val tileBgColor = zone.tiles[creature.x, creature.y].backgroundColor
+                val tileBgColor = zone.tiles[creature.position].backgroundColor
                 buffer[subpanelTileX, subpanelTileY] = AsciiCharacterData(creature.glyph, creature.color, tileBgColor)
             }
         }
     }
 
     private fun setVisibility(cameraOrigin: Point, buffer: Grid<AsciiCharacterData>) {
-        // TODO: calculate subgrid of world, pass that to LOS calculator?
-        val currentlyVisible = visibilityConfiguration.lineOfSightCalculator.calculateLineOfSight(
+        currentlyVisible = visibilityConfiguration.lineOfSightCalculator.calculateLineOfSight(
             focusProvider(), zone.tiles, visibilityConfiguration.maximumVisibilityDistance
         )
+
+        if (visibilityConfiguration.useLighting) {
+            currentlyVisible.forEachCoordinate { coordinate ->
+                currentlyVisible[coordinate] = currentlyVisible[coordinate] && zone.lightMap[coordinate] != null
+            }
+        }
+
         previouslyVisible = previouslyVisible or currentlyVisible
 
         buffer.forEachCoordinate { coordinate ->
             val zoneCoordinate = coordinate + cameraOrigin
 
-            if (!currentlyVisible[zoneCoordinate]) {
+            if (currentlyVisible[zoneCoordinate]) {
+                lightBuffer(coordinate, zoneCoordinate, buffer)
+            } else {
                 buffer[coordinate] = if (
                     visibilityConfiguration.previouslyViewedTilesVisible && previouslyVisible[zoneCoordinate]
                 ) {
@@ -99,9 +110,26 @@ open class AsciiCamera(
                         visibilityConfiguration.previouslyViewedTilesBackgroundColorProvider(zoneTile.backgroundColor),
                     )
                 } else {
-                    AsciiCharacterData(' ', Color.black, Color.black)
+                    defaultFillCharacter
                 }
+            }
+        }
+    }
 
+    private fun lightBuffer(bufferCoordinate: Point, zoneCoordinate: Point, buffer: Grid<AsciiCharacterData>) {
+        if (visibilityConfiguration.useLighting) {
+            val zoneLightMapVal = zone.lightMap[zoneCoordinate]
+
+            if (zoneLightMapVal != null) {
+                val lightValueColor = zoneLightMapVal.normalizedColor * zoneLightMapVal.intensity
+
+                buffer[bufferCoordinate].foregroundColor = (
+                    buffer[bufferCoordinate].foregroundColor.toNormalizedRgb() * lightValueColor
+                ).toColor()
+
+                buffer[bufferCoordinate].backgroundColor = (
+                    buffer[bufferCoordinate].backgroundColor.toNormalizedRgb() * lightValueColor
+                ).toColor()
             }
         }
     }
@@ -137,7 +165,7 @@ open class AsciiCamera(
 
 data class VisibilityConfiguration(
     var lineOfSightCalculator: LineOfSightCalculator,
-    var maximumVisibilityDistance: Int? = null,
+    var maximumVisibilityDistance: Double? = null,
     var useLighting: Boolean = false,
     var previouslyViewedTilesVisible: Boolean = false,
     var previouslyViewedTilesForegroundColorProvider: ColorTransformer = { Color.gray },

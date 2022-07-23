@@ -2,6 +2,7 @@ import asciiPanel.AsciiCharacterData
 import asciiPanel.AsciiFont
 import com.sletmoe.krogue.Game
 import com.sletmoe.krogue.algorithms.color.multiplicationTransformer
+import com.sletmoe.krogue.algorithms.lighting.DiminishingLightValueCalculator
 import com.sletmoe.krogue.algorithms.los.OmnicientLineOfSightCalculator
 import com.sletmoe.krogue.algorithms.los.SymmetricShadowCaster
 import com.sletmoe.krogue.algorithms.zonegen.randomWalkCave
@@ -14,6 +15,7 @@ import com.sletmoe.krogue.graphics.VisibilityConfiguration
 import com.sletmoe.krogue.ui.AsciiPanelUi
 import com.sletmoe.krogue.utilities.plus
 import com.sletmoe.krogue.world.Creature
+import com.sletmoe.krogue.world.LightSource
 import com.sletmoe.krogue.world.Tile
 import com.sletmoe.krogue.world.World
 import kotlin.math.ceil
@@ -33,7 +35,17 @@ class MyGame(
     font: AsciiFont,
     private val random: Random = Random.Default,
 ) : Game(targetFps, AsciiPanelUi(title, gameWindowSizeRowsCols, font)) {
-    private val player = Creature(10, 10, "You", '@', Color.yellow)
+    private val player = Creature(Point(10, 10), "You", '@', Color.yellow)
+
+    init {
+        player.lightSource = LightSource(
+            Point(player.position),
+            "Lantern",
+            Color(255, 255, 75),
+            15.0,
+            lightValueCalculator = DiminishingLightValueCalculator()
+        )
+    }
 
     private val topBar = AsciiDisplay.create(ui) {
         minimumSizeProvider = { Dimension(80, 3) }
@@ -58,11 +70,12 @@ class MyGame(
     private val camera = AsciiCamera.create(
         ui,
         world.currentZone,
-        focusProvider = { Point(player.x, player.y) },
+        focusProvider = { player.position },
         VisibilityConfiguration.create(symmetricShadowCaster) {
-            maximumVisibilityDistance = 10
+            maximumVisibilityDistance = 30.0
             previouslyViewedTilesVisible = true
-            previouslyViewedTilesForegroundColorProvider = multiplicationTransformer(Color.gray)
+            previouslyViewedTilesForegroundColorProvider = multiplicationTransformer(Color.blue)
+            useLighting = true
         },
     ) {
         minimumSizeProvider = { Dimension(60, 20) }
@@ -89,7 +102,7 @@ class MyGame(
             zone("Level 1", 200, 200, isCurrentZone = true, random = random) {
                 fill(wallTile)
                 addCreature(player)
-                addFeature(randomWalkCave(player.x, player.y, 6000, groundTile))
+                addFeature(randomWalkCave(player.position.x, player.position.y, 6000, groundTile))
                 populateZone(10)
             }
         }
@@ -139,7 +152,7 @@ class MyGame(
         sideBar.fill(' ', Color.black, Color.black)
         val cameraViewArea = camera.viewArea
         val creaturesInView = world.currentZone.creatures
-            .filter { cameraViewArea.contains(it.x, it.y) }
+            .filter { cameraViewArea.contains(it.position) }
             .sortedBy { player.position.distanceSq(it.position) }
         val creatureNameColumnWidth = creaturesInView.map { it.name.length }.plus("Creature".length).max() + 1
 
