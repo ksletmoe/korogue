@@ -1,7 +1,6 @@
 package com.sletmoe.krogue.graphics
 
 import asciiPanel.AsciiCharacterData
-import com.sletmoe.krogue.algorithms.color.ColorBlending
 import com.sletmoe.krogue.algorithms.color.ColorTransformer
 import com.sletmoe.krogue.algorithms.color.toNormalizedRgb
 import com.sletmoe.krogue.algorithms.los.LineOfSightCalculator
@@ -103,7 +102,7 @@ open class AsciiCamera(
                 buffer[coordinate] = if (
                     visibilityConfiguration.previouslyViewedTilesVisible && previouslyVisible[zoneCoordinate]
                 ) {
-                    val zoneTile= zone.tiles[zoneCoordinate]
+                    val zoneTile = zone.tiles[zoneCoordinate]
                     AsciiCharacterData(
                         zoneTile.glyph,
                         visibilityConfiguration.previouslyViewedTilesForegroundColorProvider(zoneTile.color),
@@ -124,12 +123,12 @@ open class AsciiCamera(
                 val lightValueColor = zoneLightMapVal.normalizedColor * zoneLightMapVal.intensity
 
                 buffer[bufferCoordinate].foregroundColor = (
-                    buffer[bufferCoordinate].foregroundColor.toNormalizedRgb() * lightValueColor
-                ).toColor()
+                        buffer[bufferCoordinate].foregroundColor.toNormalizedRgb() * lightValueColor
+                        ).toColor()
 
                 buffer[bufferCoordinate].backgroundColor = (
-                    buffer[bufferCoordinate].backgroundColor.toNormalizedRgb() * lightValueColor
-                ).toColor()
+                        buffer[bufferCoordinate].backgroundColor.toNormalizedRgb() * lightValueColor
+                        ).toColor()
             }
         }
     }

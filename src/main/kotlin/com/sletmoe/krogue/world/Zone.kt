@@ -28,9 +28,9 @@ open class Zone(
     fun getCreaturesInArea(center: Point, width: Int, height: Int): List<Creature> {
         return creatures.filter { creature ->
             creature.position.x > center.x - width / 2.0
-            && creature.position.x < center.x + width / 2.0
-            && creature.position.y > center.y - height / 2.0
-            && creature.position.y < center.y + height / 2.0
+                    && creature.position.x < center.x + width / 2.0
+                    && creature.position.y > center.y - height / 2.0
+                    && creature.position.y < center.y + height / 2.0
         }
     }
 

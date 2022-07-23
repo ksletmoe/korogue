@@ -18,7 +18,6 @@ import com.sletmoe.krogue.world.Creature
 import com.sletmoe.krogue.world.LightSource
 import com.sletmoe.krogue.world.Tile
 import com.sletmoe.krogue.world.World
-import kotlin.math.ceil
 import kotlinx.coroutines.runBlocking
 import java.awt.Color
 import java.awt.Dimension
@@ -26,6 +25,7 @@ import java.awt.Point
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
 import java.awt.event.MouseEvent
+import kotlin.math.ceil
 import kotlin.random.Random
 
 class MyGame(
