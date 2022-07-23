@@ -9,9 +9,14 @@ class DiminishingLightValueCalculator : LightValueCalculator {
         val intensity = if (lightRadius < distanceFromLightSource) {
             0.0
         } else {
-            1.0 - (distanceFromLightSource - 1.0) / lightRadius
+            val minLightValue = lightRadius * MINIMUM_LIGHT_RATIO
+            1.0 - (distanceFromLightSource - minLightValue) / lightRadius
         }
 
         return LightValue(lightColor, intensity)
+    }
+
+    companion object {
+        private const val MINIMUM_LIGHT_RATIO = 0.10
     }
 }
