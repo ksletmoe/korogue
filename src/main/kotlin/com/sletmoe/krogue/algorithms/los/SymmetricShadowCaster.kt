@@ -70,7 +70,7 @@ private class Row(val quadrant: Quadrant, val depth: Int, val startSlope: Fracti
 }
 
 class SymmetricShadowCaster : LineOfSightCalculator {
-    override fun calculateLineOfSight(origin: Point, tiles: Grid<Tile>, maxViewDistance: Int): Grid<Boolean> {
+    override fun calculateLineOfSight(origin: Point, tiles: Grid<Tile>, maxViewDistance: Int?): Grid<Boolean> {
         val visibilityGrid = Grid(tiles.width, tiles.height, defaultValue = false)
 
         // mark the origin as visible
@@ -83,7 +83,9 @@ class SymmetricShadowCaster : LineOfSightCalculator {
             castShadows(firstRow, tiles, visibilityGrid)
         }
 
-        limitVisibilityDistance(origin, maxViewDistance, visibilityGrid)
+        if (maxViewDistance != null) {
+            limitVisibilityDistance(origin, maxViewDistance, visibilityGrid)
+        }
 
         return visibilityGrid
     }
@@ -132,10 +134,6 @@ class SymmetricShadowCaster : LineOfSightCalculator {
     }
 
     private fun limitVisibilityDistance(origin: Point, maxVisibilityDistance: Int, visibilityGrid: Grid<Boolean>) {
-        if (maxVisibilityDistance == Int.MAX_VALUE) {
-            return
-        }
-
         val visDistanceSquared = maxVisibilityDistance * maxVisibilityDistance
 
         visibilityGrid.forEachCoordinate { coordinate ->

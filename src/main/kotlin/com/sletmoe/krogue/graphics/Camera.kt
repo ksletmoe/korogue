@@ -1,6 +1,7 @@
 package com.sletmoe.krogue.graphics
 
 import asciiPanel.AsciiCharacterData
+import com.sletmoe.krogue.algorithms.color.ColorTransformer
 import com.sletmoe.krogue.algorithms.los.LineOfSightCalculator
 import com.sletmoe.krogue.ui.UserInterface
 import com.sletmoe.krogue.utilities.Grid
@@ -23,10 +24,9 @@ typealias CameraFocusProvider = () -> Point
 
 open class AsciiCamera(
     ui: UserInterface,
-    private var zone: Zone,
+    private val zone: Zone,
     private val focusProvider: CameraFocusProvider,
-    var lineOfSightCalculator: LineOfSightCalculator,
-    var maxViewDistance: Int = Int.MAX_VALUE,
+    var visibilityConfiguration: VisibilityConfiguration,
 ) : AsciiSubpanel(ui), Camera {
     private var previouslyVisible = Grid(zone.width, zone.height, false)
 
@@ -56,8 +56,8 @@ open class AsciiCamera(
 
     private fun drawTiles(cameraOrigin: Point, buffer: Grid<AsciiCharacterData>) {
         buffer.forEachCoordinate { coordinate ->
-            val worldTileCoordinate = coordinate + cameraOrigin
-            val tile = zone.tiles[worldTileCoordinate]
+            val zoneCoordinate = coordinate + cameraOrigin
+            val tile = zone.tiles[zoneCoordinate]
 
             buffer[coordinate] = AsciiCharacterData(tile.glyph, tile.color, tile.backgroundColor)
         }
@@ -80,14 +80,28 @@ open class AsciiCamera(
 
     private fun setVisibility(cameraOrigin: Point, buffer: Grid<AsciiCharacterData>) {
         // TODO: calculate subgrid of world, pass that to LOS calculator?
-        val currentlyVisible = lineOfSightCalculator.calculateLineOfSight(focusProvider(), zone.tiles, maxViewDistance)
+        val currentlyVisible = visibilityConfiguration.lineOfSightCalculator.calculateLineOfSight(
+            focusProvider(), zone.tiles, visibilityConfiguration.maximumVisibilityDistance
+        )
         previouslyVisible = previouslyVisible or currentlyVisible
 
         buffer.forEachCoordinate { coordinate ->
-            val visibilityGridCoordinate = coordinate + cameraOrigin
+            val zoneCoordinate = coordinate + cameraOrigin
 
-            if (!currentlyVisible[visibilityGridCoordinate]) {
-                buffer[coordinate] = AsciiCharacterData(' ', Color.black, Color.black)
+            if (!currentlyVisible[zoneCoordinate]) {
+                buffer[coordinate] = if (
+                    visibilityConfiguration.previouslyViewedTilesVisible && previouslyVisible[zoneCoordinate]
+                ) {
+                    val zoneTile= zone.tiles[zoneCoordinate]
+                    AsciiCharacterData(
+                        zoneTile.glyph,
+                        visibilityConfiguration.previouslyViewedTilesForegroundColorProvider(zoneTile.color),
+                        visibilityConfiguration.previouslyViewedTilesBackgroundColorProvider(zoneTile.backgroundColor),
+                    )
+                } else {
+                    AsciiCharacterData(' ', Color.black, Color.black)
+                }
+
             }
         }
     }
@@ -115,8 +129,23 @@ open class AsciiCamera(
             ui: UserInterface,
             zone: Zone,
             focusProvider: CameraFocusProvider,
-            lineOfSightCalculator: LineOfSightCalculator,
+            visibilityConfiguration: VisibilityConfiguration,
             init: AsciiCamera.() -> Unit
-        ): AsciiCamera = initialize(AsciiCamera(ui, zone, focusProvider, lineOfSightCalculator), init)
+        ): AsciiCamera = initialize(AsciiCamera(ui, zone, focusProvider, visibilityConfiguration), init)
+    }
+}
+
+data class VisibilityConfiguration(
+    var lineOfSightCalculator: LineOfSightCalculator,
+    var maximumVisibilityDistance: Int? = null,
+    var useLighting: Boolean = false,
+    var previouslyViewedTilesVisible: Boolean = false,
+    var previouslyViewedTilesForegroundColorProvider: ColorTransformer = { Color.gray },
+    var previouslyViewedTilesBackgroundColorProvider: ColorTransformer = { Color.black },
+) {
+    companion object {
+        fun create(
+            lineOfSightCalculator: LineOfSightCalculator, init: VisibilityConfiguration.() -> Unit
+        ): VisibilityConfiguration = initialize(VisibilityConfiguration(lineOfSightCalculator), init)
     }
 }

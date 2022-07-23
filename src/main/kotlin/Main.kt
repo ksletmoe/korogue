@@ -1,6 +1,7 @@
 import asciiPanel.AsciiCharacterData
 import asciiPanel.AsciiFont
 import com.sletmoe.krogue.Game
+import com.sletmoe.krogue.algorithms.color.multiplicationTransformer
 import com.sletmoe.krogue.algorithms.los.OmnicientLineOfSightCalculator
 import com.sletmoe.krogue.algorithms.los.SymmetricShadowCaster
 import com.sletmoe.krogue.algorithms.zonegen.randomWalkCave
@@ -9,6 +10,7 @@ import com.sletmoe.krogue.graphics.AsciiDisplay
 import com.sletmoe.krogue.graphics.AsciiSubpanelHorizontalGroup
 import com.sletmoe.krogue.graphics.AsciiSubpanelVerticalGroup
 import com.sletmoe.krogue.graphics.Borders
+import com.sletmoe.krogue.graphics.VisibilityConfiguration
 import com.sletmoe.krogue.ui.AsciiPanelUi
 import com.sletmoe.krogue.utilities.plus
 import com.sletmoe.krogue.world.Creature
@@ -54,7 +56,14 @@ class MyGame(
     private val omnipresentLosCalculator = OmnicientLineOfSightCalculator()
 
     private val camera = AsciiCamera.create(
-        ui, world.currentZone, focusProvider = { Point(player.x, player.y) }, symmetricShadowCaster
+        ui,
+        world.currentZone,
+        focusProvider = { Point(player.x, player.y) },
+        VisibilityConfiguration.create(symmetricShadowCaster) {
+            maximumVisibilityDistance = 10
+            previouslyViewedTilesVisible = true
+            previouslyViewedTilesForegroundColorProvider = multiplicationTransformer(Color.gray)
+        },
     ) {
         minimumSizeProvider = { Dimension(60, 20) }
         preferredSizeProvider = { Dimension(ceil(ui.widthInCharacters * 0.85).toInt(), Int.MAX_VALUE) }
@@ -167,10 +176,10 @@ class MyGame(
     }
 
     private fun toggleLos() {
-        if (camera.lineOfSightCalculator == symmetricShadowCaster) {
-            camera.lineOfSightCalculator = omnipresentLosCalculator
+        if (camera.visibilityConfiguration.lineOfSightCalculator == symmetricShadowCaster) {
+            camera.visibilityConfiguration.lineOfSightCalculator = omnipresentLosCalculator
         } else {
-            camera.lineOfSightCalculator = symmetricShadowCaster
+            camera.visibilityConfiguration.lineOfSightCalculator = symmetricShadowCaster
         }
     }
 
