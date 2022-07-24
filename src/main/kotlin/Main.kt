@@ -18,6 +18,8 @@ import com.sletmoe.krogue.world.Creature
 import com.sletmoe.krogue.world.LightSource
 import com.sletmoe.krogue.world.Tile
 import com.sletmoe.krogue.world.World
+import com.sletmoe.krogue.world.ZonalPosition
+import com.sletmoe.krogue.world.Zone
 import kotlinx.coroutines.runBlocking
 import java.awt.Color
 import java.awt.Dimension
@@ -35,17 +37,7 @@ class MyGame(
     font: AsciiFont,
     private val random: Random = Random.Default,
 ) : Game(targetFps, AsciiPanelUi(title, gameWindowSizeRowsCols, font)) {
-    private val player = Creature(Point(10, 10), "You", '@', Color.yellow)
-
-    init {
-        player.lightSource = LightSource(
-            Point(player.position),
-            "Lantern",
-            Color(255, 255, 75),
-            15.0,
-            lightValueCalculator = DiminishingLightValueCalculator()
-        )
-    }
+    private val firstZoneStartPoint = Point(10, 10)
 
     private val topBar = AsciiDisplay.create(ui) {
         minimumSizeProvider = { Dimension(80, 3) }
@@ -67,10 +59,29 @@ class MyGame(
     private val symmetricShadowCaster = SymmetricShadowCaster()
     private val omnipresentLosCalculator = OmnicientLineOfSightCalculator()
 
+    private val player = Creature(
+        ZonalPosition(world.currentZone, firstZoneStartPoint.x, firstZoneStartPoint.y),
+        "You",
+        '@',
+        Color.yellow,
+    )
+
+    init {
+        player.lightSource = LightSource(
+            player.position.copy(),
+            "Lantern",
+            Color(255, 255, 150),
+            15.0,
+            lightValueCalculator = DiminishingLightValueCalculator()
+        )
+
+        world.currentZone.addCreature(player)
+    }
+
     private val camera = AsciiCamera.create(
         ui,
         world.currentZone,
-        focusProvider = { player.position },
+        focusProvider = { player.position.point },
         VisibilityConfiguration.create(symmetricShadowCaster) {
             maximumVisibilityDistance = 30.0
             previouslyViewedTilesVisible = true
@@ -98,12 +109,50 @@ class MyGame(
     }
 
     private fun buildWorld(random: Random): World {
-        return World.create {
+        val world = World.create {
             zone("Level 1", 200, 200, isCurrentZone = true, random = random) {
                 fill(wallTile)
-                addCreature(player)
-                addFeature(randomWalkCave(player.position.x, player.position.y, 6000, groundTile))
-                populateZone(10)
+                addFeature(randomWalkCave(firstZoneStartPoint.x, firstZoneStartPoint.y, 6000, groundTile))
+            }
+        }
+
+        populateZone(world.currentZone, 10)
+
+        return world
+    }
+
+    private fun populateZone(zone: Zone, numCreatures: Int) {
+        repeat(numCreatures) {
+            var rndX = 0
+            var rndY = 0
+
+            do {
+                rndX = random.nextInt(zone.width)
+                rndY = random.nextInt(zone.height)
+            } while (!zone.tiles[rndX, rndY].isWalkable)
+
+            val creatureType = random.nextInt(2)
+
+            val creature = if (creatureType == 0) {
+                createCreature("zombie", zone, rndX, rndY)
+            } else {
+                createCreature("sheep", zone, rndX, rndY)
+            }
+
+            zone.addCreature(creature)
+        }
+    }
+
+    private fun createCreature(type: String, zone: Zone, x: Int, y: Int): Creature {
+        return when (type) {
+            "zombie" -> {
+                Creature(ZonalPosition(zone, x, y), "zombie", 'z', Color.green, "aggressive")
+            }
+            "sheep" -> {
+                Creature(ZonalPosition(zone, x, y), "sheep", 's', Color.white, "docile")
+            }
+            else -> {
+                throw RuntimeException()
             }
         }
     }
@@ -119,14 +168,13 @@ class MyGame(
         logging.debug { "Creature $creature died" }
     }
 
-
     override fun onInput(inputEvent: InputEvent) {
         if (inputEvent is KeyEvent) {
             when (inputEvent.keyCode) {
-                KeyEvent.VK_LEFT -> player.move(world.currentZone, -1, 0)
-                KeyEvent.VK_RIGHT -> player.move(world.currentZone, 1, 0)
-                KeyEvent.VK_UP -> player.move(world.currentZone, 0, -1)
-                KeyEvent.VK_DOWN -> player.move(world.currentZone, 0, 1)
+                KeyEvent.VK_LEFT -> player.moveInZone(-1, 0)
+                KeyEvent.VK_RIGHT -> player.moveInZone(1, 0)
+                KeyEvent.VK_UP -> player.moveInZone(0, -1)
+                KeyEvent.VK_DOWN -> player.moveInZone(0, 1)
                 KeyEvent.VK_SPACE -> toggleLos()
             }
         } else if (inputEvent is MouseEvent) {
@@ -135,9 +183,11 @@ class MyGame(
     }
 
     private fun updateWorld() {
-        world.currentZone.creatures.filter { it.dead }.forEach { onCreatureDeath(it) }
+        world.currentZone.creatures.filter { it.dead }.forEach { deadCreature ->
+            onCreatureDeath(deadCreature)
+            world.currentZone.removeCreature(deadCreature)
+        }
 
-        world.currentZone.creatures = world.currentZone.creatures.filter { it.alive }
         world.currentZone.creatures.filter { creature -> creature != player }.forEach { creature ->
             creature.update(world.currentZone)
         }
@@ -152,8 +202,8 @@ class MyGame(
         sideBar.fill(' ', Color.black, Color.black)
         val cameraViewArea = camera.viewArea
         val creaturesInView = world.currentZone.creatures
-            .filter { cameraViewArea.contains(it.position) }
-            .sortedBy { player.position.distanceSq(it.position) }
+            .filter { cameraViewArea.contains(it.position.point) }
+            .sortedBy { player.position.point.distanceSq(it.position.point) }
         val creatureNameColumnWidth = creaturesInView.map { it.name.length }.plus("Creature".length).max() + 1
 
         val sideBarInfoStartingPoint = Point(1, 1)

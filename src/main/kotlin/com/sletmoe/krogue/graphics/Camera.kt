@@ -7,6 +7,7 @@ import com.sletmoe.krogue.algorithms.los.LineOfSightCalculator
 import com.sletmoe.krogue.ui.UserInterface
 import com.sletmoe.krogue.utilities.Grid
 import com.sletmoe.krogue.utilities.initialize
+import com.sletmoe.krogue.utilities.minus
 import com.sletmoe.krogue.utilities.or
 import com.sletmoe.krogue.utilities.plus
 import com.sletmoe.krogue.world.Zone
@@ -23,6 +24,8 @@ interface Camera {
 
 typealias CameraFocusProvider = () -> Point
 
+data class HighlightedCoordinate(val coordinate: Point, val color: Color)
+
 open class AsciiCamera(
     ui: UserInterface,
     private val zone: Zone,
@@ -31,6 +34,7 @@ open class AsciiCamera(
 ) : AsciiSubpanel(ui), Camera {
     private var previouslyVisible = Grid(zone.width, zone.height, false)
     private var currentlyVisible = Grid(zone.width, zone.height, false)
+    private val highlightedCoordinates: MutableSet<HighlightedCoordinate> = mutableSetOf()
 
     override val viewArea: Rectangle
         get() {
@@ -46,8 +50,25 @@ open class AsciiCamera(
         drawTiles(cameraOrigin, buffer)
         drawCreatures(cameraOrigin, buffer)
         setVisibility(cameraOrigin, buffer)
+        drawHighlightedTiles(cameraOrigin, buffer)
 
         flushBuffer(buffer)
+    }
+
+    fun addHighlightedCoordinate(highlightedCoordinate: HighlightedCoordinate) {
+        highlightedCoordinates.add(highlightedCoordinate)
+    }
+
+    fun addHighlightedCoordinates(highlightedCoordinates: List<HighlightedCoordinate>) {
+        this.highlightedCoordinates.addAll(highlightedCoordinates)
+    }
+
+    fun removeHighlightedCoordinate(highlightedCoordinate: HighlightedCoordinate) {
+        highlightedCoordinates.remove(highlightedCoordinate)
+    }
+
+    fun removeAllHighlightedCoordinates() {
+        highlightedCoordinates.clear()
     }
 
     private fun flushBuffer(buffer: Grid<AsciiCharacterData>) {
@@ -74,7 +95,7 @@ open class AsciiCamera(
                 subpanelTileX in 0..buffer.lastColumnIndex
                 && subpanelTileY in 0..buffer.lastRowIndex
             ) {
-                val tileBgColor = zone.tiles[creature.position].backgroundColor
+                val tileBgColor = zone.tiles[creature.position.point].backgroundColor
                 buffer[subpanelTileX, subpanelTileY] = AsciiCharacterData(creature.glyph, creature.color, tileBgColor)
             }
         }
@@ -123,12 +144,22 @@ open class AsciiCamera(
                 val lightValueColor = zoneLightMapVal.normalizedColor * zoneLightMapVal.intensity
 
                 buffer[bufferCoordinate].foregroundColor = (
-                        buffer[bufferCoordinate].foregroundColor.toNormalizedRgb() * lightValueColor
-                        ).toColor()
+                    buffer[bufferCoordinate].foregroundColor.toNormalizedRgb() * lightValueColor
+                ).toColor()
 
                 buffer[bufferCoordinate].backgroundColor = (
-                        buffer[bufferCoordinate].backgroundColor.toNormalizedRgb() * lightValueColor
-                        ).toColor()
+                    buffer[bufferCoordinate].backgroundColor.toNormalizedRgb() * lightValueColor
+                ).toColor()
+            }
+        }
+    }
+
+    private fun drawHighlightedTiles(cameraOrigin: Point, buffer: Grid<AsciiCharacterData>) {
+        highlightedCoordinates.forEach { highlightedCoordinate ->
+            val bufferCoordinate = highlightedCoordinate.coordinate - cameraOrigin
+
+            if (contentBounds.contains(bufferCoordinate)) {
+                buffer[bufferCoordinate].backgroundColor = highlightedCoordinate.color
             }
         }
     }

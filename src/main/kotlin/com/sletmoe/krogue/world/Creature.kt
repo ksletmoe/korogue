@@ -2,11 +2,10 @@ package com.sletmoe.krogue.world
 
 import mu.KotlinLogging
 import java.awt.Color
-import java.awt.Point
 import kotlin.random.Random
 
 open class Creature(
-    position: Point,
+    position: ZonalPosition,
     name: String,
     glyph: Char,
     color: Color,
@@ -42,16 +41,16 @@ open class Creature(
         other.damage(20)
     }
 
-    fun move(zone: Zone, dx: Int, dy: Int) {
+    override fun moveInZone(dx: Int, dy: Int) {
         val destinationX = position.x + dx
         val destinationY = position.y + dy
 
-        if (zone.isWalkable(destinationX, destinationY)) {
-            super.move(dx, dy)
-            lightSource?.move(dx, dy)
-            zone.recalculateLightMap()
+        if (position.zone.isWalkable(destinationX, destinationY)) {
+            super.moveInZone(dx, dy)
+            lightSource?.moveInZone(dx, dy)
+            position.zone.recalculateLightMap()
         } else {
-            val otherCreature = zone.creatureAt(destinationX, destinationY)
+            val otherCreature = position.zone.creatureAt(destinationX, destinationY)
             otherCreature?.let { attack(otherCreature) }
         }
     }
@@ -61,32 +60,32 @@ open class Creature(
         if (name == "sheep" && performAction > 98) {
             when (random.nextInt(3)) {
                 0 -> {
-                    move(zone, 1, 0)
+                    moveInZone(1, 0)
                 }
                 1 -> {
-                    move(zone, -1, 0)
+                    moveInZone(-1, 0)
                 }
                 2 -> {
-                    move(zone, 0, 1)
+                    moveInZone(0, 1)
                 }
                 3 -> {
-                    move(zone, 0, -1)
+                    moveInZone(0, -1)
                 }
             }
         } else if (name == "zombie" && performAction > 98) {
-            val creatures = zone.getCreaturesInArea(position, 10, 10).filter { it != this }
+            val creatures = zone.getCreaturesInArea(position.point, 10, 10).filter { it != this }
 
             if (creatures.isNotEmpty()) {
                 val creature = creatures[0]
 
                 if (position.x > creature.position.x) {
-                    move(zone, -1, 0)
+                    moveInZone(-1, 0)
                 } else if (position.x < creature.position.x) {
-                    move(zone, 1, 0)
+                    moveInZone(1, 0)
                 } else if (position.y > creature.position.y) {
-                    move(zone, 0, -1)
+                    moveInZone(0, -1)
                 } else if (position.y < creature.position.y) {
-                    move(zone, 0, 1)
+                    moveInZone(0, 1)
                 }
             }
         }

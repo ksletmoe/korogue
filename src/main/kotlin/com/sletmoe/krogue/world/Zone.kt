@@ -5,20 +5,22 @@ import com.sletmoe.krogue.algorithms.lighting.LightValue
 import com.sletmoe.krogue.algorithms.zonegen.ZoneFeatureGenerator
 import com.sletmoe.krogue.utilities.Grid
 import com.sletmoe.krogue.utilities.initialize
-import java.awt.Color
 import java.awt.Point
 import kotlin.random.Random
 
 open class Zone(
     val zoneId: String,
     val tiles: Grid<Tile>,
-    var lightSources: List<LightSource> = mutableListOf(),
-    var creatures: List<Creature> = mutableListOf(),
+    private val lightSources: MutableList<LightSource> = mutableListOf(),
+    val _creatures: MutableList<Creature> = mutableListOf(),
 ) {
     val width: Int
         get() = tiles.width
     val height: Int
         get() = tiles.height
+
+    val creatures: List<Creature>
+        get() = _creatures.toList()
 
     val lightMap: Grid<LightValue?> = Grid(tiles.width, tiles.height, null)
 
@@ -34,14 +36,32 @@ open class Zone(
         }
     }
 
+    fun addCreature(creature: Creature) {
+        _creatures.add(creature)
+        creature.lightSource?.let { addLightSource(it) }
+    }
+
+    fun removeCreature(creature: Creature) {
+        _creatures.remove(creature)
+        creature.lightSource?.let { removeLightSource(it) }
+    }
+
+    fun addLightSource(lightSource: LightSource) {
+        lightSources.add(lightSource)
+    }
+
+    fun removeLightSource(lightSource: LightSource) {
+        lightSources.remove(lightSource)
+    }
+
     fun recalculateLightMap() {
         lightMap.fill(null)
 
         lightSources.forEach { lightSource ->
-            lightMap.forEachCoordinateInRadius(lightSource.position, lightSource.lightRadius) { lightMapCoord ->
+            lightMap.forEachCoordinateInRadius(lightSource.position.point, lightSource.lightRadius) { lightMapCoord ->
                 val existingLightMapVal = lightMap[lightMapCoord]
                 val newLightVal = lightSource.calculateLightValue(
-                    lightSource.position.distance(lightMapCoord)
+                    lightSource.position.point.distance(lightMapCoord)
                 )
 
                 lightMap[lightMapCoord] = if (existingLightMapVal != null) {
@@ -58,13 +78,11 @@ open class Zone(
 
     open class Builder(
         private val zoneId: String,
-        private val width: Int,
-        private val height: Int,
+        width: Int,
+        height: Int,
         private val random: Random = Random.Default
     ) {
         private val tiles: Grid<Tile> = Grid(width, height, BLANK_TILE)
-        private val creatures: MutableList<Creature> = mutableListOf()
-        private val lightSources: MutableList<LightSource> = mutableListOf()
 
         fun fill(tile: Tile) {
             tiles.forEachCoordinate { coordinate ->
@@ -76,60 +94,11 @@ open class Zone(
             tiles[x, y] = tile
         }
 
-        fun addCreature(creature: Creature) {
-            creatures.add(creature)
-            creature.lightSource?.let { lightSources.add(it) }
-        }
-
-        fun addCreatures(creatures: List<Creature>) {
-            creatures.forEach { addCreature(it) }
-        }
-
-        fun addLightSource(lightSource: LightSource) {
-            lightSources.add(lightSource)
-        }
-
-        private fun createCreature(type: String, x: Int, y: Int): Creature {
-            return when (type) {
-                "zombie" -> {
-                    Creature(Point(x, y), "zombie", 'z', Color.green, "aggressive")
-                }
-                "sheep" -> {
-                    Creature(Point(x, y), "sheep", 's', Color.white, "docile")
-                }
-                else -> {
-                    throw RuntimeException()
-                }
-            }
-        }
-
-        fun populateZone(numCreatures: Int) {
-            repeat(numCreatures) {
-                var rndX = 0
-                var rndY = 0
-
-                do {
-                    rndX = random.nextInt(width)
-                    rndY = random.nextInt(height)
-                } while (!tiles[rndX, rndY].isWalkable)
-
-                val creatureType = random.nextInt(2)
-
-                val creature = if (creatureType == 0) {
-                    createCreature("zombie", rndX, rndY)
-                } else {
-                    createCreature("sheep", rndX, rndY)
-                }
-
-                creatures.add(creature)
-            }
-        }
-
         fun addFeature(featureGenerator: ZoneFeatureGenerator) {
             featureGenerator(tiles, random)
         }
 
-        fun build(): Zone = Zone(zoneId, tiles, lightSources, creatures)
+        fun build(): Zone = Zone(zoneId, tiles)
     }
 
     companion object {

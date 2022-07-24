@@ -7,7 +7,7 @@ import java.awt.Color
 import java.awt.Point
 
 class LightSource(
-    position: Point,
+    position: ZonalPosition,
     name: String,
     color: Color,
     var lightRadius: Double,
