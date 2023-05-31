@@ -1,5 +1,6 @@
 package com.sletmoe.krogue.graphics
 
+import java.awt.Dimension
 import java.awt.Rectangle
 
 val MAX_BOUNDS = Rectangle(0, 0, Int.MAX_VALUE, Int.MAX_VALUE)
@@ -10,6 +11,9 @@ abstract class AsciiSubpanelComponent(private var _bounds: Rectangle = MAX_BOUND
         set(value) {
             setBoundsImpl(value)
         }
+
+    val size: Dimension
+        get() = bounds.size
 
     abstract fun refresh()
     abstract fun onNewBounds()

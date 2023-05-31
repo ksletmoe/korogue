@@ -4,31 +4,32 @@ import java.awt.Dimension
 import java.awt.Rectangle
 
 abstract class AsciiSubpanelGroup : AsciiSubpanelComponent() {
-    override val minimumSize: Dimension
-        get() = getMinimumSizeImpl()
-    override val preferredSize: Dimension
-        get() = getPreferredSizeImpl()
-    override val maximumSize: Dimension
-        get() = getMaximumSizeImpl()
-
     protected var components: MutableList<AsciiSubpanelComponent> = mutableListOf()
 
-    fun addComponent(component: AsciiSubpanelComponent) {
+    override fun getMinimumSize(containerSize: Dimension): Dimension = getMinimumSizeImpl(containerSize)
+    override fun getPreferredSize(containerSize: Dimension): Dimension = getPreferredSizeImpl(containerSize)
+    override fun getMaximumSize(containerSize: Dimension): Dimension = getMaximumSizeImpl(containerSize)
+
+    fun addComponent(component: AsciiSubpanelComponent, resizeComponents: Boolean = false) {
         components.add(component)
-        resizeComponents()
+        if (resizeComponents) {
+            resizeComponents()
+        }
     }
 
-    fun removeComponent(component: AsciiSubpanelComponent) {
+    fun removeComponent(component: AsciiSubpanelComponent, resizeComponents: Boolean = false) {
         components.removeIf { it == component }
-        resizeComponents()
+        if (resizeComponents) {
+            resizeComponents()
+        }
     }
 
-    protected fun componentPreferredDimensionSpecs(): List<ComponentDimensionSpec> =
-        components.map { ComponentDimensionSpec(it, Dimension(it.preferredSize)) }
+    protected fun componentPreferredDimensionSpecs(containerSize: Dimension): List<ComponentDimensionSpec> =
+        components.map { ComponentDimensionSpec(it, it.getPreferredSize(containerSize)) }
 
     override fun setBoundsImpl(newBounds: Rectangle) {
-        val minSize = minimumSize
-        val maxSize = maximumSize
+        val minSize = getMinimumSize(newBounds.size)
+        val maxSize = getMaximumSize(newBounds.size)
 
         if (newBounds.width < minSize.width || newBounds.height < minSize.height) {
             throw RuntimeException("New bounds $newBounds has smaller dimensions than the allowed minimum $minSize")
@@ -47,9 +48,9 @@ abstract class AsciiSubpanelGroup : AsciiSubpanelComponent() {
     }
 
     abstract fun resizeComponents()
-    abstract fun getMinimumSizeImpl(): Dimension
-    abstract fun getPreferredSizeImpl(): Dimension
-    abstract fun getMaximumSizeImpl(): Dimension
+    abstract fun getMinimumSizeImpl(containerSize: Dimension): Dimension
+    abstract fun getPreferredSizeImpl(containerSize: Dimension): Dimension
+    abstract fun getMaximumSizeImpl(containerSize: Dimension): Dimension
 
     protected data class ComponentDimensionSpec(val component: AsciiSubpanelComponent, val dimension: Dimension)
 }

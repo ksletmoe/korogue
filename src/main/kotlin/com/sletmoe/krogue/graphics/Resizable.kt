@@ -4,9 +4,9 @@ import java.awt.Dimension
 import java.awt.Rectangle
 
 interface Resizable {
-    val minimumSize: Dimension
-    val preferredSize: Dimension
-    val maximumSize: Dimension
+    fun getMinimumSize(containerSize: Dimension): Dimension
+    fun getPreferredSize(containerSize: Dimension): Dimension
+    fun getMaximumSize(containerSize: Dimension): Dimension
 
     var bounds: Rectangle
 }

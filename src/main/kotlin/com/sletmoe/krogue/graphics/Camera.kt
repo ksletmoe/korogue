@@ -10,6 +10,7 @@ import com.sletmoe.krogue.utilities.initialize
 import com.sletmoe.krogue.utilities.minus
 import com.sletmoe.krogue.utilities.or
 import com.sletmoe.krogue.utilities.plus
+import com.sletmoe.krogue.world.HighlightedCoordinate
 import com.sletmoe.krogue.world.Zone
 import java.awt.Color
 import java.awt.Point
@@ -23,8 +24,6 @@ interface Camera {
 }
 
 typealias CameraFocusProvider = () -> Point
-
-data class HighlightedCoordinate(val coordinate: Point, val color: Color)
 
 open class AsciiCamera(
     ui: UserInterface,
@@ -156,7 +155,7 @@ open class AsciiCamera(
 
     private fun drawHighlightedTiles(cameraOrigin: Point, buffer: Grid<AsciiCharacterData>) {
         highlightedCoordinates.forEach { highlightedCoordinate ->
-            val bufferCoordinate = highlightedCoordinate.coordinate - cameraOrigin
+            val bufferCoordinate = highlightedCoordinate.position.point - cameraOrigin
 
             if (contentBounds.contains(bufferCoordinate)) {
                 buffer[bufferCoordinate].backgroundColor = highlightedCoordinate.color

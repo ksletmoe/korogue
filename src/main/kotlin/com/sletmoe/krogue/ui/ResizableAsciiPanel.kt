@@ -45,7 +45,7 @@ class ResizableAsciiPanel(dimensionsInCharacters: Dimension, font: AsciiFont, ba
     }
 
     fun setSubpanelGroup(group: AsciiSubpanelGroup) {
-        val componentMinSize = group.minimumSize
+        val componentMinSize = group.getMinimumSize(size)
         if (displayBounds.contains(Rectangle(0, 0, componentMinSize.width, componentMinSize.height))) {
             group.bounds = Rectangle(0, 0, widthInCharacters, heightInCharacters)
             subpanelGroup = group

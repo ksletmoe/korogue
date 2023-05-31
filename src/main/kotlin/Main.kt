@@ -41,14 +41,27 @@ class MyGame(
 
     private val topBar = AsciiDisplay.create(ui) {
         minimumSizeProvider = { Dimension(80, 3) }
-        preferredSizeProvider = { Dimension(Int.MAX_VALUE, 5) }
+        preferredSizeProvider = {  containerSize ->
+            Dimension(containerSize.width, 5)
+        }
         maximumSizeProvider = { Dimension(Int.MAX_VALUE, 5) }
         border = Borders.singleLine(Color.blue, Color.black)
     }
-    private val sideBar = AsciiDisplay.create(ui) {
-        minimumSizeProvider = { Dimension(16, 16) }
-        preferredSizeProvider = { Dimension((ui.widthInCharacters * 0.15).toInt(), Int.MAX_VALUE) }
+    private val creatureList = AsciiDisplay.create(ui) {
+        minimumSizeProvider = { Dimension(16, 10) }
+        preferredSizeProvider = { containerSize ->
+            Dimension((containerSize.width * 0.15).toInt(), containerSize.height / 2)
+        }
         maximumSizeProvider = { Dimension(20, Int.MAX_VALUE) }
+        border = Borders.singleLine(Color.blue, Color.black) {
+            topRightCorner = AsciiCharacterData(Char(194), Color.blue, Color.black)
+            bottomRightCorner = AsciiCharacterData(Char(193), Color.blue, Color.black)
+        }
+    }
+    private val messageBox = AsciiDisplay.create(ui) {
+        minimumSizeProvider = creatureList.minimumSizeProvider
+        preferredSizeProvider = creatureList.preferredSizeProvider
+        maximumSizeProvider = creatureList.maximumSizeProvider
         border = Borders.singleLine(Color.blue, Color.black) {
             topRightCorner = AsciiCharacterData(Char(194), Color.blue, Color.black)
             bottomRightCorner = AsciiCharacterData(Char(193), Color.blue, Color.black)
@@ -100,7 +113,12 @@ class MyGame(
                 addComponent(topBar)
                 addComponent(
                     AsciiSubpanelHorizontalGroup.create {
-                        addComponent(sideBar)
+                        addComponent(
+                            AsciiSubpanelVerticalGroup.create {
+                                addComponent(creatureList)
+                                addComponent(messageBox)
+                            }
+                        )
                         addComponent(camera)
                     }
                 )
@@ -199,7 +217,7 @@ class MyGame(
     }
 
     private fun updateSideBar() {
-        sideBar.fill(' ', Color.black, Color.black)
+        creatureList.fill(' ', Color.black, Color.black)
         val cameraViewArea = camera.viewArea
         val creaturesInView = world.currentZone.creatures
             .filter { cameraViewArea.contains(it.position.point) }
@@ -210,17 +228,17 @@ class MyGame(
 
         // write sidebar header
         val creatureNameColumnHeader = "Creature".padEnd(creatureNameColumnWidth)
-        sideBar.write("${creatureNameColumnHeader}HP", Color.white, Color.black, sideBarInfoStartingPoint)
+        creatureList.write("${creatureNameColumnHeader}HP", Color.white, Color.black, sideBarInfoStartingPoint)
 
         creaturesInView.forEachIndexed { idx, creature ->
             val labelStartingPoint = sideBarInfoStartingPoint + Point(0, idx + 2)
-            sideBar.write(
+            creatureList.write(
                 creature.name.padEnd(creatureNameColumnWidth),
                 creature.color,
                 Color.black,
                 labelStartingPoint
             )
-            sideBar.write(
+            creatureList.write(
                 creature.health.toString(),
                 healthTextColor(creature.health, creature.maxHp),
                 Color.black,

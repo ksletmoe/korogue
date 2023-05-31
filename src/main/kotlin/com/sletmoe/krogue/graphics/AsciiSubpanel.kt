@@ -9,13 +9,13 @@ import java.awt.Point
 import java.awt.Rectangle
 import kotlin.math.min
 
-typealias DimensionProvider = () -> Dimension
+typealias DimensionProvider = (Dimension) -> Dimension
 
 object DefaultSubpanelSizes {
     val MINIMUM: DimensionProvider
         get() = { Dimension(1, 1) }
     val PREFERRED: DimensionProvider
-        get() = { Dimension(Int.MAX_VALUE, Int.MAX_VALUE) }
+        get() = { containerBounds -> Dimension(containerBounds.width, containerBounds.height) }
     val MAXIMUM: DimensionProvider
         get() = { Dimension(Int.MAX_VALUE, Int.MAX_VALUE) }
 }
@@ -29,15 +29,6 @@ abstract class AsciiSubpanel(
     var preferredSizeProvider: DimensionProvider = DefaultSubpanelSizes.PREFERRED,
     var maximumSizeProvider: DimensionProvider = DefaultSubpanelSizes.MAXIMUM,
 ) : AsciiSubpanelComponent() {
-    override val minimumSize: Dimension
-        get() = minimumSizeProvider()
-
-    override val preferredSize: Dimension
-        get() = preferredSizeProvider()
-
-    override val maximumSize: Dimension
-        get() = maximumSizeProvider()
-
     override var bounds: Rectangle
         get() = writableBounds()
         set(value) {
@@ -51,6 +42,12 @@ abstract class AsciiSubpanel(
             // adding a border potentially changes our content bounds
             onNewBounds()
         }
+
+    override fun getMinimumSize(containerSize: Dimension): Dimension = minimumSizeProvider(containerSize)
+
+    override fun getPreferredSize(containerSize: Dimension): Dimension = preferredSizeProvider(containerSize)
+
+    override fun getMaximumSize(containerSize: Dimension): Dimension = maximumSizeProvider(containerSize)
 
     protected val contentBounds: Rectangle
         get() {

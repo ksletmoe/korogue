@@ -10,41 +10,45 @@ import kotlin.math.max
 import kotlin.math.min
 
 class AsciiSubpanelHorizontalGroup : AsciiSubpanelGroup() {
-    override fun getMinimumSizeImpl(): Dimension {
+    override fun getMinimumSizeImpl(containerSize: Dimension): Dimension {
         return Dimension(
-            components.nonOverflowingSumOf { it.minimumSize.width },
-            components.maxOfOrNull { it.minimumSize.height } ?: 0,
+            components.nonOverflowingSumOf { it.getMinimumSize(containerSize).width },
+            components.maxOfOrNull { it.getMinimumSize(containerSize).height } ?: 0,
         )
     }
 
-    override fun getPreferredSizeImpl(): Dimension {
-        val medianPreferredHeight = medianOrNull(components.map { it.preferredSize.height }) ?: 0
+    override fun getPreferredSizeImpl(containerSize: Dimension): Dimension {
+        val medianPreferredHeight = medianOrNull(components.map { it.getPreferredSize(containerSize).height }) ?: 0
         return Dimension(
-            components.nonOverflowingSumOf { it.preferredSize.width },
+            components.nonOverflowingSumOf { it.getPreferredSize(containerSize).width },
             // not all elements will be of the same height. We want to aim for the median preferred height, but need
             // to be sure what we pick is greater than the highest min height
-            max(medianPreferredHeight, minimumSize.height),
+            max(medianPreferredHeight, getMinimumSize(containerSize).height),
         )
     }
 
-    override fun getMaximumSizeImpl(): Dimension {
+    override fun getMaximumSizeImpl(containerSize: Dimension): Dimension {
         var maxWidth = Int.MAX_VALUE
         if (components.isNotEmpty()) {
-            maxWidth = components.nonOverflowingSumOf { it.maximumSize.width }
+            maxWidth = components.nonOverflowingSumOf { it.getMaximumSize(containerSize).width }
         }
         return Dimension(
             maxWidth,
-            components.maxOfOrNull { it.maximumSize.height } ?: Int.MAX_VALUE,
+            components.maxOfOrNull { it.getMaximumSize(containerSize).height } ?: Int.MAX_VALUE,
         )
     }
 
     override fun resizeComponents() {
         // set up new dimension specs for each component. These will start off set to each component's preferredSize
-        val componentDimensionSpecs = componentPreferredDimensionSpecs()
+        val componentDimensionSpecs = componentPreferredDimensionSpecs(size)
         // set each component's height to the min of its preferred height and our height
-        componentDimensionSpecs.forEach { it.dimension.height = min(it.component.preferredSize.height, bounds.height) }
+        componentDimensionSpecs.forEach { componentDimSpec ->
+            componentDimSpec.dimension.height = min(
+                componentDimSpec.component.getMaximumSize(size).height, size.height
+            )
+        }
 
-        val widthDelta = preferredSize.width - bounds.width
+        val widthDelta = getPreferredSize(size).width - size.width
 
         if (widthDelta > 0) {
             // we need to scale components down.
@@ -59,7 +63,7 @@ class AsciiSubpanelHorizontalGroup : AsciiSubpanelGroup() {
                     // get down to (widthDelta - trimmedChars) < trimableComponents, we'll need to be sure we aren't
                     // trimming more than we should. Calculate the maxTrimVal here such that we don't trim too much
                     val maxTrimVal = min(
-                        componentDimSpec.dimension.width - componentDimSpec.component.minimumSize.width,
+                        componentDimSpec.dimension.width - componentDimSpec.component.getMinimumSize(size).width,
                         widthDelta - trimmedChars,
                     )
                     val componentTrimVal = min(trimVal, maxTrimVal)
@@ -80,7 +84,7 @@ class AsciiSubpanelHorizontalGroup : AsciiSubpanelGroup() {
 
                 expandableComponentDimSpecs = expandableComponentDimSpecs.filter { componentDimSpec ->
                     val maxExpandVal = min(
-                        componentDimSpec.component.maximumSize.width - componentDimSpec.dimension.width,
+                        componentDimSpec.component.getMaximumSize(size).width - componentDimSpec.dimension.width,
                         abs(widthDelta) - expandedChars,
                     )
                     val componentExpandVal = min(expandVal, maxExpandVal)

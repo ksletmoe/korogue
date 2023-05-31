@@ -6,6 +6,7 @@ import com.sletmoe.krogue.algorithms.zonegen.ZoneFeatureGenerator
 import com.sletmoe.krogue.utilities.Grid
 import com.sletmoe.krogue.utilities.initialize
 import java.awt.Point
+import java.awt.Rectangle
 import kotlin.random.Random
 
 open class Zone(
@@ -18,6 +19,8 @@ open class Zone(
         get() = tiles.width
     val height: Int
         get() = tiles.height
+
+    val bounds: Rectangle by lazy { Rectangle(0, 0, tiles.width, tiles.height) }
 
     val creatures: List<Creature>
         get() = _creatures.toList()
