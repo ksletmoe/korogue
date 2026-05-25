@@ -12,7 +12,7 @@ class Font(fontFileName: String, val charWidthPx: Int, val charHeightPx: Int) {
     val glyphs: List<Image>
 
     init {
-        val tileSheetInputStream = javaClass.getResourceAsStream(fontFileName)
+        val tileSheetInputStream = javaClass.getResourceAsStream("/$fontFileName")
 
         if (tileSheetInputStream != null) {
             tileSheet = TileSheet(tileSheetInputStream,  charWidthPx, charHeightPx)
@@ -29,10 +29,10 @@ class Font(fontFileName: String, val charWidthPx: Int, val charHeightPx: Int) {
 
             repeat(256) { idx ->
                 // font code pages are 16 by 16
-                val charX = (idx % 16) * tileSheet.tileWidthPx
-                val charY = (idx / 16) * tileSheet.tileHeightPx
+                val tileX = idx % 16
+                val tileY = idx / 16
 
-                glyphs.add(tileSheet.getTileImageFromSheet(charX, charY))
+                glyphs.add(tileSheet.getTileImageFromSheet(tileX, tileY))
             }
 
             return glyphs

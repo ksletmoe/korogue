@@ -34,6 +34,6 @@ class AsciiTileRenderer(private val font: Font, textureCacheConfig: CacheConfig?
     }
 
     private fun buildCacheKey(asciiTileDescriptor: AsciiTileDescriptor): Int {
-        return "${asciiTileDescriptor.character}-${asciiTileDescriptor.foregroundColor}-${asciiTileDescriptor.backgroundColor}".toInt()
+        return asciiTileDescriptor.hashCode()
     }
 }

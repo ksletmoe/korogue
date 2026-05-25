@@ -1,6 +1,7 @@
 package com.sletmoe.kotile.display
 
 import com.sletmoe.kotile.utilities.ResizableCanvas
+import javafx.scene.Node
 import javafx.scene.image.Image
 import kotlin.math.floor
 
@@ -10,6 +11,9 @@ class KotileCanvas private constructor(
 ) {
     private val canvas = ResizableCanvas()
     private val graphicsContext = canvas.graphicsContext2D
+
+    val node: Node
+        get() = canvas
 
     var widthPx: Double
         get() = canvas.width

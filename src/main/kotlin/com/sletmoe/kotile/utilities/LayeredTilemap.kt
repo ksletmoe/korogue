@@ -1,5 +1,6 @@
 package com.sletmoe.kotile.utilities
 
+import com.sletmoe.kotile.tiles.StaticTile
 import java.util.SortedMap
 
 class LayeredTilemap(val width: Int, val height: Int) {

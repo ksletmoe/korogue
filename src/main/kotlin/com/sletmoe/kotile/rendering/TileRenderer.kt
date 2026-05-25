@@ -1,6 +1,7 @@
 package com.sletmoe.kotile.rendering
 
 import com.sletmoe.kotile.display.KotileCanvas
+import com.sletmoe.kotile.tiles.StaticTile
 import com.sletmoe.kotile.utilities.Grid
 import com.sletmoe.kotile.utilities.Vector3Int
 import javafx.scene.image.Image

@@ -3,10 +3,14 @@ package com.sletmoe.kotile.display.ascii
 import com.sletmoe.kotile.display.KotileCanvas
 import com.sletmoe.kotile.utilities.CacheConfig
 import javafx.fxml.Initializable
+import javafx.scene.Node
 import java.net.URL
 import java.util.ResourceBundle
 
 class AsciiTileWindow private constructor(private val renderer: AsciiTileRenderer, private val canvas: KotileCanvas) : Initializable {
+    val node: Node
+        get() = canvas.node
+
     override fun initialize(location: URL, resources: ResourceBundle) {
 
     }
@@ -28,6 +32,8 @@ class AsciiTileWindow private constructor(private val renderer: AsciiTileRendere
                 tileWidthPx = config.font.charWidthPx
                 tileHeightPx = config.font.charHeightPx
             }
+            canvas.widthPx = (config.widthInTiles * config.font.charWidthPx).toDouble()
+            canvas.heightPx = (config.heightInTiles * config.font.charHeightPx).toDouble()
 
             return AsciiTileWindow(renderer, canvas)
         }

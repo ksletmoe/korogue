@@ -1,7 +1,7 @@
 plugins {
-    kotlin("jvm") version "1.8.20"
+    kotlin("jvm") version "2.3.21"
     application
-    id("org.openjfx.javafxplugin") version "0.0.14"
+    id("org.openjfx.javafxplugin") version "0.1.0"
 }
 
 group = "com.sletmoe"
@@ -15,6 +15,7 @@ val kotestVersion = "5.6.2"
 
 dependencies {
     implementation("com.sksamuel.aedile:aedile-core:1.2.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
 
     testImplementation(kotlin("test"))
     testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
@@ -22,8 +23,8 @@ dependencies {
 }
 
 javafx {
-    version = "17"
-    modules("javafx.controls", "javafx.fxml")
+    version = "21"
+    modules("javafx.controls", "javafx.fxml", "javafx.swing")
 }
 
 tasks.test {
@@ -31,7 +32,7 @@ tasks.test {
 }
 
 kotlin {
-    jvmToolchain(11)
+    jvmToolchain(21)
 }
 
 application {
