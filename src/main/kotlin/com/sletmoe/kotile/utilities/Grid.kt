@@ -27,7 +27,7 @@ class Grid<T>(val width: Int, val height: Int, private val defaultValue: T) {
         fill(defaultValue)
     }
 
-    suspend fun forEachIndexed(action: suspend (Int, Int, T) -> Unit) {
+    fun forEachIndexed(action: (Int, Int, T) -> Unit) {
         for (x in 0 until width) {
             for (y in 0 until height) {
                 action(x, y, get(x, y))

@@ -1,5 +1,9 @@
 package com.sletmoe.kotile.display.ascii
 
-import javafx.scene.paint.Color
+import com.badlogic.gdx.graphics.Color
 
-data class AsciiTileDescriptor(val character: Char, val foregroundColor: Color, val backgroundColor: Color)
+data class AsciiTileDescriptor(
+    val character: Char,
+    val foregroundColor: Color = Color.WHITE,
+    val backgroundColor: Color = Color.BLACK,
+)
