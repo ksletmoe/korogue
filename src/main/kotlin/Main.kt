@@ -1,5 +1,6 @@
 import com.sletmoe.kotile.display.ascii.AsciiTileDescriptor
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
+import javafx.animation.AnimationTimer
 import javafx.application.Application
 import javafx.application.Platform
 import javafx.embed.swing.SwingFXUtils
@@ -20,25 +21,40 @@ class KotileDemo : Application() {
             heightInTiles = 30
         }
 
-        runBlocking {
-            window.fill(AsciiTileDescriptor(' ', Color.WHITE, BACKGROUND))
-
-            val message = "Hello, kotile!"
-            message.forEachIndexed { i, character ->
-                window.drawTile(2 + i, 1, AsciiTileDescriptor(character, Color.LIMEGREEN, BACKGROUND))
-            }
-        }
-
         stage.title = "kotile"
         stage.scene = Scene(Group(window.node))
+        stage.show()
 
+        // Draw only after the first layout pass: showing the stage resizes the
+        // canvas, and ResizableCanvas.resize() clears it, so drawing earlier
+        // would be wiped.
         val snapshotPath = System.getProperty("kotile.snapshot")
-        if (snapshotPath != null) {
-            val image = stage.scene.snapshot(null)
-            ImageIO.write(SwingFXUtils.fromFXImage(image, null), "png", File(snapshotPath))
-            Platform.exit()
-        } else {
-            stage.show()
+        object : AnimationTimer() {
+            private var frame = 0
+
+            override fun handle(now: Long) {
+                when (frame) {
+                    0 -> draw(window)
+                    else -> {
+                        if (snapshotPath != null) {
+                            val image = window.node.snapshot(null, null)
+                            ImageIO.write(SwingFXUtils.fromFXImage(image, null), "png", File(snapshotPath))
+                            Platform.exit()
+                        }
+                        stop()
+                    }
+                }
+                frame++
+            }
+        }.start()
+    }
+
+    private fun draw(window: AsciiTileWindow) = runBlocking {
+        window.fill(AsciiTileDescriptor(' ', Color.WHITE, BACKGROUND))
+
+        val message = "Hello, kotile!"
+        message.forEachIndexed { i, character ->
+            window.drawTile(2 + i, 1, AsciiTileDescriptor(character, Color.LIMEGREEN, BACKGROUND))
         }
     }
 }
