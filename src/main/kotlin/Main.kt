@@ -7,7 +7,6 @@ import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.PixmapIO
 import com.sletmoe.kotile.display.KotileCanvas
-import com.sletmoe.kotile.display.ascii.AsciiTileDescriptor
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
 import com.sletmoe.kotile.rendering.SpriteTileRenderer
 import com.sletmoe.kotile.tiles.StaticTile
@@ -54,16 +53,10 @@ class KotileDemo : ApplicationAdapter() {
             widthInTiles = 80
             heightInTiles = 30
         }
-        label(0, "kotile - image sprite sheet (CC0 Vaarn 8x8) + tinting", Color.LIME)
-        label(2, "the sheet, untinted:", LABEL)
-        label(13, "same tile, per-tile hue tint:", LABEL)
-        label(17, "untinted:", LABEL)
-    }
-
-    private fun label(row: Int, text: String, color: Color) {
-        text.forEachIndexed { i, character ->
-            overlay.drawTile(2 + i, row, AsciiTileDescriptor(character, color, Color.CLEAR))
-        }
+        overlay.drawText(2, 0, "kotile - image sprite sheet (CC0 Vaarn 8x8) + tinting", Color.LIME, Color.CLEAR)
+        overlay.drawText(2, 2, "the sheet, untinted:", LABEL, Color.CLEAR)
+        overlay.drawText(2, 13, "same tile, per-tile hue tint:", LABEL, Color.CLEAR)
+        overlay.drawText(2, 17, "untinted:", LABEL, Color.CLEAR)
     }
 
     override fun render() {

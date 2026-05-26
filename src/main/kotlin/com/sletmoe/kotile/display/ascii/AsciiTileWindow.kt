@@ -32,6 +32,28 @@ class AsciiTileWindow private constructor(
         tiles[x, y] = tile
     }
 
+    /**
+     * Writes [text] starting at ([x], [y]), one character per cell to the
+     * right. Characters that fall outside the window are skipped rather than
+     * throwing.
+     */
+    fun drawText(
+        x: Int,
+        y: Int,
+        text: String,
+        foreground: Color = Color.WHITE,
+        background: Color = Color.BLACK,
+    ) {
+        if (y !in 0 until heightInTiles) return
+
+        text.forEachIndexed { index, character ->
+            val cellX = x + index
+            if (cellX in 0 until widthInTiles) {
+                tiles[cellX, y] = AsciiTileDescriptor(character, foreground, background)
+            }
+        }
+    }
+
     fun fill(tile: AsciiTileDescriptor) {
         for (y in 0 until heightInTiles) {
             for (x in 0 until widthInTiles) {

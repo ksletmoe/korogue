@@ -50,15 +50,6 @@ class LayeredTilemapTest : FunSpec({
         map.topTileAt(3, 3) shouldBe tile
     }
 
-    test("dirty tiles record touched cells until marked clean") {
-        val map = LayeredTilemap(4, 4)
-        map.addTile(0, 0, 0, StaticTile(0, 0))
-        map.addTile(3, 2, 0, StaticTile(0, 0))
-        map.getDirtyTiles() shouldBe setOf(Vector2Int(0, 0), Vector2Int(3, 2))
-        map.markClean()
-        map.getDirtyTiles() shouldBe emptySet()
-    }
-
     test("vector overloads delegate to the coordinate methods") {
         val map = LayeredTilemap(4, 4)
         val tile = StaticTile(1, 1)

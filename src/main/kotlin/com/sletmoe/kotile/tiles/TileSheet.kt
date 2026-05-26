@@ -14,12 +14,18 @@ import com.badlogic.gdx.utils.Disposable
  * [keyColor], when provided, is zeroed out to fully transparent on load, so a
  * sheet authored with a solid background (e.g. magenta or black) can be used
  * with alpha blending. Pass `null` to keep the image untouched.
+ *
+ * [margin] is the empty border (in pixels) around the whole sheet and
+ * [spacing] is the gap between adjacent tiles, matching the convention used by
+ * editors such as Tiled. Both default to 0 for tightly packed sheets.
  */
 class TileSheet(
     file: FileHandle,
     val tileWidthPx: Int,
     val tileHeightPx: Int,
     keyColor: Color? = null,
+    private val margin: Int = 0,
+    private val spacing: Int = 0,
 ) : Disposable {
     private val texture: Texture
 
@@ -35,17 +41,24 @@ class TileSheet(
         texture = Texture(pixmap)
         texture.setFilter(TextureFilter.Nearest, TextureFilter.Nearest)
 
-        widthInTiles = pixmap.width / tileWidthPx
-        heightInTiles = pixmap.height / tileHeightPx
+        widthInTiles = tilesAlong(pixmap.width, tileWidthPx)
+        heightInTiles = tilesAlong(pixmap.height, tileHeightPx)
 
         pixmap.dispose()
+    }
+
+    private fun tilesAlong(imagePx: Int, tilePx: Int): Int {
+        val usable = imagePx - 2 * margin + spacing
+        return if (usable > 0) usable / (tilePx + spacing) else 0
     }
 
     fun region(x: Int, y: Int): TextureRegion {
         require(x in 0 until widthInTiles) { "x must be in 0 until $widthInTiles, was $x" }
         require(y in 0 until heightInTiles) { "y must be in 0 until $heightInTiles, was $y" }
 
-        return TextureRegion(texture, x * tileWidthPx, y * tileHeightPx, tileWidthPx, tileHeightPx)
+        val px = margin + x * (tileWidthPx + spacing)
+        val py = margin + y * (tileHeightPx + spacing)
+        return TextureRegion(texture, px, py, tileWidthPx, tileHeightPx)
     }
 
     override fun dispose() = texture.dispose()

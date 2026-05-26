@@ -2,6 +2,8 @@ package com.sletmoe.kotile
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.Pixmap
+import com.badlogic.gdx.graphics.PixmapIO
 import com.sletmoe.kotile.display.KotileCanvas
 import com.sletmoe.kotile.display.ascii.AsciiTileDescriptor
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
@@ -87,6 +89,64 @@ class RenderingIntegrationTest : FunSpec({
         avg.r shouldBeGreaterThan avg.b
         avg.g.toDouble() shouldBe (0.0 plusOrMinus 0.1)
         avg.b.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+    }
+
+    test("TileSheet honors margin and spacing").config(enabled = HeadlessGl.available) {
+        val pixels = HeadlessGl.render(8, 4, Color.BLACK) {
+            // A 2x1 sheet of 4x4 tiles: 1px border, 2px gap between tiles.
+            // Width = 2*margin + 2*tile + 1*spacing = 2 + 8 + 2 = 12; height = 6.
+            val sheetPixmap = Pixmap(12, 6, Pixmap.Format.RGBA8888)
+            sheetPixmap.setColor(Color.BLACK)
+            sheetPixmap.fill()
+            sheetPixmap.setColor(Color.RED)
+            sheetPixmap.fillRectangle(1, 1, 4, 4) // tile (0,0)
+            sheetPixmap.setColor(Color.GREEN)
+            sheetPixmap.fillRectangle(7, 1, 4, 4) // tile (1,0): 1 + (4 + 2)
+            val file = java.io.File.createTempFile("kotile-sheet", ".png").apply { deleteOnExit() }
+            PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), sheetPixmap)
+            sheetPixmap.dispose()
+
+            val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 4, 4, margin = 1, spacing = 2)
+            sheet.widthInTiles shouldBe 2
+            sheet.heightInTiles shouldBe 1
+
+            val canvas = KotileCanvas(4, 4)
+            canvas.begin()
+            canvas.drawTile(0, 0, sheet.region(0, 0))
+            canvas.drawTile(1, 0, sheet.region(1, 0))
+            canvas.end()
+            canvas.dispose()
+            sheet.dispose()
+        }
+
+        val left = pixels.averageColor(0, 0, 4, 4)
+        left.r.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        left.g.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+
+        val right = pixels.averageColor(4, 0, 8, 4)
+        right.g.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        right.r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+
+        pixels.dispose()
+    }
+
+    test("AsciiTileWindow.drawText renders glyphs and clips to the window").config(enabled = HeadlessGl.available) {
+        val pixels = HeadlessGl.render(80, 40, Color.BLACK) {
+            val window = AsciiTileWindow.create {
+                widthInTiles = 8
+                heightInTiles = 4
+            }
+            // Starts at column 6 in an 8-wide window: only 2 cells fit, the
+            // rest must be clipped rather than throwing.
+            window.drawText(6, 0, "HELLO", Color.RED, Color.CLEAR)
+            window.render()
+            window.dispose()
+        }
+
+        // Cell (6,0) holds a red glyph; cell (0,0) was never written.
+        pixels.averageColor(60, 0, 70, 10).r.toDouble() shouldBeGreaterThan 0.05
+        pixels.averageColor(0, 0, 10, 10).r.toDouble() shouldBe (0.0 plusOrMinus 0.05)
+        pixels.dispose()
     }
 })
 
