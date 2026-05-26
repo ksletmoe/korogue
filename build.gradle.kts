@@ -11,7 +11,7 @@ repositories {
 }
 
 val gdxVersion = "1.14.1"
-val kotestVersion = "5.6.2"
+val kotestVersion = "6.1.11"
 
 dependencies {
     implementation("com.badlogicgames.gdx:gdx:$gdxVersion")
