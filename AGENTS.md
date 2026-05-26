@@ -40,6 +40,7 @@ toolchain). Run everything through `./gradlew`.
 ./gradlew :demo:run              # launch the demo app (opens a window)
 ./gradlew :demo:installDist      # stage the demo under demo/build/install/kotile
 ./gradlew :library:publishToMavenLocal   # publish com.sletmoe:kotile to ~/.m2
+./gradlew :library:dokkaGenerate         # render API docs to library/build/dokka/html
 ```
 
 Tests use **Kotest** (`FunSpec`) and live in `:library`. Two kinds:
@@ -78,10 +79,21 @@ LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe \
 
 ## Publishing
 
-`:library` applies `maven-publish` and publishes `com.sletmoe:kotile` (jar +
-sources jar). The POM declares only **gdx core** as a dependency — the LWJGL3
-backend and natives are test-only and do not leak to consumers. Maven Central
-would additionally require a Javadoc jar, signing, and credentials (not set up).
+`:library` applies `maven-publish` and publishes `com.sletmoe:kotile` with
+three jars: the classes, a **sources** jar, and a **javadoc** jar packaged from
+the Dokka HTML output. The POM declares only **gdx core** as a dependency — the
+LWJGL3 backend and natives are test-only and do not leak to consumers. Maven
+Central would additionally require GPG signing and Sonatype credentials (not
+set up here).
+
+## Documentation
+
+The public API is documented with **KDoc**. `org.jetbrains.dokka` (applied in
+`:library`) renders it: `./gradlew :library:dokkaGenerate` writes HTML to
+`library/build/dokka/html`, and the same output is bundled as the javadoc jar.
+The JDK external doc link is disabled (the JDK docs aren't reachable here) and
+`reportUndocumented` is on, so undocumented public declarations surface as build
+warnings — keep new public API documented.
 
 ## Architecture
 

@@ -3,10 +3,12 @@ package com.sletmoe.kotile.tiles
 import com.badlogic.gdx.graphics.Color
 
 /**
- * A tile drawn from a [TileSheet] cell at ([sheetX], [sheetY]).
+ * A tile drawn from a [TileSheet] cell.
  *
- * [tint] is multiplied with the sprite's pixels at draw time; the default
- * [Color.WHITE] leaves the sprite unchanged (no color manipulation).
+ * @property sheetX column of the tile within the sheet
+ * @property sheetY row of the tile within the sheet
+ * @property tint color multiplied with the sprite's pixels at draw time; the
+ *   default [Color.WHITE] leaves the sprite unchanged (no color manipulation)
  */
 data class StaticTile(
     val sheetX: Int,

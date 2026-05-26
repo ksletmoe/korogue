@@ -9,15 +9,18 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.utils.Disposable
 
 /**
- * Slices an image into a grid of equally sized tiles.
+ * Slices an image into a grid of equally sized tiles, uploaded to the GPU with
+ * nearest-neighbour filtering so pixel art stays crisp when scaled. Owns the
+ * backing texture and must be [dispose]d.
  *
- * [keyColor], when provided, is zeroed out to fully transparent on load, so a
- * sheet authored with a solid background (e.g. magenta or black) can be used
- * with alpha blending. Pass `null` to keep the image untouched.
- *
- * [margin] is the empty border (in pixels) around the whole sheet and
- * [spacing] is the gap between adjacent tiles, matching the convention used by
- * editors such as Tiled. Both default to 0 for tightly packed sheets.
+ * @param file the image to load (e.g. `Gdx.files.classpath("sheet.png")`)
+ * @param keyColor if non-null, every pixel of exactly this color is made fully
+ *   transparent on load, so a sheet authored with a solid background (e.g.
+ *   magenta or black) can be alpha-blended. Pass `null` to keep the image as-is.
+ * @param margin empty border, in pixels, around the whole sheet (Tiled-style)
+ * @param spacing gap, in pixels, between adjacent tiles (Tiled-style)
+ * @property tileWidthPx width of a single tile, in pixels
+ * @property tileHeightPx height of a single tile, in pixels
  */
 class TileSheet(
     file: FileHandle,
@@ -29,7 +32,10 @@ class TileSheet(
 ) : Disposable {
     private val texture: Texture
 
+    /** Number of whole tiles across the sheet. */
     val widthInTiles: Int
+
+    /** Number of whole tiles down the sheet. */
     val heightInTiles: Int
 
     init {
@@ -52,6 +58,11 @@ class TileSheet(
         return if (usable > 0) usable / (tilePx + spacing) else 0
     }
 
+    /**
+     * Returns the region for the tile at column [x], row [y].
+     *
+     * @throws IllegalArgumentException if [x] or [y] is outside the sheet
+     */
     fun region(x: Int, y: Int): TextureRegion {
         require(x in 0 until widthInTiles) { "x must be in 0 until $widthInTiles, was $x" }
         require(y in 0 until heightInTiles) { "y must be in 0 until $heightInTiles, was $y" }
@@ -61,6 +72,7 @@ class TileSheet(
         return TextureRegion(texture, px, py, tileWidthPx, tileHeightPx)
     }
 
+    /** Disposes the backing texture. */
     override fun dispose() = texture.dispose()
 
     private companion object {

@@ -2,6 +2,7 @@ plugins {
     kotlin("jvm")
     `java-library`
     `maven-publish`
+    id("org.jetbrains.dokka")
 }
 
 val gdxVersion: String by project
@@ -29,6 +30,23 @@ java {
     withSourcesJar()
 }
 
+dokka {
+    moduleName.set("kotile")
+    dokkaSourceSets.configureEach {
+        // The JDK API docs aren't reachable from this build environment.
+        enableJdkDocumentationLink.set(false)
+        reportUndocumented.set(true)
+    }
+}
+
+// Package the generated API docs as the javadoc artifact for publishing.
+val dokkaJavadocJar by tasks.registering(Jar::class) {
+    description = "Packages the Dokka API documentation as the javadoc artifact."
+    dependsOn(tasks.named("dokkaGeneratePublicationHtml"))
+    from(layout.buildDirectory.dir("dokka/html"))
+    archiveClassifier.set("javadoc")
+}
+
 tasks.test {
     useJUnitPlatform()
     // Headless GL integration tests need a display + software OpenGL. They are
@@ -44,6 +62,7 @@ publishing {
         create<MavenPublication>("maven") {
             artifactId = "kotile"
             from(components["java"])
+            artifact(dokkaJavadocJar)
             pom {
                 name.set("kotile")
                 description.set("A Kotlin tile-rendering library for ASCII and image sprite sheets, built on libGDX.")
