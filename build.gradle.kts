@@ -25,6 +25,12 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    // Headless GL integration tests need a display + software OpenGL. They are
+    // skipped automatically when DISPLAY is absent (see HeadlessGl.available);
+    // run them under e.g. `xvfb-run --auto-servernum ./gradlew test`.
+    environment("LIBGL_ALWAYS_SOFTWARE", "1")
+    environment("GALLIUM_DRIVER", "llvmpipe")
+    System.getenv("DISPLAY")?.let { environment("DISPLAY", it) }
 }
 
 kotlin {

@@ -28,7 +28,22 @@ toolchain). Run everything through `./gradlew`.
 ./gradlew installDist     # stage a runnable distribution under build/install/kotile
 ```
 
-There are no tests yet; `build` still validates compilation and assembly.
+Tests use **Kotest** (`FunSpec`). Two kinds:
+
+- **Unit tests** for GL-free logic (`Grid`, `LayeredTilemap`, `StaticTile`) —
+  run anywhere via `./gradlew test`.
+- **Headless GL integration tests** (`RenderingIntegrationTest`) that boot a
+  real offscreen LWJGL3 context, render through the public API, and assert on
+  framebuffer pixels. They are auto-skipped when no display is present
+  (`HeadlessGl.available`). To run them, provide a virtual display with
+  software OpenGL:
+
+  ```bash
+  xvfb-run -a -s "-screen 0 1024x768x24" ./gradlew test --no-daemon
+  ```
+
+  The `test` task forwards `DISPLAY` and forces Mesa software GL
+  (`LIBGL_ALWAYS_SOFTWARE=1`, `GALLIUM_DRIVER=llvmpipe`).
 
 ## Running headless (no display / CI / agents)
 
