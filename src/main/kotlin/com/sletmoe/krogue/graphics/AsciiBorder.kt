@@ -32,50 +32,54 @@ class AsciiBorder(
     val addedHeight: Int
         get() = topEdgeHeight + bottomEdgeHeight
 
-    fun withoutTop(): AsciiBorder = AsciiBorder(
-        rightEdge = rightEdge,
-        bottomRightCorner = bottomRightCorner,
-        bottomEdge = bottomEdge,
-        bottomLeftCorner = bottomLeftCorner,
-        leftEdge = leftEdge,
-        // if we've got a left or right border it's gonna look weird if we don't extend the sides up to the top of the
-        // content. So do that here
-        topLeftCorner = leftEdge,
-        topRightCorner = rightEdge,
-    )
+    fun withoutTop(): AsciiBorder =
+        AsciiBorder(
+            rightEdge = rightEdge,
+            bottomRightCorner = bottomRightCorner,
+            bottomEdge = bottomEdge,
+            bottomLeftCorner = bottomLeftCorner,
+            leftEdge = leftEdge,
+            // if we've got a left or right border it's gonna look weird if we don't extend the sides up to the top of the
+            // content. So do that here
+            topLeftCorner = leftEdge,
+            topRightCorner = rightEdge,
+        )
 
-    fun withoutRight(): AsciiBorder = AsciiBorder(
-        topLeftCorner = topLeftCorner,
-        topEdge = topEdge,
-        bottomEdge = bottomEdge,
-        bottomLeftCorner = bottomLeftCorner,
-        leftEdge = leftEdge,
-        // same as above, if we have a top or bottom border, extend it in place of the right corners
-        topRightCorner = topEdge,
-        bottomRightCorner = bottomEdge,
-    )
+    fun withoutRight(): AsciiBorder =
+        AsciiBorder(
+            topLeftCorner = topLeftCorner,
+            topEdge = topEdge,
+            bottomEdge = bottomEdge,
+            bottomLeftCorner = bottomLeftCorner,
+            leftEdge = leftEdge,
+            // same as above, if we have a top or bottom border, extend it in place of the right corners
+            topRightCorner = topEdge,
+            bottomRightCorner = bottomEdge,
+        )
 
-    fun withoutBottom(): AsciiBorder = AsciiBorder(
-        topLeftCorner = topLeftCorner,
-        topEdge = topEdge,
-        topRightCorner = topRightCorner,
-        rightEdge = rightEdge,
-        leftEdge = leftEdge,
-        // same as above, if we have left or right edges, extend them in place of the bottom corners
-        bottomLeftCorner = leftEdge,
-        bottomRightCorner = rightEdge,
-    )
+    fun withoutBottom(): AsciiBorder =
+        AsciiBorder(
+            topLeftCorner = topLeftCorner,
+            topEdge = topEdge,
+            topRightCorner = topRightCorner,
+            rightEdge = rightEdge,
+            leftEdge = leftEdge,
+            // same as above, if we have left or right edges, extend them in place of the bottom corners
+            bottomLeftCorner = leftEdge,
+            bottomRightCorner = rightEdge,
+        )
 
-    fun withoutLeft(): AsciiBorder = AsciiBorder(
-        topEdge = topEdge,
-        topRightCorner = topRightCorner,
-        rightEdge = rightEdge,
-        bottomRightCorner = bottomRightCorner,
-        bottomEdge = bottomEdge,
-        // same as above, if we have top or bottom edges, extend them in place of the left corners
-        topLeftCorner = topEdge,
-        bottomLeftCorner = bottomEdge,
-    )
+    fun withoutLeft(): AsciiBorder =
+        AsciiBorder(
+            topEdge = topEdge,
+            topRightCorner = topRightCorner,
+            rightEdge = rightEdge,
+            bottomRightCorner = bottomRightCorner,
+            bottomEdge = bottomEdge,
+            // same as above, if we have top or bottom edges, extend them in place of the left corners
+            topLeftCorner = topEdge,
+            bottomLeftCorner = bottomEdge,
+        )
 
     class UniformColorBuilder(private val foregroundColor: Color, private val backgroundColor: Color) {
         var topEdge: Char? = null
@@ -127,7 +131,7 @@ class AsciiBorder(
         fun withColors(
             foregroundColor: Color,
             backgroundColor: Color,
-            init: UniformColorBuilder.() -> Unit
+            init: UniformColorBuilder.() -> Unit,
         ): AsciiBorder {
             val uniformColorBuilder = UniformColorBuilder(foregroundColor, backgroundColor)
             initialize(uniformColorBuilder, init)
@@ -137,36 +141,51 @@ class AsciiBorder(
 }
 
 object Borders {
-    fun dashed(foregroundColor: Color, backgroundColor: Color, init: AsciiBorder.() -> Unit = {}): AsciiBorder {
-        val border = AsciiBorder.withColors(foregroundColor, backgroundColor) {
-            setVerticalEdges('|')
-            setHorizontalEdges('-')
-            setCorners('+')
-        }
+    fun dashed(
+        foregroundColor: Color,
+        backgroundColor: Color,
+        init: AsciiBorder.() -> Unit = {},
+    ): AsciiBorder {
+        val border =
+            AsciiBorder.withColors(foregroundColor, backgroundColor) {
+                setVerticalEdges('|')
+                setHorizontalEdges('-')
+                setCorners('+')
+            }
         return initialize(border, init)
     }
 
-    fun singleLine(foregroundColor: Color, backgroundColor: Color, init: AsciiBorder.() -> Unit = {}): AsciiBorder {
-        val border = AsciiBorder.withColors(foregroundColor, backgroundColor) {
-            setVerticalEdges(Char(179))
-            setHorizontalEdges(Char(196))
-            topLeftCorner = Char(218)
-            topRightCorner = Char(191)
-            bottomLeftCorner = Char(192)
-            bottomRightCorner = Char(217)
-        }
+    fun singleLine(
+        foregroundColor: Color,
+        backgroundColor: Color,
+        init: AsciiBorder.() -> Unit = {},
+    ): AsciiBorder {
+        val border =
+            AsciiBorder.withColors(foregroundColor, backgroundColor) {
+                setVerticalEdges(Char(179))
+                setHorizontalEdges(Char(196))
+                topLeftCorner = Char(218)
+                topRightCorner = Char(191)
+                bottomLeftCorner = Char(192)
+                bottomRightCorner = Char(217)
+            }
         return initialize(border, init)
     }
 
-    fun doubleLine(foregroundColor: Color, backgroundColor: Color, init: AsciiBorder.() -> Unit = {}): AsciiBorder {
-        val border = AsciiBorder.withColors(foregroundColor, backgroundColor) {
-            setVerticalEdges(Char(186))
-            setHorizontalEdges(Char(205))
-            topLeftCorner = Char(201)
-            topRightCorner = Char(187)
-            bottomLeftCorner = Char(200)
-            bottomRightCorner = Char(188)
-        }
+    fun doubleLine(
+        foregroundColor: Color,
+        backgroundColor: Color,
+        init: AsciiBorder.() -> Unit = {},
+    ): AsciiBorder {
+        val border =
+            AsciiBorder.withColors(foregroundColor, backgroundColor) {
+                setVerticalEdges(Char(186))
+                setHorizontalEdges(Char(205))
+                topLeftCorner = Char(201)
+                topRightCorner = Char(187)
+                bottomLeftCorner = Char(200)
+                bottomRightCorner = Char(188)
+            }
         return initialize(border, init)
     }
 }

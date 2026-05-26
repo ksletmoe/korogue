@@ -20,7 +20,6 @@ object DefaultSubpanelSizes {
         get() = { Dimension(Int.MAX_VALUE, Int.MAX_VALUE) }
 }
 
-
 abstract class AsciiSubpanel(
     private val ui: UserInterface,
     private var _border: AsciiBorder? = null,
@@ -76,41 +75,42 @@ abstract class AsciiSubpanel(
 
         (0 until bounds.width).forEach { x ->
             (0 until bounds.height).forEach { y ->
-                val characterToWrite: AsciiCharacterData? = when (x) {
-                    0 -> {
-                        when (y) {
-                            0 -> {
-                                border?.topLeftCorner
+                val characterToWrite: AsciiCharacterData? =
+                    when (x) {
+                        0 -> {
+                            when (y) {
+                                0 -> {
+                                    border?.topLeftCorner
+                                }
+                                bounds.height - 1 -> {
+                                    border?.bottomLeftCorner
+                                }
+                                else -> {
+                                    border?.leftEdge
+                                }
                             }
-                            bounds.height - 1 -> {
-                                border?.bottomLeftCorner
+                        }
+                        bounds.width - 1 -> {
+                            when (y) {
+                                0 -> {
+                                    border?.topRightCorner
+                                }
+                                bounds.height - 1 -> {
+                                    border?.bottomRightCorner
+                                }
+                                else -> {
+                                    border?.rightEdge
+                                }
                             }
-                            else -> {
-                                border?.leftEdge
+                        }
+                        else -> {
+                            when (y) {
+                                0 -> border?.topEdge
+                                bounds.height - 1 -> border?.bottomEdge
+                                else -> null
                             }
                         }
                     }
-                    bounds.width - 1 -> {
-                        when (y) {
-                            0 -> {
-                                border?.topRightCorner
-                            }
-                            bounds.height - 1 -> {
-                                border?.bottomRightCorner
-                            }
-                            else -> {
-                                border?.rightEdge
-                            }
-                        }
-                    }
-                    else -> {
-                        when (y) {
-                            0 -> border?.topEdge
-                            bounds.height - 1 -> border?.bottomEdge
-                            else -> null
-                        }
-                    }
-                }
 
                 ui.drawCharacter(characterToWrite ?: defaultFillCharacter, bounds.x + x, bounds.y + y)
             }
@@ -121,7 +121,11 @@ abstract class AsciiSubpanel(
         fill(defaultFillCharacter)
     }
 
-    fun fill(character: Char, foregroundColor: Color, backgroundColor: Color) {
+    fun fill(
+        character: Char,
+        foregroundColor: Color,
+        backgroundColor: Color,
+    ) {
         fill(AsciiCharacterData(character, foregroundColor, backgroundColor))
     }
 
@@ -150,20 +154,37 @@ abstract class AsciiSubpanel(
         )
     }
 
-
-    open fun write(characterData: AsciiCharacterData, x: Int, y: Int) {
+    open fun write(
+        characterData: AsciiCharacterData,
+        x: Int,
+        y: Int,
+    ) {
         ui.drawCharacter(characterData, contentBounds.x + x, contentBounds.y + y)
     }
 
-    open fun write(characterData: AsciiCharacterData, coordinates: Point) {
+    open fun write(
+        characterData: AsciiCharacterData,
+        coordinates: Point,
+    ) {
         write(characterData, coordinates.x, coordinates.y)
     }
 
-    open fun write(character: Char, foregroundColor: Color, backgroundColor: Color, x: Int, y: Int) {
+    open fun write(
+        character: Char,
+        foregroundColor: Color,
+        backgroundColor: Color,
+        x: Int,
+        y: Int,
+    ) {
         ui.drawCharacter(character, foregroundColor, backgroundColor, contentBounds.x + x, contentBounds.y + y)
     }
 
-    open fun write(character: Char, foregroundColor: Color, backgroundColor: Color, coordinates: Point) {
+    open fun write(
+        character: Char,
+        foregroundColor: Color,
+        backgroundColor: Color,
+        coordinates: Point,
+    ) {
         write(character, foregroundColor, backgroundColor, coordinates.x, coordinates.y)
     }
 }

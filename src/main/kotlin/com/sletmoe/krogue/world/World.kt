@@ -26,7 +26,7 @@ open class World(val zones: Map<String, Zone>, private var _currentZoneId: Strin
             height: Int,
             isCurrentZone: Boolean = false,
             random: Random = Random.Default,
-            zoneBuilderInit: Zone.Builder.() -> Unit = {}
+            zoneBuilderInit: Zone.Builder.() -> Unit = {},
         ): Zone {
             zones[zoneId] = Zone.create(zoneId, width, height, random, zoneBuilderInit)
 

@@ -6,7 +6,7 @@ class GlobalLightValueCalculator : LightValueCalculator {
     override fun calculateLightValue(
         lightColor: NormalizedRgb,
         lightRadius: Double,
-        distanceFromLightSource: Double
+        distanceFromLightSource: Double,
     ): LightValue {
         return LightValue(lightColor, 1.0)
     }

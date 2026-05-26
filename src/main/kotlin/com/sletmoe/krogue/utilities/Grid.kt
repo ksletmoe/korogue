@@ -21,32 +21,56 @@ class Grid<T>(width: Int, height: Int, defaultValue: T) {
     val lastColumnIndex: Int = width - 1
     val lastRowIndex: Int = height - 1
 
-    private val rows: MutableList<MutableList<T>> = MutableList(width) {
-        MutableList(height) {
-            defaultValue
+    private val rows: MutableList<MutableList<T>> =
+        MutableList(width) {
+            MutableList(height) {
+                defaultValue
+            }
         }
-    }
 
-    private fun getElement(x: Int, y: Int): T {
+    private fun getElement(
+        x: Int,
+        y: Int,
+    ): T {
         checkBounds(x, y)
         return rows[x][y]
     }
 
-    private fun setElement(x: Int, y: Int, value: T) {
+    private fun setElement(
+        x: Int,
+        y: Int,
+        value: T,
+    ) {
         checkBounds(x, y)
         rows[x][y] = value
     }
 
     operator fun get(coord: Point): T = getElement(coord.x, coord.y)
-    operator fun set(coord: Point, value: T) = setElement(coord.x, coord.y, value)
-    operator fun get(x: Int, y: Int): T = getElement(x, y)
-    operator fun set(x: Int, y: Int, value: T) = setElement(x, y, value)
+
+    operator fun set(
+        coord: Point,
+        value: T,
+    ) = setElement(coord.x, coord.y, value)
+
+    operator fun get(
+        x: Int,
+        y: Int,
+    ): T = getElement(x, y)
+
+    operator fun set(
+        x: Int,
+        y: Int,
+        value: T,
+    ) = setElement(x, y, value)
 
     fun fill(value: T) {
         forEachCoordinate { set(it, value) }
     }
 
-    private fun checkBounds(x: Int, y: Int) {
+    private fun checkBounds(
+        x: Int,
+        y: Int,
+    ) {
         if (x < 0 || x > rows.lastIndex) {
             throw RuntimeException("($x, $y) is not within Grid column bounds: 0 - ${rows.lastIndex}")
         } else if (y < 0 || y > rows[x].lastIndex) {
@@ -70,7 +94,11 @@ class Grid<T>(width: Int, height: Int, defaultValue: T) {
         }
     }
 
-    fun forEachCoordinateInRadius(center: Point, radius: Double, action: (Point) -> Unit) {
+    fun forEachCoordinateInRadius(
+        center: Point,
+        radius: Double,
+        action: (Point) -> Unit,
+    ) {
         val boundingBox = boundingBoxForCircle(center, radius)
         val radiusSquared = radius * radius
 
@@ -85,7 +113,10 @@ class Grid<T>(width: Int, height: Int, defaultValue: T) {
         }
     }
 
-    private fun boundingBoxForCircle(center: Point, radius: Double): Rectangle {
+    private fun boundingBoxForCircle(
+        center: Point,
+        radius: Double,
+    ): Rectangle {
         val radiusInt = ceil(radius).toInt()
 
         val x = max(0, center.x - radiusInt)

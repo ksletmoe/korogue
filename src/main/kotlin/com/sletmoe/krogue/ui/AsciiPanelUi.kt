@@ -18,7 +18,10 @@ import java.util.Queue
 import javax.swing.JFrame
 
 class AsciiPanelUi(
-    name: String?, sizeInCharacters: Dimension, font: AsciiFont, backgroundColor: Color = Color.black
+    name: String?,
+    sizeInCharacters: Dimension,
+    font: AsciiFont,
+    backgroundColor: Color = Color.black,
 ) : JFrame(name), UserInterface, KeyListener, MouseListener {
     private val inputQueue: Queue<InputEvent> = LinkedList()
     private val resizableAsciiPanel = ResizableAsciiPanel(sizeInCharacters, font, backgroundColor)
@@ -70,11 +73,21 @@ class AsciiPanelUi(
         resizableAsciiPanel.repaintCharacters(bounds)
     }
 
-    override fun drawCharacter(character: Char, foregroundColor: Color, backgroundColor: Color, x: Int, y: Int) {
+    override fun drawCharacter(
+        character: Char,
+        foregroundColor: Color,
+        backgroundColor: Color,
+        x: Int,
+        y: Int,
+    ) {
         resizableAsciiPanel.drawCharacter(character, foregroundColor, backgroundColor, x, y)
     }
 
-    override fun drawCharacter(characterData: AsciiCharacterData, x: Int, y: Int) {
+    override fun drawCharacter(
+        characterData: AsciiCharacterData,
+        x: Int,
+        y: Int,
+    ) {
         resizableAsciiPanel.drawCharacter(characterData, x, y)
     }
 
@@ -89,13 +102,18 @@ class AsciiPanelUi(
     }
 
     override fun keyReleased(e: KeyEvent) {}
+
     override fun keyTyped(e: KeyEvent) {}
+
     override fun mouseClicked(e: MouseEvent) {
         inputQueue.add(e)
     }
 
     override fun mouseEntered(e: MouseEvent) {}
+
     override fun mouseExited(e: MouseEvent) {}
+
     override fun mousePressed(e: MouseEvent) {}
+
     override fun mouseReleased(e: MouseEvent) {}
 }

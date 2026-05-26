@@ -7,17 +7,25 @@ abstract class AsciiSubpanelGroup : AsciiSubpanelComponent() {
     protected var components: MutableList<AsciiSubpanelComponent> = mutableListOf()
 
     override fun getMinimumSize(containerSize: Dimension): Dimension = getMinimumSizeImpl(containerSize)
+
     override fun getPreferredSize(containerSize: Dimension): Dimension = getPreferredSizeImpl(containerSize)
+
     override fun getMaximumSize(containerSize: Dimension): Dimension = getMaximumSizeImpl(containerSize)
 
-    fun addComponent(component: AsciiSubpanelComponent, resizeComponents: Boolean = false) {
+    fun addComponent(
+        component: AsciiSubpanelComponent,
+        resizeComponents: Boolean = false,
+    ) {
         components.add(component)
         if (resizeComponents) {
             resizeComponents()
         }
     }
 
-    fun removeComponent(component: AsciiSubpanelComponent, resizeComponents: Boolean = false) {
+    fun removeComponent(
+        component: AsciiSubpanelComponent,
+        resizeComponents: Boolean = false,
+    ) {
         components.removeIf { it == component }
         if (resizeComponents) {
             resizeComponents()
@@ -48,8 +56,11 @@ abstract class AsciiSubpanelGroup : AsciiSubpanelComponent() {
     }
 
     abstract fun resizeComponents()
+
     abstract fun getMinimumSizeImpl(containerSize: Dimension): Dimension
+
     abstract fun getPreferredSizeImpl(containerSize: Dimension): Dimension
+
     abstract fun getMaximumSizeImpl(containerSize: Dimension): Dimension
 
     protected data class ComponentDimensionSpec(val component: AsciiSubpanelComponent, val dimension: Dimension)

@@ -25,23 +25,30 @@ object KrogueArb {
         return coordinates.exhaustive()
     }
 
-    val color = arbitrary {
-        Color(Arb.positiveInt(max = 255).bind(), Arb.positiveInt(max = 255).bind(), Arb.positiveInt(max = 255).bind())
-    }
-
-    val asciiCharacterData = arbitrary {
-        AsciiCharacterData(Arb.positiveInt(max = 255).bind().toChar(), color.bind(), color.bind())
-    }
-
-    val asciiCharacterDataGrid = arbitrary {
-        val grid = Grid(Arb.positiveInt(max = 100).bind(), Arb.positiveInt(max = 100).bind(), asciiCharacterData.bind())
-        (0..grid.lastColumnIndex).forEach { x ->
-            (0..grid.lastRowIndex).forEach { y ->
-                grid[x, y] = asciiCharacterData.bind()
-            }
+    val color =
+        arbitrary {
+            Color(
+                Arb.positiveInt(max = 255).bind(),
+                Arb.positiveInt(max = 255).bind(),
+                Arb.positiveInt(max = 255).bind(),
+            )
         }
 
-        grid
-    }
-}
+    val asciiCharacterData =
+        arbitrary {
+            AsciiCharacterData(Arb.positiveInt(max = 255).bind().toChar(), color.bind(), color.bind())
+        }
 
+    val asciiCharacterDataGrid =
+        arbitrary {
+            val grid =
+                Grid(Arb.positiveInt(max = 100).bind(), Arb.positiveInt(max = 100).bind(), asciiCharacterData.bind())
+            (0..grid.lastColumnIndex).forEach { x ->
+                (0..grid.lastRowIndex).forEach { y ->
+                    grid[x, y] = asciiCharacterData.bind()
+                }
+            }
+
+            grid
+        }
+}

@@ -12,11 +12,12 @@ fun AsciiPanel.repaintCharacters(bounds: Rectangle) {
 
 val AsciiPanel.characterGrid: Grid<AsciiCharacterData>
     get() {
-        val grid = Grid(
-            widthInCharacters,
-            heightInCharacters,
-            AsciiCharacterData(' ', defaultForegroundColor, defaultBackgroundColor)
-        )
+        val grid =
+            Grid(
+                widthInCharacters,
+                heightInCharacters,
+                AsciiCharacterData(' ', defaultForegroundColor, defaultBackgroundColor),
+            )
         (0..grid.lastColumnIndex).forEach { x ->
             (0..grid.lastRowIndex).forEach { y ->
                 grid[x, y] = characters[x][y]

@@ -37,7 +37,7 @@ class ResizableAsciiPanel(dimensionsInCharacters: Dimension, font: AsciiFont, ba
             0,
             0,
             dimensionsInCharacters.width * font.width,
-            dimensionsInCharacters.height * font.height
+            dimensionsInCharacters.height * font.height,
         )
         background = backgroundColor
 
@@ -52,23 +52,32 @@ class ResizableAsciiPanel(dimensionsInCharacters: Dimension, font: AsciiFont, ba
             subpanelGroup?.refresh()
         } else {
             throw RuntimeException(
-                "AsciiSubpanelComponent with minimumSize $componentMinSize does not fit in AsciiPanel with bounds $displayBounds"
+                "AsciiSubpanelComponent with minimumSize $componentMinSize does not fit " +
+                    "in AsciiPanel with bounds $displayBounds",
             )
         }
     }
 
-    override fun setBounds(newX: Int, newY: Int, newWidth: Int, newHeight: Int) {
+    override fun setBounds(
+        newX: Int,
+        newY: Int,
+        newWidth: Int,
+        newHeight: Int,
+    ) {
         super.setBounds(newX, newY, newWidth, newHeight)
 
         resizeMutex.withLock {
             remove(asciiPanel)
             val oldAsciiPanel = asciiPanel
-            val asciiPanelDimensionsInChars = Dimension(
-                newWidth / oldAsciiPanel.asciiFont.width, newHeight / oldAsciiPanel.asciiFont.height
-            )
-            asciiPanel = AsciiPanel(
-                asciiPanelDimensionsInChars.width, asciiPanelDimensionsInChars.height, oldAsciiPanel.asciiFont
-            )
+            val asciiPanelDimensionsInChars =
+                Dimension(
+                    newWidth / oldAsciiPanel.asciiFont.width,
+                    newHeight / oldAsciiPanel.asciiFont.height,
+                )
+            asciiPanel =
+                AsciiPanel(
+                    asciiPanelDimensionsInChars.width, asciiPanelDimensionsInChars.height, oldAsciiPanel.asciiFont,
+                )
             add(asciiPanel)
             val widthPadding = newWidth - asciiPanel.width
             val heightPadding = newHeight - asciiPanel.height
@@ -92,7 +101,13 @@ class ResizableAsciiPanel(dimensionsInCharacters: Dimension, font: AsciiFont, ba
         asciiPanel.repaintCharacters(bounds)
     }
 
-    fun drawCharacter(character: Char, foregroundColor: Color, backgroundColor: Color, x: Int, y: Int) {
+    fun drawCharacter(
+        character: Char,
+        foregroundColor: Color,
+        backgroundColor: Color,
+        x: Int,
+        y: Int,
+    ) {
         // if we try to write in the middle of resizing, we'll potentially attempt to write outside of bounds.
         resizeMutex.withLock {
             if (displayBounds.contains(x, y)) {
@@ -101,7 +116,11 @@ class ResizableAsciiPanel(dimensionsInCharacters: Dimension, font: AsciiFont, ba
         }
     }
 
-    fun drawCharacter(characterData: AsciiCharacterData, x: Int, y: Int) {
+    fun drawCharacter(
+        characterData: AsciiCharacterData,
+        x: Int,
+        y: Int,
+    ) {
         // if we try to write in the middle of resizing, we'll potentially attempt to write outside of bounds.
         resizeMutex.withLock {
             if (displayBounds.contains(x, y)) {

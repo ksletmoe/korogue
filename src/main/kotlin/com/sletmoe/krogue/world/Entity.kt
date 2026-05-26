@@ -8,5 +8,3 @@ abstract class Entity(
     val color: Color,
     val description: String? = null,
 )
-
-

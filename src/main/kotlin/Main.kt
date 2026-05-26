@@ -39,73 +39,81 @@ class MyGame(
 ) : Game(targetFps, AsciiPanelUi(title, gameWindowSizeRowsCols, font)) {
     private val firstZoneStartPoint = Point(10, 10)
 
-    private val topBar = AsciiDisplay.create(ui) {
-        minimumSizeProvider = { Dimension(80, 3) }
-        preferredSizeProvider = {  containerSize ->
-            Dimension(containerSize.width, 5)
+    private val topBar =
+        AsciiDisplay.create(ui) {
+            minimumSizeProvider = { Dimension(80, 3) }
+            preferredSizeProvider = { containerSize ->
+                Dimension(containerSize.width, 5)
+            }
+            maximumSizeProvider = { Dimension(Int.MAX_VALUE, 5) }
+            border = Borders.singleLine(Color.blue, Color.black)
         }
-        maximumSizeProvider = { Dimension(Int.MAX_VALUE, 5) }
-        border = Borders.singleLine(Color.blue, Color.black)
-    }
-    private val creatureList = AsciiDisplay.create(ui) {
-        minimumSizeProvider = { Dimension(16, 10) }
-        preferredSizeProvider = { containerSize ->
-            Dimension((containerSize.width * 0.15).toInt(), containerSize.height / 2)
+    private val creatureList =
+        AsciiDisplay.create(ui) {
+            minimumSizeProvider = { Dimension(16, 10) }
+            preferredSizeProvider = { containerSize ->
+                Dimension((containerSize.width * 0.15).toInt(), containerSize.height / 2)
+            }
+            maximumSizeProvider = { Dimension(20, Int.MAX_VALUE) }
+            border =
+                Borders.singleLine(Color.blue, Color.black) {
+                    topRightCorner = AsciiCharacterData(Char(194), Color.blue, Color.black)
+                    bottomRightCorner = AsciiCharacterData(Char(193), Color.blue, Color.black)
+                }
         }
-        maximumSizeProvider = { Dimension(20, Int.MAX_VALUE) }
-        border = Borders.singleLine(Color.blue, Color.black) {
-            topRightCorner = AsciiCharacterData(Char(194), Color.blue, Color.black)
-            bottomRightCorner = AsciiCharacterData(Char(193), Color.blue, Color.black)
+    private val messageBox =
+        AsciiDisplay.create(ui) {
+            minimumSizeProvider = creatureList.minimumSizeProvider
+            preferredSizeProvider = creatureList.preferredSizeProvider
+            maximumSizeProvider = creatureList.maximumSizeProvider
+            border =
+                Borders.singleLine(Color.blue, Color.black) {
+                    topRightCorner = AsciiCharacterData(Char(194), Color.blue, Color.black)
+                    bottomRightCorner = AsciiCharacterData(Char(193), Color.blue, Color.black)
+                }
         }
-    }
-    private val messageBox = AsciiDisplay.create(ui) {
-        minimumSizeProvider = creatureList.minimumSizeProvider
-        preferredSizeProvider = creatureList.preferredSizeProvider
-        maximumSizeProvider = creatureList.maximumSizeProvider
-        border = Borders.singleLine(Color.blue, Color.black) {
-            topRightCorner = AsciiCharacterData(Char(194), Color.blue, Color.black)
-            bottomRightCorner = AsciiCharacterData(Char(193), Color.blue, Color.black)
-        }
-    }
 
     private val world = buildWorld(random)
     private val symmetricShadowCaster = SymmetricShadowCaster()
     private val omnipresentLosCalculator = OmnicientLineOfSightCalculator()
 
-    private val player = Creature(
-        ZonalPosition(world.currentZone, firstZoneStartPoint.x, firstZoneStartPoint.y),
-        "You",
-        '@',
-        Color.yellow,
-    )
+    private val player =
+        Creature(
+            ZonalPosition(world.currentZone, firstZoneStartPoint.x, firstZoneStartPoint.y),
+            "You",
+            '@',
+            Color.yellow,
+        )
 
     init {
-        player.lightSource = LightSource(
-            player.position.copy(),
-            "Lantern",
-            Color(255, 255, 150),
-            15.0,
-            lightValueCalculator = DiminishingLightValueCalculator()
-        )
+        player.lightSource =
+            LightSource(
+                player.position.copy(),
+                "Lantern",
+                Color(255, 255, 150),
+                15.0,
+                lightValueCalculator = DiminishingLightValueCalculator(),
+            )
 
         world.currentZone.addCreature(player)
     }
 
-    private val camera = AsciiCamera.create(
-        ui,
-        world.currentZone,
-        focusProvider = { player.position.point },
-        VisibilityConfiguration.create(symmetricShadowCaster) {
-            maximumVisibilityDistance = 30.0
-            previouslyViewedTilesVisible = true
-            previouslyViewedTilesForegroundColorProvider = multiplicationTransformer(Color.blue)
-            useLighting = true
-        },
-    ) {
-        minimumSizeProvider = { Dimension(60, 20) }
-        preferredSizeProvider = { Dimension(ceil(ui.widthInCharacters * 0.85).toInt(), Int.MAX_VALUE) }
-        border = Borders.singleLine(Color.blue, Color.black).withoutLeft()
-    }
+    private val camera =
+        AsciiCamera.create(
+            ui,
+            world.currentZone,
+            focusProvider = { player.position.point },
+            VisibilityConfiguration.create(symmetricShadowCaster) {
+                maximumVisibilityDistance = 30.0
+                previouslyViewedTilesVisible = true
+                previouslyViewedTilesForegroundColorProvider = multiplicationTransformer(Color.blue)
+                useLighting = true
+            },
+        ) {
+            minimumSizeProvider = { Dimension(60, 20) }
+            preferredSizeProvider = { Dimension(ceil(ui.widthInCharacters * 0.85).toInt(), Int.MAX_VALUE) }
+            border = Borders.singleLine(Color.blue, Color.black).withoutLeft()
+        }
 
     init {
         ui.setSubpanelGroup(
@@ -117,29 +125,33 @@ class MyGame(
                             AsciiSubpanelVerticalGroup.create {
                                 addComponent(creatureList)
                                 addComponent(messageBox)
-                            }
+                            },
                         )
                         addComponent(camera)
-                    }
+                    },
                 )
-            }
+            },
         )
     }
 
     private fun buildWorld(random: Random): World {
-        val world = World.create {
-            zone("Level 1", 200, 200, isCurrentZone = true, random = random) {
-                fill(wallTile)
-                addFeature(randomWalkCave(firstZoneStartPoint.x, firstZoneStartPoint.y, 6000, groundTile))
+        val world =
+            World.create {
+                zone("Level 1", 200, 200, isCurrentZone = true, random = random) {
+                    fill(wallTile)
+                    addFeature(randomWalkCave(firstZoneStartPoint.x, firstZoneStartPoint.y, 6000, groundTile))
+                }
             }
-        }
 
         populateZone(world.currentZone, 10)
 
         return world
     }
 
-    private fun populateZone(zone: Zone, numCreatures: Int) {
+    private fun populateZone(
+        zone: Zone,
+        numCreatures: Int,
+    ) {
         repeat(numCreatures) {
             var rndX = 0
             var rndY = 0
@@ -151,17 +163,23 @@ class MyGame(
 
             val creatureType = random.nextInt(2)
 
-            val creature = if (creatureType == 0) {
-                createCreature("zombie", zone, rndX, rndY)
-            } else {
-                createCreature("sheep", zone, rndX, rndY)
-            }
+            val creature =
+                if (creatureType == 0) {
+                    createCreature("zombie", zone, rndX, rndY)
+                } else {
+                    createCreature("sheep", zone, rndX, rndY)
+                }
 
             zone.addCreature(creature)
         }
     }
 
-    private fun createCreature(type: String, zone: Zone, x: Int, y: Int): Creature {
+    private fun createCreature(
+        type: String,
+        zone: Zone,
+        x: Int,
+        y: Int,
+    ): Creature {
         return when (type) {
             "zombie" -> {
                 Creature(ZonalPosition(zone, x, y), "zombie", 'z', Color.green, "aggressive")
@@ -219,9 +237,10 @@ class MyGame(
     private fun updateSideBar() {
         creatureList.fill(' ', Color.black, Color.black)
         val cameraViewArea = camera.viewArea
-        val creaturesInView = world.currentZone.creatures
-            .filter { cameraViewArea.contains(it.position.point) }
-            .sortedBy { player.position.point.distanceSq(it.position.point) }
+        val creaturesInView =
+            world.currentZone.creatures
+                .filter { cameraViewArea.contains(it.position.point) }
+                .sortedBy { player.position.point.distanceSq(it.position.point) }
         val creatureNameColumnWidth = creaturesInView.map { it.name.length }.plus("Creature".length).max() + 1
 
         val sideBarInfoStartingPoint = Point(1, 1)
@@ -236,7 +255,7 @@ class MyGame(
                 creature.name.padEnd(creatureNameColumnWidth),
                 creature.color,
                 Color.black,
-                labelStartingPoint
+                labelStartingPoint,
             )
             creatureList.write(
                 creature.health.toString(),
@@ -247,7 +266,10 @@ class MyGame(
         }
     }
 
-    private fun healthTextColor(health: Int, maxHealth: Int): Color {
+    private fun healthTextColor(
+        health: Int,
+        maxHealth: Int,
+    ): Color {
         val healthPercent = health.toDouble() / maxHealth.toDouble()
         return when {
             healthPercent > 0.8 -> Color.green
@@ -266,28 +288,31 @@ class MyGame(
 
     companion object {
         private val wallTile: Tile
-            get() = Tile(
-                "stone wall",
-                '#',
-                color = Color.gray,
-                backgroundColor = Color.BLACK,
-                isWalkable = false,
-                blocksLineOfSight = true,
-            )
+            get() =
+                Tile(
+                    "stone wall",
+                    '#',
+                    color = Color.gray,
+                    backgroundColor = Color.BLACK,
+                    isWalkable = false,
+                    blocksLineOfSight = true,
+                )
 
-        private val groundTile = Tile(
-            "stone floor",
-            '.',
-            color = Color.lightGray,
-            backgroundColor = Color.black,
-            isWalkable = true,
-            blocksLineOfSight = false,
-        )
+        private val groundTile =
+            Tile(
+                "stone floor",
+                '.',
+                color = Color.lightGray,
+                backgroundColor = Color.black,
+                isWalkable = true,
+                blocksLineOfSight = false,
+            )
     }
 }
 
-fun main(args: Array<String>) = runBlocking {
-    val font = AsciiFont.CP437_12x12
-    val game = MyGame("Krogue", 60, Dimension(120, 48), font)
-    game.run()
-}
+fun main(args: Array<String>) =
+    runBlocking {
+        val font = AsciiFont.CP437_12x12
+        val game = MyGame("Krogue", 60, Dimension(120, 48), font)
+        game.run()
+    }

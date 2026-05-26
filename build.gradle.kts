@@ -4,14 +4,14 @@ import org.jetbrains.dokka.gradle.DokkaTask
 import java.net.URL
 
 plugins {
-    kotlin("jvm") version "1.8.10"
+    kotlin("jvm")
     application
-    id("org.jetbrains.dokka") version "1.8.10"
-    id("org.jlleitschuh.gradle.ktlint") version "11.3.1"
+    id("org.jetbrains.dokka")
+    id("org.jlleitschuh.gradle.ktlint")
 
     id("signing")
     id("maven-publish")
-    id("io.github.gradle-nexus.publish-plugin") version "1.3.0"
+    id("io.github.gradle-nexus.publish-plugin")
 }
 
 group = "com.sletmoe.krogue"
@@ -19,7 +19,7 @@ version = Ci.version
 
 repositories {
     mavenCentral()
-    maven("https://jitpack.io" )
+    maven("https://jitpack.io")
 }
 
 dependencies {
@@ -33,6 +33,7 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(Testing.kotest.runner.junit5)
     testImplementation(Testing.kotest.assertions.core)
+    testImplementation(Testing.kotest.property)
 }
 
 application {
@@ -48,24 +49,21 @@ java {
     withSourcesJar()
 
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(11))
+        languageVersion.set(JavaLanguageVersion.of(21))
     }
 }
 
 kotlin {
-    jvmToolchain(11)
-}
-
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-    kotlinOptions {
-        jvmTarget = "11"
+    jvmToolchain(21)
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
     }
 }
 
 tasks.withType<DokkaTask>().configureEach {
     moduleName.set(project.name)
     moduleVersion.set(project.version.toString())
-    outputDirectory.set(buildDir.resolve("dokka/$name"))
+    outputDirectory.set(layout.buildDirectory.dir("dokka/$name"))
     failOnWarning.set(false)
     suppressObviousFunctions.set(true)
     suppressInheritedMembers.set(false)
@@ -78,9 +76,9 @@ tasks.withType<DokkaTask>().configureEach {
             skipEmptyPackages.set(true)
             skipDeprecated.set(false)
             suppressGeneratedFiles.set(true)
-            jdkVersion.set(11)
-            languageVersion.set("1.8")
-            apiVersion.set("1.8")
+            jdkVersion.set(21)
+            languageVersion.set("2.3")
+            apiVersion.set("2.3")
             noStdlibLink.set(false)
             noJdkLink.set(false)
             platform.set(Platform.DEFAULT)
@@ -136,7 +134,7 @@ publishing {
                     developer {
                         id.set("ksletmoe")
                         name.set("Kyle Sletmoe")
-                        email.set("kyle.sletmoe@gmail.com")
+                        email.set("kyle@sletmoe.com")
                     }
                 }
 

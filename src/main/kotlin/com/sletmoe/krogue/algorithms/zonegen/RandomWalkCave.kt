@@ -3,7 +3,12 @@ package com.sletmoe.krogue.algorithms.zonegen
 import com.sletmoe.krogue.world.Tile
 import java.awt.Point
 
-fun randomWalkCave(startX: Int, startY: Int, length: Int, groundTile: Tile): ZoneFeatureGenerator {
+fun randomWalkCave(
+    startX: Int,
+    startY: Int,
+    length: Int,
+    groundTile: Tile,
+): ZoneFeatureGenerator {
     return { tiles, random ->
         var direction: Int
         var x = startX

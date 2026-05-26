@@ -5,10 +5,18 @@ import java.awt.Rectangle
 import java.util.concurrent.locks.ReentrantLock
 
 operator fun Point.plus(other: Point): Point = Point(x + other.x, y + other.y)
+
 operator fun Point.minus(other: Point): Point = Point(x - other.x, y - other.y)
 
-fun Rectangle.translated(dx: Int, dy: Int): Rectangle = Rectangle(this).also { it.translate(dx, dy) }
-fun Rectangle.scaled(widthScaleFactor: Int, heightScaleFactor: Int): Rectangle {
+fun Rectangle.translated(
+    dx: Int,
+    dy: Int,
+): Rectangle = Rectangle(this).also { it.translate(dx, dy) }
+
+fun Rectangle.scaled(
+    widthScaleFactor: Int,
+    heightScaleFactor: Int,
+): Rectangle {
     return Rectangle(
         x * widthScaleFactor,
         y * heightScaleFactor,

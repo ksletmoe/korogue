@@ -23,16 +23,27 @@ class AsciiDisplay(ui: UserInterface) : AsciiSubpanel(ui) {
         }
     }
 
-    override fun write(character: Char, foregroundColor: Color, backgroundColor: Color, x: Int, y: Int) {
+    override fun write(
+        character: Char,
+        foregroundColor: Color,
+        backgroundColor: Color,
+        x: Int,
+        y: Int,
+    ) {
         val charData = AsciiCharacterData(character, foregroundColor, backgroundColor)
         contents[x, y] = charData
         super.write(charData, x, y)
     }
 
-    fun write(str: String, foregroundColor: Color, backgroundColor: Color, startingAt: Point) {
+    fun write(
+        str: String,
+        foregroundColor: Color,
+        backgroundColor: Color,
+        startingAt: Point,
+    ) {
         if (
-            !relativeContentBounds.contains(startingAt)
-            || !relativeContentBounds.contains(startingAt + Point(str.length, 0))
+            !relativeContentBounds.contains(startingAt) ||
+            !relativeContentBounds.contains(startingAt + Point(str.length, 0))
         ) {
             throw RuntimeException("(${startingAt.x}, ${startingAt.y}) is not within $relativeContentBounds")
         }
@@ -44,11 +55,8 @@ class AsciiDisplay(ui: UserInterface) : AsciiSubpanel(ui) {
 
     companion object {
         fun create(
-            ui: UserInterface, init: AsciiDisplay.() -> Unit
+            ui: UserInterface,
+            init: AsciiDisplay.() -> Unit,
         ): AsciiDisplay = initialize(AsciiDisplay(ui), init)
     }
 }
-
-
-
-

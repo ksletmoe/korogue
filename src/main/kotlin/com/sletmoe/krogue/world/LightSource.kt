@@ -4,7 +4,6 @@ import com.sletmoe.krogue.algorithms.color.toNormalizedRgb
 import com.sletmoe.krogue.algorithms.lighting.LightValue
 import com.sletmoe.krogue.algorithms.lighting.LightValueCalculator
 import java.awt.Color
-import java.awt.Point
 
 class LightSource(
     position: ZonalPosition,

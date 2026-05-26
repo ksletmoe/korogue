@@ -4,7 +4,11 @@ import asciiPanel.AsciiCharacterData
 import com.sletmoe.krogue.utilities.Grid
 import java.awt.Color
 
-fun asciiGrid(rows: List<String>, foregroundColor: Color, backgroundColor: Color): Grid<AsciiCharacterData> {
+fun asciiGrid(
+    rows: List<String>,
+    foregroundColor: Color,
+    backgroundColor: Color,
+): Grid<AsciiCharacterData> {
     val defaultCharacter = AsciiCharacterData(rows.first().first(), foregroundColor, backgroundColor)
     val grid = Grid(rows.first().length, rows.size, defaultCharacter)
 

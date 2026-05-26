@@ -58,6 +58,7 @@ private class Row(val quadrant: Quadrant, val depth: Int, val startSlope: Fracti
     val maxColumn: Int by lazy { roundTiesDown(endSlope.multiply(depth).toDouble()) }
 
     fun withStartSlope(newStartSlope: Fraction): Row = Row(quadrant, depth, newStartSlope, endSlope)
+
     fun withEndSlope(newEndSlope: Fraction): Row = Row(quadrant, depth, startSlope, newEndSlope)
 
     fun forEachCoordinate(receiver: (QuadrantPoint) -> Unit) {
@@ -70,7 +71,11 @@ private class Row(val quadrant: Quadrant, val depth: Int, val startSlope: Fracti
 }
 
 class SymmetricShadowCaster : LineOfSightCalculator {
-    override fun calculateLineOfSight(origin: Point, tiles: Grid<Tile>, maxViewDistance: Double?): Grid<Boolean> {
+    override fun calculateLineOfSight(
+        origin: Point,
+        tiles: Grid<Tile>,
+        maxViewDistance: Double?,
+    ): Grid<Boolean> {
         val visibilityGrid = Grid(tiles.width, tiles.height, defaultValue = false)
 
         // mark the origin as visible
@@ -116,9 +121,9 @@ class SymmetricShadowCaster : LineOfSightCalculator {
                 }
 
                 if (
-                    quadrantPoint.column != currentRow.minColumn
-                    && !previousBlocksLineOfSight
-                    && tiles[tileCoordinates].blocksLineOfSight
+                    quadrantPoint.column != currentRow.minColumn &&
+                    !previousBlocksLineOfSight &&
+                    tiles[tileCoordinates].blocksLineOfSight
                 ) {
                     val nextRow = currentRow.nextRow().withEndSlope(calculateSlope(quadrantPoint))
                     castShadows(nextRow, tiles, visibilityGrid)
@@ -133,7 +138,11 @@ class SymmetricShadowCaster : LineOfSightCalculator {
         }
     }
 
-    private fun limitVisibilityDistance(origin: Point, maxVisibilityDistance: Double, visibilityGrid: Grid<Boolean>) {
+    private fun limitVisibilityDistance(
+        origin: Point,
+        maxVisibilityDistance: Double,
+        visibilityGrid: Grid<Boolean>,
+    ) {
         val visDistanceSquared = maxVisibilityDistance * maxVisibilityDistance
 
         visibilityGrid.forEachCoordinate { coordinate ->
@@ -146,13 +155,17 @@ class SymmetricShadowCaster : LineOfSightCalculator {
     /**
      * returns true if any part of [row] is within [bounds]
      */
-    private fun rowInBounds(row: Row, bounds: Rectangle): Boolean {
-        val gridPosition = when (row.quadrant.direction) {
-            CardinalDirection.NORTH -> Point(row.quadrant.origin.x, row.quadrant.origin.y - row.depth)
-            CardinalDirection.EAST -> Point(row.quadrant.origin.x + row.depth, row.quadrant.origin.y)
-            CardinalDirection.SOUTH -> Point(row.quadrant.origin.x, row.quadrant.origin.y + row.depth)
-            CardinalDirection.WEST -> Point(row.quadrant.origin.x - row.depth, row.quadrant.origin.y)
-        }
+    private fun rowInBounds(
+        row: Row,
+        bounds: Rectangle,
+    ): Boolean {
+        val gridPosition =
+            when (row.quadrant.direction) {
+                CardinalDirection.NORTH -> Point(row.quadrant.origin.x, row.quadrant.origin.y - row.depth)
+                CardinalDirection.EAST -> Point(row.quadrant.origin.x + row.depth, row.quadrant.origin.y)
+                CardinalDirection.SOUTH -> Point(row.quadrant.origin.x, row.quadrant.origin.y + row.depth)
+                CardinalDirection.WEST -> Point(row.quadrant.origin.x - row.depth, row.quadrant.origin.y)
+            }
 
         return bounds.contains(gridPosition)
     }
@@ -160,9 +173,12 @@ class SymmetricShadowCaster : LineOfSightCalculator {
     private fun calculateSlope(quadrantPoint: QuadrantPoint): Fraction =
         Fraction(2 * quadrantPoint.column - 1, 2 * quadrantPoint.row)
 
-    private fun isSymmetric(row: Row, quadrantPoint: QuadrantPoint): Boolean {
-        return row.startSlope.multiply(row.depth) <= quadrantPoint.column
-                && row.endSlope.multiply(row.depth) >= quadrantPoint.column
+    private fun isSymmetric(
+        row: Row,
+        quadrantPoint: QuadrantPoint,
+    ): Boolean {
+        return row.startSlope.multiply(row.depth) <= quadrantPoint.column &&
+            row.endSlope.multiply(row.depth) >= quadrantPoint.column
     }
 }
 

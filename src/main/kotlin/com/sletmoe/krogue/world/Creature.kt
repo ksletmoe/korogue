@@ -41,7 +41,10 @@ open class Creature(
         other.damage(20)
     }
 
-    override fun moveInZone(dx: Int, dy: Int) {
+    override fun moveInZone(
+        dx: Int,
+        dy: Int,
+    ) {
         val destinationX = position.x + dx
         val destinationY = position.y + dy
 

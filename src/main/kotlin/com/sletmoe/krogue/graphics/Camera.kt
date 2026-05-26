@@ -20,6 +20,7 @@ import kotlin.math.min
 
 interface Camera {
     fun focus()
+
     val viewArea: Rectangle
 }
 
@@ -76,7 +77,10 @@ open class AsciiCamera(
         }
     }
 
-    private fun drawTiles(cameraOrigin: Point, buffer: Grid<AsciiCharacterData>) {
+    private fun drawTiles(
+        cameraOrigin: Point,
+        buffer: Grid<AsciiCharacterData>,
+    ) {
         buffer.forEachCoordinate { coordinate ->
             val zoneCoordinate = coordinate + cameraOrigin
             val tile = zone.tiles[zoneCoordinate]
@@ -85,14 +89,17 @@ open class AsciiCamera(
         }
     }
 
-    private fun drawCreatures(cameraOrigin: Point, buffer: Grid<AsciiCharacterData>) {
+    private fun drawCreatures(
+        cameraOrigin: Point,
+        buffer: Grid<AsciiCharacterData>,
+    ) {
         zone.creatures.forEach { creature ->
             val subpanelTileX = creature.position.x - cameraOrigin.x
             val subpanelTileY = creature.position.y - cameraOrigin.y
 
             if (
-                subpanelTileX in 0..buffer.lastColumnIndex
-                && subpanelTileY in 0..buffer.lastRowIndex
+                subpanelTileX in 0..buffer.lastColumnIndex &&
+                subpanelTileY in 0..buffer.lastRowIndex
             ) {
                 val tileBgColor = zone.tiles[creature.position.point].backgroundColor
                 buffer[subpanelTileX, subpanelTileY] = AsciiCharacterData(creature.glyph, creature.color, tileBgColor)
@@ -100,10 +107,14 @@ open class AsciiCamera(
         }
     }
 
-    private fun setVisibility(cameraOrigin: Point, buffer: Grid<AsciiCharacterData>) {
-        currentlyVisible = visibilityConfiguration.lineOfSightCalculator.calculateLineOfSight(
-            focusProvider(), zone.tiles, visibilityConfiguration.maximumVisibilityDistance
-        )
+    private fun setVisibility(
+        cameraOrigin: Point,
+        buffer: Grid<AsciiCharacterData>,
+    ) {
+        currentlyVisible =
+            visibilityConfiguration.lineOfSightCalculator.calculateLineOfSight(
+                focusProvider(), zone.tiles, visibilityConfiguration.maximumVisibilityDistance,
+            )
 
         if (visibilityConfiguration.useLighting) {
             currentlyVisible.forEachCoordinate { coordinate ->
@@ -119,41 +130,53 @@ open class AsciiCamera(
             if (currentlyVisible[zoneCoordinate]) {
                 lightBuffer(coordinate, zoneCoordinate, buffer)
             } else {
-                buffer[coordinate] = if (
-                    visibilityConfiguration.previouslyViewedTilesVisible && previouslyVisible[zoneCoordinate]
-                ) {
-                    val zoneTile = zone.tiles[zoneCoordinate]
-                    AsciiCharacterData(
-                        zoneTile.glyph,
-                        visibilityConfiguration.previouslyViewedTilesForegroundColorProvider(zoneTile.color),
-                        visibilityConfiguration.previouslyViewedTilesBackgroundColorProvider(zoneTile.backgroundColor),
-                    )
-                } else {
-                    defaultFillCharacter
-                }
+                buffer[coordinate] =
+                    if (
+                        visibilityConfiguration.previouslyViewedTilesVisible && previouslyVisible[zoneCoordinate]
+                    ) {
+                        val zoneTile = zone.tiles[zoneCoordinate]
+                        AsciiCharacterData(
+                            zoneTile.glyph,
+                            visibilityConfiguration.previouslyViewedTilesForegroundColorProvider(zoneTile.color),
+                            visibilityConfiguration.previouslyViewedTilesBackgroundColorProvider(
+                                zoneTile.backgroundColor,
+                            ),
+                        )
+                    } else {
+                        defaultFillCharacter
+                    }
             }
         }
     }
 
-    private fun lightBuffer(bufferCoordinate: Point, zoneCoordinate: Point, buffer: Grid<AsciiCharacterData>) {
+    private fun lightBuffer(
+        bufferCoordinate: Point,
+        zoneCoordinate: Point,
+        buffer: Grid<AsciiCharacterData>,
+    ) {
         if (visibilityConfiguration.useLighting) {
             val zoneLightMapVal = zone.lightMap[zoneCoordinate]
 
             if (zoneLightMapVal != null) {
                 val lightValueColor = zoneLightMapVal.normalizedColor * zoneLightMapVal.intensity
 
-                buffer[bufferCoordinate].foregroundColor = (
-                    buffer[bufferCoordinate].foregroundColor.toNormalizedRgb() * lightValueColor
-                ).toColor()
+                buffer[bufferCoordinate].foregroundColor =
+                    (
+                        buffer[bufferCoordinate].foregroundColor.toNormalizedRgb() * lightValueColor
+                    ).toColor()
 
-                buffer[bufferCoordinate].backgroundColor = (
-                    buffer[bufferCoordinate].backgroundColor.toNormalizedRgb() * lightValueColor
-                ).toColor()
+                buffer[bufferCoordinate].backgroundColor =
+                    (
+                        buffer[bufferCoordinate].backgroundColor.toNormalizedRgb() * lightValueColor
+                    ).toColor()
             }
         }
     }
 
-    private fun drawHighlightedTiles(cameraOrigin: Point, buffer: Grid<AsciiCharacterData>) {
+    private fun drawHighlightedTiles(
+        cameraOrigin: Point,
+        buffer: Grid<AsciiCharacterData>,
+    ) {
         highlightedCoordinates.forEach { highlightedCoordinate ->
             val bufferCoordinate = highlightedCoordinate.position.point - cameraOrigin
 
@@ -165,14 +188,16 @@ open class AsciiCamera(
 
     private fun getCameraOrigin(): Point {
         val focusPoint = focusProvider()
-        val cameraOriginX = max(
-            0,
-            min(focusPoint.x - contentBounds.width / 2, zone.width - contentBounds.width),
-        )
-        val cameraOriginY = max(
-            0,
-            min(focusPoint.y - contentBounds.height / 2, zone.height - contentBounds.height),
-        )
+        val cameraOriginX =
+            max(
+                0,
+                min(focusPoint.x - contentBounds.width / 2, zone.width - contentBounds.width),
+            )
+        val cameraOriginY =
+            max(
+                0,
+                min(focusPoint.y - contentBounds.height / 2, zone.height - contentBounds.height),
+            )
 
         return Point(cameraOriginX, cameraOriginY)
     }
@@ -187,7 +212,7 @@ open class AsciiCamera(
             zone: Zone,
             focusProvider: CameraFocusProvider,
             visibilityConfiguration: VisibilityConfiguration,
-            init: AsciiCamera.() -> Unit
+            init: AsciiCamera.() -> Unit,
         ): AsciiCamera = initialize(AsciiCamera(ui, zone, focusProvider, visibilityConfiguration), init)
     }
 }
@@ -202,7 +227,8 @@ data class VisibilityConfiguration(
 ) {
     companion object {
         fun create(
-            lineOfSightCalculator: LineOfSightCalculator, init: VisibilityConfiguration.() -> Unit
+            lineOfSightCalculator: LineOfSightCalculator,
+            init: VisibilityConfiguration.() -> Unit,
         ): VisibilityConfiguration = initialize(VisibilityConfiguration(lineOfSightCalculator), init)
     }
 }

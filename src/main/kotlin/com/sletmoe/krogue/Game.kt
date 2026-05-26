@@ -21,8 +21,11 @@ abstract class Game(
 
     // overrideable callbacks
     protected open fun onInput(inputEvent: InputEvent) {}
+
     protected open fun onTick(ticks: Long) {}
+
     protected open fun onStartup() {}
+
     protected open fun onShutdown() {}
 
     // internal game engine logic
@@ -43,24 +46,26 @@ abstract class Game(
         ui.refresh()
     }
 
-    suspend fun run() = coroutineScope {
-        stop = false
-        onStartup()
-        while (!stop) {
-            val elapsedFrameNanoseconds = measureNanoTime {
-                processInput()
-                tick()
-                render()
+    suspend fun run() =
+        coroutineScope {
+            stop = false
+            onStartup()
+            while (!stop) {
+                val elapsedFrameNanoseconds =
+                    measureNanoTime {
+                        processInput()
+                        tick()
+                        render()
+                    }
+
+                val remainingFrameNanoseconds = nanosecondsPerFrame - elapsedFrameNanoseconds
+                if (remainingFrameNanoseconds > 0) {
+                    delay(remainingFrameNanoseconds.nanoseconds)
+                }
             }
 
-            val remainingFrameNanoseconds = nanosecondsPerFrame - elapsedFrameNanoseconds
-            if (remainingFrameNanoseconds > 0) {
-                delay(remainingFrameNanoseconds.nanoseconds)
-            }
+            onShutdown()
         }
-
-        onShutdown()
-    }
 
     fun stop() {
         stop = true

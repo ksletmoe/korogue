@@ -16,6 +16,7 @@ abstract class AsciiSubpanelComponent(private var _bounds: Rectangle = MAX_BOUND
         get() = bounds.size
 
     abstract fun refresh()
+
     abstract fun onNewBounds()
 
     protected open fun setBoundsImpl(newBounds: Rectangle) {
@@ -23,4 +24,3 @@ abstract class AsciiSubpanelComponent(private var _bounds: Rectangle = MAX_BOUND
         onNewBounds()
     }
 }
-

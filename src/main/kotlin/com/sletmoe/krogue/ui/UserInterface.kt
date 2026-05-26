@@ -12,8 +12,22 @@ interface UserInterface : KeyListener, MouseListener {
     val heightInCharacters: Int
 
     fun refresh()
+
     fun repaintCharacters(bounds: Rectangle)
+
     fun getInput(): InputEvent?
-    fun drawCharacter(character: Char, foregroundColor: Color, backgroundColor: Color, x: Int, y: Int)
-    fun drawCharacter(characterData: AsciiCharacterData, x: Int, y: Int)
+
+    fun drawCharacter(
+        character: Char,
+        foregroundColor: Color,
+        backgroundColor: Color,
+        x: Int,
+        y: Int,
+    )
+
+    fun drawCharacter(
+        characterData: AsciiCharacterData,
+        x: Int,
+        y: Int,
+    )
 }

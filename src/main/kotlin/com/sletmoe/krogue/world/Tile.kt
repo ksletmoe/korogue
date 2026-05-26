@@ -14,11 +14,12 @@ open class Tile(
 ) : Entity(name, glyph, color, description)
 
 val BLANK_CHARACTER = AsciiCharacterData(' ', Color.white, Color.black)
-val BLANK_TILE = Tile(
-    "The Void",
-    BLANK_CHARACTER.character,
-    BLANK_CHARACTER.foregroundColor,
-    BLANK_CHARACTER.backgroundColor,
-    isWalkable = true,
-    blocksLineOfSight = false,
-)
+val BLANK_TILE =
+    Tile(
+        "The Void",
+        BLANK_CHARACTER.character,
+        BLANK_CHARACTER.foregroundColor,
+        BLANK_CHARACTER.backgroundColor,
+        isWalkable = true,
+        blocksLineOfSight = false,
+    )

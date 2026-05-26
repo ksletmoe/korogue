@@ -43,9 +43,10 @@ class AsciiSubpanelHorizontalGroup : AsciiSubpanelGroup() {
         val componentDimensionSpecs = componentPreferredDimensionSpecs(size)
         // set each component's height to the min of its preferred height and our height
         componentDimensionSpecs.forEach { componentDimSpec ->
-            componentDimSpec.dimension.height = min(
-                componentDimSpec.component.getMaximumSize(size).height, size.height
-            )
+            componentDimSpec.dimension.height =
+                min(
+                    componentDimSpec.component.getMaximumSize(size).height, size.height,
+                )
         }
 
         val widthDelta = getPreferredSize(size).width - size.width
@@ -58,21 +59,24 @@ class AsciiSubpanelHorizontalGroup : AsciiSubpanelGroup() {
             while (trimableComponentDimSpecs.isNotEmpty()) {
                 val trimVal = widthDelta / components.size
 
-                trimableComponentDimSpecs = trimableComponentDimSpecs.filter { componentDimSpec ->
-                    // if widthDelta % components.size != 0, we can't truly trim each component exactly evenly. When we
-                    // get down to (widthDelta - trimmedChars) < trimableComponents, we'll need to be sure we aren't
-                    // trimming more than we should. Calculate the maxTrimVal here such that we don't trim too much
-                    val maxTrimVal = min(
-                        componentDimSpec.dimension.width - componentDimSpec.component.getMinimumSize(size).width,
-                        widthDelta - trimmedChars,
-                    )
-                    val componentTrimVal = min(trimVal, maxTrimVal)
-                    componentDimSpec.dimension.width -= componentTrimVal
-                    trimmedChars += componentTrimVal
+                trimableComponentDimSpecs =
+                    trimableComponentDimSpecs.filter { componentDimSpec ->
+                        // if widthDelta % components.size != 0, we can't truly trim each component exactly evenly. When we
+                        // get down to (widthDelta - trimmedChars) < trimableComponents, we'll need to be sure we aren't
+                        // trimming more than we should. Calculate the maxTrimVal here such that we don't trim too much
+                        val maxTrimVal =
+                            min(
+                                componentDimSpec.dimension.width -
+                                    componentDimSpec.component.getMinimumSize(size).width,
+                                widthDelta - trimmedChars,
+                            )
+                        val componentTrimVal = min(trimVal, maxTrimVal)
+                        componentDimSpec.dimension.width -= componentTrimVal
+                        trimmedChars += componentTrimVal
 
-                    // we still have leeway to trim more off of this
-                    maxTrimVal > componentTrimVal
-                }
+                        // we still have leeway to trim more off of this
+                        maxTrimVal > componentTrimVal
+                    }
             }
         } else if (widthDelta < 0) {
             // need to scale up
@@ -82,37 +86,40 @@ class AsciiSubpanelHorizontalGroup : AsciiSubpanelGroup() {
             while (expandableComponentDimSpecs.isNotEmpty()) {
                 val expandVal = abs(widthDelta) / components.size
 
-                expandableComponentDimSpecs = expandableComponentDimSpecs.filter { componentDimSpec ->
-                    val maxExpandVal = min(
-                        componentDimSpec.component.getMaximumSize(size).width - componentDimSpec.dimension.width,
-                        abs(widthDelta) - expandedChars,
-                    )
-                    val componentExpandVal = min(expandVal, maxExpandVal)
-                    componentDimSpec.dimension.width += componentExpandVal
-                    expandedChars += componentExpandVal
+                expandableComponentDimSpecs =
+                    expandableComponentDimSpecs.filter { componentDimSpec ->
+                        val maxExpandVal =
+                            min(
+                                componentDimSpec.component.getMaximumSize(size).width -
+                                    componentDimSpec.dimension.width,
+                                abs(widthDelta) - expandedChars,
+                            )
+                        val componentExpandVal = min(expandVal, maxExpandVal)
+                        componentDimSpec.dimension.width += componentExpandVal
+                        expandedChars += componentExpandVal
 
-                    // we still have leeway to add to this
-                    maxExpandVal > componentExpandVal
-                }
+                        // we still have leeway to add to this
+                        maxExpandVal > componentExpandVal
+                    }
             }
         } // else we got lucky, and all the preferred widths add up exactly to our bounds. No width adjustments needed
 
         // now go layout the components with the sizes we calculated
         var x = bounds.x
         componentDimensionSpecs.forEach { componentDimensionSpec ->
-            componentDimensionSpec.component.bounds = Rectangle(
-                x,
-                bounds.y,
-                componentDimensionSpec.dimension.width,
-                componentDimensionSpec.dimension.height,
-            )
+            componentDimensionSpec.component.bounds =
+                Rectangle(
+                    x,
+                    bounds.y,
+                    componentDimensionSpec.dimension.width,
+                    componentDimensionSpec.dimension.height,
+                )
             x += componentDimensionSpec.dimension.width
         }
     }
 
     companion object {
-        fun create(
-            init: AsciiSubpanelGroup.() -> Unit,
-        ): AsciiSubpanelHorizontalGroup = initialize(AsciiSubpanelHorizontalGroup(), init)
+        fun create(init: AsciiSubpanelGroup.() -> Unit): AsciiSubpanelHorizontalGroup =
+            initialize(AsciiSubpanelHorizontalGroup(), init)
     }
 }

@@ -36,5 +36,9 @@ local.properties
 
 .DS_Store
 
+bin/
+
+.claude/
+
 # DO check in the Gradle wrapper
 !gradle/wrapper/gradle-wrapper.jar

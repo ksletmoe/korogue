@@ -27,15 +27,26 @@ open class Zone(
 
     val lightMap: Grid<LightValue?> = Grid(tiles.width, tiles.height, null)
 
-    fun creatureAt(x: Int, y: Int): Creature? = creatures.firstOrNull { it.position.x == x && it.position.y == y }
-    fun isWalkable(x: Int, y: Int): Boolean = tiles[x, y].isWalkable && creatureAt(x, y) == null
+    fun creatureAt(
+        x: Int,
+        y: Int,
+    ): Creature? = creatures.firstOrNull { it.position.x == x && it.position.y == y }
 
-    fun getCreaturesInArea(center: Point, width: Int, height: Int): List<Creature> {
+    fun isWalkable(
+        x: Int,
+        y: Int,
+    ): Boolean = tiles[x, y].isWalkable && creatureAt(x, y) == null
+
+    fun getCreaturesInArea(
+        center: Point,
+        width: Int,
+        height: Int,
+    ): List<Creature> {
         return creatures.filter { creature ->
-            creature.position.x > center.x - width / 2.0
-                    && creature.position.x < center.x + width / 2.0
-                    && creature.position.y > center.y - height / 2.0
-                    && creature.position.y < center.y + height / 2.0
+            creature.position.x > center.x - width / 2.0 &&
+                creature.position.x < center.x + width / 2.0 &&
+                creature.position.y > center.y - height / 2.0 &&
+                creature.position.y < center.y + height / 2.0
         }
     }
 
@@ -63,18 +74,20 @@ open class Zone(
         lightSources.forEach { lightSource ->
             lightMap.forEachCoordinateInRadius(lightSource.position.point, lightSource.lightRadius) { lightMapCoord ->
                 val existingLightMapVal = lightMap[lightMapCoord]
-                val newLightVal = lightSource.calculateLightValue(
-                    lightSource.position.point.distance(lightMapCoord)
-                )
-
-                lightMap[lightMapCoord] = if (existingLightMapVal != null) {
-                    LightValue(
-                        ColorBlending.softLight(existingLightMapVal.normalizedColor, newLightVal.normalizedColor),
-                        ColorBlending.screen(existingLightMapVal.intensity, newLightVal.intensity),
+                val newLightVal =
+                    lightSource.calculateLightValue(
+                        lightSource.position.point.distance(lightMapCoord),
                     )
-                } else {
-                    newLightVal
-                }
+
+                lightMap[lightMapCoord] =
+                    if (existingLightMapVal != null) {
+                        LightValue(
+                            ColorBlending.softLight(existingLightMapVal.normalizedColor, newLightVal.normalizedColor),
+                            ColorBlending.screen(existingLightMapVal.intensity, newLightVal.intensity),
+                        )
+                    } else {
+                        newLightVal
+                    }
             }
         }
     }
@@ -83,7 +96,7 @@ open class Zone(
         private val zoneId: String,
         width: Int,
         height: Int,
-        private val random: Random = Random.Default
+        private val random: Random = Random.Default,
     ) {
         private val tiles: Grid<Tile> = Grid(width, height, BLANK_TILE)
 
@@ -93,7 +106,11 @@ open class Zone(
             }
         }
 
-        fun setTile(x: Int, y: Int, tile: Tile) {
+        fun setTile(
+            x: Int,
+            y: Int,
+            tile: Tile,
+        ) {
             tiles[x, y] = tile
         }
 
@@ -110,7 +127,7 @@ open class Zone(
             width: Int,
             height: Int,
             random: Random = Random.Default,
-            zoneBuilderInit: Builder.() -> Unit = {}
+            zoneBuilderInit: Builder.() -> Unit = {},
         ): Zone {
             return initialize(Builder(zoneId, width, height, random), zoneBuilderInit).build()
         }

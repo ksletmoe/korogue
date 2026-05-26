@@ -21,7 +21,7 @@ class AsciiDisplayTest : FunSpec({
         checkAll(
             KrogueArb.asciiCharacterData,
             Arb.positiveInt(max = 50),
-            Arb.positiveInt(max = 50)
+            Arb.positiveInt(max = 50),
         ) { characterData, width, height ->
             val ui = UserInterfaceStub(width, height)
             val asciiDisplay = AsciiDisplay(ui)
@@ -54,7 +54,9 @@ class AsciiDisplayTest : FunSpec({
 
     context("with a border") {
         data class BorderTestSpec(
-            val description: String, val border: AsciiBorder, val displayFillCharacter: AsciiCharacterData
+            val description: String,
+            val border: AsciiBorder,
+            val displayFillCharacter: AsciiCharacterData,
         )
 
         val displayFillCharacter = AsciiCharacterData('#', Color.blue, Color.black)
@@ -87,7 +89,7 @@ class AsciiDisplayTest : FunSpec({
                     Borders.dashed(Color.white, Color.white).withoutLeft(),
                     displayFillCharacter,
                 ),
-            )
+            ),
         ) { (_, border, fillCharacter) ->
             val emptyCharacter = AsciiCharacterData(' ', Color.white, Color.black)
 
@@ -95,14 +97,15 @@ class AsciiDisplayTest : FunSpec({
             ui.asciiPanel.clear(
                 emptyCharacter.character,
                 emptyCharacter.foregroundColor,
-                emptyCharacter.backgroundColor
+                emptyCharacter.backgroundColor,
             )
 
-            val display = AsciiDisplay.create(ui) {
-                defaultFillCharacter = emptyCharacter
-                bounds = Rectangle(2, 2, 16, 16)
-                this.border = border
-            }
+            val display =
+                AsciiDisplay.create(ui) {
+                    defaultFillCharacter = emptyCharacter
+                    bounds = Rectangle(2, 2, 16, 16)
+                    this.border = border
+                }
             display.fill(fillCharacter)
 
             checkAll(KrogueArb.coordinates(Rectangle(0, 0, ui.widthInCharacters, ui.heightInCharacters))) { point ->
@@ -140,12 +143,16 @@ class AsciiDisplayTest : FunSpec({
                         }
                         else -> {
                             when (y) {
-                                display.bounds.y -> panelCharacter should haveCharacterData(
-                                    border.topEdge ?: fillCharacter
-                                )
-                                display.bounds.lastY -> panelCharacter should haveCharacterData(
-                                    border.bottomEdge ?: fillCharacter
-                                )
+                                display.bounds.y ->
+                                    panelCharacter should
+                                        haveCharacterData(
+                                            border.topEdge ?: fillCharacter,
+                                        )
+                                display.bounds.lastY ->
+                                    panelCharacter should
+                                        haveCharacterData(
+                                            border.bottomEdge ?: fillCharacter,
+                                        )
                                 else -> panelCharacter should haveCharacterData(fillCharacter)
                             }
                         }
