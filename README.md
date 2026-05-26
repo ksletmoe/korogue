@@ -147,6 +147,10 @@ xvfb-run -a ./gradlew :library:test --no-daemon       # + headless GL integratio
 Built with Gradle 9.5.1, Kotlin 2.3.21 (JDK 21 toolchain), and libGDX 1.14.1.
 See [AGENTS.md](AGENTS.md) for a deeper tour of the architecture.
 
+## License
+
+kotile is released under the [BSD 3-Clause License](LICENSE).
+
 ## Credits
 
 The demo sprite sheet (`demo/src/main/resources/vaarn-8x8.png`) is from the

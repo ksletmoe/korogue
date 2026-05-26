@@ -66,6 +66,12 @@ publishing {
             pom {
                 name.set("kotile")
                 description.set("A Kotlin tile-rendering library for ASCII and image sprite sheets, built on libGDX.")
+                licenses {
+                    license {
+                        name.set("BSD 3-Clause License")
+                        url.set("https://opensource.org/licenses/BSD-3-Clause")
+                    }
+                }
             }
         }
     }
