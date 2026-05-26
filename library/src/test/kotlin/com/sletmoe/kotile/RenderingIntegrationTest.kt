@@ -14,6 +14,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.doubles.plusOrMinus
 import io.kotest.matchers.shouldBe
+import java.io.File
 
 /**
  * Integration tests that drive real OpenGL rendering through the public API
@@ -77,16 +78,17 @@ class RenderingIntegrationTest : FunSpec({
     }
 
     test("SpriteTileRenderer draws an image sheet tile in its own colors").config(enabled = HeadlessGl.available) {
-        // Tile (0,1) of the Vaarn sheet is the blue floor (~#316781).
-        val avg = renderFloorTile(Color.WHITE)
+        // A synthetic sheet whose only tile is blue; drawn untinted it keeps it.
+        val avg = renderSpriteTile(tileColor = SHEET_BLUE, tint = Color.WHITE)
         avg.b shouldBeGreaterThan avg.r
-        avg.b.toDouble() shouldBe (0.5 plusOrMinus 0.2)
+        avg.b.toDouble() shouldBe (0.9 plusOrMinus 0.1)
     }
 
     test("a sprite tile is recolored by its tint").config(enabled = HeadlessGl.available) {
-        // The same blue floor tinted red multiplies down to a red-dominant color.
-        val avg = renderFloorTile(Color.RED)
+        // The same blue tile tinted red multiplies down to a red-dominant color.
+        val avg = renderSpriteTile(tileColor = SHEET_BLUE, tint = Color.RED)
         avg.r shouldBeGreaterThan avg.b
+        avg.r.toDouble() shouldBe (0.3 plusOrMinus 0.1)
         avg.g.toDouble() shouldBe (0.0 plusOrMinus 0.1)
         avg.b.toDouble() shouldBe (0.0 plusOrMinus 0.1)
     }
@@ -102,7 +104,7 @@ class RenderingIntegrationTest : FunSpec({
             sheetPixmap.fillRectangle(1, 1, 4, 4) // tile (0,0)
             sheetPixmap.setColor(Color.GREEN)
             sheetPixmap.fillRectangle(7, 1, 4, 4) // tile (1,0): 1 + (4 + 2)
-            val file = java.io.File.createTempFile("kotile-sheet", ".png").apply { deleteOnExit() }
+            val file = File.createTempFile("kotile-sheet", ".png").apply { deleteOnExit() }
             PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), sheetPixmap)
             sheetPixmap.dispose()
 
@@ -150,14 +152,23 @@ class RenderingIntegrationTest : FunSpec({
     }
 })
 
-private fun renderFloorTile(tint: Color): Color {
+private val SHEET_BLUE = Color(0.3f, 0.3f, 0.9f, 1f)
+
+private fun renderSpriteTile(tileColor: Color, tint: Color): Color {
     val pixels = HeadlessGl.render(64, 64, Color.BLACK) {
-        val sheet = TileSheet(Gdx.files.classpath("vaarn-8x8.png"), 8, 8)
+        val tilePixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
+        tilePixmap.setColor(tileColor)
+        tilePixmap.fill()
+        val file = File.createTempFile("kotile-sprite", ".png").apply { deleteOnExit() }
+        PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), tilePixmap)
+        tilePixmap.dispose()
+
+        val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
         val canvas = KotileCanvas(8, 8)
         val renderer = SpriteTileRenderer(canvas, sheet)
         for (y in 0 until 8) {
             for (x in 0 until 8) {
-                renderer.drawTile(x, y, z = 0, staticTile = StaticTile(sheetX = 0, sheetY = 1, tint = tint))
+                renderer.drawTile(x, y, z = 0, staticTile = StaticTile(sheetX = 0, sheetY = 0, tint = tint))
             }
         }
         renderer.render()

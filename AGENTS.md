@@ -5,8 +5,7 @@ Guidance for AI coding agents working in this repository.
 ## What kotile is
 
 kotile is a Kotlin/JVM library for rendering grids of tiles, built on
-**LibGDX** with its **LWJGL3** desktop backend. It supports two tile styles
-on the same rendering core:
+**LibGDX**. It supports two tile styles on the same rendering core:
 
 - **Image sprite sheets** — slice any image into tiles and draw them, with an
   optional per-tile color tint.
@@ -16,22 +15,37 @@ on the same rendering core:
 Rendering is immediate-mode: tile state is held in memory and the whole
 visible grid is redrawn every frame via a batched `SpriteBatch`.
 
+## Project layout
+
+A Gradle multi-module build:
+
+- **`:library`** — the published artifact (`com.sletmoe:kotile`). Depends only
+  on **gdx core** (`api`), so consumers choose their own gdx backend. Bundles
+  the CP437 font. Its tests add the LWJGL3 backend to get a GL context.
+- **`:demo`** — a runnable LWJGL3 application showing both tile styles. Depends
+  on `:library` plus the `gdx-backend-lwjgl3` backend and desktop natives, and
+  owns the demo-only assets (the Vaarn sprite sheet).
+
+Shared versions live in `gradle.properties` (`gdxVersion`, `kotestVersion`);
+the Kotlin plugin version is pinned in `settings.gradle.kts`.
+
 ## Build, run, test
 
 The project uses the Gradle wrapper (Gradle 9.5.1, Kotlin 2.3.21, JDK 21
 toolchain). Run everything through `./gradlew`.
 
 ```bash
-./gradlew compileKotlin   # fast compile check
-./gradlew build           # compile + assemble + tests
-./gradlew run             # launch the demo app (opens a window)
-./gradlew installDist     # stage a runnable distribution under build/install/kotile
+./gradlew build                  # compile + assemble + test both modules
+./gradlew :library:test          # library unit tests (GL tests skip, see below)
+./gradlew :demo:run              # launch the demo app (opens a window)
+./gradlew :demo:installDist      # stage the demo under demo/build/install/kotile
+./gradlew :library:publishToMavenLocal   # publish com.sletmoe:kotile to ~/.m2
 ```
 
-Tests use **Kotest** (`FunSpec`). Two kinds:
+Tests use **Kotest** (`FunSpec`) and live in `:library`. Two kinds:
 
 - **Unit tests** for GL-free logic (`Grid`, `LayeredTilemap`, `StaticTile`) —
-  run anywhere via `./gradlew test`.
+  run anywhere via `./gradlew :library:test`.
 - **Headless GL integration tests** (`RenderingIntegrationTest`) that boot a
   real offscreen LWJGL3 context, render through the public API, and assert on
   framebuffer pixels. They are auto-skipped when no display is present
@@ -39,7 +53,7 @@ Tests use **Kotest** (`FunSpec`). Two kinds:
   software OpenGL:
 
   ```bash
-  xvfb-run -a -s "-screen 0 1024x768x24" ./gradlew test --no-daemon
+  xvfb-run -a -s "-screen 0 1024x768x24" ./gradlew :library:test --no-daemon
   ```
 
   The `test` task forwards `DISPLAY` and forces Mesa software GL
@@ -47,24 +61,32 @@ Tests use **Kotest** (`FunSpec`). Two kinds:
 
 ## Running headless (no display / CI / agents)
 
-The app is a GUI program, so a display and an OpenGL context are required.
+The demo is a GUI program, so a display and an OpenGL context are required.
 In a headless environment use a virtual framebuffer plus Mesa software GL, and
 the built-in snapshot hook (`-Dkotile.snapshot=<path>`) which renders one
 frame to a PNG and exits:
 
 ```bash
-./gradlew installDist -q
+./gradlew :demo:installDist -q
 LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe \
   KOTILE_OPTS="-Dkotile.snapshot=$PWD/render.png" \
-  xvfb-run -a -s "-screen 0 1024x768x24" build/install/kotile/bin/kotile
+  xvfb-run -a -s "-screen 0 1024x768x24" demo/build/install/kotile/bin/kotile
 ```
 
 `render.png` is gitignored. Pass JVM flags to the installed app via the
 `KOTILE_OPTS` env var (Gradle's `run` does NOT forward `-D` to the forked JVM).
 
+## Publishing
+
+`:library` applies `maven-publish` and publishes `com.sletmoe:kotile` (jar +
+sources jar). The POM declares only **gdx core** as a dependency — the LWJGL3
+backend and natives are test-only and do not leak to consumers. Maven Central
+would additionally require a Javadoc jar, signing, and credentials (not set up).
+
 ## Architecture
 
-Source lives under `src/main/kotlin`. Package root: `com.sletmoe.kotile`.
+Library source lives under `library/src/main/kotlin`. Package root:
+`com.sletmoe.kotile`. The demo's `Main.kt` is in `:demo`.
 
 - `display/KotileCanvas` — wraps a `SpriteBatch`; draws tile-sized
   `TextureRegion`s with an optional tint. Tile coordinates are **top-left
@@ -86,7 +108,7 @@ Source lives under `src/main/kotlin`. Package root: `com.sletmoe.kotile`.
   `AsciiTileDescriptor` (char + fg/bg color), and `Font`/`Fonts` (loads a
   16x16 CP437 sheet; key color defaults to black, overridable).
 - `utilities/` — `Grid<T>` (flat 2D array), `LayeredTilemap` (z-layered tile
-  storage with dirty tracking), `Vector2Int`, `Vector3Int`.
+  storage), `Vector2Int`, `Vector3Int`.
 
 ## How tint works
 
@@ -100,9 +122,11 @@ identity (no manipulation) and is the default everywhere tint is accepted.
 - LibGDX resources that own native memory (`Texture`, `SpriteBatch`,
   `TileSheet`, `KotileCanvas`, `AsciiTileWindow`) implement/use `Disposable`;
   dispose them when done.
-- Assets go in `src/main/resources` and are loaded via
-  `Gdx.files.classpath(...)`. Bundled third-party assets must be open-licensed;
-  record provenance next to the file (see `vaarn-8x8.license.txt`, CC0).
+- Assets are loaded via `Gdx.files.classpath(...)`. Library assets (the CP437
+  font) live in `library/src/main/resources` and ship in the published jar;
+  demo-only assets live in `demo/src/main/resources`. Bundled third-party
+  assets must be open-licensed; record provenance next to the file (see
+  `demo/src/main/resources/vaarn-8x8.license.txt`, CC0).
 
 ## Git
 
