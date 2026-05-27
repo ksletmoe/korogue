@@ -2,17 +2,27 @@ package com.sletmoe.kotile.rendering
 
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.sletmoe.kotile.display.KotileCanvas
+import com.sletmoe.kotile.tiles.SpriteTileEntry
 import com.sletmoe.kotile.tiles.StaticTile
+import com.sletmoe.kotile.tiles.Tile
 import com.sletmoe.kotile.utilities.LayeredTilemap
 import com.sletmoe.kotile.utilities.Vector3Int
 
 /**
- * Renders a [LayeredTilemap] of [StaticTile]s to a [KotileCanvas] each frame.
+ * Renders a [LayeredTilemap] of [SpriteTileEntry] tiles to a [KotileCanvas]
+ * each frame.
+ *
+ * Two concrete tile types are supported:
+ * - [StaticTile] — coordinate-based; [regionFor] is called with the tile so
+ *   subclasses can resolve the region from a sheet or other source.
+ * - [Tile] (e.g. [com.sletmoe.kotile.tiles.AnimatedSpriteTile]) — owns its
+ *   frames; [regionFor] is called with the elapsed wall-clock time so the tile
+ *   can return the current animation frame.
  *
  * Tiles are mutated with [drawTile]/[clearTile] and drawn by [render], which
  * redraws the whole grid (top-most tile per cell) every frame. Subclasses
- * implement [regionFor] to map a tile to the texture region representing it;
- * the tile's tint is applied at draw time.
+ * implement [regionFor] to map a [StaticTile] to the texture region
+ * representing it; [Tile] instances resolve their own regions.
  *
  * Call [onResize] from the application's resize callback so the internal
  * tilemap is rebuilt to match the new canvas dimensions. Tiles outside the new
@@ -33,7 +43,7 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) {
      */
     val windowHeight: Int get() = canvas.height
 
-    private var tilemap = LayeredTilemap<StaticTile>(windowWidth, windowHeight)
+    private var tilemap = LayeredTilemap<SpriteTileEntry>(windowWidth, windowHeight)
 
     /**
      * Rebuilds the internal tilemap to fit the new pixel dimensions. Tiles
@@ -51,19 +61,46 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) {
     /** Places [staticTile] at column [x], row [y] on z-layer [z]. */
     fun drawTile(x: Int, y: Int, z: Int, staticTile: StaticTile) = tilemap.setCell(x, y, z, staticTile)
 
+    /**
+     * Places an animated [tile] at [position] (x, y, z-layer).
+     *
+     * The same [Tile] instance may be placed at multiple cells. All cells
+     * sharing the same instance will show the same animation frame at the same
+     * wall-clock time (stateless time model).
+     */
+    fun drawTile(position: Vector3Int, tile: Tile) = tilemap.setCell(position, tile)
+
+    /**
+     * Places an animated [tile] at column [x], row [y] on z-layer [z].
+     *
+     * The same [Tile] instance may be placed at multiple cells. All cells
+     * sharing the same instance will show the same animation frame at the same
+     * wall-clock time (stateless time model).
+     */
+    fun drawTile(x: Int, y: Int, z: Int, tile: Tile) = tilemap.setCell(x, y, z, tile)
+
     /** Removes the tile at [position] (x, y, z-layer). */
     fun clearTile(position: Vector3Int) = tilemap.removeCell(position)
 
     /** Removes the tile at column [x], row [y] on z-layer [z]. */
     fun clearTile(x: Int, y: Int, z: Int) = tilemap.removeCell(x, y, z)
 
-    /** Draws the top-most tile of every cell to the canvas for this frame. */
-    fun render() {
+    /**
+     * Draws the top-most tile of every cell to the canvas for this frame.
+     *
+     * @param elapsedMs monotonically increasing wall-clock time in milliseconds
+     *   used to determine the current frame of any [Tile] (animated) entries.
+     *   Defaults to `0`, which always shows the first frame — suitable for
+     *   renderers that only use [StaticTile].
+     */
+    fun render(elapsedMs: Long = 0L) {
         canvas.begin()
         for (y in 0 until windowHeight) {
             for (x in 0 until windowWidth) {
-                val tile = tilemap.topCellAt(x, y) ?: continue
-                canvas.drawTile(x, y, regionFor(tile), tile.tint)
+                when (val entry = tilemap.topCellAt(x, y) ?: continue) {
+                    is StaticTile -> canvas.drawTile(x, y, regionFor(entry), entry.tint)
+                    is Tile -> canvas.drawTile(x, y, entry.regionFor(elapsedMs), entry.tint)
+                }
             }
         }
         canvas.end()

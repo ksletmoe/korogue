@@ -12,7 +12,7 @@ import com.sletmoe.kotile.utilities.Vector3Int
 
 /**
  * A grid of ASCII cells rendered with a bitmap [Font], supporting z-ordered
- * layers for composited output.
+ * layers for composited output and animated cell content.
  *
  * Cells are set with [drawTile], [drawText], and [fill] (all default to layer
  * z=0 for backwards compatibility), then drawn by [render], which composites
@@ -20,6 +20,15 @@ import com.sletmoe.kotile.utilities.Vector3Int
  * tinted by the cell's background color, then the glyph tinted by its
  * foreground color. Create instances with [create]. Owns GPU resources and must
  * be [dispose]d.
+ *
+ * ## Cell content
+ *
+ * Both static and animated cells are supported. They share the
+ * [AnimatableAsciiTile] sealed interface:
+ * - [AsciiTileDescriptor] — fixed glyph and colors; the most common case.
+ * - [AnimatedAsciiTile] — cycles through a sequence of descriptors over time,
+ *   enabling Brogue-style effects such as torch flicker. Pass the elapsed
+ *   wall-clock time to [render] to drive animation.
  *
  * ## Coordinate system
  *
@@ -36,7 +45,7 @@ import com.sletmoe.kotile.utilities.Vector3Int
  *
  * Layers are identified by an integer z-index. A higher z value draws on top.
  * Layers are created on demand the first time a cell is written to them.
- * Per-cell compositing: the highest-z layer that has a non-null descriptor at
+ * Per-cell compositing: the highest-z layer that has a non-null cell at
  * (x, y) wins; lower layers show through where higher layers are empty. This
  * mirrors the permissive policy of
  * [com.sletmoe.kotile.utilities.LayeredTilemap] used by the sprite path.
@@ -105,7 +114,7 @@ class AsciiTileWindow private constructor(
      */
     val tileHeightPx: Int get() = canvas.tileHeightPx
 
-    private var layeredTiles = LayeredTilemap<AsciiTileDescriptor>(widthInTiles, heightInTiles)
+    private var layeredTiles = LayeredTilemap<AnimatableAsciiTile>(widthInTiles, heightInTiles)
 
     private val backgroundTexture: Texture
     private val backgroundRegion: TextureRegion
@@ -124,24 +133,26 @@ class AsciiTileWindow private constructor(
     // -------------------------------------------------------------------------
 
     /**
-     * Sets the cell at column [x], row [y] on z-layer 0 to [tile].
+     * Sets the cell at column [x], row [y] on z-layer 0 to [tile]. Accepts
+     * both static [AsciiTileDescriptor] and [AnimatedAsciiTile] content.
      *
      * Existing callers that do not use layers continue to work unchanged; all
      * writes go to z=0 by default.
      *
      * @throws IndexOutOfBoundsException if the cell is outside the grid
      */
-    fun drawTile(x: Int, y: Int, tile: AsciiTileDescriptor) {
+    fun drawTile(x: Int, y: Int, tile: AnimatableAsciiTile) {
         drawTile(x, y, z = 0, tile = tile)
     }
 
     /**
      * Sets the cell at column [x], row [y] on layer [z] to [tile]. The layer
-     * is created on demand if it does not yet exist.
+     * is created on demand if it does not yet exist. Accepts both static
+     * [AsciiTileDescriptor] and [AnimatedAsciiTile] content.
      *
      * @throws IndexOutOfBoundsException if the cell is outside the grid
      */
-    fun drawTile(x: Int, y: Int, z: Int, tile: AsciiTileDescriptor) {
+    fun drawTile(x: Int, y: Int, z: Int, tile: AnimatableAsciiTile) {
         layeredTiles.setCell(x, y, z, tile)
     }
 
@@ -151,7 +162,7 @@ class AsciiTileWindow private constructor(
      *
      * @throws IndexOutOfBoundsException if the cell is outside the grid
      */
-    fun drawTile(position: Vector3Int, tile: AsciiTileDescriptor) {
+    fun drawTile(position: Vector3Int, tile: AnimatableAsciiTile) {
         layeredTiles.setCell(position, tile)
     }
 
@@ -202,11 +213,10 @@ class AsciiTileWindow private constructor(
     // -------------------------------------------------------------------------
 
     /**
-     * Sets every cell on layer z=0 to [tile].
-     *
-     * Existing callers that do not use layers continue to work unchanged.
+     * Sets every cell on layer z=0 to [tile]. Accepts both static
+     * [AsciiTileDescriptor] and [AnimatedAsciiTile] content.
      */
-    fun fill(tile: AsciiTileDescriptor) {
+    fun fill(tile: AnimatableAsciiTile) {
         fill(z = 0, tile = tile)
     }
 
@@ -214,7 +224,7 @@ class AsciiTileWindow private constructor(
      * Sets every cell on layer [z] to [tile]. The layer is created on demand
      * if it does not yet exist.
      */
-    fun fill(z: Int, tile: AsciiTileDescriptor) {
+    fun fill(z: Int, tile: AnimatableAsciiTile) {
         for (y in 0 until heightInTiles) {
             for (x in 0 until widthInTiles) {
                 layeredTiles.setCell(x, y, z, tile)
@@ -277,31 +287,43 @@ class AsciiTileWindow private constructor(
     /**
      * Returns the composited (top-most non-null) [AsciiTileDescriptor] at
      * column [x], row [y], or `null` if all layers are empty at that cell.
+     *
+     * @param elapsedMs wall-clock time used to resolve animated cells to a
+     *   concrete descriptor. Defaults to 0 (first frame).
      */
-    fun topDescriptorAt(x: Int, y: Int): AsciiTileDescriptor? =
-        layeredTiles.topCellAt(x, y)
+    fun topDescriptorAt(x: Int, y: Int, elapsedMs: Long = 0L): AsciiTileDescriptor? =
+        layeredTiles.topCellAt(x, y)?.descriptorAt(elapsedMs)
 
     /**
      * Returns the composited (top-most non-null) [AsciiTileDescriptor] at
      * [position], or `null` if all layers are empty at that cell.
      */
-    fun topDescriptorAt(position: Vector2Int): AsciiTileDescriptor? =
-        layeredTiles.topCellAt(position)
+    fun topDescriptorAt(position: Vector2Int, elapsedMs: Long = 0L): AsciiTileDescriptor? =
+        layeredTiles.topCellAt(position)?.descriptorAt(elapsedMs)
 
     // -------------------------------------------------------------------------
     // Render
     // -------------------------------------------------------------------------
 
-    /** Composites all layers and draws every populated cell to the canvas for this frame. */
-    fun render() {
+    /**
+     * Composites all layers and draws every populated cell to the canvas for
+     * this frame.
+     *
+     * @param elapsedMs monotonically increasing wall-clock time in milliseconds
+     *   used to determine the current frame of any [AnimatedAsciiTile] cells.
+     *   Defaults to `0`, which always shows the first frame — suitable for
+     *   windows that only use static [AsciiTileDescriptor] cells.
+     */
+    fun render(elapsedMs: Long = 0L) {
         canvas.begin()
         for (y in 0 until heightInTiles) {
             for (x in 0 until widthInTiles) {
-                val tile = layeredTiles.topCellAt(x, y) ?: continue
+                val cell = layeredTiles.topCellAt(x, y) ?: continue
+                val descriptor = cell.descriptorAt(elapsedMs)
 
-                canvas.drawTile(x, y, backgroundRegion, tile.backgroundColor)
-                font.glyph(tile.character)?.let { glyph ->
-                    canvas.drawTile(x, y, glyph, tile.foregroundColor)
+                canvas.drawTile(x, y, backgroundRegion, descriptor.backgroundColor)
+                font.glyph(descriptor.character)?.let { glyph ->
+                    canvas.drawTile(x, y, glyph, descriptor.foregroundColor)
                 }
             }
         }
