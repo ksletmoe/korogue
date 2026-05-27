@@ -17,6 +17,12 @@ import com.sletmoe.kotile.utilities.Grid
  * foreground color. Create instances with [create]. Owns GPU resources and must
  * be [dispose]d.
  *
+ * Both static and animated cell content are supported:
+ * - [AsciiTileDescriptor] — fixed glyph and colors; the most common case.
+ * - [AnimatedAsciiTile] — cycles through a sequence of descriptors over time,
+ *   enabling Brogue-style effects such as torch flicker. Pass the elapsed
+ *   wall-clock time to [render] to drive animation.
+ *
  * When [fitToWindow] is `true` (the default), [resize] recomputes the tile
  * grid dimensions from the new pixel size and rebuilds the internal cell
  * array. Cells that still fit within the new bounds are preserved; cells
@@ -27,7 +33,7 @@ import com.sletmoe.kotile.utilities.Grid
  * @property widthInTiles grid width in cells
  * @property heightInTiles grid height in cells
  */
-class AsciiTileWindow private constructor(
+public class AsciiTileWindow private constructor(
     private val font: Font,
     private val canvas: KotileCanvas,
     widthInTiles: Int,
@@ -35,14 +41,14 @@ class AsciiTileWindow private constructor(
     private val fitToWindow: Boolean,
 ) : Disposable {
     /** Current grid width in cells. Updated by [resize] when [fitToWindow] is `true`. */
-    var widthInTiles: Int = widthInTiles
+    public var widthInTiles: Int = widthInTiles
         private set
 
     /** Current grid height in cells. Updated by [resize] when [fitToWindow] is `true`. */
-    var heightInTiles: Int = heightInTiles
+    public var heightInTiles: Int = heightInTiles
         private set
 
-    private var tiles = Grid<AsciiTileDescriptor?>(widthInTiles, heightInTiles, null)
+    private var tiles: Grid<AnimatableAsciiTile?> = Grid(widthInTiles, heightInTiles, null)
 
     private val backgroundTexture: Texture
     private val backgroundRegion: TextureRegion
@@ -57,11 +63,25 @@ class AsciiTileWindow private constructor(
     }
 
     /**
-     * Sets the cell at column [x], row [y] to [tile].
+     * Sets the cell at column [x], row [y] to a static [tile].
      *
      * @throws IndexOutOfBoundsException if the cell is outside the grid
      */
-    fun drawTile(x: Int, y: Int, tile: AsciiTileDescriptor) {
+    public fun drawTile(x: Int, y: Int, tile: AsciiTileDescriptor) {
+        tiles[x, y] = tile
+    }
+
+    /**
+     * Sets the cell at column [x], row [y] to an animated [tile].
+     *
+     * The same [AnimatedAsciiTile] instance may be placed at multiple cells;
+     * all cells sharing the instance will show the same frame at the same
+     * wall-clock time (stateless time model). Pass the current elapsed time to
+     * [render] to drive the animation.
+     *
+     * @throws IndexOutOfBoundsException if the cell is outside the grid
+     */
+    public fun drawTile(x: Int, y: Int, tile: AnimatedAsciiTile) {
         tiles[x, y] = tile
     }
 
@@ -70,7 +90,7 @@ class AsciiTileWindow private constructor(
      * right, in [foreground] over [background]. Characters that fall outside
      * the window are skipped rather than throwing.
      */
-    fun drawText(
+    public fun drawText(
         x: Int,
         y: Int,
         text: String,
@@ -87,8 +107,17 @@ class AsciiTileWindow private constructor(
         }
     }
 
-    /** Sets every cell to [tile]. */
-    fun fill(tile: AsciiTileDescriptor) {
+    /** Sets every cell to the static [tile]. */
+    public fun fill(tile: AsciiTileDescriptor) {
+        for (y in 0 until heightInTiles) {
+            for (x in 0 until widthInTiles) {
+                tiles[x, y] = tile
+            }
+        }
+    }
+
+    /** Sets every cell to the animated [tile]. */
+    public fun fill(tile: AnimatedAsciiTile) {
         for (y in 0 until heightInTiles) {
             for (x in 0 until widthInTiles) {
                 tiles[x, y] = tile
@@ -97,23 +126,30 @@ class AsciiTileWindow private constructor(
     }
 
     /** Clears the cell at column [x], row [y] so nothing is drawn there. */
-    fun clearTile(x: Int, y: Int) {
+    public fun clearTile(x: Int, y: Int) {
         tiles[x, y] = null
     }
 
     /** Clears every cell. */
-    fun clear() = tiles.clear()
+    public fun clear() = tiles.clear()
 
-    /** Draws all populated cells to the canvas for this frame. */
-    fun render() {
+    /**
+     * Draws all populated cells to the canvas for this frame.
+     *
+     * @param elapsedMs monotonically increasing wall-clock time in milliseconds
+     *   used to determine the current frame of any [AnimatedAsciiTile] cells.
+     *   Defaults to `0`, which always shows the first frame — suitable for
+     *   windows that only use static [AsciiTileDescriptor] cells.
+     */
+    public fun render(elapsedMs: Long = 0L) {
         canvas.begin()
         for (y in 0 until heightInTiles) {
             for (x in 0 until widthInTiles) {
-                val tile = tiles[x, y] ?: continue
+                val descriptor = tiles[x, y]?.descriptorAt(elapsedMs) ?: continue
 
-                canvas.drawTile(x, y, backgroundRegion, tile.backgroundColor)
-                font.glyph(tile.character)?.let { glyph ->
-                    canvas.drawTile(x, y, glyph, tile.foregroundColor)
+                canvas.drawTile(x, y, backgroundRegion, descriptor.backgroundColor)
+                font.glyph(descriptor.character)?.let { glyph ->
+                    canvas.drawTile(x, y, glyph, descriptor.foregroundColor)
                 }
             }
         }
@@ -131,7 +167,7 @@ class AsciiTileWindow private constructor(
      * When [fitToWindow] is `false`, only the canvas projection is updated;
      * the tile grid remains unchanged.
      */
-    fun resize(widthPx: Int, heightPx: Int) {
+    public fun resize(widthPx: Int, heightPx: Int) {
         canvas.resize(widthPx, heightPx)
         if (!fitToWindow) return
 
@@ -163,7 +199,7 @@ class AsciiTileWindow private constructor(
     }
 
     /** Factory for building [AsciiTileWindow] instances. */
-    companion object {
+    public companion object {
         /**
          * Builds an [AsciiTileWindow] from an [AsciiTileWindowConfig]. The
          * canvas tile size is taken from the font.
@@ -175,7 +211,7 @@ class AsciiTileWindow private constructor(
          * }
          * ```
          */
-        fun create(init: AsciiTileWindowConfig.() -> Unit): AsciiTileWindow {
+        public fun create(init: AsciiTileWindowConfig.() -> Unit): AsciiTileWindow {
             val config = AsciiTileWindowConfig().apply(init)
             val font = config.font ?: Fonts.cp437_10x10()
             val canvas = KotileCanvas(font.charWidthPx, font.charHeightPx)
@@ -197,7 +233,7 @@ class AsciiTileWindow private constructor(
  *   recomputes the tile grid to fit the new pixel dimensions; when `false` the
  *   grid stays at its construction-time size
  */
-data class AsciiTileWindowConfig(
+public data class AsciiTileWindowConfig(
     var font: Font? = null,
     var widthInTiles: Int = 80,
     var heightInTiles: Int = 30,
