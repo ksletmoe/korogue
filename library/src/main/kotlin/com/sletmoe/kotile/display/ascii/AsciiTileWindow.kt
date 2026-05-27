@@ -6,23 +6,53 @@ import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.utils.Disposable
 import com.sletmoe.kotile.display.KotileCanvas
-import com.sletmoe.kotile.utilities.Grid
+import com.sletmoe.kotile.utilities.LayeredTilemap
+import com.sletmoe.kotile.utilities.Vector2Int
+import com.sletmoe.kotile.utilities.Vector3Int
 
 /**
- * A grid of ASCII cells rendered with a bitmap [Font].
+ * A grid of ASCII cells rendered with a bitmap [Font], supporting z-ordered
+ * layers for composited output.
  *
- * Cell state is set with [drawTile], [drawText], and [fill], then drawn by
- * [render], which redraws every populated cell each frame: a background quad
+ * Cells are set with [drawTile], [drawText], and [fill] (all default to layer
+ * z=0 for backwards compatibility), then drawn by [render], which composites
+ * every layer bottom-up and redraws each cell once per frame: a background quad
  * tinted by the cell's background color, then the glyph tinted by its
  * foreground color. Create instances with [create]. Owns GPU resources and must
  * be [dispose]d.
  *
+ * ## Layer semantics
+ *
+ * Layers are identified by an integer z-index. A higher z value draws on top.
+ * Layers are created on demand the first time a cell is written to them.
+ * Per-cell compositing: the highest-z layer that has a non-null descriptor at
+ * (x, y) wins; lower layers show through where higher layers are empty. This
+ * mirrors the permissive policy of
+ * [com.sletmoe.kotile.utilities.LayeredTilemap] used by the sprite path.
+ *
+ * Typical usage for a roguelike:
+ * ```
+ * window.drawTile(x, y, z = 0, tile = groundDescriptor)   // terrain layer
+ * window.drawTile(x, y, z = 1, tile = creatureDescriptor) // creature layer
+ * window.drawTile(x, y, z = 2, tile = effectDescriptor)   // effect/highlight
+ * ```
+ *
+ * ## clear / fill semantics
+ *
+ * - [clear] (no args) — clears every cell on every layer.
+ * - [clearLayer] — clears every cell on one specific layer; no-op if the layer
+ *   has never been written to.
+ * - [clearTile] (x, y) — clears the cell at (x, y) on z=0.
+ * - [clearTile] (x, y, z) — clears the cell at (x, y) on layer z.
+ * - [fill] (tile) — fills every cell on z=0.
+ * - [fill] (z, tile) — fills every cell on the specified layer.
+ *
  * When [fitToWindow] is `true` (the default), [resize] recomputes the tile
- * grid dimensions from the new pixel size and rebuilds the internal cell
- * array. Cells that still fit within the new bounds are preserved; cells
- * outside the new bounds are dropped and new cells default to `null`. When
- * [fitToWindow] is `false`, the grid stays at its construction-time
- * dimensions and is scaled/letterboxed by the canvas to fit the window.
+ * grid dimensions from the new pixel size and rebuilds all layer grids. Cells
+ * that still fit within the new bounds are preserved per layer; cells outside
+ * the new bounds are dropped and new cells default to `null`. When
+ * [fitToWindow] is `false`, the grid stays at its construction-time dimensions
+ * and is scaled/letterboxed by the canvas to fit the window.
  *
  * @property widthInTiles grid width in cells
  * @property heightInTiles grid height in cells
@@ -42,7 +72,7 @@ class AsciiTileWindow private constructor(
     var heightInTiles: Int = heightInTiles
         private set
 
-    private var tiles = Grid<AsciiTileDescriptor?>(widthInTiles, heightInTiles, null)
+    private var layeredTiles = LayeredTilemap<AsciiTileDescriptor>(widthInTiles, heightInTiles)
 
     private val backgroundTexture: Texture
     private val backgroundRegion: TextureRegion
@@ -56,23 +86,70 @@ class AsciiTileWindow private constructor(
         pixmap.dispose()
     }
 
+    // -------------------------------------------------------------------------
+    // Write — single cell
+    // -------------------------------------------------------------------------
+
     /**
-     * Sets the cell at column [x], row [y] to [tile].
+     * Sets the cell at column [x], row [y] on z-layer 0 to [tile].
+     *
+     * Existing callers that do not use layers continue to work unchanged; all
+     * writes go to z=0 by default.
      *
      * @throws IndexOutOfBoundsException if the cell is outside the grid
      */
     fun drawTile(x: Int, y: Int, tile: AsciiTileDescriptor) {
-        tiles[x, y] = tile
+        drawTile(x, y, z = 0, tile = tile)
     }
 
     /**
-     * Writes [text] starting at ([x], [y]), one character per cell to the
-     * right, in [foreground] over [background]. Characters that fall outside
-     * the window are skipped rather than throwing.
+     * Sets the cell at column [x], row [y] on layer [z] to [tile]. The layer
+     * is created on demand if it does not yet exist.
+     *
+     * @throws IndexOutOfBoundsException if the cell is outside the grid
+     */
+    fun drawTile(x: Int, y: Int, z: Int, tile: AsciiTileDescriptor) {
+        layeredTiles.setCell(x, y, z, tile)
+    }
+
+    /**
+     * Sets the cell at [position] (x, y, z) to [tile]. The layer is created
+     * on demand if it does not yet exist.
+     *
+     * @throws IndexOutOfBoundsException if the cell is outside the grid
+     */
+    fun drawTile(position: Vector3Int, tile: AsciiTileDescriptor) {
+        layeredTiles.setCell(position, tile)
+    }
+
+    // -------------------------------------------------------------------------
+    // Write — text
+    // -------------------------------------------------------------------------
+
+    /**
+     * Writes [text] starting at ([x], [y]) on layer z=0, one character per
+     * cell to the right, in [foreground] over [background]. Characters that
+     * fall outside the window are skipped rather than throwing.
      */
     fun drawText(
         x: Int,
         y: Int,
+        text: String,
+        foreground: Color = Color.WHITE,
+        background: Color = Color.BLACK,
+    ) {
+        drawText(x, y, z = 0, text = text, foreground = foreground, background = background)
+    }
+
+    /**
+     * Writes [text] starting at ([x], [y]) on layer [z], one character per
+     * cell to the right, in [foreground] over [background]. Characters that
+     * fall outside the window are skipped rather than throwing.
+     */
+    fun drawText(
+        x: Int,
+        y: Int,
+        z: Int,
         text: String,
         foreground: Color = Color.WHITE,
         background: Color = Color.BLACK,
@@ -82,34 +159,112 @@ class AsciiTileWindow private constructor(
         text.forEachIndexed { index, character ->
             val cellX = x + index
             if (cellX in 0 until widthInTiles) {
-                tiles[cellX, y] = AsciiTileDescriptor(character, foreground, background)
+                layeredTiles.setCell(cellX, y, z, AsciiTileDescriptor(character, foreground, background))
             }
         }
     }
 
-    /** Sets every cell to [tile]. */
+    // -------------------------------------------------------------------------
+    // Write — fill
+    // -------------------------------------------------------------------------
+
+    /**
+     * Sets every cell on layer z=0 to [tile].
+     *
+     * Existing callers that do not use layers continue to work unchanged.
+     */
     fun fill(tile: AsciiTileDescriptor) {
+        fill(z = 0, tile = tile)
+    }
+
+    /**
+     * Sets every cell on layer [z] to [tile]. The layer is created on demand
+     * if it does not yet exist.
+     */
+    fun fill(z: Int, tile: AsciiTileDescriptor) {
         for (y in 0 until heightInTiles) {
             for (x in 0 until widthInTiles) {
-                tiles[x, y] = tile
+                layeredTiles.setCell(x, y, z, tile)
             }
         }
     }
 
-    /** Clears the cell at column [x], row [y] so nothing is drawn there. */
+    // -------------------------------------------------------------------------
+    // Clear — single cell
+    // -------------------------------------------------------------------------
+
+    /**
+     * Clears the cell at column [x], row [y] on layer z=0 so nothing is drawn
+     * there. No-op if layer 0 has never been written to.
+     */
     fun clearTile(x: Int, y: Int) {
-        tiles[x, y] = null
+        clearTile(x, y, z = 0)
     }
 
-    /** Clears every cell. */
-    fun clear() = tiles.clear()
+    /**
+     * Clears the cell at column [x], row [y] on layer [z]. No-op if layer [z]
+     * does not exist.
+     */
+    fun clearTile(x: Int, y: Int, z: Int) {
+        layeredTiles.removeCell(x, y, z)
+    }
 
-    /** Draws all populated cells to the canvas for this frame. */
+    /**
+     * Clears the cell at [position] (x, y, z). No-op if layer z does not
+     * exist.
+     */
+    fun clearTile(position: Vector3Int) {
+        layeredTiles.removeCell(position)
+    }
+
+    // -------------------------------------------------------------------------
+    // Clear — layers
+    // -------------------------------------------------------------------------
+
+    /**
+     * Clears every cell on every layer. Use [clearLayer] to clear only one
+     * layer.
+     */
+    fun clear() {
+        layeredTiles.clearAllLayers()
+    }
+
+    /**
+     * Clears every cell on layer [z]. No-op if layer [z] has never been
+     * written to.
+     */
+    fun clearLayer(z: Int) {
+        layeredTiles.clearLayer(z)
+    }
+
+    // -------------------------------------------------------------------------
+    // Query
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns the composited (top-most non-null) [AsciiTileDescriptor] at
+     * column [x], row [y], or `null` if all layers are empty at that cell.
+     */
+    fun topDescriptorAt(x: Int, y: Int): AsciiTileDescriptor? =
+        layeredTiles.topCellAt(x, y)
+
+    /**
+     * Returns the composited (top-most non-null) [AsciiTileDescriptor] at
+     * [position], or `null` if all layers are empty at that cell.
+     */
+    fun topDescriptorAt(position: Vector2Int): AsciiTileDescriptor? =
+        layeredTiles.topCellAt(position)
+
+    // -------------------------------------------------------------------------
+    // Render
+    // -------------------------------------------------------------------------
+
+    /** Composites all layers and draws every populated cell to the canvas for this frame. */
     fun render() {
         canvas.begin()
         for (y in 0 until heightInTiles) {
             for (x in 0 until widthInTiles) {
-                val tile = tiles[x, y] ?: continue
+                val tile = layeredTiles.topCellAt(x, y) ?: continue
 
                 canvas.drawTile(x, y, backgroundRegion, tile.backgroundColor)
                 font.glyph(tile.character)?.let { glyph ->
@@ -120,13 +275,18 @@ class AsciiTileWindow private constructor(
         canvas.end()
     }
 
+    // -------------------------------------------------------------------------
+    // Resize
+    // -------------------------------------------------------------------------
+
     /**
      * Updates the canvas projection to the new pixel dimensions.
      *
      * When [fitToWindow] is `true`, also recomputes [widthInTiles] and
-     * [heightInTiles] from the new pixel size and rebuilds the internal cell
-     * grid. Existing cell content that still fits within the new dimensions is
-     * preserved; cells outside the new bounds are dropped.
+     * [heightInTiles] from the new pixel size and rebuilds all internal layer
+     * grids. Existing cell content that still fits within the new dimensions
+     * is preserved per layer so that layer transparency is maintained; cells
+     * outside the new bounds are dropped.
      *
      * When [fitToWindow] is `false`, only the canvas projection is updated;
      * the tile grid remains unchanged.
@@ -139,21 +299,30 @@ class AsciiTileWindow private constructor(
         val newHeightInTiles = heightPx / font.charHeightPx
         if (newWidthInTiles == widthInTiles && newHeightInTiles == heightInTiles) return
 
-        val oldTiles = tiles
+        val oldLayeredTiles = layeredTiles
         val oldWidth = widthInTiles
         val oldHeight = heightInTiles
 
         widthInTiles = newWidthInTiles
         heightInTiles = newHeightInTiles
-        tiles = Grid(widthInTiles, heightInTiles, null)
 
-        // Copy over cells that still fit in the new bounds.
-        for (y in 0 until minOf(oldHeight, heightInTiles)) {
-            for (x in 0 until minOf(oldWidth, widthInTiles)) {
-                tiles[x, y] = oldTiles[x, y]
+        // Rebuild preserving per-layer content for cells that still fit.
+        layeredTiles = LayeredTilemap(widthInTiles, heightInTiles)
+        for (z in oldLayeredTiles.layerKeys) {
+            for (y in 0 until minOf(oldHeight, heightInTiles)) {
+                for (x in 0 until minOf(oldWidth, widthInTiles)) {
+                    val cell = oldLayeredTiles.cellAt(x, y, z)
+                    if (cell != null) {
+                        layeredTiles.setCell(x, y, z, cell)
+                    }
+                }
             }
         }
     }
+
+    // -------------------------------------------------------------------------
+    // Dispose
+    // -------------------------------------------------------------------------
 
     /** Disposes the canvas, font, and background texture. */
     override fun dispose() {
@@ -161,6 +330,10 @@ class AsciiTileWindow private constructor(
         font.dispose()
         backgroundTexture.dispose()
     }
+
+    // -------------------------------------------------------------------------
+    // Factory
+    // -------------------------------------------------------------------------
 
     /** Factory for building [AsciiTileWindow] instances. */
     companion object {

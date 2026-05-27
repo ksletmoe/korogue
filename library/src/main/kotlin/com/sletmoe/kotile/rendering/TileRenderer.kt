@@ -33,7 +33,7 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) {
      */
     val windowHeight: Int get() = canvas.height
 
-    private var tilemap = LayeredTilemap(windowWidth, windowHeight)
+    private var tilemap = LayeredTilemap<StaticTile>(windowWidth, windowHeight)
 
     /**
      * Rebuilds the internal tilemap to fit the new pixel dimensions. Tiles
@@ -46,23 +46,23 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) {
     }
 
     /** Places [staticTile] at [position] (x, y, z-layer). */
-    fun drawTile(position: Vector3Int, staticTile: StaticTile) = tilemap.addTile(position, staticTile)
+    fun drawTile(position: Vector3Int, staticTile: StaticTile) = tilemap.setCell(position, staticTile)
 
     /** Places [staticTile] at column [x], row [y] on z-layer [z]. */
-    fun drawTile(x: Int, y: Int, z: Int, staticTile: StaticTile) = tilemap.addTile(x, y, z, staticTile)
+    fun drawTile(x: Int, y: Int, z: Int, staticTile: StaticTile) = tilemap.setCell(x, y, z, staticTile)
 
     /** Removes the tile at [position] (x, y, z-layer). */
-    fun clearTile(position: Vector3Int) = tilemap.removeTile(position)
+    fun clearTile(position: Vector3Int) = tilemap.removeCell(position)
 
     /** Removes the tile at column [x], row [y] on z-layer [z]. */
-    fun clearTile(x: Int, y: Int, z: Int) = tilemap.removeTile(x, y, z)
+    fun clearTile(x: Int, y: Int, z: Int) = tilemap.removeCell(x, y, z)
 
     /** Draws the top-most tile of every cell to the canvas for this frame. */
     fun render() {
         canvas.begin()
         for (y in 0 until windowHeight) {
             for (x in 0 until windowWidth) {
-                val tile = tilemap.topTileAt(x, y) ?: continue
+                val tile = tilemap.topCellAt(x, y) ?: continue
                 canvas.drawTile(x, y, regionFor(tile), tile.tint)
             }
         }
