@@ -17,16 +17,32 @@ import com.sletmoe.kotile.utilities.Grid
  * foreground color. Create instances with [create]. Owns GPU resources and must
  * be [dispose]d.
  *
+ * When [fitToWindow] is `true` (the default), [resize] recomputes the tile
+ * grid dimensions from the new pixel size and rebuilds the internal cell
+ * array. Cells that still fit within the new bounds are preserved; cells
+ * outside the new bounds are dropped and new cells default to `null`. When
+ * [fitToWindow] is `false`, the grid stays at its construction-time
+ * dimensions and is scaled/letterboxed by the canvas to fit the window.
+ *
  * @property widthInTiles grid width in cells
  * @property heightInTiles grid height in cells
  */
 class AsciiTileWindow private constructor(
     private val font: Font,
     private val canvas: KotileCanvas,
-    val widthInTiles: Int,
-    val heightInTiles: Int,
+    widthInTiles: Int,
+    heightInTiles: Int,
+    private val fitToWindow: Boolean,
 ) : Disposable {
-    private val tiles = Grid<AsciiTileDescriptor?>(widthInTiles, heightInTiles, null)
+    /** Current grid width in cells. Updated by [resize] when [fitToWindow] is `true`. */
+    var widthInTiles: Int = widthInTiles
+        private set
+
+    /** Current grid height in cells. Updated by [resize] when [fitToWindow] is `true`. */
+    var heightInTiles: Int = heightInTiles
+        private set
+
+    private var tiles = Grid<AsciiTileDescriptor?>(widthInTiles, heightInTiles, null)
 
     private val backgroundTexture: Texture
     private val backgroundRegion: TextureRegion
@@ -104,8 +120,40 @@ class AsciiTileWindow private constructor(
         canvas.end()
     }
 
-    /** Forwards a viewport resize to the underlying canvas. */
-    fun resize(widthPx: Int, heightPx: Int) = canvas.resize(widthPx, heightPx)
+    /**
+     * Updates the canvas projection to the new pixel dimensions.
+     *
+     * When [fitToWindow] is `true`, also recomputes [widthInTiles] and
+     * [heightInTiles] from the new pixel size and rebuilds the internal cell
+     * grid. Existing cell content that still fits within the new dimensions is
+     * preserved; cells outside the new bounds are dropped.
+     *
+     * When [fitToWindow] is `false`, only the canvas projection is updated;
+     * the tile grid remains unchanged.
+     */
+    fun resize(widthPx: Int, heightPx: Int) {
+        canvas.resize(widthPx, heightPx)
+        if (!fitToWindow) return
+
+        val newWidthInTiles = widthPx / font.charWidthPx
+        val newHeightInTiles = heightPx / font.charHeightPx
+        if (newWidthInTiles == widthInTiles && newHeightInTiles == heightInTiles) return
+
+        val oldTiles = tiles
+        val oldWidth = widthInTiles
+        val oldHeight = heightInTiles
+
+        widthInTiles = newWidthInTiles
+        heightInTiles = newHeightInTiles
+        tiles = Grid(widthInTiles, heightInTiles, null)
+
+        // Copy over cells that still fit in the new bounds.
+        for (y in 0 until minOf(oldHeight, heightInTiles)) {
+            for (x in 0 until minOf(oldWidth, widthInTiles)) {
+                tiles[x, y] = oldTiles[x, y]
+            }
+        }
+    }
 
     /** Disposes the canvas, font, and background texture. */
     override fun dispose() {
@@ -132,7 +180,7 @@ class AsciiTileWindow private constructor(
             val font = config.font ?: Fonts.cp437_10x10()
             val canvas = KotileCanvas(font.charWidthPx, font.charHeightPx)
 
-            return AsciiTileWindow(font, canvas, config.widthInTiles, config.heightInTiles)
+            return AsciiTileWindow(font, canvas, config.widthInTiles, config.heightInTiles, config.fitToWindow)
         }
     }
 }
@@ -141,11 +189,17 @@ class AsciiTileWindow private constructor(
  * Configuration for [AsciiTileWindow.create].
  *
  * @property font font to render with; defaults to [Fonts.cp437_10x10] when null
- * @property widthInTiles grid width in cells
- * @property heightInTiles grid height in cells
+ * @property widthInTiles initial grid width in cells; used when [fitToWindow]
+ *   is `false` or before the first [AsciiTileWindow.resize] call
+ * @property heightInTiles initial grid height in cells; used when [fitToWindow]
+ *   is `false` or before the first [AsciiTileWindow.resize] call
+ * @property fitToWindow when `true` (default), [AsciiTileWindow.resize]
+ *   recomputes the tile grid to fit the new pixel dimensions; when `false` the
+ *   grid stays at its construction-time size
  */
 data class AsciiTileWindowConfig(
     var font: Font? = null,
     var widthInTiles: Int = 80,
     var heightInTiles: Int = 30,
+    var fitToWindow: Boolean = true,
 )

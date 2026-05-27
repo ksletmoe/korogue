@@ -12,19 +12,38 @@ import com.sletmoe.kotile.utilities.Vector3Int
  * Tiles are mutated with [drawTile]/[clearTile] and drawn by [render], which
  * redraws the whole grid (top-most tile per cell) every frame. Subclasses
  * implement [regionFor] to map a tile to the texture region representing it;
- * the tile's tint is applied at draw time. The grid is sized from the canvas
- * when the renderer is constructed.
+ * the tile's tint is applied at draw time.
+ *
+ * Call [onResize] from the application's resize callback so the internal
+ * tilemap is rebuilt to match the new canvas dimensions. Tiles outside the new
+ * bounds are dropped; tiles that still fit are preserved.
  *
  * @param canvas the canvas tiles are drawn to
  */
 abstract class TileRenderer(protected val canvas: KotileCanvas) {
-    /** Grid width in tiles, captured from the canvas at construction. */
-    val windowWidth: Int = canvas.width
+    /**
+     * Current grid width in tiles. Reflects the canvas at construction time
+     * and is updated by [onResize].
+     */
+    val windowWidth: Int get() = canvas.width
 
-    /** Grid height in tiles, captured from the canvas at construction. */
-    val windowHeight: Int = canvas.height
+    /**
+     * Current grid height in tiles. Reflects the canvas at construction time
+     * and is updated by [onResize].
+     */
+    val windowHeight: Int get() = canvas.height
 
-    private val tilemap = LayeredTilemap(windowWidth, windowHeight)
+    private var tilemap = LayeredTilemap(windowWidth, windowHeight)
+
+    /**
+     * Rebuilds the internal tilemap to fit the new pixel dimensions. Tiles
+     * outside the new bounds are dropped; those still within bounds are
+     * preserved. Call this from the application's resize callback.
+     */
+    fun onResize(widthPx: Int, heightPx: Int) {
+        canvas.resize(widthPx, heightPx)
+        tilemap = LayeredTilemap(windowWidth, windowHeight)
+    }
 
     /** Places [staticTile] at [position] (x, y, z-layer). */
     fun drawTile(position: Vector3Int, staticTile: StaticTile) = tilemap.addTile(position, staticTile)
