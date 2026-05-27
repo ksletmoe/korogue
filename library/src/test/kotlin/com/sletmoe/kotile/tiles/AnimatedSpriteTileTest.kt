@@ -98,9 +98,9 @@ class AnimatedSpriteTileTest : FunSpec({
             ),
             mode = PlaybackMode.LOOP,
         )
-        // Total duration = 300 ms. At 300 ms we wrap back to frame 0.
+        // Total duration = 300 ms. At 300 ms we wrap back to frame 0; 350 = 50 into frame 0.
         tile.regionFor(300) shouldBe r0
-        tile.regionFor(350) shouldBe r1
+        tile.regionFor(350) shouldBe r0
         tile.regionFor(599) shouldBe r2
         tile.regionFor(600) shouldBe r0
     }

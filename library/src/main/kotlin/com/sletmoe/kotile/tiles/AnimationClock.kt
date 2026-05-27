@@ -49,8 +49,9 @@ internal fun <T> frameIndexAt(
                 // Forward pass
                 indexForPosition(starts, pos)
             } else {
-                // Backward pass: mirror position
-                val backward = pos - total + frames.last().durationMs
+                // Backward pass: position within the backward half starts at 0
+                // when we cross from forward to backward at pos == total.
+                val backward = pos - total
                 // Walk the frames in reverse (skip last, which was already shown)
                 val reverseStarts = LongArray(n - 1)
                 var acc = 0L
