@@ -17,6 +17,19 @@ import com.sletmoe.kotile.utilities.Grid
  * foreground color. Create instances with [create]. Owns GPU resources and must
  * be [dispose]d.
  *
+ * ## Coordinate system
+ *
+ * Cell coordinates use a **top-left origin**: cell (0, 0) is the top-left
+ * cell, x increases rightward, y increases downward. This is the same
+ * convention used by [com.sletmoe.kotile.display.KotileCanvas] and
+ * [com.sletmoe.kotile.input.KotileInputProcessor].
+ *
+ * When wiring up mouse input, tile coordinates delivered by
+ * [com.sletmoe.kotile.input.KotileInputListener] directly index this grid
+ * without any additional transformation.
+ *
+ * ## Resize behavior
+ *
  * When [fitToWindow] is `true` (the default), [resize] recomputes the tile
  * grid dimensions from the new pixel size and rebuilds the internal cell
  * array. Cells that still fit within the new bounds are preserved; cells
@@ -41,6 +54,26 @@ class AsciiTileWindow private constructor(
     /** Current grid height in cells. Updated by [resize] when [fitToWindow] is `true`. */
     var heightInTiles: Int = heightInTiles
         private set
+
+    /**
+     * Current tile width in pixels. Reflects the font's character width.
+     *
+     * Use this together with [tileHeightPx], [widthInTiles], and
+     * [heightInTiles] to configure a
+     * [com.sletmoe.kotile.input.KotileInputProcessor] for pixel-to-tile
+     * coordinate translation.
+     */
+    val tileWidthPx: Int get() = canvas.tileWidthPx
+
+    /**
+     * Current tile height in pixels. Reflects the font's character height.
+     *
+     * Use this together with [tileWidthPx], [widthInTiles], and
+     * [heightInTiles] to configure a
+     * [com.sletmoe.kotile.input.KotileInputProcessor] for pixel-to-tile
+     * coordinate translation.
+     */
+    val tileHeightPx: Int get() = canvas.tileHeightPx
 
     private var tiles = Grid<AsciiTileDescriptor?>(widthInTiles, heightInTiles, null)
 
