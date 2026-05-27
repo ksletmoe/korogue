@@ -2,7 +2,12 @@ package com.sletmoe.kotile.utilities
 
 /**
  * A fixed-size, dense 2D array addressed by `[x, y]`, backed by a single
- * row-major list.
+ * row-major [Array].
+ *
+ * The backing store uses `Array<Any?>` to avoid the erasure restriction on
+ * generic [Array] construction. All external reads and writes are cast through
+ * the unchecked-cast suppression below; the class invariant (every slot holds a
+ * `T`) is maintained by the constructor, [set], and [fill].
  *
  * @param T element type
  * @param defaultValue value every cell starts at and is reset to by [clear]
@@ -10,22 +15,18 @@ package com.sletmoe.kotile.utilities
  * @property height number of rows
  */
 class Grid<T>(val width: Int, val height: Int, private val defaultValue: T) {
-    private val values = mutableListOf<T>()
-
-    init {
-        repeat(width * height) {
-            values.add(defaultValue)
-        }
-    }
+    @Suppress("UNCHECKED_CAST")
+    private val values: Array<Any?> = Array(width * height) { defaultValue }
 
     /**
      * Returns the value at column [x], row [y].
      *
      * @throws IndexOutOfBoundsException if the coordinates are outside the grid
      */
+    @Suppress("UNCHECKED_CAST")
     operator fun get(x: Int, y: Int): T {
         checkIndices(x, y)
-        return values[y * width + x]
+        return values[y * width + x] as T
     }
 
     /**
