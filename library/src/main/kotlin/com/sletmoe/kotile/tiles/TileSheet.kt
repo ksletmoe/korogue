@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.Texture.TextureFilter
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.utils.Disposable
+import java.nio.ByteBuffer
 
 /**
  * Slices an image into a grid of equally sized tiles, uploaded to the GPU with
@@ -76,15 +77,39 @@ class TileSheet(
     override fun dispose() = texture.dispose()
 
     private companion object {
+        /**
+         * Zeroes every pixel whose RGB components match [keyColor] by iterating
+         * the [Pixmap]'s backing [ByteBuffer] directly. This avoids one
+         * per-pixel JNI round-trip (getPixel/drawPixel) and instead touches
+         * native memory sequentially in a single Java loop.
+         *
+         * Assumes RGBA8888 layout (4 bytes per pixel: R, G, B, A). If the
+         * pixmap uses a different format, the RGB comparison may be incorrect;
+         * Pixmap(FileHandle) always decodes to RGBA8888 on the desktop backend
+         * so this assumption holds for normal sheet loading.
+         */
         fun zeroOutColor(pixmap: Pixmap, keyColor: Color) {
-            val keyRgb = Color.rgba8888(keyColor) ushr 8
-            pixmap.blending = Pixmap.Blending.None
+            val keyR = (Color.rgba8888(keyColor) ushr 24 and 0xff).toByte()
+            val keyG = (Color.rgba8888(keyColor) ushr 16 and 0xff).toByte()
+            val keyB = (Color.rgba8888(keyColor) ushr  8 and 0xff).toByte()
 
-            for (y in 0 until pixmap.height) {
-                for (x in 0 until pixmap.width) {
-                    if (pixmap.getPixel(x, y) ushr 8 == keyRgb) {
-                        pixmap.drawPixel(x, y, 0)
-                    }
+            pixmap.blending = Pixmap.Blending.None
+            val buf: ByteBuffer = pixmap.pixels
+            buf.rewind()
+
+            while (buf.remaining() >= 4) {
+                val r = buf.get()
+                val g = buf.get()
+                val b = buf.get()
+                buf.get() // alpha — read past it
+
+                if (r == keyR && g == keyG && b == keyB) {
+                    // Rewind 4 bytes and overwrite with transparent black.
+                    buf.position(buf.position() - 4)
+                    buf.put(0)
+                    buf.put(0)
+                    buf.put(0)
+                    buf.put(0)
                 }
             }
         }
