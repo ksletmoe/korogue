@@ -1,7 +1,6 @@
 package com.sletmoe.kotile.utilities
 
 import com.sletmoe.kotile.tiles.StaticTile
-import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 
@@ -36,18 +35,23 @@ class LayeredTilemapTest : FunSpec({
         map.topTileAt(1, 1) shouldBe low
     }
 
-    test("removing from a layer that does not exist throws") {
-        shouldThrow<IndexOutOfBoundsException> { LayeredTilemap(4, 4).removeTile(0, 0, 3) }
+    test("removing from a layer that does not exist is a no-op") {
+        // create-on-demand policy: removeTile on a missing layer silently does nothing
+        LayeredTilemap(4, 4).removeTile(0, 0, 3) // must not throw
     }
 
     test("moveTile relocates a tile to another cell and layer") {
         val map = LayeredTilemap(4, 4)
         val tile = StaticTile(3, 3)
         map.addTile(0, 0, 0, tile)
-        map.addTile(1, 1, 1, StaticTile(9, 9)) // make layer 1 exist
-        map.moveTile(0, 0, 0, 3, 3, 1)
+        map.moveTile(0, 0, 0, 3, 3, 1) // destination layer 1 created on demand
         map.topTileAt(0, 0) shouldBe null
         map.topTileAt(3, 3) shouldBe tile
+    }
+
+    test("moveTile from a layer that does not exist is a no-op") {
+        // create-on-demand policy: moveTile with missing source layer silently does nothing
+        LayeredTilemap(4, 4).moveTile(0, 0, 99, 1, 1, 0) // must not throw
     }
 
     test("vector overloads delegate to the coordinate methods") {

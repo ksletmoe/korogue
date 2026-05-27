@@ -8,6 +8,12 @@ import java.util.SortedMap
  * Layers are created on demand and queried top-down by [topTileAt] (higher z
  * wins).
  *
+ * All mutating operations ([addTile], [removeTile], [moveTile]) use a
+ * consistent create-on-demand policy: if the target layer does not yet exist
+ * it is created automatically. Calls on a missing *source* layer (e.g.
+ * [removeTile] or the source of [moveTile]) are silent no-ops rather than
+ * errors, because the observable state is already what the caller wanted.
+ *
  * @property width grid width in tiles
  * @property height grid height in tiles
  */
@@ -19,57 +25,39 @@ class LayeredTilemap(val width: Int, val height: Int) {
 
     /** Places [staticTile] at column [x], row [y] on layer [z], creating it if needed. */
     fun addTile(x: Int, y: Int, z: Int, staticTile: StaticTile) {
-        if (z !in layers) {
-            layers[z] = Grid(width, height, null)
-        }
-
-        layers[z]!![x, y] = staticTile
+        layers.getOrPut(z) { Grid(width, height, null) }[x, y] = staticTile
     }
 
     /**
-     * Removes the tile at [position] (x, y, z).
-     *
-     * @throws IndexOutOfBoundsException if that layer does not exist
+     * Removes the tile at [position] (x, y, z). No-op if layer z does not
+     * exist.
      */
     fun removeTile(position: Vector3Int) = removeTile(position.x, position.y, position.z)
 
     /**
-     * Removes the tile at column [x], row [y] on layer [z].
-     *
-     * @throws IndexOutOfBoundsException if layer [z] does not exist
+     * Removes the tile at column [x], row [y] on layer [z]. No-op if layer
+     * [z] does not exist.
      */
     fun removeTile(x: Int, y: Int, z: Int) {
-        if (z !in layers) {
-            throw IndexOutOfBoundsException("No layer $z")
-        }
-
-        layers[z]!![x, y] = null
+        layers[z]?.set(x, y, null)
     }
 
     /**
-     * Moves the tile at [from] to [to]. Does nothing if the source cell is empty.
-     *
-     * @throws IndexOutOfBoundsException if either layer does not exist
+     * Moves the tile at [from] to [to]. No-op if the source layer does not
+     * exist or the source cell is empty. The destination layer is created on
+     * demand.
      */
     fun moveTile(from: Vector3Int, to: Vector3Int) = moveTile(from.x, from.y, from.z, to.x, to.y, to.z)
 
     /**
      * Moves the tile at ([fromX], [fromY]) on layer [fromZ] to ([toX], [toY])
-     * on layer [toZ]. Does nothing if the source cell is empty.
-     *
-     * @throws IndexOutOfBoundsException if either layer does not exist
+     * on layer [toZ]. No-op if layer [fromZ] does not exist or the source cell
+     * is empty. Layer [toZ] is created on demand.
      */
     fun moveTile(fromX: Int, fromY: Int, fromZ: Int, toX: Int, toY: Int, toZ: Int) {
-        if (fromZ !in layers) {
-            throw IndexOutOfBoundsException("No layer $fromZ")
-        }
-        if (toZ !in layers) {
-            throw IndexOutOfBoundsException("No layer $toZ")
-        }
-
-        val tile = layers[fromZ]!![fromX, fromY] ?: return
+        val tile = layers[fromZ]?.get(fromX, fromY) ?: return
         layers[fromZ]!![fromX, fromY] = null
-        layers[toZ]!![toX, toY] = tile
+        layers.getOrPut(toZ) { Grid(width, height, null) }[toX, toY] = tile
     }
 
     /** Returns the top-most (highest z) tile at [position], or `null` if empty. */
