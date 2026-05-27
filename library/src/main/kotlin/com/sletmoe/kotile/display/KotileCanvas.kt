@@ -10,10 +10,23 @@ import com.badlogic.gdx.utils.Disposable
 /**
  * Draws tile-sized texture regions onto the screen via a batched [SpriteBatch].
  *
- * Tile coordinates have their origin at the top-left with y increasing
- * downwards; this is mapped onto the GPU's bottom-left origin internally. Draw
- * calls must be made between [begin] and [end]. Instances own GPU resources and
- * must be [dispose]d.
+ * ## Coordinate system
+ *
+ * **Tile coordinates** use a **top-left origin**: tile (0, 0) is the top-left
+ * cell of the canvas, x increases rightward, and y increases downward.
+ *
+ * Internally, tile (x, y) is mapped to GL screen coordinates (bottom-left
+ * origin, y up) before drawing. This mapping is an implementation detail and
+ * is not visible to callers of [drawTile].
+ *
+ * **Mouse pixel coordinates** from `Gdx.input` (via libGDX Desktop /
+ * `InputProcessor`) also use a top-left origin (0, 0 = top-left of window, y
+ * increases downward). They are therefore in the same axis orientation as tile
+ * coordinates and do **not** need a y-axis flip before pixel-to-tile division.
+ * See [com.sletmoe.kotile.input.pixelToTile] for the conversion.
+ *
+ * Draw calls must be made between [begin] and [end]. Instances own GPU
+ * resources and must be [dispose]d.
  *
  * @property tileWidthPx on-screen width of a tile, in pixels
  * @property tileHeightPx on-screen height of a tile, in pixels
