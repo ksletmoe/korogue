@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.utils.Disposable
 import com.sletmoe.kotile.display.KotileCanvas
+import com.sletmoe.kotile.rendering.TileViewport
 import com.sletmoe.kotile.utilities.Grid
 
 /**
@@ -23,6 +24,11 @@ import com.sletmoe.kotile.utilities.Grid
  * outside the new bounds are dropped and new cells default to `null`. When
  * [fitToWindow] is `false`, the grid stays at its construction-time
  * dimensions and is scaled/letterboxed by the canvas to fit the window.
+ *
+ * To render a windowed slice of a larger logical tile space, use
+ * [render(source, viewport)][render] with a consumer-owned
+ * `Grid<AsciiTileDescriptor?>` and a [TileViewport] describing the top-left
+ * origin. Logical cells outside the source bounds are treated as empty.
  *
  * @property widthInTiles grid width in cells
  * @property heightInTiles grid height in cells
@@ -107,17 +113,47 @@ class AsciiTileWindow private constructor(
     /** Draws all populated cells to the canvas for this frame. */
     fun render() {
         canvas.begin()
-        for (y in 0 until heightInTiles) {
-            for (x in 0 until widthInTiles) {
-                val tile = tiles[x, y] ?: continue
+        renderGrid(tiles, TileViewport())
+        canvas.end()
+    }
 
-                canvas.drawTile(x, y, backgroundRegion, tile.backgroundColor)
+    /**
+     * Draws a windowed slice of [source] to the canvas for this frame.
+     *
+     * For each screen cell `(screenX, screenY)` the logical cell sampled is
+     * `(viewport.originX + screenX, viewport.originY + screenY)`. Logical cells
+     * that fall outside [source]'s bounds are skipped silently — no tile is
+     * drawn for those screen positions (they remain at the clear color).
+     *
+     * The viewport origin stays fixed across [resize] calls; a resize changes
+     * the visible cell count but does not move the origin, so the world does not
+     * appear to scroll when the window grows or shrinks.
+     *
+     * @param source the logical tile space to sample from; may be larger than the visible window
+     * @param viewport the top-left corner of the visible region in [source] tile coordinates;
+     *   defaults to `(0, 0)` which reproduces the same behavior as [render]
+     */
+    fun render(source: Grid<AsciiTileDescriptor?>, viewport: TileViewport = TileViewport()) {
+        canvas.begin()
+        renderGrid(source, viewport)
+        canvas.end()
+    }
+
+    private fun renderGrid(source: Grid<AsciiTileDescriptor?>, viewport: TileViewport) {
+        for (screenY in 0 until heightInTiles) {
+            val logicalY = viewport.originY + screenY
+            if (logicalY < 0 || logicalY >= source.height) continue
+            for (screenX in 0 until widthInTiles) {
+                val logicalX = viewport.originX + screenX
+                if (logicalX < 0 || logicalX >= source.width) continue
+                val tile = source[logicalX, logicalY] ?: continue
+
+                canvas.drawTile(screenX, screenY, backgroundRegion, tile.backgroundColor)
                 font.glyph(tile.character)?.let { glyph ->
-                    canvas.drawTile(x, y, glyph, tile.foregroundColor)
+                    canvas.drawTile(screenX, screenY, glyph, tile.foregroundColor)
                 }
             }
         }
-        canvas.end()
     }
 
     /**
