@@ -79,8 +79,8 @@ import com.sletmoe.kotile.utilities.Vector3Int
  *
  * To render a windowed slice of a larger logical tile space, use
  * [render(source, viewport)][render] with a consumer-owned
- * `Grid<AsciiTileDescriptor?>` and a [TileViewport] describing the top-left
- * origin. Logical cells outside the source bounds are treated as empty.
+ * `LayeredTilemap<AnimatableAsciiTile>` and a [TileViewport] describing the
+ * top-left origin. Logical cells outside the source bounds are treated as empty.
  *
  * @property widthInTiles grid width in cells
  * @property heightInTiles grid height in cells
