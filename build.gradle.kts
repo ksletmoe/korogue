@@ -28,8 +28,6 @@ dependencies {
     implementation("io.github.microutils:kotlin-logging:_")
     implementation("org.slf4j:slf4j-log4j12:_")
     implementation("org.apache.commons:commons-math3:_")
-    implementation("com.github.trystan:AsciiPanel:master-SNAPSHOT")
-
     // kotile rendering engine (composite build — see settings.gradle.kts).
     // Brings libGDX gdx-core transitively via its `api` dependency.
     implementation("com.sletmoe:kotile")
@@ -46,17 +44,9 @@ dependencies {
 
 application {
     mainClass.set("MainKt")
-}
-
-// Kotile rendering path entry point (Phase 3b-1).
-// -XstartOnFirstThread is required on macOS for GLFW (libGDX LWJGL3 backend).
-tasks.register<JavaExec>("runKotile") {
-    group = "application"
-    description = "Runs the kotile-backed rendering path (Phase 3b-1)"
-    classpath = sourceSets["main"].runtimeClasspath
-    mainClass.set("KotileMainKt")
+    // -XstartOnFirstThread is required on macOS for GLFW (libGDX LWJGL3 backend).
     if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
-        jvmArgs("-XstartOnFirstThread")
+        applicationDefaultJvmArgs = listOf("-XstartOnFirstThread")
     }
 }
 

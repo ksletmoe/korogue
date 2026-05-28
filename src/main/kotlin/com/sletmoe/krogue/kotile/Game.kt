@@ -26,11 +26,8 @@ import com.sletmoe.kotile.input.KotileInputProcessor
  * 2. libGDX calls [render] every frame: input → [onTick] → [drawFrame].
  * 3. libGDX calls [resize] on window resize: forwarded to [window].
  * 4. libGDX calls [dispose] on exit: [window] is disposed.
- *
- * This class is parallel to the existing coroutine-based [com.sletmoe.krogue.Game].
- * The old [Game] is untouched; [KotileGame] is a new, independent rendering path.
  */
-abstract class KotileGame : ApplicationAdapter() {
+abstract class Game : ApplicationAdapter() {
     /** The ASCII tile window created by [buildWindow] during [create]. */
     protected lateinit var window: AsciiTileWindow
         private set
@@ -84,7 +81,7 @@ abstract class KotileGame : ApplicationAdapter() {
         inputProcessor.addListener(
             object : KotileInputAdapter() {
                 override fun onKeyDown(keycode: Int) {
-                    this@KotileGame.onKeyDown(keycode)
+                    this@Game.onKeyDown(keycode)
                 }
             },
         )

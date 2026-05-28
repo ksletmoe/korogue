@@ -17,21 +17,15 @@ import java.awt.Point
 import kotlin.random.Random
 
 /**
- * Kotile-backed roguelike demo, mirroring the world setup of [MyGame] from [Main.kt].
- *
- * Renders the current zone through [KotileZoneRenderer] with:
+ * Kotile-backed roguelike demo. Renders the current zone through [KotileZoneRenderer] with:
  * - FOV via [SymmetricShadowCaster] (toggle to omniscient with SPACE)
  * - Lighting via [DiminishingLightValueCalculator] on the player's lantern
  * - Previously-viewed tile dimming
  * - Arrow key player movement
- *
- * The old [MyGame]/[Game] stack is untouched — this is a new parallel rendering path.
- * Multi-pane layout (top bar / side bar) is deferred to Phase 3b-2 once kotile gains
- * layout primitives.
  */
-class MyKotileGame(
+class MyGame(
     private val random: Random = Random.Default,
-) : KotileGame() {
+) : Game() {
     private val startPoint = Point(10, 10)
 
     private val symmetricShadowCaster = SymmetricShadowCaster()
@@ -62,7 +56,7 @@ class MyKotileGame(
     private lateinit var renderer: KotileZoneRenderer
 
     // -------------------------------------------------------------------------
-    // KotileGame overrides
+    // Game overrides
     // -------------------------------------------------------------------------
 
     override fun buildWindow(): AsciiTileWindow =
