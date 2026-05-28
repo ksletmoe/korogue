@@ -55,6 +55,12 @@ tasks.test {
     environment("LIBGL_ALWAYS_SOFTWARE", "1")
     environment("GALLIUM_DRIVER", "llvmpipe")
     System.getenv("DISPLAY")?.let { environment("DISPLAY", it) }
+    // Forward -Pkotile.benchmark=true to the test JVM so the benchmark spec
+    // can opt in via assumeTrue. Usage:
+    //   ./gradlew :library:test --tests "*.LayeredTilemapBenchmark" -Pkotile.benchmark=true
+    if (project.hasProperty("kotile.benchmark")) {
+        systemProperty("kotile.benchmark", project.property("kotile.benchmark").toString())
+    }
 }
 
 publishing {
