@@ -91,6 +91,10 @@ class AsciiTileWindow private constructor(
     widthInTiles: Int,
     heightInTiles: Int,
     private val fitToWindow: Boolean,
+    /** When `false` the canvas was supplied externally and [dispose] must not release it. */
+    private val ownsCanvas: Boolean = true,
+    /** When `false` the font was supplied externally and [dispose] must not release it. */
+    private val ownsFont: Boolean = true,
 ) : Disposable {
     /** Current grid width in cells. Updated by [resize] when [fitToWindow] is `true`. */
     var widthInTiles: Int = widthInTiles
@@ -424,10 +428,24 @@ class AsciiTileWindow private constructor(
     // Dispose
     // -------------------------------------------------------------------------
 
-    /** Disposes the canvas, font, and background texture. */
+    /**
+     * Releases GPU resources owned by this window.
+     *
+     * ## Ownership rules
+     *
+     * - Windows created via [create] with a DSL block own their canvas **and**
+     *   their font, and both are disposed here.
+     * - Windows created via [createWithCanvas] receive an externally-owned
+     *   [KotileCanvas]. That canvas is **not** disposed here — the caller that
+     *   supplied it is responsible for disposing it after all windows sharing it
+     *   have been disposed.
+     * - The [Font] passed to [createWithCanvas] follows the same rule: if you
+     *   supply a font it is considered externally owned and will **not** be
+     *   disposed by this window.
+     */
     override fun dispose() {
-        canvas.dispose()
-        font.dispose()
+        if (ownsCanvas) canvas.dispose()
+        if (ownsFont) font.dispose()
         backgroundTexture.dispose()
     }
 
@@ -439,7 +457,9 @@ class AsciiTileWindow private constructor(
     companion object {
         /**
          * Builds an [AsciiTileWindow] from an [AsciiTileWindowConfig]. The
-         * canvas tile size is taken from the font.
+         * canvas tile size is taken from the font. The window **owns** both
+         * the canvas and the font and will dispose them when [dispose] is
+         * called.
          *
          * ```
          * val window = AsciiTileWindow.create {
@@ -455,13 +475,76 @@ class AsciiTileWindow private constructor(
 
             return AsciiTileWindow(font, canvas, config.widthInTiles, config.heightInTiles, config.fitToWindow)
         }
+
+        /**
+         * Builds an [AsciiTileWindow] that shares an externally-owned
+         * [KotileCanvas] and [Font].
+         *
+         * Use this factory when multiple windows must share a single render
+         * batch — for example, a multi-pane layout where a map pane and a HUD
+         * pane both draw into the same [KotileCanvas]:
+         *
+         * ```kotlin
+         * val font   = Fonts.cp437_10x10()
+         * val canvas = KotileCanvas(font.charWidthPx, font.charHeightPx)
+         *
+         * val mapPane = AsciiTileWindow.createWithCanvas(canvas, font) {
+         *     widthInTiles  = 60
+         *     heightInTiles = 30
+         * }
+         * val hudPane = AsciiTileWindow.createWithCanvas(canvas, font) {
+         *     widthInTiles  = 20
+         *     heightInTiles = 30
+         * }
+         *
+         * // Later — dispose order: windows first, then shared resources.
+         * mapPane.dispose()
+         * hudPane.dispose()
+         * canvas.dispose()
+         * font.dispose()
+         * ```
+         *
+         * ## Ownership and dispose contract
+         *
+         * The window created by this factory does **not** own [canvas] or
+         * [font]. Calling [dispose] on the window releases only the resources
+         * the window allocated internally (the background texture). The caller
+         * that created [canvas] and [font] must dispose them **after** all
+         * windows that reference them have been disposed.
+         *
+         * @param canvas the shared [KotileCanvas]; must remain valid for the
+         *   entire lifetime of the window
+         * @param font the shared [Font]; must remain valid for the entire
+         *   lifetime of the window
+         * @param init configuration block for tile grid dimensions and
+         *   [AsciiTileWindowConfig.fitToWindow]
+         */
+        fun createWithCanvas(
+            canvas: KotileCanvas,
+            font: Font,
+            init: AsciiTileWindowConfig.() -> Unit = {},
+        ): AsciiTileWindow {
+            val config = AsciiTileWindowConfig().apply(init)
+            return AsciiTileWindow(
+                font = font,
+                canvas = canvas,
+                widthInTiles = config.widthInTiles,
+                heightInTiles = config.heightInTiles,
+                fitToWindow = config.fitToWindow,
+                ownsCanvas = false,
+                ownsFont = false,
+            )
+        }
     }
 }
 
 /**
- * Configuration for [AsciiTileWindow.create].
+ * Configuration for [AsciiTileWindow.create] and [AsciiTileWindow.createWithCanvas].
  *
- * @property font font to render with; defaults to [Fonts.cp437_10x10] when null
+ * @property font font to render with when using [AsciiTileWindow.create];
+ *   defaults to [Fonts.cp437_10x10] when `null`. Ignored by
+ *   [AsciiTileWindow.createWithCanvas], which takes the font as an explicit
+ *   parameter instead.
  * @property widthInTiles initial grid width in cells; used when [fitToWindow]
  *   is `false` or before the first [AsciiTileWindow.resize] call
  * @property heightInTiles initial grid height in cells; used when [fitToWindow]

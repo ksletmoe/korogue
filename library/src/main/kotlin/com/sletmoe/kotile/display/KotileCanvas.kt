@@ -28,10 +28,13 @@ import com.badlogic.gdx.utils.Disposable
  * Draw calls must be made between [begin] and [end]. Instances own GPU
  * resources and must be [dispose]d.
  *
+ * The class is `open` to allow subclassing — for example, in tests that need
+ * to track dispose calls, or in consumers that want to add instrumentation.
+ *
  * @property tileWidthPx on-screen width of a tile, in pixels
  * @property tileHeightPx on-screen height of a tile, in pixels
  */
-class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposable {
+open class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposable {
     private val batch = SpriteBatch()
     private val camera = OrthographicCamera()
 
