@@ -30,6 +30,10 @@ dependencies {
     implementation("org.apache.commons:commons-math3:_")
     implementation("com.github.trystan:AsciiPanel:master-SNAPSHOT")
 
+    // kotile rendering engine (composite build — see settings.gradle.kts).
+    // Brings libGDX gdx-core transitively via its `api` dependency.
+    implementation("com.sletmoe:kotile")
+
     testImplementation(kotlin("test"))
     testImplementation(Testing.kotest.runner.junit5)
     testImplementation(Testing.kotest.assertions.core)

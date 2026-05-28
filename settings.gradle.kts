@@ -25,3 +25,13 @@ refreshVersions {
 }
 
 rootProject.name = "krogue"
+
+// Consume kotile via composite build during co-development (kotile is unpublished).
+// kotile is multi-module (its root is a container with no consumable variants), so
+// the substitution must target the :library subproject explicitly — otherwise
+// resolution fails with "No variants exist". See kotile's settings.gradle.kts.
+includeBuild("../kotile") {
+    dependencySubstitution {
+        substitute(module("com.sletmoe:kotile")).using(project(":library"))
+    }
+}
