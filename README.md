@@ -50,6 +50,35 @@ dependencies {
 }
 ```
 
+### Consuming kotile via composite build
+
+If you are developing kotile alongside your project and want to use
+`includeBuild` instead of publishing to Maven Local, add a
+`dependencySubstitution` block. Without it Gradle reports
+"No variants exist" because kotile's root project is a container — the
+publishable artifact is in the `:library` sub-project.
+
+In your consumer's `settings.gradle.kts`:
+
+```kotlin
+includeBuild("../kotile") {
+    dependencySubstitution {
+        substitute(module("com.sletmoe:kotile")).using(project(":library"))
+    }
+}
+```
+
+Your `build.gradle.kts` dependency declaration stays the same:
+
+```kotlin
+dependencies {
+    implementation("com.sletmoe:kotile:1.0-SNAPSHOT")
+}
+```
+
+Gradle will substitute the source project at build time and recompile
+kotile alongside your project automatically.
+
 ### ASCII tiles
 
 ```kotlin
