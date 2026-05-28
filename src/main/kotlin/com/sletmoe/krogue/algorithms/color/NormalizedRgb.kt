@@ -1,15 +1,16 @@
 package com.sletmoe.krogue.algorithms.color
 
-import java.awt.Color
+import com.badlogic.gdx.graphics.Color
 import kotlin.math.min
 
 // represent RGB data in a min-max normalized form
 data class NormalizedRgb(val r: Double, val g: Double, val b: Double) {
     fun toColor(): Color =
         Color(
-            min((r * 255).toInt(), 255),
-            min((g * 255).toInt(), 255),
-            min((b * 255).toInt(), 255),
+            min(r.toFloat(), 1f),
+            min(g.toFloat(), 1f),
+            min(b.toFloat(), 1f),
+            1f,
         )
 
     // for color multiplication https://en.wikipedia.org/wiki/Blend_modes#Multiply
@@ -19,5 +20,4 @@ data class NormalizedRgb(val r: Double, val g: Double, val b: Double) {
         NormalizedRgb(r * multiplier, g * multiplier, b * multiplier)
 }
 
-fun Color.toNormalizedRgb(): NormalizedRgb =
-    NormalizedRgb(red.toDouble() / 255.0, green.toDouble() / 255.0, blue.toDouble() / 255.0)
+fun Color.toNormalizedRgb(): NormalizedRgb = NormalizedRgb(r.toDouble(), g.toDouble(), b.toDouble())

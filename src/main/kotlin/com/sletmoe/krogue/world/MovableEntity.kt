@@ -1,6 +1,6 @@
 package com.sletmoe.krogue.world
 
-import java.awt.Color
+import com.badlogic.gdx.graphics.Color
 
 abstract class MovableEntity(
     var position: ZonalPosition,

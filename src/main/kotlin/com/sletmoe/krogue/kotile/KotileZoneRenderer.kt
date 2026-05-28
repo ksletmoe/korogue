@@ -1,5 +1,6 @@
 package com.sletmoe.krogue.kotile
 
+import com.badlogic.gdx.graphics.Color
 import com.sletmoe.kotile.display.ascii.AnimatableAsciiTile
 import com.sletmoe.kotile.display.ascii.AsciiTileDescriptor
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
@@ -13,7 +14,6 @@ import com.sletmoe.krogue.world.Zone
 import java.awt.Point
 import kotlin.math.max
 import kotlin.math.min
-import com.badlogic.gdx.graphics.Color as GdxColor
 
 /** Z-layer indices for the shared [LayeredTilemap]. */
 private const val LAYER_TILES = 0
@@ -21,7 +21,7 @@ private const val LAYER_CREATURES = 1
 private const val LAYER_PLAYER = 2
 
 /** Tile drawn for cells outside the zone bounds or hidden by FOV. */
-private val EMPTY_TILE = AsciiTileDescriptor(' ', GdxColor.BLACK, GdxColor.BLACK)
+private val EMPTY_TILE = AsciiTileDescriptor(' ', Color.BLACK, Color.BLACK)
 
 /**
  * Renders a krogue [Zone] into an [AsciiTileWindow] using kotile's layered tilemap
@@ -103,7 +103,7 @@ internal class KotileZoneRenderer(
                 cx,
                 cy,
                 LAYER_CREATURES,
-                AsciiTileDescriptor(creature.glyph, creature.color.toGdxColor(), tileBg),
+                AsciiTileDescriptor(creature.glyph, creature.color, tileBg),
             )
         }
 
@@ -116,7 +116,7 @@ internal class KotileZoneRenderer(
                 px,
                 py,
                 LAYER_PLAYER,
-                AsciiTileDescriptor(player.glyph, player.color.toGdxColor(), tileBg),
+                AsciiTileDescriptor(player.glyph, player.color, tileBg),
             )
         }
 
@@ -164,20 +164,20 @@ internal class KotileZoneRenderer(
                 val lightVal = zone.lightMap[x, y]
                 if (lightVal != null) {
                     val tintRgb = lightVal.normalizedColor * lightVal.intensity
-                    val tintedFg = (tile.color.toNormalizedRgb() * tintRgb).toGdxColor()
-                    val tintedBg = (tile.backgroundColor.toNormalizedRgb() * tintRgb).toGdxColor()
+                    val tintedFg = (tile.color.toNormalizedRgb() * tintRgb).toColor()
+                    val tintedBg = (tile.backgroundColor.toNormalizedRgb() * tintRgb).toColor()
                     AsciiTileDescriptor(tile.glyph, tintedFg, tintedBg)
                 } else {
-                    AsciiTileDescriptor(tile.glyph, tile.color.toGdxColor(), tile.backgroundColor.toGdxColor())
+                    AsciiTileDescriptor(tile.glyph, tile.color, tile.backgroundColor)
                 }
             }
             previouslyVisible[x, y] -> {
                 // Previously seen but not currently lit: dim to a dark-blue tint.
-                val dimFg = tile.color.toNormalizedRgb() * PREVIOUSLY_VIEWED_DIM_FACTOR
+                val dimFg = (tile.color.toNormalizedRgb() * PREVIOUSLY_VIEWED_DIM_FACTOR).toColor()
                 AsciiTileDescriptor(
                     tile.glyph,
-                    dimFg.toGdxColor().also { it.b = (it.b + PREVIOUSLY_VIEWED_BLUE_BOOST).coerceAtMost(1f) },
-                    GdxColor.BLACK,
+                    dimFg.also { it.b = (it.b + PREVIOUSLY_VIEWED_BLUE_BOOST).coerceAtMost(1f) },
+                    Color.BLACK,
                 )
             }
             else -> EMPTY_TILE
@@ -192,15 +192,15 @@ internal class KotileZoneRenderer(
         x: Int,
         y: Int,
         visible: Grid<Boolean>,
-    ): GdxColor {
-        if (!visible[x, y]) return GdxColor.BLACK
+    ): Color {
+        if (!visible[x, y]) return Color.BLACK
         val tile = zone.tiles[x, y]
         val lightVal = zone.lightMap[x, y]
         return if (lightVal != null) {
             val tintRgb = lightVal.normalizedColor * lightVal.intensity
-            (tile.backgroundColor.toNormalizedRgb() * tintRgb).toGdxColor()
+            (tile.backgroundColor.toNormalizedRgb() * tintRgb).toColor()
         } else {
-            tile.backgroundColor.toGdxColor()
+            tile.backgroundColor
         }
     }
 
@@ -209,10 +209,3 @@ internal class KotileZoneRenderer(
         private const val PREVIOUSLY_VIEWED_BLUE_BOOST = 0.10f
     }
 }
-
-// ---------------------------------------------------------------------------
-// NormalizedRgb → GDX Color output (without going through AWT)
-// ---------------------------------------------------------------------------
-
-private fun com.sletmoe.krogue.algorithms.color.NormalizedRgb.toGdxColor(): GdxColor =
-    GdxColor(r.toFloat().coerceIn(0f, 1f), g.toFloat().coerceIn(0f, 1f), b.toFloat().coerceIn(0f, 1f), 1f)

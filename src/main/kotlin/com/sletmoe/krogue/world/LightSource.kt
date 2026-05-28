@@ -1,9 +1,9 @@
 package com.sletmoe.krogue.world
 
+import com.badlogic.gdx.graphics.Color
 import com.sletmoe.krogue.algorithms.color.toNormalizedRgb
 import com.sletmoe.krogue.algorithms.lighting.LightValue
 import com.sletmoe.krogue.algorithms.lighting.LightValueCalculator
-import java.awt.Color
 
 class LightSource(
     position: ZonalPosition,

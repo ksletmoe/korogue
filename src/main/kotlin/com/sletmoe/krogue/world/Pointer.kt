@@ -1,6 +1,6 @@
 package com.sletmoe.krogue.world
 
-import java.awt.Color
+import com.badlogic.gdx.graphics.Color
 import java.awt.Point
 
 class Pointer(position: ZonalPosition, color: Color) : HighlightedCoordinate(position, color) {

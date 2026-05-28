@@ -1,6 +1,6 @@
 package com.sletmoe.krogue.world
 
-import java.awt.Color
+import com.badlogic.gdx.graphics.Color
 
 open class Tile(
     name: String,
@@ -16,8 +16,8 @@ val BLANK_TILE =
     Tile(
         "The Void",
         ' ',
-        Color.white,
-        Color.black,
+        Color.WHITE,
+        Color.BLACK,
         isWalkable = true,
         blocksLineOfSight = false,
     )

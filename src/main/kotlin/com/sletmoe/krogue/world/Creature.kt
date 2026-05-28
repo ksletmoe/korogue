@@ -1,7 +1,7 @@
 package com.sletmoe.krogue.world
 
+import com.badlogic.gdx.graphics.Color
 import mu.KotlinLogging
-import java.awt.Color
 import kotlin.random.Random
 
 open class Creature(

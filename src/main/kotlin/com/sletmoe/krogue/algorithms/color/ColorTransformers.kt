@@ -1,6 +1,6 @@
 package com.sletmoe.krogue.algorithms.color
 
-import java.awt.Color
+import com.badlogic.gdx.graphics.Color
 
 typealias ColorTransformer = (Color) -> Color
 

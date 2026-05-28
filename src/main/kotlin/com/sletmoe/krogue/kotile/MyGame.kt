@@ -1,6 +1,7 @@
 package com.sletmoe.krogue.kotile
 
 import com.badlogic.gdx.Input
+import com.badlogic.gdx.graphics.Color
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
 import com.sletmoe.krogue.algorithms.lighting.DiminishingLightValueCalculator
 import com.sletmoe.krogue.algorithms.los.OmnicientLineOfSightCalculator
@@ -12,7 +13,6 @@ import com.sletmoe.krogue.world.Tile
 import com.sletmoe.krogue.world.World
 import com.sletmoe.krogue.world.ZonalPosition
 import com.sletmoe.krogue.world.Zone
-import java.awt.Color
 import java.awt.Point
 import kotlin.random.Random
 
@@ -44,7 +44,7 @@ class MyGame(
                 LightSource(
                     p.position.copy(),
                     "Lantern",
-                    Color(255, 255, 150),
+                    Color(1f, 1f, 150f / 255f, 1f),
                     15.0,
                     DiminishingLightValueCalculator(),
                 )
