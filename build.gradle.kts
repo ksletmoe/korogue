@@ -33,6 +33,10 @@ dependencies {
     // kotile rendering engine (composite build — see settings.gradle.kts).
     // Brings libGDX gdx-core transitively via its `api` dependency.
     implementation("com.sletmoe:kotile")
+    // libGDX LWJGL3 desktop backend — required to launch an AsciiTileWindow application.
+    // Version must match kotile's gdx-core transitive dependency (1.14.1).
+    implementation("com.badlogicgames.gdx:gdx-backend-lwjgl3:1.14.1")
+    runtimeOnly("com.badlogicgames.gdx:gdx-platform:1.14.1:natives-desktop")
 
     testImplementation(kotlin("test"))
     testImplementation(Testing.kotest.runner.junit5)
@@ -42,6 +46,18 @@ dependencies {
 
 application {
     mainClass.set("MainKt")
+}
+
+// Kotile rendering path entry point (Phase 3b-1).
+// -XstartOnFirstThread is required on macOS for GLFW (libGDX LWJGL3 backend).
+tasks.register<JavaExec>("runKotile") {
+    group = "application"
+    description = "Runs the kotile-backed rendering path (Phase 3b-1)"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("KotileMainKt")
+    if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
+        jvmArgs("-XstartOnFirstThread")
+    }
 }
 
 tasks.test {
