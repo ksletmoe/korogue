@@ -1,15 +1,14 @@
 package com.sletmoe.krogue.algorithms.color
 
 import com.badlogic.gdx.graphics.Color
-import kotlin.math.min
 
 // represent RGB data in a min-max normalized form
 data class NormalizedRgb(val r: Double, val g: Double, val b: Double) {
     fun toColor(): Color =
         Color(
-            min(r.toFloat(), 1f),
-            min(g.toFloat(), 1f),
-            min(b.toFloat(), 1f),
+            r.toFloat().coerceIn(0f, 1f),
+            g.toFloat().coerceIn(0f, 1f),
+            b.toFloat().coerceIn(0f, 1f),
             1f,
         )
 

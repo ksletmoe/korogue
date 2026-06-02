@@ -130,21 +130,20 @@ class GridTest : DescribeSpec({
             violation.shouldBeFalse()
         }
 
-        it("should yield the center and west/north neighbours for a radius-1 circle") {
-            // Implementation note: the bounding-box is computed as
-            //   width = min(lastColumnIndex, center.x + radiusInt) - x
-            // which uses an EXCLUSIVE high-side — so the east/south neighbours that sit
-            // at exactly center ± radiusInt may fall outside the bounding box even though
-            // their distance is within the radius.  We test only what IS yielded.
+        it("should yield the center and all four orthogonal neighbours for a radius-1 circle") {
+            // Regression guard for the boundingBoxForCircle off-by-one: the east/south
+            // boundary tiles at exactly center + radius must be visited, not just
+            // north/west. (The diagonals are at distance sqrt(2) > 1 and excluded.)
             val grid = Grid(5, 5, 0)
             val center = Vector2Int(2, 2)
             val visited = mutableSetOf<Vector2Int>()
             grid.forEachCoordinateInRadius(center, 1.0) { visited.add(it) }
 
-            // The center and the north/west neighbours are always inside the bounding box.
             visited.contains(Vector2Int(2, 2)).shouldBeTrue()  // center
             visited.contains(Vector2Int(2, 1)).shouldBeTrue()  // north (y - 1)
             visited.contains(Vector2Int(1, 2)).shouldBeTrue()  // west  (x - 1)
+            visited.contains(Vector2Int(3, 2)).shouldBeTrue()  // east  (x + 1)
+            visited.contains(Vector2Int(2, 3)).shouldBeTrue()  // south (y + 1)
         }
 
         it("should visit every coordinate inside a generous radius without false positives") {

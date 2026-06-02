@@ -60,6 +60,13 @@ class NormalizedRgbTest : DescribeSpec({
             color.g shouldBe (1.0f plusOrMinus eps)
             color.b shouldBe (1.0f plusOrMinus eps)
         }
+
+        it("should clamp negative components up to 0.0") {
+            val color = NormalizedRgb(-0.5, -2.0, 0.5).toColor()
+            color.r shouldBe (0.0f plusOrMinus eps)
+            color.g shouldBe (0.0f plusOrMinus eps)
+            color.b shouldBe (0.5f plusOrMinus eps)
+        }
     }
 
     describe("Color.toNormalizedRgb()") {

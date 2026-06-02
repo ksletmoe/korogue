@@ -120,8 +120,11 @@ class Grid<T>(width: Int, height: Int, defaultValue: T) {
 
         val x = max(0, center.x - radiusInt)
         val y = max(0, center.y - radiusInt)
-        val width = min(lastColumnIndex, center.x + radiusInt) - x
-        val height = min(lastRowIndex, center.y + radiusInt) - y
+        // +1 because lastColumnIndex/lastRowIndex are inclusive indices and the
+        // iteration over the box is half-open (`until x + width`); without it the
+        // east/south boundary tiles at center ± radius are never visited.
+        val width = min(lastColumnIndex, center.x + radiusInt) - x + 1
+        val height = min(lastRowIndex, center.y + radiusInt) - y + 1
 
         return IntRect(x, y, width, height)
     }
