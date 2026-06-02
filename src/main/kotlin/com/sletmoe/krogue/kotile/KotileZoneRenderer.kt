@@ -7,11 +7,11 @@ import com.sletmoe.kotile.display.ascii.AsciiTileWindow
 import com.sletmoe.kotile.rendering.TileViewport
 import com.sletmoe.kotile.utilities.LayeredTilemap
 import com.sletmoe.krogue.algorithms.color.toNormalizedRgb
+import com.sletmoe.kotile.utilities.Vector2Int
 import com.sletmoe.krogue.algorithms.los.LineOfSightCalculator
 import com.sletmoe.krogue.utilities.Grid
 import com.sletmoe.krogue.world.Creature
 import com.sletmoe.krogue.world.Zone
-import java.awt.Point
 import kotlin.math.max
 import kotlin.math.min
 
@@ -69,7 +69,7 @@ internal class KotileZoneRenderer(
      * @param elapsedMs wall-clock milliseconds passed to [AsciiTileWindow.render] for animation.
      */
     fun render(
-        focusPoint: Point,
+        focusPoint: Vector2Int,
         player: Creature,
         elapsedMs: Long = 0L,
     ) {
@@ -128,7 +128,7 @@ internal class KotileZoneRenderer(
     // -------------------------------------------------------------------------
 
     /** Computes a player-centred viewport clamped to zone bounds. */
-    private fun buildViewport(focus: Point): TileViewport {
+    private fun buildViewport(focus: Vector2Int): TileViewport {
         val w = window.widthInTiles
         val h = window.heightInTiles
         val originX = max(0, min(focus.x - w / 2, zone.width - w))
@@ -137,7 +137,7 @@ internal class KotileZoneRenderer(
     }
 
     /** Runs the LOS algorithm and optionally gates on the light map. */
-    private fun computeVisibility(focus: Point): Grid<Boolean> {
+    private fun computeVisibility(focus: Vector2Int): Grid<Boolean> {
         val los = lineOfSightCalculator.calculateLineOfSight(focus, zone.tiles, maximumVisibilityDistance)
         // Gate on lighting: a lit cell is only visible if the light map is non-null there.
         los.forEachCoordinate { coord ->

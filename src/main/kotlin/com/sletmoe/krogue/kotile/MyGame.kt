@@ -12,8 +12,8 @@ import com.sletmoe.krogue.world.LightSource
 import com.sletmoe.krogue.world.Tile
 import com.sletmoe.krogue.world.World
 import com.sletmoe.krogue.world.ZonalPosition
+import com.sletmoe.kotile.utilities.Vector2Int
 import com.sletmoe.krogue.world.Zone
-import java.awt.Point
 import kotlin.random.Random
 
 /**
@@ -26,7 +26,7 @@ import kotlin.random.Random
 class MyGame(
     private val random: Random = Random.Default,
 ) : Game() {
-    private val startPoint = Point(10, 10)
+    private val startPoint = Vector2Int(10, 10)
 
     private val symmetricShadowCaster = SymmetricShadowCaster()
     private val omnipresentLos = OmnicientLineOfSightCalculator()

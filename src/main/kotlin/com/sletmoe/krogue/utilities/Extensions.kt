@@ -1,23 +1,22 @@
 package com.sletmoe.krogue.utilities
 
-import java.awt.Point
-import java.awt.Rectangle
+import com.sletmoe.kotile.utilities.Vector2Int
 import java.util.concurrent.locks.ReentrantLock
 
-operator fun Point.plus(other: Point): Point = Point(x + other.x, y + other.y)
+operator fun Vector2Int.plus(other: Vector2Int): Vector2Int = Vector2Int(x + other.x, y + other.y)
 
-operator fun Point.minus(other: Point): Point = Point(x - other.x, y - other.y)
+operator fun Vector2Int.minus(other: Vector2Int): Vector2Int = Vector2Int(x - other.x, y - other.y)
 
-fun Rectangle.translated(
+fun IntRect.translated(
     dx: Int,
     dy: Int,
-): Rectangle = Rectangle(this).also { it.translate(dx, dy) }
+): IntRect = IntRect(x + dx, y + dy, width, height)
 
-fun Rectangle.scaled(
+fun IntRect.scaled(
     widthScaleFactor: Int,
     heightScaleFactor: Int,
-): Rectangle {
-    return Rectangle(
+): IntRect {
+    return IntRect(
         x * widthScaleFactor,
         y * heightScaleFactor,
         width * widthScaleFactor,
@@ -25,10 +24,10 @@ fun Rectangle.scaled(
     )
 }
 
-val Rectangle.lastX: Int
+val IntRect.lastX: Int
     get() = x + width - 1
 
-val Rectangle.lastY: Int
+val IntRect.lastY: Int
     get() = y + height - 1
 
 inline fun <T> Iterable<T>.nonOverflowingSumOf(selector: (T) -> Int): Int {

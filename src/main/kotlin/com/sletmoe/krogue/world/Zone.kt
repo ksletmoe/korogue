@@ -5,8 +5,9 @@ import com.sletmoe.krogue.algorithms.lighting.LightValue
 import com.sletmoe.krogue.algorithms.zonegen.ZoneFeatureGenerator
 import com.sletmoe.krogue.utilities.Grid
 import com.sletmoe.krogue.utilities.initialize
-import java.awt.Point
-import java.awt.Rectangle
+import com.sletmoe.kotile.utilities.Vector2Int
+import com.sletmoe.krogue.utilities.IntRect
+import com.sletmoe.krogue.utilities.distance
 import kotlin.random.Random
 
 open class Zone(
@@ -20,7 +21,7 @@ open class Zone(
     val height: Int
         get() = tiles.height
 
-    val bounds: Rectangle by lazy { Rectangle(0, 0, tiles.width, tiles.height) }
+    val bounds: IntRect by lazy { IntRect(0, 0, tiles.width, tiles.height) }
 
     val creatures: List<Creature>
         get() = _creatures.toList()
@@ -38,7 +39,7 @@ open class Zone(
     ): Boolean = tiles[x, y].isWalkable && creatureAt(x, y) == null
 
     fun getCreaturesInArea(
-        center: Point,
+        center: Vector2Int,
         width: Int,
         height: Int,
     ): List<Creature> {

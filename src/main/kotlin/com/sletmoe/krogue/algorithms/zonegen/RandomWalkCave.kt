@@ -1,7 +1,7 @@
 package com.sletmoe.krogue.algorithms.zonegen
 
+import com.sletmoe.kotile.utilities.Vector2Int
 import com.sletmoe.krogue.world.Tile
-import java.awt.Point
 
 fun randomWalkCave(
     startX: Int,
@@ -28,6 +28,6 @@ fun randomWalkCave(
             tiles[x, y] = groundTile
         }
 
-        Point(x, y)
+        Vector2Int(x, y)
     }
 }

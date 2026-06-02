@@ -1,7 +1,6 @@
 package com.sletmoe.krogue.utilities
 
-import java.awt.Point
-import java.awt.Rectangle
+import com.sletmoe.kotile.utilities.Vector2Int
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
@@ -45,10 +44,10 @@ class Grid<T>(width: Int, height: Int, defaultValue: T) {
         rows[x][y] = value
     }
 
-    operator fun get(coord: Point): T = getElement(coord.x, coord.y)
+    operator fun get(coord: Vector2Int): T = getElement(coord.x, coord.y)
 
     operator fun set(
-        coord: Point,
+        coord: Vector2Int,
         value: T,
     ) = setElement(coord.x, coord.y, value)
 
@@ -82,29 +81,29 @@ class Grid<T>(width: Int, height: Int, defaultValue: T) {
         forEachCoordinate { action(get(it)) }
     }
 
-    fun forEachIndexed(action: (Point, T) -> Unit) {
+    fun forEachIndexed(action: (Vector2Int, T) -> Unit) {
         forEachCoordinate { action(it, get(it)) }
     }
 
-    fun forEachCoordinate(action: (Point) -> Unit) {
+    fun forEachCoordinate(action: (Vector2Int) -> Unit) {
         (0..lastColumnIndex).forEach { x ->
             (0..lastRowIndex).forEach { y ->
-                action(Point(x, y))
+                action(Vector2Int(x, y))
             }
         }
     }
 
     fun forEachCoordinateInRadius(
-        center: Point,
+        center: Vector2Int,
         radius: Double,
-        action: (Point) -> Unit,
+        action: (Vector2Int) -> Unit,
     ) {
         val boundingBox = boundingBoxForCircle(center, radius)
         val radiusSquared = radius * radius
 
         (boundingBox.x until boundingBox.x + boundingBox.width).forEach { x ->
             (boundingBox.y until boundingBox.y + boundingBox.height).forEach { y ->
-                val coordinate = Point(x, y)
+                val coordinate = Vector2Int(x, y)
 
                 if (center.distanceSq(coordinate) <= radiusSquared) {
                     action(coordinate)
@@ -114,9 +113,9 @@ class Grid<T>(width: Int, height: Int, defaultValue: T) {
     }
 
     private fun boundingBoxForCircle(
-        center: Point,
+        center: Vector2Int,
         radius: Double,
-    ): Rectangle {
+    ): IntRect {
         val radiusInt = ceil(radius).toInt()
 
         val x = max(0, center.x - radiusInt)
@@ -124,7 +123,7 @@ class Grid<T>(width: Int, height: Int, defaultValue: T) {
         val width = min(lastColumnIndex, center.x + radiusInt) - x
         val height = min(lastRowIndex, center.y + radiusInt) - y
 
-        return Rectangle(x, y, width, height)
+        return IntRect(x, y, width, height)
     }
 
     companion object {
