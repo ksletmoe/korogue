@@ -40,18 +40,42 @@ class TileSheet(
     val heightInTiles: Int
 
     init {
-        val pixmap = Pixmap(file)
+        val source = Pixmap(file)
         if (keyColor != null) {
-            zeroOutColor(pixmap, keyColor)
+            zeroOutColor(source, keyColor)
         }
 
-        texture = Texture(pixmap)
+        // Tile counts are derived from the *source* image dimensions, before any
+        // power-of-two padding below.
+        widthInTiles = tilesAlong(source.width, tileWidthPx)
+        heightInTiles = tilesAlong(source.height, tileHeightPx)
+
+        // Upload as a power-of-two texture. Some OpenGL drivers — notably
+        // Apple's on macOS — mishandle sampling *sub-regions* of a non-power-of-
+        // two texture, which renders glyphs sliced from an NPOT atlas as garbage
+        // (shrunk/whole-atlas speckles) even though full-texture draws are fine.
+        // Padding the sheet up to the next power of two on each axis sidesteps
+        // this. Glyph pixel coordinates are unchanged (the source is copied into
+        // the top-left), so region slicing and the resulting UVs stay correct;
+        // the added border is transparent and never sampled by a valid region.
+        val potWidth = nextPowerOfTwo(source.width)
+        val potHeight = nextPowerOfTwo(source.height)
+        val upload =
+            if (potWidth == source.width && potHeight == source.height) {
+                source
+            } else {
+                Pixmap(potWidth, potHeight, Pixmap.Format.RGBA8888).apply {
+                    blending = Pixmap.Blending.None
+                    drawPixmap(source, 0, 0)
+                }
+            }
+
+        texture = Texture(upload)
         texture.setFilter(TextureFilter.Nearest, TextureFilter.Nearest)
+        texture.setWrap(Texture.TextureWrap.ClampToEdge, Texture.TextureWrap.ClampToEdge)
 
-        widthInTiles = tilesAlong(pixmap.width, tileWidthPx)
-        heightInTiles = tilesAlong(pixmap.height, tileHeightPx)
-
-        pixmap.dispose()
+        if (upload !== source) upload.dispose()
+        source.dispose()
     }
 
     private fun tilesAlong(imagePx: Int, tilePx: Int): Int {
@@ -77,6 +101,13 @@ class TileSheet(
     override fun dispose() = texture.dispose()
 
     private companion object {
+        /** Smallest power of two >= [value] (and >= 1). */
+        fun nextPowerOfTwo(value: Int): Int {
+            var n = 1
+            while (n < value) n = n shl 1
+            return n
+        }
+
         /**
          * Zeroes every pixel whose RGB components match [keyColor] by iterating
          * the [Pixmap]'s backing [ByteBuffer] directly. This avoids one
