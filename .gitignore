@@ -57,3 +57,8 @@ ruvector.db
 *.sqlite
 *.sqlite-journal
 *.sqlite-wal
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+.beads-credential-key
+.beads/proxieddb/
