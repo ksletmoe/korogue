@@ -1,7 +1,8 @@
 # krogue Architecture
 
-> Durable design knowledge. The live work backlog lives in **beads** (`bd list`);
-> current state snapshots live in [STATUS.md](STATUS.md).
+> Durable design knowledge (what is true now). The live work backlog lives in
+> **beads** (`bd list`); current state snapshots live in [STATUS.md](STATUS.md); the
+> **why** behind major decisions is recorded in [adr/](adr/).
 
 ## The two libraries
 
@@ -58,6 +59,9 @@ The implemented core (one entity/system container others build on):
     over a **snapshot** (safe to spawn/despawn during iteration).
 
 ### Locked decisions (do not relitigate)
+
+_Rationale and alternatives for each are in the ADRs: 0002 (entity model), 0003
+(immutable), 0004 (index-free), 0005 (mutation chokepoint)._
 
 1. **Immutable everywhere.** Components are deeply-immutable data classes. "Mutate" =
    produce a new value and replace it via `World.update`. This makes entity state

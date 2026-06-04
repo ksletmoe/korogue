@@ -7,8 +7,11 @@ general-purpose libGDX tile renderer; sibling repo at `~/development/kotile`).
 
 ## Project memory
 
-- **Design & decisions:** `docs/ARCHITECTURE.md`
+- **Design (current):** `docs/ARCHITECTURE.md`
 - **Current state & gotchas:** `docs/STATUS.md`
+- **Decision history (why):** `docs/adr/` — append-only Architecture Decision Records.
+  When a significant or hard-to-reverse decision is made, record one (copy
+  `docs/adr/template.md`); link it from the resolving beads `decision` issue.
 
 ## Task tracking
 
