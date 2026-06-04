@@ -43,21 +43,6 @@ bin/
 # DO check in the Gradle wrapper
 !gradle/wrapper/gradle-wrapper.jar
 
-# RuFlo / claude-flow generated runtime files (per ruvnet/ruflo .gitignore).
-# All per-machine state — DB, sessions, metrics, MCP config. CLAUDE.md is the
-# only RuFlo-related file meant to be committed.
-.mcp.json
-.swarm/
-.claude-flow/
-.hive-mind/
-ruvector.db
-*.db
-*.db-journal
-*.db-wal
-*.sqlite
-*.sqlite-journal
-*.sqlite-wal
-
 # Beads / Dolt files (added by bd init)
 .dolt/
 .beads-credential-key
