@@ -1,0 +1,2 @@
+{"id":"int-9ae881cb4ffff0634bd2316350398d8d","kind":"field_change","created_at":"2026-06-04T05:29:39.474768Z","actor":"REDACTED","issue_id":"krogue-phase4","extra":{"field":"status","new_value":"in_progress","old_value":"open"}}
+{"id":"int-77f8967fec9d2ffb34340611ed9ff284","kind":"field_change","created_at":"2026-06-04T05:29:39.877971Z","actor":"REDACTED","issue_id":"krogue-4b","extra":{"field":"status","new_value":"in_progress","old_value":"open"}}
