@@ -28,8 +28,8 @@ workflow and sync details are in the "Beads Issue Tracker" section below and via
 - Never commit secrets, credentials, or `.env` files.
 - Don't save working files or tests to the repo root — use `src/`, `docs/`, etc.
 - Keep files focused (~500 lines).
-- Commits use a `Co-Authored-By: Claude …` trailer (`attribution.commit` is set in
-  `.claude/settings.json`).
+- Commits use a `Co-Authored-By: Claude …` trailer (Claude Code's default
+  attribution, which includes the current model version).
 
 ## Build & test
 
