@@ -26,7 +26,7 @@ then given a tested ECS foundation:
 - Renders via `com.sletmoe.krogue.kotile.*`: `Game` (ApplicationAdapter loop,
   `render()`→`onTick()`), `MyGame` (demo: player + lantern), `Main` (Lwjgl3 entry),
   `KotileZoneRenderer` (FOV + lighting tints + viewport + previously-seen dimming;
-  reads ECS entities). Run with `./gradlew runKotile`.
+  reads ECS entities). Run with `./gradlew run`.
 - **100% `java.awt`-free.** Colors are GDX `Color`; geometry is kotile `Vector2Int`
   + `com.sletmoe.krogue.utilities.IntRect` (helpers in `utilities/Geometry.kt`).
 - **ECS migration underway (Phase 4b).** `GameWorld` composes `ecs.World` + a zone

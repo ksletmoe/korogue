@@ -36,7 +36,7 @@ workflow and sync details are in the "Beads Issue Tracker" section below and via
 ```bash
 ./gradlew test           # full suite (Kotest)
 ./gradlew compileKotlin   # quick compile check
-./gradlew runKotile       # run the demo
+./gradlew run             # run the demo (MainKt; macOS -XstartOnFirstThread is wired in)
 ```
 
 Always run tests after code changes and verify the build before committing.
