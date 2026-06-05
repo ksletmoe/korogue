@@ -54,9 +54,10 @@ then given a tested ECS foundation:
   font atlas as a non-power-of-two texture; Apple's GL driver mishandles sampling
   *sub-regions* of NPOT textures → garbled glyphs on **macOS only**. Fixed by padding the
   sheet to the next power of two + `ClampToEdge`. CI missed it because the GL tests run
-  Linux Mesa llvmpipe (handles NPOT) and self-skip on macOS (`$DISPLAY` unset). A
-  `:demo:renderHarness` PNG-dump task exists to diagnose on macOS. Follow-up: add a CI
-  test that slices an NPOT sheet.
+  Linux Mesa llvmpipe (handles NPOT) and self-skip on macOS (`$DISPLAY` unset). The
+  `:demo:renderHarness` / `:demo:spriteHarness` PNG-dump tasks diagnose on macOS, and
+  `NpotTileSheetTest` now guards the regression on CI (asserts the uploaded texture is
+  power-of-two and that slicing is unchanged). Done — `krogue-kotile-npot-citest`.
 - Deferred: bundle a 12×12 CP437 font asset (needs a license/provenance decision);
   Dokka V1→V2.
 
