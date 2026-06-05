@@ -20,3 +20,4 @@ Point-in-time records of **why** significant or hard-to-reverse decisions were m
 | [0004](0004-index-free-queries.md) | Index-free entity queries | Accepted |
 | [0005](0005-world-mutation-chokepoint.md) | Enforced mutation chokepoint | Accepted |
 | [0006](0006-tooling-beads-docs-native.md) | Tooling: beads + docs/ADRs + native subagents | Accepted |
+| [0007](0007-game-world-composes-ecs-world.md) | Game world composes the ECS world | Accepted |
