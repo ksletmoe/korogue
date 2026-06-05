@@ -5,11 +5,12 @@ import com.badlogic.gdx.graphics.Color
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
 import com.sletmoe.kotile.utilities.Vector2Int
 import com.sletmoe.krogue.algorithms.color.toNormalizedRgb
-import com.sletmoe.krogue.algorithms.lighting.DiminishingLightValueCalculator
+import com.sletmoe.krogue.algorithms.lighting.LightCalculators
 import com.sletmoe.krogue.algorithms.los.OmnicientLineOfSightCalculator
 import com.sletmoe.krogue.algorithms.los.SymmetricShadowCaster
 import com.sletmoe.krogue.algorithms.zonegen.randomWalkCave
 import com.sletmoe.krogue.components.Health
+import com.sletmoe.krogue.components.LightEmitter
 import com.sletmoe.krogue.components.Named
 import com.sletmoe.krogue.components.Player
 import com.sletmoe.krogue.components.Position
@@ -18,11 +19,10 @@ import com.sletmoe.krogue.components.Renderable
 import com.sletmoe.krogue.components.ZoneMember
 import com.sletmoe.krogue.ecs.Entity
 import com.sletmoe.krogue.ecs.EntityId
+import com.sletmoe.krogue.systems.LightingSystem
 import com.sletmoe.krogue.world.GameWorld
-import com.sletmoe.krogue.world.LightSource
 import com.sletmoe.krogue.world.Tile
 import com.sletmoe.krogue.world.Zone
-import com.sletmoe.krogue.world.ZonalPosition
 import kotlin.math.abs
 import kotlin.random.Random
 
@@ -33,10 +33,10 @@ import kotlin.random.Random
  * - Previously-viewed tile dimming
  * - Arrow key player movement
  *
- * Occupants are ECS entities in [GameWorld.ecs] (ADR-0007, 4b-s3). Movement, simple AI,
- * and the player's lantern are driven by interim glue in this class — these are replaced
- * by a `LightingSystem` (s5), `MovementSystem`/`CombatSystem` (s6), and a `BehaviorSystem`
- * (s7); the legacy `LightSource` and the name-based AI go away with s5/s7.
+ * Occupants are ECS entities in [GameWorld.ecs] (ADR-0007). Lighting is now a
+ * [LightingSystem] over `LightEmitter` entities (4b-s5). Movement and simple AI are still
+ * interim glue in this class, replaced by `MovementSystem`/`CombatSystem` (s6) and a
+ * `BehaviorSystem` (s7); the name-based AI goes away with s7.
  */
 class MyGame(
     private val random: Random = Random.Default,
@@ -49,15 +49,11 @@ class MyGame(
     private val world: GameWorld = buildWorld()
     private val playerId: EntityId = spawnPlayer()
 
-    // INTERIM (s3): the player's lantern stays a Zone LightSource until lighting moves to a
-    // LightEmitter component + LightingSystem in 4b-s5.
-    private val lantern: LightSource = spawnLantern()
-
     private lateinit var renderer: KotileZoneRenderer
 
     init {
         populateZone(world.currentZone, numCreatures = 10)
-        world.currentZone.recalculateLightMap()
+        world.ecs.addSystem(LightingSystem(world.zones))
     }
 
     // -------------------------------------------------------------------------
@@ -93,6 +89,10 @@ class MyGame(
 
         // INTERIM (s3): name-based AI mirroring the old Creature.update; becomes BehaviorSystem (s7).
         updateCreatures()
+
+        // Run registered ECS systems (currently LightingSystem). One tick per frame is
+        // interim — 4b-s6 introduces turn structure once movement is system-driven.
+        world.ecs.tick()
     }
 
     override fun drawFrame(elapsedMs: Long) {
@@ -130,16 +130,9 @@ class MyGame(
                 Health(100, 100),
                 Named("You"),
                 Player,
+                // The player carries a lantern; LightingSystem renders it each tick.
+                LightEmitter(Color(1f, 1f, 150f / 255f, 1f).toNormalizedRgb(), 15.0, LightCalculators.DIMINISHING),
             ).id
-
-    private fun spawnLantern(): LightSource =
-        LightSource(
-            ZonalPosition(world.currentZone, startPoint.x, startPoint.y),
-            "Lantern",
-            Color(1f, 1f, 150f / 255f, 1f),
-            15.0,
-            DiminishingLightValueCalculator(),
-        ).also { world.currentZone.addLightSource(it) }
 
     private fun populateZone(
         zone: Zone,
@@ -192,13 +185,8 @@ class MyGame(
         val occupant = world.entityAt(zoneId, destX, destY)
         when {
             occupant != null && occupant.id != id -> attack(occupant)
-            world.zones.getValue(zoneId).isWalkable(destX, destY) -> {
+            world.zones.getValue(zoneId).isWalkable(destX, destY) ->
                 world.ecs.set(id, Position(destX, destY))
-                if (id == playerId) {
-                    lantern.moveInZone(dx, dy)
-                    world.currentZone.recalculateLightMap()
-                }
-            }
         }
     }
 

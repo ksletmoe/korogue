@@ -3,7 +3,7 @@
 > Current-state snapshots. Design rationale is in [ARCHITECTURE.md](ARCHITECTURE.md);
 > the live task backlog is in **beads** — run `bd list` / `bd ready`.
 
-_Last updated: 2026-06-03 (after Phase 4b step 2)._
+_Last updated: 2026-06-04 (after Phase 4b step 5)._
 
 ## Migration arc (done)
 
@@ -16,29 +16,34 @@ then given a tested ECS foundation:
   (color → GDX, geometry → kotile `Vector2Int` + `IntRect`); test suite built from
   zero; lighting verified.
 - **Phase 4a** ✅ — ECS core (`com.sletmoe.krogue.ecs`).
-- **Phase 4b** — in progress (step 2/7: components added). See `bd list`.
+- **Phase 4b** — in progress (steps 1–5 of 7 done: ECS core, components, `GameWorld`
+  composes `ecs.World` + occupants are entities (ADR-0007), renderer reads ECS,
+  `LightingSystem`). Steps 6–7 (movement/combat, behavior + delete legacy) remain.
+  See `bd list`.
 
 ## krogue current state
 
 - Renders via `com.sletmoe.krogue.kotile.*`: `Game` (ApplicationAdapter loop,
   `render()`→`onTick()`), `MyGame` (demo: player + lantern), `Main` (Lwjgl3 entry),
-  `KotileZoneRenderer` (FOV + lighting tints + viewport + previously-seen dimming).
-  Run with `./gradlew runKotile`.
+  `KotileZoneRenderer` (FOV + lighting tints + viewport + previously-seen dimming;
+  reads ECS entities). Run with `./gradlew runKotile`.
 - **100% `java.awt`-free.** Colors are GDX `Color`; geometry is kotile `Vector2Int`
   + `com.sletmoe.krogue.utilities.IntRect` (helpers in `utilities/Geometry.kt`).
-- **ECS core + standard components in place** (see ARCHITECTURE.md). The existing
-  `world/` model (`World`/`Zone`/`Creature`/`LightSource`) is **not yet migrated** onto
-  the ECS core — that is Phase 4b.
+- **ECS migration underway (Phase 4b).** `GameWorld` composes `ecs.World` + a zone
+  registry (ADR-0007); occupants (player, creatures, lights) are ECS entities, `Zone`
+  is terrain + a `LightingSystem`-written `lightMap`. Legacy `World`/`Creature`/
+  `LightSource` are gone; `MovableEntity`/`Entity`/`ZonalPosition`/`Pointer` remain
+  until 4b-s7. Movement and AI are still interim glue in `MyGame` (→ systems in s6/s7).
 - **~190 tests** (`./gradlew test`). Example-based Kotest.
 - Single map pane only — the old multi-pane topbar/sidebar layout was removed in the
   renderer cutover; how to restore it is an open question (kotile layout primitives vs
   krogue-side).
 
 ### Known issues / cleanups still open
-- `Zone._creatures` is a public mutable list (removed in 4b step 3).
-- `Creature.update` branches on `name == "sheep"/"zombie"` (placeholder AI → `Behavior`
-  component in 4b step 7).
-- `recalculateLightMap()` is manually coupled in `moveInZone` (→ `LightingSystem`, step 5).
+- Interim name-based AI (`"sheep"/"zombie"`) and direct movement live in `MyGame`
+  (placeholders → `MovementSystem`/`CombatSystem` in 4b-s6, `BehaviorSystem` in 4b-s7).
+- Legacy `MovableEntity`/`Entity`/`ZonalPosition`/`Pointer` still present; deleted in 4b-s7.
+- Ticking the ECS world once per frame is interim (turn structure arrives with 4b-s6).
 - Package `com.sletmoe.krogue.kotile.*` is an odd home for krogue's own classes
   (consider `.rendering`).
 - README is still a TODO.

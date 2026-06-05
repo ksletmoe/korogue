@@ -1,12 +1,10 @@
 package com.sletmoe.krogue.world
 
-import com.sletmoe.krogue.algorithms.color.ColorBlending
 import com.sletmoe.krogue.algorithms.lighting.LightValue
 import com.sletmoe.krogue.algorithms.zonegen.ZoneFeatureGenerator
 import com.sletmoe.krogue.utilities.Grid
 import com.sletmoe.krogue.utilities.initialize
 import com.sletmoe.krogue.utilities.IntRect
-import com.sletmoe.krogue.utilities.distance
 import kotlin.random.Random
 
 /**
@@ -14,13 +12,12 @@ import kotlin.random.Random
  * (creatures, the player, light emitters) are ECS entities tagged with `ZoneMember`
  * and owned by [GameWorld.ecs] — a Zone no longer holds them (ADR-0007, 4b-s3).
  *
- * Lighting still lives here for now ([lightSources] + [recalculateLightMap]); it moves
- * to a `LightEmitter` component + `LightingSystem` in 4b-s5.
+ * The [lightMap] is derived state recomputed each tick by `LightingSystem` from the
+ * `LightEmitter` entities in this zone (4b-s5); a Zone no longer owns light sources.
  */
 open class Zone(
     val zoneId: String,
     val tiles: Grid<Tile>,
-    private val lightSources: MutableList<LightSource> = mutableListOf(),
 ) {
     val width: Int
         get() = tiles.width
@@ -29,6 +26,7 @@ open class Zone(
 
     val bounds: IntRect by lazy { IntRect(0, 0, tiles.width, tiles.height) }
 
+    /** Per-tile light, recomputed each tick by `LightingSystem`; a null cell is unlit. */
     val lightMap: Grid<LightValue?> = Grid(tiles.width, tiles.height, null)
 
     /**
@@ -40,38 +38,6 @@ open class Zone(
         x: Int,
         y: Int,
     ): Boolean = tiles[x, y].isWalkable
-
-    fun addLightSource(lightSource: LightSource) {
-        lightSources.add(lightSource)
-    }
-
-    fun removeLightSource(lightSource: LightSource) {
-        lightSources.remove(lightSource)
-    }
-
-    fun recalculateLightMap() {
-        lightMap.fill(null)
-
-        lightSources.forEach { lightSource ->
-            lightMap.forEachCoordinateInRadius(lightSource.position.point, lightSource.lightRadius) { lightMapCoord ->
-                val existingLightMapVal = lightMap[lightMapCoord]
-                val newLightVal =
-                    lightSource.calculateLightValue(
-                        lightSource.position.point.distance(lightMapCoord),
-                    )
-
-                lightMap[lightMapCoord] =
-                    if (existingLightMapVal != null) {
-                        LightValue(
-                            ColorBlending.softLight(existingLightMapVal.normalizedColor, newLightVal.normalizedColor),
-                            ColorBlending.screen(existingLightMapVal.intensity, newLightVal.intensity),
-                        )
-                    } else {
-                        newLightVal
-                    }
-            }
-        }
-    }
 
     open class Builder(
         private val zoneId: String,
