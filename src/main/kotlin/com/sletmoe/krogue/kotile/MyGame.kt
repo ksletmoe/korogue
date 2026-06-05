@@ -3,17 +3,26 @@ package com.sletmoe.krogue.kotile
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Color
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
+import com.sletmoe.kotile.utilities.Vector2Int
+import com.sletmoe.krogue.algorithms.color.toNormalizedRgb
 import com.sletmoe.krogue.algorithms.lighting.DiminishingLightValueCalculator
 import com.sletmoe.krogue.algorithms.los.OmnicientLineOfSightCalculator
 import com.sletmoe.krogue.algorithms.los.SymmetricShadowCaster
 import com.sletmoe.krogue.algorithms.zonegen.randomWalkCave
-import com.sletmoe.krogue.world.Creature
+import com.sletmoe.krogue.components.Health
+import com.sletmoe.krogue.components.Named
+import com.sletmoe.krogue.components.Player
+import com.sletmoe.krogue.components.Position
+import com.sletmoe.krogue.components.RenderLayer
+import com.sletmoe.krogue.components.Renderable
+import com.sletmoe.krogue.components.ZoneMember
+import com.sletmoe.krogue.ecs.Entity
+import com.sletmoe.krogue.ecs.EntityId
+import com.sletmoe.krogue.world.GameWorld
 import com.sletmoe.krogue.world.LightSource
 import com.sletmoe.krogue.world.Tile
-import com.sletmoe.krogue.world.World
-import com.sletmoe.krogue.world.ZonalPosition
-import com.sletmoe.kotile.utilities.Vector2Int
 import com.sletmoe.krogue.world.Zone
+import com.sletmoe.krogue.world.ZonalPosition
 import kotlin.random.Random
 
 /**
@@ -22,6 +31,11 @@ import kotlin.random.Random
  * - Lighting via [DiminishingLightValueCalculator] on the player's lantern
  * - Previously-viewed tile dimming
  * - Arrow key player movement
+ *
+ * Occupants are ECS entities in [GameWorld.ecs] (ADR-0007, 4b-s3). Movement, simple AI,
+ * and the player's lantern are driven by interim glue in this class — these are replaced
+ * by a `LightingSystem` (s5), `MovementSystem`/`CombatSystem` (s6), and a `BehaviorSystem`
+ * (s7); the legacy `LightSource` and the name-based AI go away with s5/s7.
  */
 class MyGame(
     private val random: Random = Random.Default,
@@ -31,29 +45,19 @@ class MyGame(
     private val symmetricShadowCaster = SymmetricShadowCaster()
     private val omnipresentLos = OmnicientLineOfSightCalculator()
 
-    private val world: World = buildWorld()
+    private val world: GameWorld = buildWorld()
+    private val playerId: EntityId = spawnPlayer()
 
-    private val player: Creature =
-        Creature(
-            ZonalPosition(world.currentZone, startPoint.x, startPoint.y),
-            "You",
-            '@',
-            Color.YELLOW,
-        ).also { p ->
-            p.lightSource =
-                LightSource(
-                    p.position.copy(),
-                    "Lantern",
-                    Color(1f, 1f, 150f / 255f, 1f),
-                    15.0,
-                    DiminishingLightValueCalculator(),
-                )
-            world.currentZone.addCreature(p)
-            // Initial light map calculation.
-            world.currentZone.recalculateLightMap()
-        }
+    // INTERIM (s3): the player's lantern stays a Zone LightSource until lighting moves to a
+    // LightEmitter component + LightingSystem in 4b-s5.
+    private val lantern: LightSource = spawnLantern()
 
     private lateinit var renderer: KotileZoneRenderer
+
+    init {
+        populateZone(world.currentZone, numCreatures = 10)
+        world.currentZone.recalculateLightMap()
+    }
 
     // -------------------------------------------------------------------------
     // Game overrides
@@ -71,6 +75,7 @@ class MyGame(
         renderer =
             KotileZoneRenderer(
                 zone = world.currentZone,
+                world = world.ecs,
                 window = window,
                 lineOfSightCalculator = symmetricShadowCaster,
                 maximumVisibilityDistance = 30.0,
@@ -78,59 +83,62 @@ class MyGame(
     }
 
     override fun onTick() {
-        // Remove dead creatures.
-        world.currentZone.creatures
-            .filter { it.dead && it !== player }
-            .forEach { world.currentZone.removeCreature(it) }
+        // INTERIM (s3): despawn dead non-player creatures; folded into CombatSystem (s6).
+        world.ecs
+            .entitiesWith<Health, ZoneMember>()
+            .filter { it.id != playerId && it.require<Health>().dead }
+            .toList()
+            .forEach { world.ecs.despawn(it.id) }
 
-        // Update non-player creatures.
-        world.currentZone.creatures
-            .filter { it !== player }
-            .forEach { it.update(world.currentZone) }
+        // INTERIM (s3): name-based AI mirroring the old Creature.update; becomes BehaviorSystem (s7).
+        updateCreatures()
     }
 
     override fun drawFrame(elapsedMs: Long) {
-        renderer.render(
-            focusPoint = player.position.point,
-            player = player,
-            elapsedMs = elapsedMs,
-        )
+        renderer.render(focusPoint = playerPosition().point, elapsedMs = elapsedMs)
     }
 
     override fun onKeyDown(keycode: Int) {
         when (keycode) {
-            Input.Keys.LEFT -> player.moveInZone(-1, 0)
-            Input.Keys.RIGHT -> player.moveInZone(1, 0)
-            Input.Keys.UP -> player.moveInZone(0, -1)
-            Input.Keys.DOWN -> player.moveInZone(0, 1)
+            Input.Keys.LEFT -> moveEntity(playerId, -1, 0)
+            Input.Keys.RIGHT -> moveEntity(playerId, 1, 0)
+            Input.Keys.UP -> moveEntity(playerId, 0, -1)
+            Input.Keys.DOWN -> moveEntity(playerId, 0, 1)
             Input.Keys.SPACE -> toggleLos()
         }
     }
 
     // -------------------------------------------------------------------------
-    // Private helpers
+    // Setup
     // -------------------------------------------------------------------------
 
-    private fun toggleLos() {
-        renderer.losCalculator =
-            if (renderer.losCalculator === symmetricShadowCaster) {
-                omnipresentLos
-            } else {
-                symmetricShadowCaster
+    private fun buildWorld(): GameWorld =
+        GameWorld.create {
+            zone("Level 1", 200, 200, isCurrentZone = true, random = random) {
+                fill(WALL_TILE)
+                addFeature(randomWalkCave(startPoint.x, startPoint.y, 6000, GROUND_TILE))
             }
-    }
+        }
 
-    private fun buildWorld(): World {
-        val world =
-            World.create {
-                zone("Level 1", 200, 200, isCurrentZone = true, random = random) {
-                    fill(WALL_TILE)
-                    addFeature(randomWalkCave(startPoint.x, startPoint.y, 6000, GROUND_TILE))
-                }
-            }
-        populateZone(world.currentZone, 10)
-        return world
-    }
+    private fun spawnPlayer(): EntityId =
+        world.ecs
+            .spawn(
+                Position(startPoint.x, startPoint.y),
+                ZoneMember(world.currentZoneId),
+                Renderable('@', Color.YELLOW.toNormalizedRgb(), RenderLayer.PLAYER),
+                Health(100, 100),
+                Named("You"),
+                Player,
+            ).id
+
+    private fun spawnLantern(): LightSource =
+        LightSource(
+            ZonalPosition(world.currentZone, startPoint.x, startPoint.y),
+            "Lantern",
+            Color(1f, 1f, 150f / 255f, 1f),
+            15.0,
+            DiminishingLightValueCalculator(),
+        ).also { world.currentZone.addLightSource(it) }
 
     private fun populateZone(
         zone: Zone,
@@ -142,21 +150,107 @@ class MyGame(
             do {
                 rx = random.nextInt(zone.width)
                 ry = random.nextInt(zone.height)
-            } while (!zone.tiles[rx, ry].isWalkable)
+            } while (!zone.tiles[rx, ry].isWalkable || world.entityAt(zone.zoneId, rx, ry) != null)
 
-            val creature =
-                if (random.nextBoolean()) {
-                    Creature(ZonalPosition(zone, rx, ry), "zombie", 'z', Color.GREEN, "aggressive")
-                } else {
-                    Creature(ZonalPosition(zone, rx, ry), "sheep", 's', Color.WHITE, "docile")
-                }
-            zone.addCreature(creature)
+            val zombie = random.nextBoolean()
+            world.ecs.spawn(
+                Position(rx, ry),
+                ZoneMember(zone.zoneId),
+                Renderable(
+                    if (zombie) 'z' else 's',
+                    (if (zombie) Color.GREEN else Color.WHITE).toNormalizedRgb(),
+                    RenderLayer.CREATURE,
+                ),
+                Health(100, 100),
+                Named(if (zombie) "zombie" else "sheep", if (zombie) "aggressive" else "docile"),
+            )
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // INTERIM glue — replaced by ECS systems in s5/s6/s7
+    // -------------------------------------------------------------------------
+
+    private fun playerPosition(): Position = world.ecs.get(playerId)!!.require<Position>()
+
+    /**
+     * INTERIM (s3): move [id] by ([dx], [dy]) — bump-attack an occupant, else step onto
+     * walkable terrain. Becomes MoveIntent + MovementSystem/CombatSystem in 4b-s6.
+     */
+    private fun moveEntity(
+        id: EntityId,
+        dx: Int,
+        dy: Int,
+    ) {
+        val entity = world.ecs.get(id) ?: return
+        val pos = entity.require<Position>()
+        val zoneId = entity.require<ZoneMember>().zoneId
+        val destX = pos.x + dx
+        val destY = pos.y + dy
+
+        val occupant = world.entityAt(zoneId, destX, destY)
+        when {
+            occupant != null && occupant.id != id -> attack(occupant)
+            world.zones.getValue(zoneId).isWalkable(destX, destY) -> {
+                world.ecs.set(id, Position(destX, destY))
+                if (id == playerId) {
+                    lantern.moveInZone(dx, dy)
+                    world.currentZone.recalculateLightMap()
+                }
+            }
+        }
+    }
+
+    /** INTERIM (s3): apply attack damage; becomes CombatSystem (s6). */
+    private fun attack(target: Entity) {
+        world.ecs.update<Health>(target.id) { it.copy(current = (it.current - ATTACK_DAMAGE).coerceAtLeast(0)) }
+    }
+
+    /** INTERIM (s3): name-based AI mirroring the old Creature.update; becomes BehaviorSystem (s7). */
+    private fun updateCreatures() {
+        val playerPos = playerPosition()
+        world.ecs
+            .entitiesWith<Position, Named, ZoneMember>()
+            .filter { it.id != playerId }
+            .toList()
+            .forEach { creature ->
+                if (random.nextInt(100) <= 98) return@forEach
+                when (creature.require<Named>().name) {
+                    "sheep" -> {
+                        val (dx, dy) = STEPS.random(random)
+                        moveEntity(creature.id, dx, dy)
+                    }
+                    "zombie" -> {
+                        val pos = creature.require<Position>()
+                        if (pos.point.distanceChebyshev(playerPos.point) <= ZOMBIE_AGGRO_RANGE) {
+                            val dx = (playerPos.x - pos.x).coerceIn(-1, 1)
+                            val dy = if (dx == 0) (playerPos.y - pos.y).coerceIn(-1, 1) else 0
+                            moveEntity(creature.id, dx, dy)
+                        }
+                    }
+                }
+            }
+    }
+
+    private fun toggleLos() {
+        renderer.losCalculator =
+            if (renderer.losCalculator === symmetricShadowCaster) {
+                omnipresentLos
+            } else {
+                symmetricShadowCaster
+            }
     }
 
     companion object {
         private const val WINDOW_W = 80
         private const val WINDOW_H = 40
+        private const val ATTACK_DAMAGE = 20
+        private const val ZOMBIE_AGGRO_RANGE = 10
+
+        private val STEPS = listOf(1 to 0, -1 to 0, 0 to 1, 0 to -1)
+
+        private fun Vector2Int.distanceChebyshev(other: Vector2Int): Int =
+            maxOf(kotlin.math.abs(x - other.x), kotlin.math.abs(y - other.y))
 
         private val WALL_TILE
             get() =

@@ -9,29 +9,36 @@ import com.sletmoe.kotile.utilities.LayeredTilemap
 import com.sletmoe.krogue.algorithms.color.toNormalizedRgb
 import com.sletmoe.kotile.utilities.Vector2Int
 import com.sletmoe.krogue.algorithms.los.LineOfSightCalculator
+import com.sletmoe.krogue.components.Player
+import com.sletmoe.krogue.components.Position
+import com.sletmoe.krogue.components.Renderable
+import com.sletmoe.krogue.components.ZoneMember
+import com.sletmoe.krogue.ecs.World
 import com.sletmoe.krogue.utilities.Grid
-import com.sletmoe.krogue.world.Creature
 import com.sletmoe.krogue.world.Zone
 import kotlin.math.max
 import kotlin.math.min
 
-/** Z-layer indices for the shared [LayeredTilemap]. */
+/** Terrain z-layer index for the shared [LayeredTilemap]; occupant layers come from [Renderable.layer]. */
 private const val LAYER_TILES = 0
-private const val LAYER_CREATURES = 1
-private const val LAYER_PLAYER = 2
 
 /** Tile drawn for cells outside the zone bounds or hidden by FOV. */
 private val EMPTY_TILE = AsciiTileDescriptor(' ', Color.BLACK, Color.BLACK)
 
 /**
- * Renders a krogue [Zone] into an [AsciiTileWindow] using kotile's layered tilemap
- * and viewport API. Supports FOV (via [lineOfSightCalculator]), lighting tints from
- * [Zone.lightMap], and previously-viewed tile dimming.
+ * Renders a krogue [Zone]'s terrain plus the [world] entities occupying it into an
+ * [AsciiTileWindow] using kotile's layered tilemap and viewport API. Supports FOV
+ * (via [lineOfSightCalculator]), lighting tints from [Zone.lightMap], and
+ * previously-viewed tile dimming.
+ *
+ * Occupants are ECS entities with [Position] + [Renderable] + [ZoneMember]; the one
+ * with the [Player] marker is always drawn (camera target), others only when visible.
+ * The draw layer comes from [Renderable.layer]'s `zIndex`.
  *
  * Layer assignments:
  * - z=0: terrain tiles
- * - z=1: non-player creatures
- * - z=2: player
+ * - z=1: non-player creatures (`RenderLayer.CREATURE`)
+ * - z=2: player (`RenderLayer.PLAYER`)
  *
  * The camera centres on [focusPoint]; the viewport is clamped to zone bounds so the
  * player can never scroll the map beyond its edges.
@@ -41,6 +48,7 @@ private val EMPTY_TILE = AsciiTileDescriptor(' ', Color.BLACK, Color.BLACK)
  */
 internal class KotileZoneRenderer(
     private val zone: Zone,
+    private val world: World,
     private val window: AsciiTileWindow,
     private var lineOfSightCalculator: LineOfSightCalculator,
     private val maximumVisibilityDistance: Double = 30.0,
@@ -61,16 +69,14 @@ internal class KotileZoneRenderer(
         }
 
     /**
-     * Rebuilds the [LayeredTilemap] from the zone's current state and blits it through
-     * [window] using a player-centred [TileViewport].
+     * Rebuilds the [LayeredTilemap] from the zone's terrain and the [world] entities
+     * occupying it, then blits it through [window] using a player-centred [TileViewport].
      *
      * @param focusPoint tile coordinate the camera should centre on (typically the player position).
-     * @param player the player [Creature]; rendered on [LAYER_PLAYER] on top of everything.
      * @param elapsedMs wall-clock milliseconds passed to [AsciiTileWindow.render] for animation.
      */
     fun render(
         focusPoint: Vector2Int,
-        player: Creature,
         elapsedMs: Long = 0L,
     ) {
         val viewport = buildViewport(focusPoint)
@@ -92,31 +98,19 @@ internal class KotileZoneRenderer(
             }
         }
 
-        // Layer 1: non-player creatures.
-        for (creature in zone.creatures) {
-            if (creature === player) continue
-            val cx = creature.position.x
-            val cy = creature.position.y
-            if (!visibilityGrid[cx, cy]) continue
-            val tileBg = tileBackgroundAt(cx, cy, visibilityGrid)
+        // Layers 1-2: occupant entities in this zone. The player (marker) is always
+        // drawn; everyone else only when their cell is currently visible.
+        for (entity in world.entitiesWith<Position, Renderable, ZoneMember>()) {
+            if (entity.require<ZoneMember>().zoneId != zone.zoneId) continue
+            val pos = entity.require<Position>()
+            val renderable = entity.require<Renderable>()
+            if (!entity.has<Player>() && !visibilityGrid[pos.x, pos.y]) continue
+            val tileBg = tileBackgroundAt(pos.x, pos.y, visibilityGrid)
             logicalMap.setCell(
-                cx,
-                cy,
-                LAYER_CREATURES,
-                AsciiTileDescriptor(creature.glyph, creature.color, tileBg),
-            )
-        }
-
-        // Layer 2: player (always drawn at player position regardless of FOV).
-        run {
-            val px = player.position.x
-            val py = player.position.y
-            val tileBg = tileBackgroundAt(px, py, visibilityGrid)
-            logicalMap.setCell(
-                px,
-                py,
-                LAYER_PLAYER,
-                AsciiTileDescriptor(player.glyph, player.color, tileBg),
+                pos.x,
+                pos.y,
+                renderable.layer.zIndex,
+                AsciiTileDescriptor(renderable.glyph, renderable.color.toColor(), tileBg),
             )
         }
 

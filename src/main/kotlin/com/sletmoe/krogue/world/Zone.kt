@@ -5,16 +5,22 @@ import com.sletmoe.krogue.algorithms.lighting.LightValue
 import com.sletmoe.krogue.algorithms.zonegen.ZoneFeatureGenerator
 import com.sletmoe.krogue.utilities.Grid
 import com.sletmoe.krogue.utilities.initialize
-import com.sletmoe.kotile.utilities.Vector2Int
 import com.sletmoe.krogue.utilities.IntRect
 import com.sletmoe.krogue.utilities.distance
 import kotlin.random.Random
 
+/**
+ * Terrain for one map: its tile grid, bounds, and a derived light map. Occupants
+ * (creatures, the player, light emitters) are ECS entities tagged with `ZoneMember`
+ * and owned by [GameWorld.ecs] — a Zone no longer holds them (ADR-0007, 4b-s3).
+ *
+ * Lighting still lives here for now ([lightSources] + [recalculateLightMap]); it moves
+ * to a `LightEmitter` component + `LightingSystem` in 4b-s5.
+ */
 open class Zone(
     val zoneId: String,
     val tiles: Grid<Tile>,
     private val lightSources: MutableList<LightSource> = mutableListOf(),
-    val _creatures: MutableList<Creature> = mutableListOf(),
 ) {
     val width: Int
         get() = tiles.width
@@ -23,43 +29,17 @@ open class Zone(
 
     val bounds: IntRect by lazy { IntRect(0, 0, tiles.width, tiles.height) }
 
-    val creatures: List<Creature>
-        get() = _creatures.toList()
-
     val lightMap: Grid<LightValue?> = Grid(tiles.width, tiles.height, null)
 
-    fun creatureAt(
-        x: Int,
-        y: Int,
-    ): Creature? = creatures.firstOrNull { it.position.x == x && it.position.y == y }
-
+    /**
+     * Terrain-only walkability: whether the tile at ([x], [y]) can be stood on.
+     * Occupancy is an ECS concern — combine with [GameWorld.entityAt] (see
+     * [GameWorld.isWalkable]) when a move also needs the cell to be unoccupied.
+     */
     fun isWalkable(
         x: Int,
         y: Int,
-    ): Boolean = tiles[x, y].isWalkable && creatureAt(x, y) == null
-
-    fun getCreaturesInArea(
-        center: Vector2Int,
-        width: Int,
-        height: Int,
-    ): List<Creature> {
-        return creatures.filter { creature ->
-            creature.position.x > center.x - width / 2.0 &&
-                creature.position.x < center.x + width / 2.0 &&
-                creature.position.y > center.y - height / 2.0 &&
-                creature.position.y < center.y + height / 2.0
-        }
-    }
-
-    fun addCreature(creature: Creature) {
-        _creatures.add(creature)
-        creature.lightSource?.let { addLightSource(it) }
-    }
-
-    fun removeCreature(creature: Creature) {
-        _creatures.remove(creature)
-        creature.lightSource?.let { removeLightSource(it) }
-    }
+    ): Boolean = tiles[x, y].isWalkable
 
     fun addLightSource(lightSource: LightSource) {
         lightSources.add(lightSource)
