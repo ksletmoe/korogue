@@ -23,6 +23,7 @@ import com.sletmoe.krogue.world.LightSource
 import com.sletmoe.krogue.world.Tile
 import com.sletmoe.krogue.world.Zone
 import com.sletmoe.krogue.world.ZonalPosition
+import kotlin.math.abs
 import kotlin.random.Random
 
 /**
@@ -250,7 +251,7 @@ class MyGame(
         private val STEPS = listOf(1 to 0, -1 to 0, 0 to 1, 0 to -1)
 
         private fun Vector2Int.distanceChebyshev(other: Vector2Int): Int =
-            maxOf(kotlin.math.abs(x - other.x), kotlin.math.abs(y - other.y))
+            maxOf(abs(x - other.x), abs(y - other.y))
 
         private val WALL_TILE
             get() =
