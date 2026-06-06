@@ -6,8 +6,8 @@ import com.sletmoe.kotile.display.ascii.AsciiTileDescriptor
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
 import com.sletmoe.kotile.rendering.TileViewport
 import com.sletmoe.kotile.utilities.LayeredTilemap
-import com.sletmoe.krogue.algorithms.color.toNormalizedRgb
 import com.sletmoe.kotile.utilities.Vector2Int
+import com.sletmoe.krogue.algorithms.color.toNormalizedRgb
 import com.sletmoe.krogue.algorithms.los.LineOfSightCalculator
 import com.sletmoe.krogue.components.Player
 import com.sletmoe.krogue.components.Position

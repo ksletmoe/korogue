@@ -3,8 +3,8 @@ package com.sletmoe.krogue.world
 import com.sletmoe.krogue.algorithms.lighting.LightValue
 import com.sletmoe.krogue.algorithms.zonegen.ZoneFeatureGenerator
 import com.sletmoe.krogue.utilities.Grid
-import com.sletmoe.krogue.utilities.initialize
 import com.sletmoe.krogue.utilities.IntRect
+import com.sletmoe.krogue.utilities.initialize
 import kotlin.random.Random
 
 /**

@@ -3,8 +3,8 @@ package com.sletmoe.krogue.algorithms.lighting
 import com.sletmoe.krogue.algorithms.color.NormalizedRgb
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.doubles.shouldBeExactly
-import io.kotest.matchers.doubles.shouldBeLessThan
 import io.kotest.matchers.doubles.shouldBeGreaterThan
+import io.kotest.matchers.doubles.shouldBeLessThan
 import io.kotest.matchers.shouldBe
 
 private val WHITE = NormalizedRgb(1.0, 1.0, 1.0)
@@ -41,7 +41,7 @@ class DiminishingLightValueCalculatorTest : DescribeSpec({
 
         it("should return a higher intensity when closer to the light source") {
             val near = calculator.calculateLightValue(WHITE, lightRadius = 10.0, distanceFromLightSource = 1.0)
-            val far  = calculator.calculateLightValue(WHITE, lightRadius = 10.0, distanceFromLightSource = 8.0)
+            val far = calculator.calculateLightValue(WHITE, lightRadius = 10.0, distanceFromLightSource = 8.0)
             near.intensity shouldBeGreaterThan far.intensity
         }
 
@@ -60,9 +60,14 @@ class DiminishingLightValueCalculatorTest : DescribeSpec({
         it("should respect the minimum-light-shift floor: intensity at minLightShift distance equals 1.0") {
             // minLightShift = radius * 0.10
             val radius = 10.0
-            val minLightShift = radius * 0.10          // = 1.0
+            val minLightShift = radius * 0.10 // = 1.0
             // intensity = 1.0 - (minLightShift - minLightShift) / radius = 1.0
-            val result = calculator.calculateLightValue(WHITE, lightRadius = radius, distanceFromLightSource = minLightShift)
+            val result =
+                calculator.calculateLightValue(
+                    WHITE,
+                    lightRadius = radius,
+                    distanceFromLightSource = minLightShift,
+                )
             result.intensity shouldBeExactly 1.0
         }
 

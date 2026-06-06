@@ -93,7 +93,7 @@ class GridTest : DescribeSpec({
             val visited = mutableSetOf<Pair<Int, Int>>()
             grid.forEachCoordinate { coord ->
                 val pair = Pair(coord.x, coord.y)
-                visited.add(pair) shouldBe true   // set.add returns false on duplicates
+                visited.add(pair) shouldBe true // set.add returns false on duplicates
             }
             visited.size shouldBe width * height
         }
@@ -139,11 +139,11 @@ class GridTest : DescribeSpec({
             val visited = mutableSetOf<Vector2Int>()
             grid.forEachCoordinateInRadius(center, 1.0) { visited.add(it) }
 
-            visited.contains(Vector2Int(2, 2)).shouldBeTrue()  // center
-            visited.contains(Vector2Int(2, 1)).shouldBeTrue()  // north (y - 1)
-            visited.contains(Vector2Int(1, 2)).shouldBeTrue()  // west  (x - 1)
-            visited.contains(Vector2Int(3, 2)).shouldBeTrue()  // east  (x + 1)
-            visited.contains(Vector2Int(2, 3)).shouldBeTrue()  // south (y + 1)
+            visited.contains(Vector2Int(2, 2)).shouldBeTrue() // center
+            visited.contains(Vector2Int(2, 1)).shouldBeTrue() // north (y - 1)
+            visited.contains(Vector2Int(1, 2)).shouldBeTrue() // west  (x - 1)
+            visited.contains(Vector2Int(3, 2)).shouldBeTrue() // east  (x + 1)
+            visited.contains(Vector2Int(2, 3)).shouldBeTrue() // south (y + 1)
         }
 
         it("should visit every coordinate inside a generous radius without false positives") {

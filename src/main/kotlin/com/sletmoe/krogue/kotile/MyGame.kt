@@ -238,8 +238,7 @@ class MyGame(
 
         private val STEPS = listOf(1 to 0, -1 to 0, 0 to 1, 0 to -1)
 
-        private fun Vector2Int.distanceChebyshev(other: Vector2Int): Int =
-            maxOf(abs(x - other.x), abs(y - other.y))
+        private fun Vector2Int.distanceChebyshev(other: Vector2Int): Int = maxOf(abs(x - other.x), abs(y - other.y))
 
         private val WALL_TILE
             get() =

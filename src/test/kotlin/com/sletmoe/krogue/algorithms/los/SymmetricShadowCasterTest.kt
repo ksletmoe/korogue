@@ -13,14 +13,15 @@ import io.kotest.matchers.shouldBe
 /**
  * A wall tile that blocks LOS — the only property that matters for shadow casting.
  */
-private val WALL_TILE = Tile(
-    name = "Wall",
-    glyph = '#',
-    color = Color.GRAY,
-    backgroundColor = Color.DARK_GRAY,
-    isWalkable = false,
-    blocksLineOfSight = true,
-)
+private val WALL_TILE =
+    Tile(
+        name = "Wall",
+        glyph = '#',
+        color = Color.GRAY,
+        backgroundColor = Color.DARK_GRAY,
+        isWalkable = false,
+        blocksLineOfSight = true,
+    )
 
 /** Floor tile — see-through, walkable. BLANK_TILE already has blocksLineOfSight = false. */
 private val FLOOR_TILE = BLANK_TILE
@@ -29,7 +30,10 @@ private val FLOOR_TILE = BLANK_TILE
  * Build a [size] x [size] grid filled with floor tiles, then apply [setup] to
  * place walls.
  */
-private fun floorGrid(size: Int, setup: Grid<Tile>.(Grid<Tile>) -> Unit = {}): Grid<Tile> {
+private fun floorGrid(
+    size: Int,
+    setup: Grid<Tile>.(Grid<Tile>) -> Unit = {},
+): Grid<Tile> {
     val grid = Grid(size, size, FLOOR_TILE)
     grid.setup(grid)
     return grid
@@ -38,7 +42,10 @@ private fun floorGrid(size: Int, setup: Grid<Tile>.(Grid<Tile>) -> Unit = {}): G
 /**
  * Build a rectangular [width] x [height] grid filled with floor tiles.
  */
-private fun floorGrid(width: Int, height: Int): Grid<Tile> = Grid(width, height, FLOOR_TILE)
+private fun floorGrid(
+    width: Int,
+    height: Int,
+): Grid<Tile> = Grid(width, height, FLOOR_TILE)
 
 class SymmetricShadowCasterTest : DescribeSpec({
 
@@ -74,10 +81,10 @@ class SymmetricShadowCasterTest : DescribeSpec({
             val origin = Vector2Int(5, 5)
             val visible = caster.calculateLineOfSight(origin, grid, null)
 
-            visible[Vector2Int(5, 4)].shouldBeTrue()  // north
-            visible[Vector2Int(6, 5)].shouldBeTrue()  // east
-            visible[Vector2Int(5, 6)].shouldBeTrue()  // south
-            visible[Vector2Int(4, 5)].shouldBeTrue()  // west
+            visible[Vector2Int(5, 4)].shouldBeTrue() // north
+            visible[Vector2Int(6, 5)].shouldBeTrue() // east
+            visible[Vector2Int(5, 6)].shouldBeTrue() // south
+            visible[Vector2Int(4, 5)].shouldBeTrue() // west
         }
 
         it("should mark diagonal neighbours as visible") {
@@ -85,10 +92,10 @@ class SymmetricShadowCasterTest : DescribeSpec({
             val origin = Vector2Int(5, 5)
             val visible = caster.calculateLineOfSight(origin, grid, null)
 
-            visible[Vector2Int(6, 4)].shouldBeTrue()  // northeast
-            visible[Vector2Int(6, 6)].shouldBeTrue()  // southeast
-            visible[Vector2Int(4, 6)].shouldBeTrue()  // southwest
-            visible[Vector2Int(4, 4)].shouldBeTrue()  // northwest
+            visible[Vector2Int(6, 4)].shouldBeTrue() // northeast
+            visible[Vector2Int(6, 6)].shouldBeTrue() // southeast
+            visible[Vector2Int(4, 6)].shouldBeTrue() // southwest
+            visible[Vector2Int(4, 4)].shouldBeTrue() // northwest
         }
     }
 
@@ -126,7 +133,7 @@ class SymmetricShadowCasterTest : DescribeSpec({
 
             val visible = caster.calculateLineOfSight(origin, grid, null)
 
-            visible[Vector2Int(7, 5)].shouldBeTrue()  // wall is visible
+            visible[Vector2Int(7, 5)].shouldBeTrue() // wall is visible
             visible[Vector2Int(8, 5)].shouldBeFalse() // behind wall, not visible
         }
 
@@ -138,8 +145,8 @@ class SymmetricShadowCasterTest : DescribeSpec({
 
             val visible = caster.calculateLineOfSight(origin, grid, null)
 
-            visible[Vector2Int(6, 5)].shouldBeTrue()  // east — not shadowed
-            visible[Vector2Int(4, 5)].shouldBeTrue()  // west — not shadowed
+            visible[Vector2Int(6, 5)].shouldBeTrue() // east — not shadowed
+            visible[Vector2Int(4, 5)].shouldBeTrue() // west — not shadowed
         }
 
         it("should block multiple tiles in a row behind a solid wall") {
@@ -162,7 +169,7 @@ class SymmetricShadowCasterTest : DescribeSpec({
         it("should be symmetric: if origin can see a tile then that tile can see origin (direct north)") {
             val grid = floorGrid(11)
             val origin = Vector2Int(5, 5)
-            val target = Vector2Int(5, 2)  // 3 steps north
+            val target = Vector2Int(5, 2) // 3 steps north
 
             val fromOrigin = caster.calculateLineOfSight(origin, grid, null)
             val fromTarget = caster.calculateLineOfSight(target, grid, null)
@@ -174,7 +181,7 @@ class SymmetricShadowCasterTest : DescribeSpec({
         it("should be symmetric: if origin can see a diagonal tile then that tile can see origin") {
             val grid = floorGrid(11)
             val origin = Vector2Int(5, 5)
-            val target = Vector2Int(8, 2)  // 3 east, 3 north
+            val target = Vector2Int(8, 2) // 3 east, 3 north
 
             val fromOrigin = caster.calculateLineOfSight(origin, grid, null)
             val fromTarget = caster.calculateLineOfSight(target, grid, null)
@@ -186,7 +193,7 @@ class SymmetricShadowCasterTest : DescribeSpec({
         it("should be symmetric for all visible tile pairs in an all-floor grid") {
             val size = 9
             val grid = floorGrid(size)
-            val origin = Vector2Int(4, 4)  // centre of 9x9 grid
+            val origin = Vector2Int(4, 4) // centre of 9x9 grid
 
             val fromOrigin = caster.calculateLineOfSight(origin, grid, null)
 
@@ -283,4 +290,3 @@ class SymmetricShadowCasterTest : DescribeSpec({
         }
     }
 })
-

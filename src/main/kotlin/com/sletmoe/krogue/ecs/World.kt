@@ -111,8 +111,7 @@ class World {
 
     /** Entities that have a component of type [A]. */
     @JvmName("entitiesWith1")
-    inline fun <reified A : Component> entitiesWith(): Sequence<Entity> =
-        entities().filter { it.has<A>() }
+    inline fun <reified A : Component> entitiesWith(): Sequence<Entity> = entities().filter { it.has<A>() }
 
     /** Entities that have components of both [A] and [B]. */
     @JvmName("entitiesWith2")

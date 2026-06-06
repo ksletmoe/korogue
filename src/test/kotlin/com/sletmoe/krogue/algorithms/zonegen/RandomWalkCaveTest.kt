@@ -6,10 +6,10 @@ import com.sletmoe.krogue.utilities.Grid
 import com.sletmoe.krogue.world.BLANK_TILE
 import com.sletmoe.krogue.world.Tile
 import io.kotest.core.spec.style.DescribeSpec
-import io.kotest.matchers.shouldBe
 import io.kotest.matchers.booleans.shouldBeFalse
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.ints.shouldBeGreaterThanOrEqual
+import io.kotest.matchers.shouldBe
 import kotlin.random.Random
 
 /**
@@ -17,16 +17,20 @@ import kotlin.random.Random
  * Color constants are static final fields on the libGDX Color class — no native
  * initialisation is needed to use them.
  */
-private val FLOOR_TILE = Tile(
-    name = "Floor",
-    glyph = '.',
-    color = Color.WHITE,
-    backgroundColor = Color.BLACK,
-    isWalkable = true,
-    blocksLineOfSight = false,
-)
+private val FLOOR_TILE =
+    Tile(
+        name = "Floor",
+        glyph = '.',
+        color = Color.WHITE,
+        backgroundColor = Color.BLACK,
+        isWalkable = true,
+        blocksLineOfSight = false,
+    )
 
-private fun blankGrid(width: Int, height: Int): Grid<Tile> = Grid(width, height, BLANK_TILE)
+private fun blankGrid(
+    width: Int,
+    height: Int,
+): Grid<Tile> = Grid(width, height, BLANK_TILE)
 
 class RandomWalkCaveTest : DescribeSpec({
 
