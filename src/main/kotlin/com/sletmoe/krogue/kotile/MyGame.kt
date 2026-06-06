@@ -11,15 +11,17 @@ import com.sletmoe.krogue.algorithms.los.SymmetricShadowCaster
 import com.sletmoe.krogue.algorithms.zonegen.randomWalkCave
 import com.sletmoe.krogue.components.Health
 import com.sletmoe.krogue.components.LightEmitter
+import com.sletmoe.krogue.components.MoveIntent
 import com.sletmoe.krogue.components.Named
 import com.sletmoe.krogue.components.Player
 import com.sletmoe.krogue.components.Position
 import com.sletmoe.krogue.components.RenderLayer
 import com.sletmoe.krogue.components.Renderable
 import com.sletmoe.krogue.components.ZoneMember
-import com.sletmoe.krogue.ecs.Entity
 import com.sletmoe.krogue.ecs.EntityId
+import com.sletmoe.krogue.systems.CombatSystem
 import com.sletmoe.krogue.systems.LightingSystem
+import com.sletmoe.krogue.systems.MovementSystem
 import com.sletmoe.krogue.world.GameWorld
 import com.sletmoe.krogue.world.Tile
 import com.sletmoe.krogue.world.Zone
@@ -33,10 +35,11 @@ import kotlin.random.Random
  * - Previously-viewed tile dimming
  * - Arrow key player movement
  *
- * Occupants are ECS entities in [GameWorld.ecs] (ADR-0007). Lighting is now a
- * [LightingSystem] over `LightEmitter` entities (4b-s5). Movement and simple AI are still
- * interim glue in this class, replaced by `MovementSystem`/`CombatSystem` (s6) and a
- * `BehaviorSystem` (s7); the name-based AI goes away with s7.
+ * Occupants are ECS entities in [GameWorld.ecs] (ADR-0007), driven by systems:
+ * [MovementSystem] resolves [MoveIntent]s, [CombatSystem] applies the resulting attacks
+ * and clears the dead (both 4b-s6), and [LightingSystem] renders the lanterns (4b-s5).
+ * Player input and a placeholder name-based AI both emit `MoveIntent`s; the AI becomes a
+ * `BehaviorSystem` in 4b-s7.
  */
 class MyGame(
     private val random: Random = Random.Default,
@@ -53,7 +56,11 @@ class MyGame(
 
     init {
         populateZone(world.currentZone, numCreatures = 10)
-        world.ecs.addSystem(LightingSystem(world.zones))
+        // Systems run in registration order each tick: move, then resolve combat, then light.
+        world.ecs
+            .addSystem(MovementSystem(world.zones))
+            .addSystem(CombatSystem())
+            .addSystem(LightingSystem(world.zones))
     }
 
     // -------------------------------------------------------------------------
@@ -80,18 +87,11 @@ class MyGame(
     }
 
     override fun onTick() {
-        // INTERIM (s3): despawn dead non-player creatures; folded into CombatSystem (s6).
-        world.ecs
-            .entitiesWith<Health, ZoneMember>()
-            .filter { it.id != playerId && it.require<Health>().dead }
-            .toList()
-            .forEach { world.ecs.despawn(it.id) }
-
-        // INTERIM (s3): name-based AI mirroring the old Creature.update; becomes BehaviorSystem (s7).
+        // INTERIM (s7): name-based AI emits MoveIntents; becomes BehaviorSystem.
         updateCreatures()
 
-        // Run registered ECS systems (currently LightingSystem). One tick per frame is
-        // interim — 4b-s6 introduces turn structure once movement is system-driven.
+        // Advance the world: MovementSystem -> CombatSystem -> LightingSystem. One tick
+        // per frame is interim; a turn-on-input loop can come later.
         world.ecs.tick()
     }
 
@@ -101,12 +101,20 @@ class MyGame(
 
     override fun onKeyDown(keycode: Int) {
         when (keycode) {
-            Input.Keys.LEFT -> moveEntity(playerId, -1, 0)
-            Input.Keys.RIGHT -> moveEntity(playerId, 1, 0)
-            Input.Keys.UP -> moveEntity(playerId, 0, -1)
-            Input.Keys.DOWN -> moveEntity(playerId, 0, 1)
+            Input.Keys.LEFT -> intendMove(-1, 0)
+            Input.Keys.RIGHT -> intendMove(1, 0)
+            Input.Keys.UP -> intendMove(0, -1)
+            Input.Keys.DOWN -> intendMove(0, 1)
             Input.Keys.SPACE -> toggleLos()
         }
+    }
+
+    /** Player input is data too: attach a [MoveIntent] that MovementSystem resolves next tick. */
+    private fun intendMove(
+        dx: Int,
+        dy: Int,
+    ) {
+        world.ecs.set(playerId, MoveIntent(dx, dy))
     }
 
     // -------------------------------------------------------------------------
@@ -162,40 +170,15 @@ class MyGame(
     }
 
     // -------------------------------------------------------------------------
-    // INTERIM glue — replaced by ECS systems in s5/s6/s7
+    // INTERIM AI — replaced by BehaviorSystem (4b-s7)
     // -------------------------------------------------------------------------
 
     private fun playerPosition(): Position = world.ecs.get(playerId)!!.require<Position>()
 
     /**
-     * INTERIM (s3): move [id] by ([dx], [dy]) — bump-attack an occupant, else step onto
-     * walkable terrain. Becomes MoveIntent + MovementSystem/CombatSystem in 4b-s6.
+     * INTERIM (s7): name-based AI mirroring the old Creature.update; becomes BehaviorSystem.
+     * Emits [MoveIntent]s — MovementSystem/CombatSystem resolve them like the player's.
      */
-    private fun moveEntity(
-        id: EntityId,
-        dx: Int,
-        dy: Int,
-    ) {
-        val entity = world.ecs.get(id) ?: return
-        val pos = entity.require<Position>()
-        val zoneId = entity.require<ZoneMember>().zoneId
-        val destX = pos.x + dx
-        val destY = pos.y + dy
-
-        val occupant = world.entityAt(zoneId, destX, destY)
-        when {
-            occupant != null && occupant.id != id -> attack(occupant)
-            world.zones.getValue(zoneId).isWalkable(destX, destY) ->
-                world.ecs.set(id, Position(destX, destY))
-        }
-    }
-
-    /** INTERIM (s3): apply attack damage; becomes CombatSystem (s6). */
-    private fun attack(target: Entity) {
-        world.ecs.update<Health>(target.id) { it.copy(current = (it.current - ATTACK_DAMAGE).coerceAtLeast(0)) }
-    }
-
-    /** INTERIM (s3): name-based AI mirroring the old Creature.update; becomes BehaviorSystem (s7). */
     private fun updateCreatures() {
         val playerPos = playerPosition()
         world.ecs
@@ -207,14 +190,14 @@ class MyGame(
                 when (creature.require<Named>().name) {
                     "sheep" -> {
                         val (dx, dy) = STEPS.random(random)
-                        moveEntity(creature.id, dx, dy)
+                        world.ecs.set(creature.id, MoveIntent(dx, dy))
                     }
                     "zombie" -> {
                         val pos = creature.require<Position>()
                         if (pos.point.distanceChebyshev(playerPos.point) <= ZOMBIE_AGGRO_RANGE) {
                             val dx = (playerPos.x - pos.x).coerceIn(-1, 1)
                             val dy = if (dx == 0) (playerPos.y - pos.y).coerceIn(-1, 1) else 0
-                            moveEntity(creature.id, dx, dy)
+                            world.ecs.set(creature.id, MoveIntent(dx, dy))
                         }
                     }
                 }
@@ -233,7 +216,6 @@ class MyGame(
     companion object {
         private const val WINDOW_W = 80
         private const val WINDOW_H = 40
-        private const val ATTACK_DAMAGE = 20
         private const val ZOMBIE_AGGRO_RANGE = 10
 
         private val STEPS = listOf(1 to 0, -1 to 0, 0 to 1, 0 to -1)

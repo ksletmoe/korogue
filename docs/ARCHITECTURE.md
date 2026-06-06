@@ -82,15 +82,23 @@ _Rationale and alternatives for each are in the ADRs: 0002 (entity model), 0003
 `Position(x,y)`, `ZoneMember(zoneId)`, `Named(name, description?)`,
 `Health(current, max)` (with `alive`/`dead`), `Renderable(glyph, color: NormalizedRgb,
 layer: RenderLayer)`, `Player` (marker), `LightEmitter(color: NormalizedRgb, radius,
-calculatorId)`. Colors are `NormalizedRgb` (immutable), not GDX `Color`; the renderer
-converts at the draw boundary.
+calculatorId)`. Intent components (transient, consumed by systems each tick):
+`MoveIntent(dx, dy)`, `AttackIntent(targetId)`. Colors are `NormalizedRgb` (immutable),
+not GDX `Color`; the renderer converts at the draw boundary.
 
 ### Systems (`com.sletmoe.krogue.systems`)
 
+Registered on the ECS `World` and run in order each `tick`: movement → combat → lighting.
+
+- **`MovementSystem(zones)`** — consumes `MoveIntent`s: step onto walkable, unoccupied
+  terrain; bump into an occupant → emit `AttackIntent`; into a wall → no-op (4b-s6).
+- **`CombatSystem(damage)`** — consumes `AttackIntent`s, applies damage to the target's
+  `Health`, then despawns dead non-player entities (player death is out of scope —
+  krogue-4zi) (4b-s6).
 - **`LightingSystem(zones)`** — recomputes each zone's `lightMap` from its `LightEmitter`
-  entities every tick (replaced `Zone.recalculateLightMap`; 4b-s5). `calculatorId` is
-  resolved via `LightCalculators` — the minimal stand-in for the component registry
-  deferred to save/load (4f).
+  entities (replaced `Zone.recalculateLightMap`; 4b-s5). `calculatorId` is resolved via
+  `LightCalculators` — the minimal stand-in for the component registry deferred to
+  save/load (4f).
 
 ## Kotlin gotchas encountered (relevant to ongoing ECS work)
 
