@@ -78,3 +78,18 @@ Harder / accepted trade-offs:
   large worlds, but couples directly to 4f serialization, adds load latency and failure
   modes, and is premature at krogue's scale. Defer; revisit as an extension of 4f if a
   world ever outgrows memory.
+
+## Future extension: simulating a zone neighborhood
+
+Active-only is the default, not a ceiling. A plausible future want is simulating the
+current zone **plus adjacent ones**, so a monster can chase the player across a transition
+instead of freezing at the threshold. To keep that a configuration change rather than a
+redesign, the implementation should treat **the set of simulated zones as a seam**: inject
+a provider returning the active-zone set (default `{ currentZoneId }`) and have the
+zone-scoped systems iterate that set rather than a single id. A "current + adjacent" policy
+then only changes what the provider returns.
+
+That mode brings extra requirements, deferred until wanted: a zone-adjacency model (which
+zones border which), `HuntPlayerStrategy` (and friends) reaching across zones, and movement
+that carries an entity over a boundary (updating `ZoneMember` + `Position` together).
+Tracked as a separate enhancement.
