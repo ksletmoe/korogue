@@ -22,6 +22,7 @@ import com.sletmoe.krogue.components.RenderLayer
 import com.sletmoe.krogue.components.Renderable
 import com.sletmoe.krogue.components.ZoneMember
 import com.sletmoe.krogue.ecs.EntityId
+import com.sletmoe.krogue.random.GameRandom
 import com.sletmoe.krogue.systems.BehaviorStrategies
 import com.sletmoe.krogue.systems.BehaviorSystem
 import com.sletmoe.krogue.systems.CombatSystem
@@ -49,12 +50,16 @@ import kotlin.random.Random
  * and rendered (ADR-0008); the other freezes in place and is restored on return.
  */
 class MyGame(
-    private val random: Random = Random.Default,
+    private val gameRandom: GameRandom = GameRandom.random(),
 ) : Game() {
     private val startPoint = Vector2Int(10, 10)
 
     private val symmetricShadowCaster = SymmetricShadowCaster()
     private val omnipresentLos = OmnicientLineOfSightCalculator()
+
+    // Content (world gen + placement) draws from one stream; gameplay (AI/combat) from
+    // another, so the same master seed always yields the same world (ADR-0009).
+    private val worldgen: Random = gameRandom.stream("worldgen")
 
     private val world: GameWorld = buildWorld()
     private val playerId: EntityId = spawnPlayer()
@@ -94,9 +99,9 @@ class MyGame(
 
     override fun onTick() {
         // Advance the world one tick: BehaviorSystem -> MovementSystem -> PortalSystem ->
-        // CombatSystem -> LightingSystem. One tick per frame is interim; a turn-on-input
-        // loop can come later.
-        world.ecs.tick()
+        // CombatSystem -> LightingSystem. Gameplay randomness (AI/combat) draws from its
+        // own stream. One tick per frame is interim; a turn-on-input loop can come later.
+        world.ecs.tick(random = gameRandom.stream("gameplay"))
     }
 
     override fun drawFrame(elapsedMs: Long) {
@@ -142,11 +147,11 @@ class MyGame(
 
     private fun buildWorld(): GameWorld =
         GameWorld.create {
-            zone(ZONE_1, 200, 200, isCurrentZone = true, random = random) {
+            zone(ZONE_1, 200, 200, isCurrentZone = true, random = worldgen) {
                 fill(WALL_TILE)
                 addFeature(randomWalkCave(startPoint.x, startPoint.y, 6000, GROUND_TILE))
             }
-            zone(ZONE_2, 200, 200, random = random) {
+            zone(ZONE_2, 200, 200, random = worldgen) {
                 fill(WALL_TILE)
                 addFeature(randomWalkCave(startPoint.x, startPoint.y, 6000, GROUND_TILE))
             }
@@ -177,8 +182,8 @@ class MyGame(
         var x: Int
         var y: Int
         do {
-            x = random.nextInt(zone.width)
-            y = random.nextInt(zone.height)
+            x = worldgen.nextInt(zone.width)
+            y = worldgen.nextInt(zone.height)
         } while (
             !zone.tiles[x, y].isWalkable ||
             (x == startPoint.x && y == startPoint.y) ||
@@ -208,11 +213,11 @@ class MyGame(
             var rx: Int
             var ry: Int
             do {
-                rx = random.nextInt(zone.width)
-                ry = random.nextInt(zone.height)
+                rx = worldgen.nextInt(zone.width)
+                ry = worldgen.nextInt(zone.height)
             } while (!zone.tiles[rx, ry].isWalkable || world.entityAt(zone.zoneId, rx, ry) != null)
 
-            val zombie = random.nextBoolean()
+            val zombie = worldgen.nextBoolean()
             world.ecs.spawn(
                 Position(rx, ry),
                 ZoneMember(zone.zoneId),
