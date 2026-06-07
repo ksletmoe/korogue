@@ -1,0 +1,43 @@
+package com.sletmoe.krogue.systems
+
+import com.sletmoe.krogue.components.Player
+import com.sletmoe.krogue.components.Portal
+import com.sletmoe.krogue.components.Position
+import com.sletmoe.krogue.components.ZoneMember
+import com.sletmoe.krogue.world.GameWorld
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
+
+class PortalSystemTest : FunSpec({
+
+    fun twoZoneWorld(): GameWorld =
+        GameWorld.create {
+            zone("a", 10, 10, isCurrentZone = true)
+            zone("b", 10, 10)
+        }
+
+    test("steps the player through a portal it stands on and switches the current zone") {
+        val gw = twoZoneWorld()
+        gw.ecs.addSystem(PortalSystem(gw))
+        gw.ecs.spawn(Position(3, 3), ZoneMember("a"), Portal("b", 7, 7))
+        val player = gw.ecs.spawn(Player, Position(3, 3), ZoneMember("a")).id
+
+        gw.ecs.tick()
+
+        gw.ecs.get(player)!!.require<Position>() shouldBe Position(7, 7)
+        gw.ecs.get(player)!!.require<ZoneMember>().zoneId shouldBe "b"
+        gw.currentZoneId shouldBe "b"
+    }
+
+    test("does nothing when the player is not standing on a portal") {
+        val gw = twoZoneWorld()
+        gw.ecs.addSystem(PortalSystem(gw))
+        gw.ecs.spawn(Position(3, 3), ZoneMember("a"), Portal("b", 7, 7))
+        val player = gw.ecs.spawn(Player, Position(5, 5), ZoneMember("a")).id
+
+        gw.ecs.tick()
+
+        gw.ecs.get(player)!!.require<ZoneMember>().zoneId shouldBe "a"
+        gw.currentZoneId shouldBe "a"
+    }
+})

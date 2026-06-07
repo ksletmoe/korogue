@@ -82,27 +82,33 @@ _Rationale and alternatives for each are in the ADRs: 0002 (entity model), 0003
 `Position(x,y)`, `ZoneMember(zoneId)`, `Named(name, description?)`,
 `Health(current, max)` (with `alive`/`dead`), `Renderable(glyph, color: NormalizedRgb,
 layer: RenderLayer)`, `Player` (marker), `LightEmitter(color: NormalizedRgb, radius,
-calculatorId)`, `Behavior(strategyId)`. Intent components (transient, consumed by systems
-each tick): `MoveIntent(dx, dy)`, `AttackIntent(targetId)`. Colors are `NormalizedRgb`
-(immutable), not GDX `Color`; the renderer converts at the draw boundary.
+calculatorId)`, `Behavior(strategyId)`, `Portal(targetZoneId, targetX, targetY)`. Intent
+components (transient, consumed by systems each tick): `MoveIntent(dx, dy)`,
+`AttackIntent(targetId)`. Colors are `NormalizedRgb` (immutable), not GDX `Color`; the
+renderer converts at the draw boundary.
 
 ### Systems (`com.sletmoe.krogue.systems`)
 
-Registered on the ECS `World` and run in order each `tick`: behavior → movement → combat
-→ lighting.
+Registered on the ECS `World` and run in order each `tick`: behavior → movement → portal
+→ combat → lighting. Zone-scoped systems (`BehaviorSystem`, `LightingSystem`) take an
+`activeZones` provider — `GameWorld.simulatedZones()`, default `{ currentZoneId }` — so
+only the active zone(s) are simulated (ADR-0008); dormant zones freeze.
 
-- **`BehaviorSystem(resolveStrategy)`** — runs each `Behavior` entity's strategy
-  (resolved via `BehaviorStrategies`: `wander`, `hunt-player`) to emit a `MoveIntent`.
+- **`BehaviorSystem(resolveStrategy, activeZones?)`** — runs each `Behavior` entity's
+  strategy (via `BehaviorStrategies`: `wander`, `hunt-player`) to emit a `MoveIntent`.
   The resolver is injectable for testing (4b-s7).
 - **`MovementSystem(zones)`** — consumes `MoveIntent`s: step onto walkable, unoccupied
-  terrain; bump into an occupant → emit `AttackIntent`; into a wall → no-op (4b-s6).
+  terrain; bump into a (non-portal) occupant → emit `AttackIntent`; into a wall → no-op (4b-s6).
+- **`PortalSystem(gameWorld)`** — sends the player through a `Portal` it stands on: moves
+  it to the target zone/position and switches `currentZoneId` so the active zone follows
+  the player (4e, ADR-0008).
 - **`CombatSystem(damage)`** — consumes `AttackIntent`s, applies damage to the target's
   `Health`, then despawns dead non-player entities (player death is out of scope —
   krogue-4zi) (4b-s6).
-- **`LightingSystem(zones)`** — recomputes each zone's `lightMap` from its `LightEmitter`
-  entities (replaced `Zone.recalculateLightMap`; 4b-s5). `calculatorId` is resolved via
-  `LightCalculators` — the minimal stand-in for the component registry deferred to
-  save/load (4f).
+- **`LightingSystem(zones, activeZones?)`** — recomputes each active zone's `lightMap` from
+  its `LightEmitter` entities (replaced `Zone.recalculateLightMap`; 4b-s5). `calculatorId`
+  is resolved via `LightCalculators` — the minimal stand-in for the component registry
+  deferred to save/load (4f).
 
 ## Kotlin gotchas encountered (relevant to ongoing ECS work)
 

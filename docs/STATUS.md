@@ -3,7 +3,7 @@
 > Current-state snapshots. Design rationale is in [ARCHITECTURE.md](ARCHITECTURE.md);
 > the live task backlog is in **beads** — run `bd list` / `bd ready`.
 
-_Last updated: 2026-06-06 (after Phase 4b complete)._
+_Last updated: 2026-06-06 (after Phase 4e: multi-zone transitions)._
 
 ## Migration arc (done)
 
@@ -19,13 +19,17 @@ then given a tested ECS foundation:
 - **Phase 4b** ✅ — existing entities migrated onto ECS: `GameWorld` composes `ecs.World`
   (ADR-0007); occupants are entities; renderer reads ECS; behavior, movement, combat, and
   lighting are systems; all legacy `world/` entity classes deleted. Unblocks 4c–4f.
+- **Phase 4e** ✅ — multi-zone transitions (ADR-0008): active-only simulation
+  (`GameWorld.simulatedZones()` seam, scoped `Behavior`/`Lighting`), `Portal` + `PortalSystem`,
+  zones persist while dormant. Remaining Phase 4: 4c (event bus), 4d (AI strategy
+  abstraction), 4f (save/load — co-design with owner).
 
 ## krogue current state
 
 - Renders via `com.sletmoe.krogue.kotile.*`: `Game` (ApplicationAdapter loop,
-  `render()`→`onTick()`), `MyGame` (demo: player + lantern), `Main` (Lwjgl3 entry),
-  `KotileZoneRenderer` (FOV + lighting tints + viewport + previously-seen dimming;
-  reads ECS entities). Run with `./gradlew run`.
+  `render()`→`onTick()`), `MyGame` (demo: player + lantern, two zones linked by `>`/`<`
+  stairs), `Main` (Lwjgl3 entry), `KotileZoneRenderer` (FOV + lighting tints + viewport +
+  previously-seen dimming; reads ECS entities; rebuilt on zone change). Run with `./gradlew run`.
 - **100% `java.awt`-free.** Colors are GDX `Color`; geometry is kotile `Vector2Int`
   + `com.sletmoe.krogue.utilities.IntRect` (helpers in `utilities/Geometry.kt`).
 - **ECS-based (Phase 4b done).** `GameWorld` composes `ecs.World` + a zone registry
@@ -35,7 +39,11 @@ then given a tested ECS foundation:
   and AI both emit `MoveIntent`s. The `world/` package is now just `GameWorld`, `Zone`,
   `Tile` — all legacy entity classes (`Creature`/`LightSource`/`MovableEntity`/`Entity`/
   `ZonalPosition`/`Pointer`) are deleted.
-- **~200 tests** (`./gradlew test`). Example-based Kotest.
+- **Multi-zone (Phase 4e).** Only the player's zone is simulated/rendered; others freeze
+  and persist. Transitions are `Portal` entities resolved by `PortalSystem`. The simulated
+  set is a seam (`GameWorld.simulatedZones()`) so "current + adjacent" later is config, not
+  a redesign (krogue-s67).
+- **~204 tests** (`./gradlew test`). Example-based Kotest.
 - Single map pane only — the old multi-pane topbar/sidebar layout was removed in the
   renderer cutover; how to restore it is an open question (kotile layout primitives vs
   krogue-side).
@@ -46,6 +54,8 @@ then given a tested ECS foundation:
 - Ticking the ECS world once per frame is interim — a turn-on-input loop is still wanted
   (would also let AI act every turn without the throttle above).
 - Player death/HP feedback is unhandled (`CombatSystem` spares the player) — see krogue-4zi.
+- Fog-of-war ("previously seen" dimming) does not persist per zone — the renderer is rebuilt
+  on a zone change, so revisiting a zone re-explores it. Per-zone fog memory is a follow-up.
 - Package `com.sletmoe.krogue.kotile.*` is an odd home for krogue's own classes
   (consider `.rendering`).
 - README is still a TODO.
