@@ -82,14 +82,18 @@ _Rationale and alternatives for each are in the ADRs: 0002 (entity model), 0003
 `Position(x,y)`, `ZoneMember(zoneId)`, `Named(name, description?)`,
 `Health(current, max)` (with `alive`/`dead`), `Renderable(glyph, color: NormalizedRgb,
 layer: RenderLayer)`, `Player` (marker), `LightEmitter(color: NormalizedRgb, radius,
-calculatorId)`. Intent components (transient, consumed by systems each tick):
-`MoveIntent(dx, dy)`, `AttackIntent(targetId)`. Colors are `NormalizedRgb` (immutable),
-not GDX `Color`; the renderer converts at the draw boundary.
+calculatorId)`, `Behavior(strategyId)`. Intent components (transient, consumed by systems
+each tick): `MoveIntent(dx, dy)`, `AttackIntent(targetId)`. Colors are `NormalizedRgb`
+(immutable), not GDX `Color`; the renderer converts at the draw boundary.
 
 ### Systems (`com.sletmoe.krogue.systems`)
 
-Registered on the ECS `World` and run in order each `tick`: movement → combat → lighting.
+Registered on the ECS `World` and run in order each `tick`: behavior → movement → combat
+→ lighting.
 
+- **`BehaviorSystem(resolveStrategy)`** — runs each `Behavior` entity's strategy
+  (resolved via `BehaviorStrategies`: `wander`, `hunt-player`) to emit a `MoveIntent`.
+  The resolver is injectable for testing (4b-s7).
 - **`MovementSystem(zones)`** — consumes `MoveIntent`s: step onto walkable, unoccupied
   terrain; bump into an occupant → emit `AttackIntent`; into a wall → no-op (4b-s6).
 - **`CombatSystem(damage)`** — consumes `AttackIntent`s, applies damage to the target's
