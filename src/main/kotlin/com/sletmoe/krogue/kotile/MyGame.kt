@@ -60,10 +60,10 @@ class MyGame(
         // Systems run in registration order each tick: decide AI moves, resolve movement,
         // resolve combat, then recompute lighting.
         world.ecs
-            .addSystem(BehaviorSystem())
+            .addSystem(BehaviorSystem(activeZones = world::simulatedZones))
             .addSystem(MovementSystem(world.zones))
             .addSystem(CombatSystem())
-            .addSystem(LightingSystem(world.zones))
+            .addSystem(LightingSystem(world.zones, activeZones = world::simulatedZones))
     }
 
     // -------------------------------------------------------------------------

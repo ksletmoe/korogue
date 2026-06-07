@@ -45,6 +45,23 @@ class BehaviorSystemTest : FunSpec({
         world.get(id)!!.get<MoveIntent>().shouldBeNull()
     }
 
+    test("only acts on entities in the active zones (ADR-0008 scoping)") {
+        val world =
+            World().addSystem(
+                BehaviorSystem(
+                    resolveStrategy = { BehaviorStrategy { _, _, _ -> MoveIntent(1, 0) } },
+                    activeZones = { setOf("active") },
+                ),
+            )
+        val here = world.spawn(Behavior("x"), Position(2, 2), ZoneMember("active")).id
+        val dormant = world.spawn(Behavior("x"), Position(2, 2), ZoneMember("dormant")).id
+
+        world.tick()
+
+        world.get(here)!!.require<MoveIntent>() shouldBe MoveIntent(1, 0)
+        world.get(dormant)!!.get<MoveIntent>().shouldBeNull()
+    }
+
     test("HuntPlayerStrategy steps one tile toward the player when in range") {
         val world = World()
         world.spawn(Player, Position(5, 2), ZoneMember("z"))

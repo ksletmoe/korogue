@@ -99,5 +99,34 @@ class LightingSystemTest : DescribeSpec({
             blended.intensity shouldBe (0.91 plusOrMinus 1e-9)
             blended.intensity shouldBeGreaterThan 0.7
         }
+
+        it("only recomputes active zones; a dormant zone keeps its prior light (ADR-0008)") {
+            val active = Zone("active", Grid(21, 21, BLANK_TILE))
+            val dormant = Zone("dormant", Grid(21, 21, BLANK_TILE))
+            val world =
+                World().addSystem(
+                    LightingSystem(
+                        mapOf(active.zoneId to active, dormant.zoneId to dormant),
+                        activeZones = { setOf("active") },
+                    ),
+                )
+
+            fun World.lightIn(
+                zoneId: String,
+                x: Int,
+                y: Int,
+            ) = spawn(
+                Position(x, y),
+                ZoneMember(zoneId),
+                LightEmitter(Color.WHITE.toNormalizedRgb(), 5.0, LightCalculators.DIMINISHING),
+            )
+            world.lightIn("active", 10, 10)
+            world.lightIn("dormant", 10, 10)
+
+            world.tick()
+
+            active.lightMap[10, 10].shouldNotBeNull()
+            dormant.lightMap[10, 10].shouldBeNull() // dormant zone never simulated
+        }
     }
 })

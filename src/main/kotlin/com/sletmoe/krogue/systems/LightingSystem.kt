@@ -21,15 +21,20 @@ import com.sletmoe.krogue.world.Zone
  */
 class LightingSystem(
     private val zones: Map<String, Zone>,
+    private val activeZones: (() -> Set<String>)? = null,
 ) : System {
     override fun update(
         world: World,
         ctx: TickContext,
     ) {
-        zones.values.forEach { it.lightMap.fill(null) }
+        val active = activeZones?.invoke()
+        // Only recompute active zones; dormant zones keep their last (frozen) lightMap.
+        val target = if (active == null) zones else zones.filterKeys { it in active }
+        target.values.forEach { it.lightMap.fill(null) }
 
         for (entity in world.entitiesWith<LightEmitter, Position, ZoneMember>()) {
-            val zone = zones[entity.require<ZoneMember>().zoneId] ?: continue
+            if (active != null && entity.require<ZoneMember>().zoneId !in active) continue
+            val zone = target[entity.require<ZoneMember>().zoneId] ?: continue
             val emitter = entity.require<LightEmitter>()
             val origin = entity.require<Position>().point
             val calculator = LightCalculators.resolve(emitter.calculatorId)

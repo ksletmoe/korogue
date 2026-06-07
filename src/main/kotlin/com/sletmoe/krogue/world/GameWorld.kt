@@ -34,6 +34,13 @@ open class GameWorld(
     val currentZone: Zone
         get() = zones[currentZoneId]!!
 
+    /**
+     * The zones simulated each tick — the seam for ADR-0008's active-only model. Defaults
+     * to just the current zone; widen it (e.g. current + adjacent) to let entities act
+     * across transitions without a redesign (see krogue-s67). Zone-scoped systems read this.
+     */
+    open fun simulatedZones(): Set<String> = setOf(currentZoneId)
+
     /** The entity occupying ([x], [y]) in zone [zoneId], or null. Occupancy lives in the ECS now. */
     fun entityAt(
         zoneId: String,
