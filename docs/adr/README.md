@@ -21,3 +21,4 @@ Point-in-time records of **why** significant or hard-to-reverse decisions were m
 | [0005](0005-world-mutation-chokepoint.md) | Enforced mutation chokepoint | Accepted |
 | [0006](0006-tooling-beads-docs-native.md) | Tooling: beads + docs/ADRs + native subagents | Accepted |
 | [0007](0007-game-world-composes-ecs-world.md) | Game world composes the ECS world | Accepted |
+| [0008](0008-active-only-multi-zone-simulation.md) | Active-only multi-zone simulation | Accepted |
