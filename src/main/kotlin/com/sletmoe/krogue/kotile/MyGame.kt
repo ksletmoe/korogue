@@ -5,7 +5,7 @@ import com.badlogic.gdx.graphics.Color
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
 import com.sletmoe.kotile.utilities.Vector2Int
 import com.sletmoe.krogue.algorithms.color.toNormalizedRgb
-import com.sletmoe.krogue.algorithms.lighting.LightCalculators
+import com.sletmoe.krogue.algorithms.lighting.DiminishingLightValueCalculator
 import com.sletmoe.krogue.algorithms.los.LineOfSightCalculator
 import com.sletmoe.krogue.algorithms.los.OmnicientLineOfSightCalculator
 import com.sletmoe.krogue.algorithms.los.SymmetricShadowCaster
@@ -23,12 +23,14 @@ import com.sletmoe.krogue.components.Renderable
 import com.sletmoe.krogue.components.ZoneMember
 import com.sletmoe.krogue.ecs.EntityId
 import com.sletmoe.krogue.random.GameRandom
-import com.sletmoe.krogue.systems.BehaviorStrategies
+import com.sletmoe.krogue.registry.GameModule
 import com.sletmoe.krogue.systems.BehaviorSystem
 import com.sletmoe.krogue.systems.CombatSystem
+import com.sletmoe.krogue.systems.HuntPlayerStrategy
 import com.sletmoe.krogue.systems.LightingSystem
 import com.sletmoe.krogue.systems.MovementSystem
 import com.sletmoe.krogue.systems.PortalSystem
+import com.sletmoe.krogue.systems.WanderStrategy
 import com.sletmoe.krogue.world.GameWorld
 import com.sletmoe.krogue.world.Tile
 import com.sletmoe.krogue.world.Zone
@@ -61,6 +63,10 @@ class MyGame(
     // another, so the same master seed always yields the same world (ADR-0009).
     private val worldgen: Random = gameRandom.stream("worldgen")
 
+    // Engine defaults are enough for the demo; a richer game would register its own
+    // strategies/calculators here (and, from 4f-s3, component serializers).
+    private val gameModule: GameModule = GameModule.engineDefaults().build()
+
     private val world: GameWorld = buildWorld()
     private val playerId: EntityId = spawnPlayer()
 
@@ -73,11 +79,13 @@ class MyGame(
         // Systems run in registration order each tick: decide AI moves, resolve movement,
         // apply zone transitions, resolve combat, then recompute lighting.
         world.ecs
-            .addSystem(BehaviorSystem(activeZones = world::simulatedZones))
+            .addSystem(BehaviorSystem(gameModule.strategies::resolve, activeZones = world::simulatedZones))
             .addSystem(MovementSystem(world.zones))
             .addSystem(PortalSystem(world))
             .addSystem(CombatSystem())
-            .addSystem(LightingSystem(world.zones, activeZones = world::simulatedZones))
+            .addSystem(
+                LightingSystem(world.zones, gameModule.calculators::resolve, activeZones = world::simulatedZones),
+            )
     }
 
     // -------------------------------------------------------------------------
@@ -202,7 +210,11 @@ class MyGame(
                 Named("You"),
                 Player,
                 // The player carries a lantern; LightingSystem renders it each tick.
-                LightEmitter(Color(1f, 1f, 150f / 255f, 1f).toNormalizedRgb(), 15.0, LightCalculators.DIMINISHING),
+                LightEmitter(
+                    Color(1f, 1f, 150f / 255f, 1f).toNormalizedRgb(),
+                    15.0,
+                    DiminishingLightValueCalculator.ID,
+                ),
             ).id
 
     private fun populateZone(
@@ -228,7 +240,7 @@ class MyGame(
                 ),
                 Health(100, 100),
                 Named(if (zombie) "zombie" else "sheep", if (zombie) "aggressive" else "docile"),
-                Behavior(if (zombie) BehaviorStrategies.HUNT_PLAYER else BehaviorStrategies.WANDER),
+                Behavior(if (zombie) HuntPlayerStrategy.ID else WanderStrategy.ID),
             )
         }
     }

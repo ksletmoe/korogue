@@ -36,6 +36,10 @@ class WanderStrategy(
         val (dx, dy) = STEPS.random(ctx.random)
         return MoveIntent(dx, dy)
     }
+
+    companion object {
+        const val ID = "wander"
+    }
 }
 
 /**
@@ -65,24 +69,10 @@ class HuntPlayerStrategy(
         a: Position,
         b: Position,
     ): Int = maxOf(abs(a.x - b.x), abs(a.y - b.y))
-}
 
-/**
- * Resolves a [Behavior.strategyId] to a [BehaviorStrategy]. Strategies are stateless, so
- * shared instances are reused. Minimal stand-in for the component registry deferred to 4f.
- */
-object BehaviorStrategies {
-    const val WANDER = "wander"
-    const val HUNT_PLAYER = "hunt-player"
-
-    private val byId: Map<String, BehaviorStrategy> =
-        mapOf(
-            WANDER to WanderStrategy(),
-            HUNT_PLAYER to HuntPlayerStrategy(),
-        )
-
-    fun resolve(strategyId: String): BehaviorStrategy =
-        byId[strategyId] ?: error("Unknown behavior strategy id: '$strategyId'")
+    companion object {
+        const val ID = "hunt-player"
+    }
 }
 
 private const val DEFAULT_ACT_CHANCE = 0.02

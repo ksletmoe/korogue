@@ -20,6 +20,7 @@ class DiminishingLightValueCalculator : LightValueCalculator {
     }
 
     companion object {
+        const val ID = "diminishing"
         private const val MINIMUM_LIGHT_SHIFT_RATIO = 0.10
     }
 }

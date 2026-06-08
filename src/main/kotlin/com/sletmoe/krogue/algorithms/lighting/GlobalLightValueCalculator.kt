@@ -10,4 +10,8 @@ class GlobalLightValueCalculator : LightValueCalculator {
     ): LightValue {
         return LightValue(lightColor, 1.0)
     }
+
+    companion object {
+        const val ID = "global"
+    }
 }

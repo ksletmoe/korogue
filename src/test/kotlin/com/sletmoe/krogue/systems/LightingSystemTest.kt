@@ -2,12 +2,13 @@ package com.sletmoe.krogue.systems
 
 import com.badlogic.gdx.graphics.Color
 import com.sletmoe.krogue.algorithms.color.toNormalizedRgb
-import com.sletmoe.krogue.algorithms.lighting.LightCalculators
+import com.sletmoe.krogue.algorithms.lighting.DiminishingLightValueCalculator
 import com.sletmoe.krogue.components.LightEmitter
 import com.sletmoe.krogue.components.Position
 import com.sletmoe.krogue.components.ZoneMember
 import com.sletmoe.krogue.ecs.EntityId
 import com.sletmoe.krogue.ecs.World
+import com.sletmoe.krogue.registry.GameModule
 import com.sletmoe.krogue.utilities.Grid
 import com.sletmoe.krogue.world.BLANK_TILE
 import com.sletmoe.krogue.world.Zone
@@ -27,9 +28,11 @@ import io.kotest.matchers.shouldBe
  */
 class LightingSystemTest : DescribeSpec({
 
+    val calculators = GameModule.engineDefaults().build().calculators
+
     fun setup(size: Int): Pair<World, Zone> {
         val zone = Zone("test", Grid(size, size, BLANK_TILE))
-        val world = World().addSystem(LightingSystem(mapOf(zone.zoneId to zone)))
+        val world = World().addSystem(LightingSystem(mapOf(zone.zoneId to zone), calculators::resolve))
         return world to zone
     }
 
@@ -41,7 +44,7 @@ class LightingSystemTest : DescribeSpec({
         spawn(
             Position(x, y),
             ZoneMember("test"),
-            LightEmitter(Color.WHITE.toNormalizedRgb(), radius, LightCalculators.DIMINISHING),
+            LightEmitter(Color.WHITE.toNormalizedRgb(), radius, DiminishingLightValueCalculator.ID),
         ).id
 
     describe("LightingSystem") {
@@ -107,6 +110,7 @@ class LightingSystemTest : DescribeSpec({
                 World().addSystem(
                     LightingSystem(
                         mapOf(active.zoneId to active, dormant.zoneId to dormant),
+                        calculators::resolve,
                         activeZones = { setOf("active") },
                     ),
                 )
@@ -118,7 +122,7 @@ class LightingSystemTest : DescribeSpec({
             ) = spawn(
                 Position(x, y),
                 ZoneMember(zoneId),
-                LightEmitter(Color.WHITE.toNormalizedRgb(), 5.0, LightCalculators.DIMINISHING),
+                LightEmitter(Color.WHITE.toNormalizedRgb(), 5.0, DiminishingLightValueCalculator.ID),
             )
             world.lightIn("active", 10, 10)
             world.lightIn("dormant", 10, 10)

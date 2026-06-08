@@ -1,8 +1,8 @@
 package com.sletmoe.krogue.systems
 
 import com.sletmoe.krogue.algorithms.color.ColorBlending
-import com.sletmoe.krogue.algorithms.lighting.LightCalculators
 import com.sletmoe.krogue.algorithms.lighting.LightValue
+import com.sletmoe.krogue.algorithms.lighting.LightValueCalculator
 import com.sletmoe.krogue.components.LightEmitter
 import com.sletmoe.krogue.components.Position
 import com.sletmoe.krogue.components.ZoneMember
@@ -21,6 +21,7 @@ import com.sletmoe.krogue.world.Zone
  */
 class LightingSystem(
     private val zones: Map<String, Zone>,
+    private val resolveCalculator: (String) -> LightValueCalculator,
     private val activeZones: (() -> Set<String>)? = null,
 ) : System {
     override fun update(
@@ -37,7 +38,7 @@ class LightingSystem(
             val zone = target[entity.require<ZoneMember>().zoneId] ?: continue
             val emitter = entity.require<LightEmitter>()
             val origin = entity.require<Position>().point
-            val calculator = LightCalculators.resolve(emitter.calculatorId)
+            val calculator = resolveCalculator(emitter.calculatorId)
 
             zone.lightMap.forEachCoordinateInRadius(origin, emitter.radius) { coord ->
                 val existing = zone.lightMap[coord]
