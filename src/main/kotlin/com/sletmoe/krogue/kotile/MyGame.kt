@@ -32,9 +32,14 @@ import com.sletmoe.krogue.systems.LightingSystem
 import com.sletmoe.krogue.systems.MovementSystem
 import com.sletmoe.krogue.systems.PortalSystem
 import com.sletmoe.krogue.systems.WanderStrategy
+import com.sletmoe.krogue.ui.BarValue
+import com.sletmoe.krogue.ui.BarWidget
+import com.sletmoe.krogue.ui.Frame
 import com.sletmoe.krogue.ui.MapPanel
 import com.sletmoe.krogue.ui.UiRoot
 import com.sletmoe.krogue.ui.WindowSurface
+import com.sletmoe.krogue.ui.inset
+import com.sletmoe.krogue.ui.splitBottom
 import com.sletmoe.krogue.utilities.IntRect
 import com.sletmoe.krogue.world.GameWorld
 import com.sletmoe.krogue.world.Tile
@@ -43,8 +48,9 @@ import java.io.File
 import kotlin.random.Random
 
 /**
- * Kotile-backed roguelike demo. The screen is a [UiRoot] of widgets (ADR-0011); for now just a
- * full-window [MapPanel] drawing the current zone with:
+ * Kotile-backed roguelike demo. The screen is a [UiRoot] of widgets (ADR-0011): a [MapPanel]
+ * filling most of the window over a bottom [Frame]d status strip with the player's HP [BarWidget].
+ * The map draws the current zone with:
  * - FOV via [SymmetricShadowCaster] (toggle to omniscient with SPACE)
  * - Lighting via [DiminishingLightValueCalculator] on the player's lantern
  * - Previously-viewed tile dimming
@@ -152,14 +158,35 @@ class MyGame(
      */
     private fun buildUi(los: LineOfSightCalculator) {
         ui = UiRoot(WindowSurface(window))
+        val (mapRect, statusRect) =
+            IntRect(0, 0, window.widthInTiles, window.heightInTiles).splitBottom(STATUS_ROWS)
+
         mapPanel =
             MapPanel(
-                bounds = IntRect(0, 0, window.widthInTiles, window.heightInTiles),
+                bounds = mapRect,
                 gameWorld = world,
                 fogFor = { zone -> zoneFog.forZone(zone.zoneId, zone.width, zone.height) },
                 losCalculator = los,
             )
         ui.add(mapPanel)
+
+        // A bottom status strip: a bordered frame with the player's HP bar inside it.
+        ui.add(Frame(statusRect, title = "Status"))
+        val inner = statusRect.inset(1)
+        ui.add(
+            BarWidget(
+                bounds = IntRect(inner.x, inner.y, inner.width, 1),
+                label = "HP",
+                filled = Color.FOREST,
+                empty = Color.MAROON,
+            ) { playerHealth() },
+        )
+    }
+
+    /** The player's current/max hit points for the HP bar, or 0/0 if the player is gone. */
+    private fun playerHealth(): BarValue {
+        val health = world.ecs.get(playerId)?.get<Health>() ?: return BarValue(0, 0)
+        return BarValue(health.current, health.max)
     }
 
     override fun onKeyDown(keycode: Int) {
@@ -324,6 +351,7 @@ class MyGame(
     companion object {
         private const val WINDOW_W = 80
         private const val WINDOW_H = 40
+        private const val STATUS_ROWS = 3
         private const val ZONE_1 = "Level 1"
         private const val ZONE_2 = "Level 2"
         private const val SAVE_FILE_NAME = "krogue-save.cbor"

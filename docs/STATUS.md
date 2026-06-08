@@ -74,12 +74,17 @@ then given a tested ECS foundation:
   `Map<String, Grid<Boolean>>` (the codec stays decoupled from the renderer); `ZoneFog.snapshot()`
   / `restore()` bridge it. The demo wires this to **F5 (save) / F9 (load)** — `MyGame.load`
   swaps in the loaded world/RNG/fog, re-registers systems, re-resolves the player, and rebuilds
-  the renderer (krogue-ar9). Verified in-game: position, world, RNG, and remembered fog all
-  restore, including across zone transitions.
-- **~238 tests** (`./gradlew test`). Example-based Kotest.
-- Single map pane only — the old multi-pane topbar/sidebar layout was removed in the
-  renderer cutover; how to restore it is an open question (kotile layout primitives vs
-  krogue-side).
+  the UI bound to the new world (krogue-ar9). Verified in-game: position, world, RNG, and
+  remembered fog all restore, including across zone transitions.
+- **UI toolkit (krogue-ui-layout epic, ADR-0011).** A krogue-side, retained-mode TUI widget
+  toolkit in `com.sletmoe.krogue.ui`, on top of kotile's z-layered `AsciiTileWindow` (no kotile
+  changes). `TileSurface` is the draw seam (fake-able → the UI, incl. the map, is headlessly
+  testable); `UiRoot` composites a widget layer stack in one pass and routes input to the topmost
+  modal (dim-behind via `RegionSurface`). Widgets so far: `MapPanel` (the map is now a widget,
+  retiring `KotileZoneRenderer`), `Frame` (CP437 border+title), `BarWidget` (HP/mana). The demo
+  is a `MapPanel` over a bordered status strip with a live **HP bar**. Remaining epic children:
+  `LogPanel` (yte), `Dialog`+`Menu` (wh9), inventory panel (sgs).
+- **~266 tests** (`./gradlew test`). Example-based Kotest.
 
 ### Known issues / cleanups still open
 - AI strategies (`wander`, `hunt-player`) carry a 2%-per-tick act gate so creatures stay

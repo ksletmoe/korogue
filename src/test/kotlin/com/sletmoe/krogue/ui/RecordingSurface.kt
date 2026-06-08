@@ -32,9 +32,13 @@ class RecordingSurface(
         puts.add(Cell(x, y, z, glyph, fg, bg))
     }
 
-    /** The highest-z cell recorded at ([x], [y]), or null if nothing was drawn there. */
+    /**
+     * The cell that would be visible at ([x], [y]): the highest z, and among equal z the most
+     * recently written — mirroring the window's per-layer last-write-wins overwrite. Null if
+     * nothing was drawn there.
+     */
     fun top(
         x: Int,
         y: Int,
-    ): Cell? = puts.filter { it.x == x && it.y == y }.maxByOrNull { it.z }
+    ): Cell? = puts.asReversed().filter { it.x == x && it.y == y }.maxByOrNull { it.z }
 }
