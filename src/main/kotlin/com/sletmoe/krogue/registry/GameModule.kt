@@ -3,27 +3,39 @@ package com.sletmoe.krogue.registry
 import com.sletmoe.krogue.algorithms.lighting.DiminishingLightValueCalculator
 import com.sletmoe.krogue.algorithms.lighting.GlobalLightValueCalculator
 import com.sletmoe.krogue.algorithms.lighting.LightValueCalculator
+import com.sletmoe.krogue.components.Behavior
+import com.sletmoe.krogue.components.Health
+import com.sletmoe.krogue.components.LightEmitter
+import com.sletmoe.krogue.components.Named
+import com.sletmoe.krogue.components.Player
+import com.sletmoe.krogue.components.Portal
+import com.sletmoe.krogue.components.Position
+import com.sletmoe.krogue.components.Renderable
+import com.sletmoe.krogue.components.ZoneMember
+import com.sletmoe.krogue.ecs.Component
 import com.sletmoe.krogue.systems.BehaviorStrategy
 import com.sletmoe.krogue.systems.HuntPlayerStrategy
 import com.sletmoe.krogue.systems.WanderStrategy
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.serializer
+import kotlin.reflect.KClass
 
 /**
  * The single seam describing a game's pluggable pieces to the engine (ADR-0009, hybrid
- * option iii). It bundles the per-concern registries — [strategies] (AI) and [calculators]
- * (lighting) — so a consumer configures everything in one place
- * (`GameModule.engineDefaults().strategy(...).build()`), while systems still depend only on
- * the narrow `Registry` they need (`module.strategies::resolve`), never the whole module.
- *
- * The component-serialization registry joins here in 4f step 3 (the CBOR codec), which is
- * why this is a module rather than loose registries.
+ * option iii). It bundles the per-concern registries — [strategies] (AI), [calculators]
+ * (lighting), and [components] (serialization) — so a consumer configures everything in one
+ * place (`GameModule.engineDefaults().strategy(...).component<Foo>().build()`), while systems
+ * and the save codec each depend only on the narrow registry they need, never the whole module.
  */
 class GameModule private constructor(
     val strategies: Registry<BehaviorStrategy>,
     val calculators: Registry<LightValueCalculator>,
+    val components: ComponentRegistry,
 ) {
     class Builder internal constructor(
         private val strategies: MutableMap<String, BehaviorStrategy>,
         private val calculators: MutableMap<String, LightValueCalculator>,
+        private val components: MutableMap<KClass<out Component>, KSerializer<out Component>>,
     ) {
         /** Register (or override) an AI strategy under [id]. */
         fun strategy(
@@ -37,11 +49,25 @@ class GameModule private constructor(
             calculator: LightValueCalculator,
         ): Builder = apply { calculators[id] = calculator }
 
-        fun build(): GameModule = GameModule(Registry(strategies.toMap()), Registry(calculators.toMap()))
+        /** Register a `@Serializable` [Component] type so it can be saved/loaded. */
+        fun <T : Component> component(
+            type: KClass<T>,
+            serializer: KSerializer<T>,
+        ): Builder = apply { components[type] = serializer }
+
+        /** Register a `@Serializable` [Component] type by reified type. */
+        inline fun <reified T : Component> component(): Builder = component(T::class, serializer<T>())
+
+        fun build(): GameModule =
+            GameModule(
+                Registry(strategies.toMap()),
+                Registry(calculators.toMap()),
+                ComponentRegistry(components.toMap()),
+            )
     }
 
     companion object {
-        /** A builder pre-loaded with the engine's built-in strategies and calculators. */
+        /** A builder pre-loaded with the engine's built-in strategies, calculators, and components. */
         fun engineDefaults(): Builder =
             Builder(
                 strategies =
@@ -54,6 +80,15 @@ class GameModule private constructor(
                         DiminishingLightValueCalculator.ID to DiminishingLightValueCalculator(),
                         GlobalLightValueCalculator.ID to GlobalLightValueCalculator(),
                     ),
-            )
+                components = mutableMapOf(),
+            ).component<Position>()
+                .component<ZoneMember>()
+                .component<Named>()
+                .component<Health>()
+                .component<Renderable>()
+                .component<Player>()
+                .component<LightEmitter>()
+                .component<Behavior>()
+                .component<Portal>()
     }
 }

@@ -21,8 +21,12 @@ then given a tested ECS foundation:
   lighting are systems; all legacy `world/` entity classes deleted. Unblocks 4c–4f.
 - **Phase 4e** ✅ — multi-zone transitions (ADR-0008): active-only simulation
   (`GameWorld.simulatedZones()` seam, scoped `Behavior`/`Lighting`), `Portal` + `PortalSystem`,
-  zones persist while dormant. Remaining Phase 4: 4c (event bus), 4d (AI strategy
-  abstraction), 4f (save/load — co-design with owner).
+  zones persist while dormant.
+- **Phase 4f** ✅ — save/load (ADR-0009): seeded serializable RNG (xoshiro256** + named
+  streams → shareable seeds + exact resume), `GameModule`/registries (strategy/calculator/
+  component), and a CBOR `SaveCodec` (`save`/`load` over entities + terrain + RNG, versioned
+  envelope). Remaining Phase 4: 4c (event bus), 4d (AI strategy abstraction; mostly done via
+  the strategy registry).
 
 ## krogue current state
 

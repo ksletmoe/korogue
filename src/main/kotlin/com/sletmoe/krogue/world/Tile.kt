@@ -1,12 +1,14 @@
 package com.sletmoe.krogue.world
 
 import com.badlogic.gdx.graphics.Color
+import kotlinx.serialization.Serializable
 
+@Serializable
 open class Tile(
     val name: String,
     val glyph: Char,
-    val color: Color,
-    val backgroundColor: Color,
+    @Serializable(with = GdxColorSerializer::class) val color: Color,
+    @Serializable(with = GdxColorSerializer::class) val backgroundColor: Color,
     val isWalkable: Boolean,
     val blocksLineOfSight: Boolean,
     val description: String? = null,

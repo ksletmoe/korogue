@@ -28,6 +28,28 @@ class World {
     private var turn = 0L
 
     // -------------------------------------------------------------------------
+    // Persistence (4f) — module-internal hooks for the save codec.
+    // -------------------------------------------------------------------------
+
+    /** The id the next [spawn] will use; persisted so loaded games never reissue an id. */
+    internal val nextEntityId: Long get() = nextId
+
+    /**
+     * Replaces all entities with [entities] and restores the [turn] and [nextId] counters.
+     * Systems are left intact. Used by the save codec to rebuild a world from disk.
+     */
+    internal fun restore(
+        turn: Long,
+        nextId: Long,
+        entities: List<Entity>,
+    ) {
+        entitiesById.clear()
+        for (entity in entities) entitiesById[entity.id] = entity
+        this.turn = turn
+        this.nextId = nextId
+    }
+
+    // -------------------------------------------------------------------------
     // Entity lifecycle
     // -------------------------------------------------------------------------
 

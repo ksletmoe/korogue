@@ -5,6 +5,7 @@ import java.net.URL
 
 plugins {
     kotlin("jvm")
+    kotlin("plugin.serialization")
     application
     id("org.jetbrains.dokka")
     id("org.jlleitschuh.gradle.ktlint")
@@ -25,6 +26,7 @@ repositories {
 dependencies {
     implementation(KotlinX.coroutines.core)
     implementation(KotlinX.datetime)
+    implementation(KotlinX.serialization.cbor)
     implementation("io.github.microutils:kotlin-logging:_")
     implementation("org.slf4j:slf4j-log4j12:_")
     implementation("org.apache.commons:commons-math3:_")

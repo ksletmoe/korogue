@@ -1,8 +1,10 @@
 package com.sletmoe.krogue.algorithms.color
 
 import com.badlogic.gdx.graphics.Color
+import kotlinx.serialization.Serializable
 
 // represent RGB data in a min-max normalized form
+@Serializable
 data class NormalizedRgb(val r: Double, val g: Double, val b: Double) {
     fun toColor(): Color =
         Color(
