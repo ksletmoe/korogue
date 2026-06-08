@@ -24,6 +24,7 @@ import com.sletmoe.krogue.components.ZoneMember
 import com.sletmoe.krogue.ecs.EntityId
 import com.sletmoe.krogue.random.GameRandom
 import com.sletmoe.krogue.registry.GameModule
+import com.sletmoe.krogue.save.SaveCodec
 import com.sletmoe.krogue.systems.BehaviorSystem
 import com.sletmoe.krogue.systems.CombatSystem
 import com.sletmoe.krogue.systems.HuntPlayerStrategy
@@ -34,6 +35,7 @@ import com.sletmoe.krogue.systems.WanderStrategy
 import com.sletmoe.krogue.world.GameWorld
 import com.sletmoe.krogue.world.Tile
 import com.sletmoe.krogue.world.Zone
+import java.io.File
 import kotlin.random.Random
 
 /**
@@ -42,6 +44,7 @@ import kotlin.random.Random
  * - Lighting via [DiminishingLightValueCalculator] on the player's lantern
  * - Previously-viewed tile dimming
  * - Arrow key player movement
+ * - F5 saves and F9 loads (CBOR via [SaveCodec]; entities + terrain + RNG + fog)
  *
  * Occupants are ECS entities in [GameWorld.ecs] (ADR-0007), driven by systems each tick:
  * [BehaviorSystem] (AI) and player input emit [MoveIntent]s; [MovementSystem] resolves
@@ -52,7 +55,7 @@ import kotlin.random.Random
  * and rendered (ADR-0008); the other freezes in place and is restored on return.
  */
 class MyGame(
-    private val gameRandom: GameRandom = GameRandom.random(),
+    private var gameRandom: GameRandom = GameRandom.random(),
 ) : Game() {
     private val startPoint = Vector2Int(10, 10)
 
@@ -67,8 +70,13 @@ class MyGame(
     // strategies/calculators here (and, from 4f-s3, component serializers).
     private val gameModule: GameModule = GameModule.engineDefaults().build()
 
-    private val world: GameWorld = buildWorld()
-    private val playerId: EntityId = spawnPlayer()
+    // Save/load (F5/F9). The codec knows every registered component; the save file lives in
+    // the working directory so it's easy to find when running the demo.
+    private val saveCodec: SaveCodec = SaveCodec(gameModule.components)
+    private val saveFile: File = File(SAVE_FILE_NAME)
+
+    private var world: GameWorld = buildWorld()
+    private var playerId: EntityId = spawnPlayer()
 
     private lateinit var renderer: KotileZoneRenderer
     private lateinit var renderedZoneId: String
@@ -83,8 +91,15 @@ class MyGame(
     init {
         spawnPortals()
         world.zones.values.forEach { populateZone(it, numCreatures = 10) }
-        // Systems run in registration order each tick: decide AI moves, resolve movement,
-        // apply zone transitions, resolve combat, then recompute lighting.
+        registerSystems()
+    }
+
+    /**
+     * Registers the gameplay systems on [world]'s ECS, in run order: decide AI moves, resolve
+     * movement, apply zone transitions, resolve combat, then recompute lighting. Called for the
+     * initial world and again after [load] swaps in a fresh (system-less) world.
+     */
+    private fun registerSystems() {
         world.ecs
             .addSystem(BehaviorSystem(gameModule.strategies::resolve, activeZones = world::simulatedZones))
             .addSystem(MovementSystem(world.zones))
@@ -150,7 +165,41 @@ class MyGame(
             Input.Keys.UP -> intendMove(0, -1)
             Input.Keys.DOWN -> intendMove(0, 1)
             Input.Keys.SPACE -> toggleLos()
+            Input.Keys.F5 -> save()
+            Input.Keys.F9 -> load()
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // Save / load (F5 / F9)
+    // -------------------------------------------------------------------------
+
+    /** Writes the full game state (entities + terrain + RNG + per-zone fog) to [saveFile]. */
+    private fun save() {
+        val bytes = saveCodec.save(world, gameRandom, zoneFog.snapshot())
+        saveFile.writeBytes(bytes)
+        println("Saved ${bytes.size} bytes to ${saveFile.absolutePath}")
+    }
+
+    /**
+     * Replaces the running game with the state in [saveFile]: swaps in the loaded world, RNG,
+     * and fog, re-registers systems on the fresh ECS, re-resolves the player entity, and rebuilds
+     * the renderer (keeping the current LOS mode). No-op with a message if there is no save.
+     */
+    private fun load() {
+        if (!saveFile.exists()) {
+            println("No save file at ${saveFile.absolutePath}")
+            return
+        }
+        val loaded = saveCodec.load(saveFile.readBytes())
+        world = loaded.world
+        gameRandom = loaded.random
+        zoneFog.restore(loaded.fog)
+        playerId = world.ecs.entitiesWith<Player>().first().id
+        registerSystems()
+        renderer = buildRenderer(renderer.losCalculator)
+        renderedZoneId = world.currentZoneId
+        println("Loaded game from ${saveFile.absolutePath}")
     }
 
     /** Player input is data too: attach a [MoveIntent] that MovementSystem resolves next tick. */
@@ -273,6 +322,7 @@ class MyGame(
         private const val WINDOW_H = 40
         private const val ZONE_1 = "Level 1"
         private const val ZONE_2 = "Level 2"
+        private const val SAVE_FILE_NAME = "krogue-save.cbor"
 
         private val WALL_TILE
             get() =

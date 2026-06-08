@@ -47,3 +47,6 @@ bin/
 .dolt/
 .beads-credential-key
 .beads/proxieddb/
+
+# Demo save files (MyGame F5/F9)
+krogue-save.cbor

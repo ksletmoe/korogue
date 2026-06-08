@@ -72,8 +72,10 @@ then given a tested ECS foundation:
   save/load: fog is a per-zone player-knowledge section of the save envelope (`SaveData.fog`,
   additive/default-empty so old payloads still load), carried by `SaveCodec` as a
   `Map<String, Grid<Boolean>>` (the codec stays decoupled from the renderer); `ZoneFog.snapshot()`
-  / `restore()` bridge it. The demo doesn't yet invoke save/load, so this is a wired-and-tested
-  capability awaiting a save/load trigger in the host.
+  / `restore()` bridge it. The demo wires this to **F5 (save) / F9 (load)** — `MyGame.load`
+  swaps in the loaded world/RNG/fog, re-registers systems, re-resolves the player, and rebuilds
+  the renderer (krogue-ar9). Verified in-game: position, world, RNG, and remembered fog all
+  restore, including across zone transitions.
 - **~238 tests** (`./gradlew test`). Example-based Kotest.
 - Single map pane only — the old multi-pane topbar/sidebar layout was removed in the
   renderer cutover; how to restore it is an open question (kotile layout primitives vs
@@ -85,8 +87,10 @@ then given a tested ECS foundation:
 - Ticking the ECS world once per frame is interim — a turn-on-input loop is still wanted
   (would also let AI act every turn without the throttle above).
 - Player death/HP feedback is unhandled (`CombatSystem` spares the player) — see krogue-4zi.
-- Save/load (incl. fog) is implemented and tested but not yet wired to any in-game trigger —
-  the demo never calls `SaveCodec.save`/`load`, so there is no way to actually save from the UI.
+- Save files are large (~13 MB for the demo's two 200×200 = 80k-cell zones): terrain dominates
+  because each `Tile` serializes its full state (name string, colors) per cell, with no interning
+  or RLE (walls are tiles too — only ~6k of 40k cells per zone are carved floor). Functionally
+  fine; compaction is a follow-up — krogue-yox.
 - Package `com.sletmoe.krogue.kotile.*` is an odd home for krogue's own classes
   (consider `.rendering`).
 - README is still a TODO.
