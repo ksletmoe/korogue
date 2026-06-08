@@ -23,3 +23,4 @@ Point-in-time records of **why** significant or hard-to-reverse decisions were m
 | [0007](0007-game-world-composes-ecs-world.md) | Game world composes the ECS world | Accepted |
 | [0008](0008-active-only-multi-zone-simulation.md) | Active-only multi-zone simulation | Accepted |
 | [0009](0009-save-load-and-registries.md) | Save/load: CBOR, seeded RNG streams, registry/module | Accepted |
+| [0010](0010-event-bus.md) | Deferred-dispatch event bus for decoupled notifications | Accepted |

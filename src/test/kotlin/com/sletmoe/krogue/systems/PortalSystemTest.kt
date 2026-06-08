@@ -4,8 +4,10 @@ import com.sletmoe.krogue.components.Player
 import com.sletmoe.krogue.components.Portal
 import com.sletmoe.krogue.components.Position
 import com.sletmoe.krogue.components.ZoneMember
+import com.sletmoe.krogue.events.ZoneChanged
 import com.sletmoe.krogue.world.GameWorld
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
 
 class PortalSystemTest : FunSpec({
@@ -39,5 +41,26 @@ class PortalSystemTest : FunSpec({
 
         gw.ecs.get(player)!!.require<ZoneMember>().zoneId shouldBe "a"
         gw.currentZoneId shouldBe "a"
+    }
+
+    test("publishes a ZoneChanged when the player transitions, and none when it does not") {
+        val gw = twoZoneWorld()
+        gw.ecs.addSystem(PortalSystem(gw))
+        val changes = mutableListOf<ZoneChanged>()
+        gw.ecs.events.subscribe<ZoneChanged> { changes.add(it) }
+        gw.ecs.spawn(Position(3, 3), ZoneMember("a"), Portal("b", 7, 7))
+        val player = gw.ecs.spawn(Player, Position(5, 5), ZoneMember("a")).id
+
+        gw.ecs.tick() // off the portal — no transition, no event
+        changes.shouldBeEmpty()
+
+        gw.ecs.set(player, Position(3, 3)) // step onto the portal
+        gw.ecs.tick()
+
+        changes.single().let {
+            it.entity shouldBe player
+            it.from shouldBe "a"
+            it.to shouldBe "b"
+        }
     }
 })

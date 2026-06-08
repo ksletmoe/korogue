@@ -7,12 +7,14 @@ import com.sletmoe.krogue.components.ZoneMember
 import com.sletmoe.krogue.ecs.System
 import com.sletmoe.krogue.ecs.TickContext
 import com.sletmoe.krogue.ecs.World
+import com.sletmoe.krogue.events.ZoneChanged
 import com.sletmoe.krogue.world.GameWorld
 
 /**
  * Sends the player through a [Portal] it is standing on: moves the player to the portal's
  * target (zone + position) and switches [GameWorld.currentZoneId] so the active —
- * simulated and rendered — zone follows the player (ADR-0008). Runs after `MovementSystem`
+ * simulated and rendered — zone follows the player (ADR-0008), and publishes a [ZoneChanged]
+ * event (Phase 4c). Runs after `MovementSystem`
  * (the player must have stepped onto the portal) and before `LightingSystem` (so the
  * arriving zone is lit the same tick). Only the player transitions for now; dormant-zone
  * occupants stay put.
@@ -39,5 +41,6 @@ class PortalSystem(
         world.set(player.id, ZoneMember(portal.targetZoneId))
         world.set(player.id, Position(portal.targetX, portal.targetY))
         gameWorld.currentZoneId = portal.targetZoneId
+        world.events.publish(ZoneChanged(player.id, from = zoneId, to = portal.targetZoneId))
     }
 }

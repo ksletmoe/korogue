@@ -57,6 +57,8 @@ The implemented core (one entity/system container others build on):
     `remove<T>(id): T?`.
   - Queries: `entitiesWith<A>()` / `<A,B>()` / `<A,B,C>()` — **index-free** O(n) scan
     over a **snapshot** (safe to spawn/despawn during iteration).
+  - `events: EventBus` — pub/sub for decoupled notifications; `tick` dispatches it
+    after all systems run (4c, ADR-0010).
 
 ### Locked decisions (do not relitigate)
 
@@ -109,6 +111,21 @@ only the active zone(s) are simulated (ADR-0008); dormant zones freeze.
   its `LightEmitter` entities (replaced `Zone.recalculateLightMap`; 4b-s5). `calculatorId`
   is resolved via `LightCalculators` — the minimal stand-in for the component registry
   deferred to save/load (4f).
+
+### Events (`ecs.EventBus`, `com.sletmoe.krogue.events`) — 4c, ADR-0010
+
+`World.events` is a generic pub/sub bus for **decoupled notifications**, distinct from the
+intent-component pipeline above: intents drive *intra-tick mechanics* (ordered, consumed,
+feed the next system); events fan out *observe-only notifications* delivered **after** the
+tick. `publish` only enqueues; `World.tick` calls `dispatch()` once all systems have run, so
+subscribers see a consistent end-of-tick world. Handlers are keyed by **concrete event class**
+(`subscribe<T>`, mirroring component keying), plus `subscribeAll` for catch-all observers;
+`subscribe` returns a `Subscription` with idempotent `cancel()`. Dispatch drains the queue
+fully (cascades resolve in-tick) in deterministic order. Events are immutable, self-contained
+snapshots (the described entity may already be gone by delivery). The bus is **transient** —
+not part of save state. Game events: `EntityDamaged`, `EntityDied` (emitted by `CombatSystem`),
+`ZoneChanged` (emitted by `PortalSystem`). Handlers are observers — drive world changes through
+systems/components (ADR-0005), not handlers.
 
 ## Kotlin gotchas encountered (relevant to ongoing ECS work)
 

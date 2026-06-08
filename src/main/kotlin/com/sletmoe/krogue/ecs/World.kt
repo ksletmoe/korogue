@@ -27,6 +27,14 @@ class World {
     private val systems = ArrayList<System>()
     private var turn = 0L
 
+    /**
+     * The world's pub/sub bus (Phase 4c). Systems [EventBus.publish] notifications while
+     * they run; subscribers register here. Transient runtime state — handlers are code and
+     * the queue is in-flight, so the bus is not part of save state. [tick] drains it after
+     * every system has run.
+     */
+    val events: EventBus = EventBus()
+
     // -------------------------------------------------------------------------
     // Persistence (4f) — module-internal hooks for the save codec.
     // -------------------------------------------------------------------------
@@ -163,8 +171,9 @@ class World {
         get() = turn
 
     /**
-     * Runs every registered system once in registration order, then advances the
-     * turn counter.
+     * Runs every registered system once in registration order, drains the [events] bus to
+     * its subscribers, then advances the turn counter. Events are dispatched after all
+     * systems have run, so subscribers observe a consistent end-of-tick world.
      */
     fun tick(
         elapsedMs: Long = 0L,
@@ -172,6 +181,7 @@ class World {
     ) {
         val ctx = TickContext(turn = turn, elapsedMs = elapsedMs, random = random)
         for (system in systems) system.update(this, ctx)
+        events.dispatch()
         turn++
     }
 }

@@ -3,7 +3,7 @@
 > Current-state snapshots. Design rationale is in [ARCHITECTURE.md](ARCHITECTURE.md);
 > the live task backlog is in **beads** — run `bd list` / `bd ready`.
 
-_Last updated: 2026-06-06 (after Phase 4e: multi-zone transitions)._
+_Last updated: 2026-06-08 (after Phase 4c: event bus)._
 
 ## Migration arc (done)
 
@@ -25,8 +25,14 @@ then given a tested ECS foundation:
 - **Phase 4f** ✅ — save/load (ADR-0009): seeded serializable RNG (xoshiro256** + named
   streams → shareable seeds + exact resume), `GameModule`/registries (strategy/calculator/
   component), and a CBOR `SaveCodec` (`save`/`load` over entities + terrain + RNG, versioned
-  envelope). Remaining Phase 4: 4c (event bus), 4d (AI strategy abstraction; mostly done via
-  the strategy registry).
+  envelope). Remaining Phase 4: 4d (AI strategy abstraction; mostly done via the strategy
+  registry).
+- **Phase 4c** ✅ — event bus (ADR-0010): a generic engine-side `EventBus` (`ecs`) with a
+  publish-enqueues / `dispatch`-delivers model, owned by `World` and drained once per tick
+  after all systems run (deterministic, observers see a consistent end-of-tick world).
+  Game events live in `com.sletmoe.krogue.events` (`EntityDamaged`/`EntityDied`/`ZoneChanged`);
+  `CombatSystem` and `PortalSystem` emit them. Transient — not part of save state. Decouples
+  notifications from the intent-component mechanics pipeline.
 
 ## krogue current state
 
@@ -47,7 +53,13 @@ then given a tested ECS foundation:
   and persist. Transitions are `Portal` entities resolved by `PortalSystem`. The simulated
   set is a seam (`GameWorld.simulatedZones()`) so "current + adjacent" later is config, not
   a redesign (krogue-s67).
-- **~204 tests** (`./gradlew test`). Example-based Kotest.
+- **Event bus (Phase 4c).** `World.events` (`EventBus`) is pub/sub for decoupled
+  notifications, distinct from the intent-component pipeline: intents drive intra-tick
+  mechanics (ordered, consumed), events fan out observe-only notifications dispatched at
+  end of tick (ADR-0010). `CombatSystem`/`PortalSystem` emit `EntityDamaged`/`EntityDied`/
+  `ZoneChanged`; no runtime subscriber yet — it's infrastructure for death handling
+  (krogue-4zi), a combat-log UI, and per-zone fog memory (krogue-ro8).
+- **~230 tests** (`./gradlew test`). Example-based Kotest.
 - Single map pane only — the old multi-pane topbar/sidebar layout was removed in the
   renderer cutover; how to restore it is an open question (kotile layout primitives vs
   krogue-side).
