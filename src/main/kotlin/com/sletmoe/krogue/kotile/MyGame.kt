@@ -32,6 +32,10 @@ import com.sletmoe.krogue.systems.LightingSystem
 import com.sletmoe.krogue.systems.MovementSystem
 import com.sletmoe.krogue.systems.PortalSystem
 import com.sletmoe.krogue.systems.WanderStrategy
+import com.sletmoe.krogue.ui.MapPanel
+import com.sletmoe.krogue.ui.UiRoot
+import com.sletmoe.krogue.ui.WindowSurface
+import com.sletmoe.krogue.utilities.IntRect
 import com.sletmoe.krogue.world.GameWorld
 import com.sletmoe.krogue.world.Tile
 import com.sletmoe.krogue.world.Zone
@@ -39,7 +43,8 @@ import java.io.File
 import kotlin.random.Random
 
 /**
- * Kotile-backed roguelike demo. Renders the current zone through [KotileZoneRenderer] with:
+ * Kotile-backed roguelike demo. The screen is a [UiRoot] of widgets (ADR-0011); for now just a
+ * full-window [MapPanel] drawing the current zone with:
  * - FOV via [SymmetricShadowCaster] (toggle to omniscient with SPACE)
  * - Lighting via [DiminishingLightValueCalculator] on the player's lantern
  * - Previously-viewed tile dimming
@@ -52,7 +57,8 @@ import kotlin.random.Random
  * the dead; [LightingSystem] renders the lanterns.
  *
  * The demo has two zones linked by stairs (`>`/`<`). Only the player's zone is simulated
- * and rendered (ADR-0008); the other freezes in place and is restored on return.
+ * and rendered (ADR-0008); the other freezes in place and is restored on return. The [MapPanel]
+ * reads the current zone each frame, so a transition needs no renderer rebuild.
  */
 class MyGame(
     private var gameRandom: GameRandom = GameRandom.random(),
@@ -78,13 +84,13 @@ class MyGame(
     private var world: GameWorld = buildWorld()
     private var playerId: EntityId = spawnPlayer()
 
-    private lateinit var renderer: KotileZoneRenderer
-    private lateinit var renderedZoneId: String
+    private lateinit var ui: UiRoot
+    private lateinit var mapPanel: MapPanel
 
     /**
-     * Per-zone fog-of-war memory, owned here so it outlives the renderer (which is rebuilt
-     * on every zone change). Returning to a zone reuses its accumulated grid, so explored
-     * areas stay remembered across transitions (krogue-ro8).
+     * Per-zone fog-of-war memory, owned here (not the [MapPanel]) so it survives a save/load
+     * world swap. The map reads the current zone's grid each frame and accumulates into it, so
+     * explored areas stay remembered across zone transitions (krogue-ro8).
      */
     private val zoneFog = ZoneFog()
 
@@ -123,8 +129,7 @@ class MyGame(
 
     override fun create() {
         super.create()
-        renderer = buildRenderer(symmetricShadowCaster)
-        renderedZoneId = world.currentZoneId
+        buildUi(symmetricShadowCaster)
     }
 
     override fun onTick() {
@@ -135,30 +140,30 @@ class MyGame(
     }
 
     override fun drawFrame(elapsedMs: Long) {
-        if (world.currentZoneId != renderedZoneId) {
-            // The player changed zones (PortalSystem): rebuild the renderer for the new
-            // active zone, preserving the LOS mode. The new renderer is handed the zone's
-            // own fog grid (fogByZone), so previously-explored areas stay remembered.
-            renderer = buildRenderer(renderer.losCalculator)
-            renderedZoneId = world.currentZoneId
-        }
-        renderer.render(focusPoint = playerPosition().point, elapsedMs = elapsedMs)
+        window.clear()
+        ui.render()
+        window.render(elapsedMs)
     }
 
-    private fun buildRenderer(los: LineOfSightCalculator): KotileZoneRenderer {
-        val zone = world.currentZone
-        val fog = zoneFog.forZone(zone.zoneId, zone.width, zone.height)
-        return KotileZoneRenderer(
-            zone = zone,
-            world = world.ecs,
-            window = window,
-            lineOfSightCalculator = los,
-            maximumVisibilityDistance = 30.0,
-            previouslyVisible = fog,
-        )
+    /**
+     * Builds the [UiRoot] and its [MapPanel] bound to the current [world] (the map fills the
+     * window for now). Called at startup and again after [load] swaps in a new world; [los]
+     * carries the FOV mode across the rebuild.
+     */
+    private fun buildUi(los: LineOfSightCalculator) {
+        ui = UiRoot(WindowSurface(window))
+        mapPanel =
+            MapPanel(
+                bounds = IntRect(0, 0, window.widthInTiles, window.heightInTiles),
+                gameWorld = world,
+                fogFor = { zone -> zoneFog.forZone(zone.zoneId, zone.width, zone.height) },
+                losCalculator = los,
+            )
+        ui.add(mapPanel)
     }
 
     override fun onKeyDown(keycode: Int) {
+        if (ui.handleKey(keycode)) return // a modal/widget consumed it; don't treat as gameplay
         when (keycode) {
             Input.Keys.LEFT -> intendMove(-1, 0)
             Input.Keys.RIGHT -> intendMove(1, 0)
@@ -184,7 +189,8 @@ class MyGame(
     /**
      * Replaces the running game with the state in [saveFile]: swaps in the loaded world, RNG,
      * and fog, re-registers systems on the fresh ECS, re-resolves the player entity, and rebuilds
-     * the renderer (keeping the current LOS mode). No-op with a message if there is no save.
+     * the UI bound to the new world (keeping the current LOS mode). No-op with a message if there
+     * is no save.
      */
     private fun load() {
         if (!saveFile.exists()) {
@@ -192,13 +198,13 @@ class MyGame(
             return
         }
         val loaded = saveCodec.load(saveFile.readBytes())
+        val los = mapPanel.losCalculator
         world = loaded.world
         gameRandom = loaded.random
         zoneFog.restore(loaded.fog)
         playerId = world.ecs.entitiesWith<Player>().first().id
         registerSystems()
-        renderer = buildRenderer(renderer.losCalculator)
-        renderedZoneId = world.currentZoneId
+        buildUi(los)
         println("Loaded game from ${saveFile.absolutePath}")
     }
 
@@ -306,11 +312,9 @@ class MyGame(
         }
     }
 
-    private fun playerPosition(): Position = world.ecs.get(playerId)!!.require<Position>()
-
     private fun toggleLos() {
-        renderer.losCalculator =
-            if (renderer.losCalculator === symmetricShadowCaster) {
+        mapPanel.losCalculator =
+            if (mapPanel.losCalculator === symmetricShadowCaster) {
                 omnipresentLos
             } else {
                 symmetricShadowCaster
