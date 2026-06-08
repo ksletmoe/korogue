@@ -18,7 +18,12 @@ data class SaveEnvelope(
     val payload: ByteArray,
 )
 
-/** The persisted game state (ADR-0009). Derived state (lightMap) and transient intents are excluded. */
+/**
+ * The persisted game state (ADR-0009). Derived state (lightMap) and transient intents are
+ * excluded. [fog] is player knowledge (explored cells), kept as its own per-zone section
+ * rather than folded into [zones] (terrain) — it defaults to empty so older, fog-less
+ * payloads still decode (the additive-change path from ADR-0009, no version bump).
+ */
 @Serializable
 data class SaveData(
     val currentZoneId: String,
@@ -27,6 +32,7 @@ data class SaveData(
     val rng: GameRandomState,
     val zones: List<SavedZone>,
     val entities: List<SavedEntity>,
+    val fog: List<SavedFog> = emptyList(),
 )
 
 /** A zone's terrain: dimensions plus its tiles in row-major order. */
@@ -36,6 +42,15 @@ data class SavedZone(
     val width: Int,
     val height: Int,
     val tiles: List<Tile>,
+)
+
+/** A zone's fog-of-war memory: which cells the player has ever seen, in row-major order. */
+@Serializable
+data class SavedFog(
+    val zoneId: String,
+    val width: Int,
+    val height: Int,
+    val seen: List<Boolean>,
 )
 
 /** One entity: its id and the persistable (registered) components, polymorphically encoded. */

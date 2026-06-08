@@ -24,4 +24,16 @@ internal class ZoneFog {
         width: Int,
         height: Int,
     ): Grid<Boolean> = byZone.getOrPut(zoneId) { Grid(width, height, false) }
+
+    /**
+     * A defensive copy of every zone's fog grid, for persistence — pass to `SaveCodec.save`.
+     * Copies decouple the snapshot from the live grids, which keep mutating after a save.
+     */
+    fun snapshot(): Map<String, Grid<Boolean>> = byZone.mapValues { Grid.of(it.value) }
+
+    /** Replaces all fog memory with copies of [grids] (e.g. from `LoadedGame.fog` on load). */
+    fun restore(grids: Map<String, Grid<Boolean>>) {
+        byZone.clear()
+        grids.forEach { (zoneId, grid) -> byZone[zoneId] = Grid.of(grid) }
+    }
 }

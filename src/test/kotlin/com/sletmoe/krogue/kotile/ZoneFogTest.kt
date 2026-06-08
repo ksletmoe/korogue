@@ -1,5 +1,6 @@
 package com.sletmoe.krogue.kotile
 
+import com.sletmoe.krogue.utilities.Grid
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeSameInstanceAs
@@ -35,5 +36,30 @@ class ZoneFogTest : FunSpec({
         grid.width shouldBe 3
         grid.height shouldBe 5
         grid[2, 4] shouldBe false
+    }
+
+    test("snapshot copies the grids, decoupled from later live mutation") {
+        val fog = ZoneFog()
+        fog.forZone("a", 4, 4)[1, 1] = true
+
+        val snap = fog.snapshot()
+        fog.forZone("a", 4, 4)[2, 2] = true // mutate the live grid after snapshotting
+
+        snap.getValue("a")[1, 1] shouldBe true
+        snap.getValue("a")[2, 2] shouldBe false // snapshot is not affected by later changes
+        snap.getValue("a") shouldNotBeSameInstanceAs fog.forZone("a", 4, 4)
+    }
+
+    test("restore replaces memory with copies of the given grids") {
+        val fog = ZoneFog()
+        fog.forZone("a", 4, 4)[0, 0] = true // pre-existing memory, should be replaced
+        val source = Grid(4, 4, false).apply { this[3, 3] = true }
+
+        fog.restore(mapOf("b" to source))
+
+        fog.forZone("a", 4, 4)[0, 0] shouldBe false // old "a" cleared
+        fog.forZone("b", 4, 4)[3, 3] shouldBe true // "b" restored
+        source[1, 1] = true // mutating the source must not leak into the restored copy
+        fog.forZone("b", 4, 4)[1, 1] shouldBe false
     }
 })

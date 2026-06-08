@@ -11,6 +11,7 @@ import com.sletmoe.krogue.components.ZoneMember
 import com.sletmoe.krogue.random.GameRandom
 import com.sletmoe.krogue.registry.GameModule
 import com.sletmoe.krogue.systems.HuntPlayerStrategy
+import com.sletmoe.krogue.utilities.Grid
 import com.sletmoe.krogue.world.GameWorld
 import com.sletmoe.krogue.world.Tile
 import io.kotest.assertions.throwables.shouldThrow
@@ -66,6 +67,41 @@ class SaveCodecTest : FunSpec({
 
         // The id counter is preserved (loaded world won't reissue an existing id).
         loaded.world.ecs.nextEntityId shouldBe world.ecs.nextEntityId
+    }
+
+    test("round-trips per-zone fog-of-war memory") {
+        val world =
+            GameWorld.create {
+                zone("a", 4, 4, isCurrentZone = true) { fill(floor) }
+                zone("b", 3, 2) { fill(floor) }
+            }
+        val fogA =
+            Grid(4, 4, false).apply {
+                this[0, 0] = true
+                this[3, 3] = true
+                this[1, 2] = true
+            }
+        val fogB = Grid(3, 2, false).apply { this[2, 1] = true }
+
+        val loaded = codec.load(codec.save(world, GameRandom.fromSeed(1), mapOf("a" to fogA, "b" to fogB)))
+
+        loaded.fog.keys shouldBe setOf("a", "b")
+        val a = loaded.fog.getValue("a")
+        a.width shouldBe 4
+        a.height shouldBe 4
+        a[0, 0] shouldBe true
+        a[3, 3] shouldBe true
+        a[1, 2] shouldBe true
+        a[2, 2] shouldBe false // unexplored stays unexplored
+        loaded.fog.getValue("b")[2, 1] shouldBe true
+    }
+
+    test("a save without fog loads with empty fog (additive default, no version bump)") {
+        val world = GameWorld.create { zone("a", 2, 2, isCurrentZone = true) { fill(floor) } }
+
+        val loaded = codec.load(codec.save(world, GameRandom.fromSeed(1)))
+
+        loaded.fog shouldBe emptyMap()
     }
 
     test("rejects an unsupported format version (fail-fast)") {
