@@ -96,9 +96,10 @@ Registered on the ECS `World` and run in order each `tick`: behavior → movemen
 `activeZones` provider — `GameWorld.simulatedZones()`, default `{ currentZoneId }` — so
 only the active zone(s) are simulated (ADR-0008); dormant zones freeze.
 
-- **`BehaviorSystem(resolveStrategy, activeZones?)`** — runs each `Behavior` entity's
-  strategy (via `BehaviorStrategies`: `wander`, `hunt-player`) to emit a `MoveIntent`.
-  The resolver is injectable for testing (4b-s7).
+- **`BehaviorSystem(resolveStrategy, activeZones?)`** — resolves each `Behavior` entity's
+  `strategyId` to a `BehaviorStrategy` (the AI extension point — see "Extending the engine")
+  and runs it to emit a `MoveIntent`. Built-ins (`BehaviorStrategies.kt`): `wander`,
+  `hunt-player`. The resolver is injectable for testing (4b-s7).
 - **`MovementSystem(zones)`** — consumes `MoveIntent`s: step onto walkable, unoccupied
   terrain; bump into a (non-portal) occupant → emit `AttackIntent`; into a wall → no-op (4b-s6).
 - **`PortalSystem(gameWorld)`** — sends the player through a `Portal` it stands on: moves
@@ -126,6 +127,40 @@ snapshots (the described entity may already be gone by delivery). The bus is **t
 not part of save state. Game events: `EntityDamaged`, `EntityDied` (emitted by `CombatSystem`),
 `ZoneChanged` (emitted by `PortalSystem`). Handlers are observers — drive world changes through
 systems/components (ADR-0005), not handlers.
+
+## Extending the engine — pluggable strategies, calculators, components (4d, ADR-0009)
+
+krogue is **code-first**: a consuming game extends it by writing Kotlin and registering the
+pieces on a `GameModule`, the single seam the engine and save codec read from. Three concerns
+plug in through the same id → instance shape — name a thing by a stable string id, store that
+id in a (serializable) component, and resolve it through the module's narrow registry at run
+time. This keeps components serializable (ADR-0009) and the engine extensible without the core
+knowing the consumer's types.
+
+**AI behaviour — the worked example (`BehaviorStrategy`, Phase 4d).** The extension point is the
+`BehaviorStrategy` fun-interface (`systems/BehaviorStrategy.kt`): `decide(world, self, ctx):
+MoveIntent?`. To add an AI:
+
+1. **Write it.** Implement `BehaviorStrategy` — a *pure decision* that reads the world and
+   returns a `MoveIntent` (or null to stay put). Don't mutate the world (`BehaviorSystem`
+   applies the intent through the mutation seam); draw randomness from `ctx.random` (the seeded
+   gameplay stream) so runs replay; keep per-entity state in components, since one instance is
+   shared across every entity bearing its id.
+2. **Register it** under a stable id on the module:
+   `GameModule.engineDefaults().strategy("patrol", PatrolStrategy()).build()`.
+3. **Tag entities** with `Behavior("patrol")`. Each tick `BehaviorSystem` resolves the id via
+   `module.strategies::resolve` and runs the strategy. Built-ins (`wander`, `hunt-player`) are
+   pre-loaded by `engineDefaults()`; registering an existing id overrides it.
+
+The decision surface is currently movement; richer action types (attack, use, cast) would
+broaden `decide`'s return type, not the registration path.
+
+**The same shape, two more registries.** *Light calculators* — implement `LightValueCalculator`,
+register with `.calculator(id, impl)`, reference via `LightEmitter.calculatorId` (resolved by
+`LightingSystem`). *Components* — annotate a `@Serializable` data class implementing `Component`
+and register it with `.component<Foo>()` so the CBOR save codec can round-trip it. Resolving an
+unknown id fails loudly (a programmer error), and `GameModule` is the one place to check
+cross-registry coherence (e.g. a `strategyId` with no registered strategy).
 
 ## Kotlin gotchas encountered (relevant to ongoing ECS work)
 

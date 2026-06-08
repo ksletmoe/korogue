@@ -3,7 +3,7 @@
 > Current-state snapshots. Design rationale is in [ARCHITECTURE.md](ARCHITECTURE.md);
 > the live task backlog is in **beads** — run `bd list` / `bd ready`.
 
-_Last updated: 2026-06-08 (after Phase 4c: event bus)._
+_Last updated: 2026-06-08 (after Phase 4c: event bus, and 4d: AI strategy abstraction — Phase 4 complete)._
 
 ## Migration arc (done)
 
@@ -25,14 +25,19 @@ then given a tested ECS foundation:
 - **Phase 4f** ✅ — save/load (ADR-0009): seeded serializable RNG (xoshiro256** + named
   streams → shareable seeds + exact resume), `GameModule`/registries (strategy/calculator/
   component), and a CBOR `SaveCodec` (`save`/`load` over entities + terrain + RNG, versioned
-  envelope). Remaining Phase 4: 4d (AI strategy abstraction; mostly done via the strategy
-  registry).
+  envelope).
 - **Phase 4c** ✅ — event bus (ADR-0010): a generic engine-side `EventBus` (`ecs`) with a
   publish-enqueues / `dispatch`-delivers model, owned by `World` and drained once per tick
   after all systems run (deterministic, observers see a consistent end-of-tick world).
   Game events live in `com.sletmoe.krogue.events` (`EntityDamaged`/`EntityDied`/`ZoneChanged`);
   `CombatSystem` and `PortalSystem` emit them. Transient — not part of save state. Decouples
   notifications from the intent-component mechanics pipeline.
+- **Phase 4d** ✅ — AI strategy abstraction (the machinery landed with the 4f registry;
+  ADR-0009): formalized the `BehaviorStrategy` extension point into its own file with a
+  consumer-facing contract, built-ins `wander`/`hunt-player` (`BehaviorStrategies.kt`), and
+  documented the extension path (ARCHITECTURE.md "Extending the engine" — write → register on
+  `GameModule` → tag with `Behavior(id)` → `BehaviorSystem` resolves), proven end-to-end by a
+  test driving a custom-registered strategy through the real registry. **Phase 4 complete.**
 
 ## krogue current state
 

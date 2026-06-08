@@ -9,18 +9,10 @@ import com.sletmoe.krogue.ecs.World
 import kotlin.math.abs
 
 /**
- * Decides an entity's move for the current tick, or null to stay put. Strategies are
- * pure decisions — they read the [World] and return an intent; `BehaviorSystem` applies it.
- */
-fun interface BehaviorStrategy {
-    fun decide(
-        world: World,
-        self: Entity,
-        ctx: TickContext,
-    ): MoveIntent?
-}
-
-/**
+ * The engine's built-in [BehaviorStrategy] implementations (Phase 4d). The extension-point
+ * contract is in `BehaviorStrategy.kt`; a consuming game adds its own strategies the same
+ * way these are registered (`GameModule.engineDefaults()` pre-loads both by id).
+ *
  * Wander: with probability [actChance] per tick, step one tile in a random cardinal
  * direction; otherwise stay put.
  */

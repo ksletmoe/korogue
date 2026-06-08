@@ -7,6 +7,7 @@ import com.sletmoe.krogue.components.Position
 import com.sletmoe.krogue.components.ZoneMember
 import com.sletmoe.krogue.ecs.TickContext
 import com.sletmoe.krogue.ecs.World
+import com.sletmoe.krogue.registry.GameModule
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
@@ -80,5 +81,19 @@ class BehaviorSystemTest : FunSpec({
         val move = HuntPlayerStrategy(range = 10, actChance = 1.0).decide(world, world.get(hunter)!!, ctx())
 
         move.shouldBeNull()
+    }
+
+    // The documented consumer-extension path end-to-end (Phase 4d): write a strategy,
+    // register it on a GameModule under a stable id, tag an entity with Behavior(id), and
+    // let BehaviorSystem resolve + run it through the module's registry — no injected stub.
+    test("a custom strategy registered on a GameModule drives BehaviorSystem by id") {
+        val patrol = BehaviorStrategy { _, _, _ -> MoveIntent(0, 1) }
+        val module = GameModule.engineDefaults().strategy("patrol", patrol).build()
+        val world = World().addSystem(BehaviorSystem(resolveStrategy = module.strategies::resolve))
+        val id = world.spawn(Behavior("patrol"), Position(2, 2), ZoneMember("z")).id
+
+        world.tick()
+
+        world.get(id)!!.require<MoveIntent>() shouldBe MoveIntent(0, 1)
     }
 })
