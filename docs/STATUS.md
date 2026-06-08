@@ -44,7 +44,8 @@ then given a tested ECS foundation:
 - Renders via `com.sletmoe.krogue.kotile.*`: `Game` (ApplicationAdapter loop,
   `render()`→`onTick()`), `MyGame` (demo: player + lantern, two zones linked by `>`/`<`
   stairs), `Main` (Lwjgl3 entry), `KotileZoneRenderer` (FOV + lighting tints + viewport +
-  previously-seen dimming; reads ECS entities; rebuilt on zone change). Run with `./gradlew run`.
+  previously-seen dimming; reads ECS entities; rebuilt on zone change but handed the zone's
+  retained fog grid, so exploration persists — see `ZoneFog`, krogue-ro8). Run with `./gradlew run`.
 - **100% `java.awt`-free.** Colors are GDX `Color`; geometry is kotile `Vector2Int`
   + `com.sletmoe.krogue.utilities.IntRect` (helpers in `utilities/Geometry.kt`).
 - **ECS-based (Phase 4b done).** `GameWorld` composes `ecs.World` + a zone registry
@@ -64,7 +65,11 @@ then given a tested ECS foundation:
   end of tick (ADR-0010). `CombatSystem`/`PortalSystem` emit `EntityDamaged`/`EntityDied`/
   `ZoneChanged`; no runtime subscriber yet — it's infrastructure for death handling
   (krogue-4zi), a combat-log UI, and per-zone fog memory (krogue-ro8).
-- **~230 tests** (`./gradlew test`). Example-based Kotest.
+- **Per-zone fog memory (krogue-ro8).** Fog-of-war ("previously seen") memory is owned by the
+  host (`ZoneFog`, one `Grid<Boolean>` per zone) and injected into `KotileZoneRenderer` rather
+  than created inside it, so the renderer rebuild on a zone change no longer wipes exploration;
+  revisiting a zone keeps remembered areas. In-session only — not yet saved (a follow-up).
+- **~234 tests** (`./gradlew test`). Example-based Kotest.
 - Single map pane only — the old multi-pane topbar/sidebar layout was removed in the
   renderer cutover; how to restore it is an open question (kotile layout primitives vs
   krogue-side).
@@ -75,8 +80,8 @@ then given a tested ECS foundation:
 - Ticking the ECS world once per frame is interim — a turn-on-input loop is still wanted
   (would also let AI act every turn without the throttle above).
 - Player death/HP feedback is unhandled (`CombatSystem` spares the player) — see krogue-4zi.
-- Fog-of-war ("previously seen" dimming) does not persist per zone — the renderer is rebuilt
-  on a zone change, so revisiting a zone re-explores it. Per-zone fog memory is a follow-up.
+- Fog-of-war memory is in-session only (`ZoneFog`); it is not written to save files yet, so a
+  loaded game starts unexplored. Persisting fog across save/load is a follow-up.
 - Package `com.sletmoe.krogue.kotile.*` is an odd home for krogue's own classes
   (consider `.rendering`).
 - README is still a TODO.

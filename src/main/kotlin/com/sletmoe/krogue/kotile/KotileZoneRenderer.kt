@@ -52,14 +52,16 @@ internal class KotileZoneRenderer(
     private val window: AsciiTileWindow,
     private var lineOfSightCalculator: LineOfSightCalculator,
     private val maximumVisibilityDistance: Double = 30.0,
+    /**
+     * Fog-of-war memory for the "previously viewed" dimming effect: cells the player has
+     * ever seen in this zone. **Caller-owned and mutated in place**, so the host can keep
+     * one grid per zone and pass it back when a renderer is rebuilt on a zone change —
+     * explored areas then survive transitions instead of resetting (krogue-ro8). Defaults
+     * to a fresh, fully-unexplored grid sized to the zone.
+     */
+    private val previouslyVisible: Grid<Boolean> = Grid(zone.width, zone.height, false),
 ) {
     private val logicalMap = LayeredTilemap<AnimatableAsciiTile>(zone.width, zone.height)
-
-    /**
-     * Visibility state persisted across frames for the "previously viewed" dimming effect.
-     * Indexed [x + y*width].
-     */
-    private val previouslyVisible = Grid(zone.width, zone.height, false)
 
     /** The LOS calculator to use next frame. Thread-unsafe; toggle from the render thread. */
     var losCalculator: LineOfSightCalculator

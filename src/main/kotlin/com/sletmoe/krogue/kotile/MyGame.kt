@@ -73,6 +73,13 @@ class MyGame(
     private lateinit var renderer: KotileZoneRenderer
     private lateinit var renderedZoneId: String
 
+    /**
+     * Per-zone fog-of-war memory, owned here so it outlives the renderer (which is rebuilt
+     * on every zone change). Returning to a zone reuses its accumulated grid, so explored
+     * areas stay remembered across transitions (krogue-ro8).
+     */
+    private val zoneFog = ZoneFog()
+
     init {
         spawnPortals()
         world.zones.values.forEach { populateZone(it, numCreatures = 10) }
@@ -115,21 +122,26 @@ class MyGame(
     override fun drawFrame(elapsedMs: Long) {
         if (world.currentZoneId != renderedZoneId) {
             // The player changed zones (PortalSystem): rebuild the renderer for the new
-            // active zone, preserving the LOS mode. (Fog-of-war does not yet persist per zone.)
+            // active zone, preserving the LOS mode. The new renderer is handed the zone's
+            // own fog grid (fogByZone), so previously-explored areas stay remembered.
             renderer = buildRenderer(renderer.losCalculator)
             renderedZoneId = world.currentZoneId
         }
         renderer.render(focusPoint = playerPosition().point, elapsedMs = elapsedMs)
     }
 
-    private fun buildRenderer(los: LineOfSightCalculator): KotileZoneRenderer =
-        KotileZoneRenderer(
-            zone = world.currentZone,
+    private fun buildRenderer(los: LineOfSightCalculator): KotileZoneRenderer {
+        val zone = world.currentZone
+        val fog = zoneFog.forZone(zone.zoneId, zone.width, zone.height)
+        return KotileZoneRenderer(
+            zone = zone,
             world = world.ecs,
             window = window,
             lineOfSightCalculator = los,
             maximumVisibilityDistance = 30.0,
+            previouslyVisible = fog,
         )
+    }
 
     override fun onKeyDown(keycode: Int) {
         when (keycode) {
