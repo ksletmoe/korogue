@@ -5,6 +5,8 @@ import com.sletmoe.krogue.algorithms.lighting.GlobalLightValueCalculator
 import com.sletmoe.krogue.algorithms.lighting.LightValueCalculator
 import com.sletmoe.krogue.components.Behavior
 import com.sletmoe.krogue.components.Health
+import com.sletmoe.krogue.components.Inventory
+import com.sletmoe.krogue.components.Item
 import com.sletmoe.krogue.components.LightEmitter
 import com.sletmoe.krogue.components.Named
 import com.sletmoe.krogue.components.Player
@@ -90,5 +92,7 @@ class GameModule private constructor(
                 .component<LightEmitter>()
                 .component<Behavior>()
                 .component<Portal>()
+                .component<Item>()
+                .component<Inventory>()
     }
 }

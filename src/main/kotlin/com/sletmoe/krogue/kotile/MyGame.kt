@@ -13,6 +13,8 @@ import com.sletmoe.krogue.algorithms.los.SymmetricShadowCaster
 import com.sletmoe.krogue.algorithms.zonegen.randomWalkCave
 import com.sletmoe.krogue.components.Behavior
 import com.sletmoe.krogue.components.Health
+import com.sletmoe.krogue.components.Inventory
+import com.sletmoe.krogue.components.Item
 import com.sletmoe.krogue.components.LightEmitter
 import com.sletmoe.krogue.components.MoveIntent
 import com.sletmoe.krogue.components.Named
@@ -25,6 +27,7 @@ import com.sletmoe.krogue.components.ZoneMember
 import com.sletmoe.krogue.ecs.EntityId
 import com.sletmoe.krogue.events.EntityDamaged
 import com.sletmoe.krogue.events.EntityDied
+import com.sletmoe.krogue.events.ItemPickedUp
 import com.sletmoe.krogue.random.GameRandom
 import com.sletmoe.krogue.registry.GameModule
 import com.sletmoe.krogue.save.SaveCodec
@@ -33,12 +36,14 @@ import com.sletmoe.krogue.systems.CombatSystem
 import com.sletmoe.krogue.systems.HuntPlayerStrategy
 import com.sletmoe.krogue.systems.LightingSystem
 import com.sletmoe.krogue.systems.MovementSystem
+import com.sletmoe.krogue.systems.PickupSystem
 import com.sletmoe.krogue.systems.PortalSystem
 import com.sletmoe.krogue.systems.WanderStrategy
 import com.sletmoe.krogue.ui.BarValue
 import com.sletmoe.krogue.ui.BarWidget
 import com.sletmoe.krogue.ui.Dialog
 import com.sletmoe.krogue.ui.Frame
+import com.sletmoe.krogue.ui.InventoryPanel
 import com.sletmoe.krogue.ui.LogPanel
 import com.sletmoe.krogue.ui.MapPanel
 import com.sletmoe.krogue.ui.Menu
@@ -57,8 +62,9 @@ import kotlin.random.Random
 
 /**
  * Kotile-backed roguelike demo. The screen is a [UiRoot] of widgets (ADR-0011): a [MapPanel] with
- * a [LogPanel] combat-log sidebar (fed by the event bus) over a bottom [Frame]d status strip with
- * the player's HP [BarWidget]. The map draws the current zone with:
+ * a sidebar stacking a [LogPanel] combat/pickup log over an [InventoryPanel] (both fed by the event
+ * bus), over a bottom [Frame]d status strip with the player's HP [BarWidget]. The map draws the
+ * current zone with:
  * - FOV via [SymmetricShadowCaster] (toggle to omniscient with SPACE)
  * - Lighting via [DiminishingLightValueCalculator] on the player's lantern
  * - Previously-viewed tile dimming
@@ -117,19 +123,21 @@ class MyGame(
     init {
         spawnPortals()
         world.zones.values.forEach { populateZone(it, numCreatures = 10) }
+        world.zones.values.forEach { spawnItems(it, numItems = 6) }
         registerSystems()
     }
 
     /**
      * Registers the gameplay systems on [world]'s ECS, in run order: decide AI moves, resolve
-     * movement, apply zone transitions, resolve combat, then recompute lighting. Called for the
-     * initial world and again after [load] swaps in a fresh (system-less) world.
+     * movement, apply zone transitions, pick up items, resolve combat, then recompute lighting.
+     * Called for the initial world and again after [load] swaps in a fresh (system-less) world.
      */
     private fun registerSystems() {
         world.ecs
             .addSystem(BehaviorSystem(gameModule.strategies::resolve, activeZones = world::simulatedZones))
             .addSystem(MovementSystem(world.zones))
             .addSystem(PortalSystem(world))
+            .addSystem(PickupSystem())
             .addSystem(CombatSystem())
             .addSystem(
                 LightingSystem(world.zones, gameModule.calculators::resolve, activeZones = world::simulatedZones),
@@ -181,7 +189,9 @@ class MyGame(
         // (left) and a message-log sidebar (right).
         val (topRect, statusRect) =
             IntRect(0, 0, window.widthInTiles, window.heightInTiles).splitBottom(STATUS_ROWS)
-        val (mapRect, logRect) = topRect.splitRight(LOG_WIDTH)
+        val (mapRect, sidebarRect) = topRect.splitRight(SIDEBAR_WIDTH)
+        // The sidebar stacks the message log (top) over the inventory panel (bottom).
+        val (logRect, inventoryRect) = sidebarRect.splitBottom(INVENTORY_ROWS)
 
         mapPanel =
             MapPanel(
@@ -194,7 +204,8 @@ class MyGame(
 
         logPanel = LogPanel(logRect, title = "Log")
         ui.add(logPanel)
-        wireCombatLog()
+        ui.add(InventoryPanel(inventoryRect) { playerItems() })
+        wireLog()
 
         // A bottom status strip: a bordered frame with the player's HP bar inside it.
         ui.add(Frame(statusRect, title = "Status"))
@@ -217,14 +228,18 @@ class MyGame(
 
     /**
      * Subscribes the [logPanel] to the current world's event bus (ADR-0010) — the bus's first real
-     * consumer. Re-subscribed per [buildUi] because a load swaps in a new world (and bus).
+     * consumer (combat + pickups). Re-subscribed per [buildUi] because a load swaps in a new world
+     * (and bus).
      */
-    private fun wireCombatLog() {
+    private fun wireLog() {
         world.ecs.events.subscribe<EntityDamaged> { event ->
             logPanel.append("${nameOf(event.attacker)} hits ${nameOf(event.target)} for ${event.amount}")
         }
         world.ecs.events.subscribe<EntityDied> { event ->
             logPanel.append("${event.name ?: "Something"} dies")
+        }
+        world.ecs.events.subscribe<ItemPickedUp> { event ->
+            logPanel.append("You pick up a ${event.name}")
         }
     }
 
@@ -410,6 +425,7 @@ class MyGame(
                 Health(100, 100),
                 Named("You"),
                 Player,
+                Inventory(),
                 // The player carries a lantern; LightingSystem renders it each tick.
                 LightEmitter(
                     Color(1f, 1f, 150f / 255f, 1f).toNormalizedRgb(),
@@ -446,6 +462,25 @@ class MyGame(
         }
     }
 
+    /** Scatters [numItems] collectible items (non-blocking) across [zone] for the inventory demo. */
+    private fun spawnItems(
+        zone: Zone,
+        numItems: Int,
+    ) {
+        repeat(numItems) {
+            val cell = randomWalkableCell(zone)
+            val (glyph, name) = ITEM_KINDS.random(worldgen)
+            world.ecs.spawn(
+                Position(cell.x, cell.y),
+                ZoneMember(zone.zoneId),
+                Renderable(glyph, Color.GOLD.toNormalizedRgb(), RenderLayer.CREATURE),
+                Item(name),
+            )
+        }
+    }
+
+    private fun playerItems(): List<String> = world.ecs.get(playerId)?.get<Inventory>()?.items ?: emptyList()
+
     private fun toggleLos() {
         mapPanel.losCalculator =
             if (mapPanel.losCalculator === symmetricShadowCaster) {
@@ -459,8 +494,18 @@ class MyGame(
         private const val WINDOW_W = 80
         private const val WINDOW_H = 40
         private const val STATUS_ROWS = 3
-        private const val LOG_WIDTH = 24
+        private const val SIDEBAR_WIDTH = 24
+        private const val INVENTORY_ROWS = 12
         private const val DIALOG_WIDTH = 24
+
+        /** (glyph, name) for the demo's collectible items. */
+        private val ITEM_KINDS =
+            listOf(
+                '!' to "potion",
+                '?' to "scroll",
+                '=' to "ring",
+                '$' to "gold piece",
+            )
         private const val DIALOG_CHROME_ROWS = 2 // top + bottom border around the menu rows
         private const val ZONE_1 = "Level 1"
         private const val ZONE_2 = "Level 2"

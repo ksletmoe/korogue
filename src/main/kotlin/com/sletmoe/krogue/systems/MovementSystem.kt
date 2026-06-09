@@ -1,6 +1,7 @@
 package com.sletmoe.krogue.systems
 
 import com.sletmoe.krogue.components.AttackIntent
+import com.sletmoe.krogue.components.Item
 import com.sletmoe.krogue.components.MoveIntent
 import com.sletmoe.krogue.components.Portal
 import com.sletmoe.krogue.components.Position
@@ -54,6 +55,7 @@ class MovementSystem(
     ) = world.entitiesWith<Position, ZoneMember>().firstOrNull {
         it.id != except &&
             !it.has<Portal>() && // portals are non-blocking — step onto them
+            !it.has<Item>() && // items are non-blocking — step onto them to pick them up
             it.require<ZoneMember>().zoneId == zoneId &&
             it.require<Position>().let { p -> p.x == x && p.y == y }
     }

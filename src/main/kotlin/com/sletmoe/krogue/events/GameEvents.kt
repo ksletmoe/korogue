@@ -36,3 +36,8 @@ data class ZoneChanged(
     val from: String,
     val to: String,
 ) : Event
+
+/** The player picked up an item named [name] (the map entity is despawned, added to inventory). */
+data class ItemPickedUp(
+    val name: String,
+) : Event

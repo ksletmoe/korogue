@@ -82,13 +82,16 @@ then given a tested ECS foundation:
   testable); `UiRoot` composites a widget layer stack in one pass and routes input to the topmost
   modal (dim-behind via `RegionSurface`). Widgets: `MapPanel` (the map is now a widget, retiring
   `KotileZoneRenderer`), `Frame` (CP437 border+title), `BarWidget` (HP/mana), `Menu` (selectable
-  list), `Dialog` (opaque modal that dims the rest), `LogPanel` (scrollable bordered log). The demo
-  is a `MapPanel` + a `LogPanel` combat-log sidebar (the **event bus**'s first consumer —
-  `EntityDamaged`/`EntityDied` → messages) over a bordered status strip with a live **HP bar**,
-  plus an Esc **system menu** (resume/save/load/quit, pauses the world) and a **game-over dialog**
-  at 0 HP (krogue-4zi). Only the inventory panel (sgs) remains on the epic — it waits for a real
-  item model.
-- **~279 tests** (`./gradlew test`). Example-based Kotest.
+  list), `Dialog` (opaque modal that dims the rest), `LogPanel` (scrollable bordered log),
+  `InventoryPanel` (bordered item list). The demo is a `MapPanel` + a sidebar (combat/pickup
+  `LogPanel` over an `InventoryPanel`, both fed by the **event bus**) over a status strip with a
+  live **HP bar**, plus an Esc **system menu** (resume/save/load/quit, pauses the world) and a
+  **game-over dialog** at 0 HP (krogue-4zi). **Epic complete (6/6).**
+- **Items & inventory (krogue-sgs).** A minimal model toward the Rogue example: `Item(name)` +
+  `Inventory(items)` components (serializable, registered), a `PickupSystem` (walk onto a
+  non-blocking item → despawn + add to inventory + `ItemPickedUp` event), and the `InventoryPanel`.
+  Names-only for now; richer items grow with krogue-sdh.
+- **~286 tests** (`./gradlew test`). Example-based Kotest.
 
 ### Known issues / cleanups still open
 - AI strategies (`wander`, `hunt-player`) carry a 2%-per-tick act gate so creatures stay
