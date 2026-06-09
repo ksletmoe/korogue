@@ -83,7 +83,7 @@ class SymmetricShadowCaster : LineOfSightCalculator {
         visibilityGrid[origin.x, origin.y] = true
 
         // calculate LOS by shadow casting in each cardinal direction
-        CardinalDirection.values().forEach { cardinalDirection ->
+        CardinalDirection.entries.forEach { cardinalDirection ->
             val quadrant = Quadrant(cardinalDirection, origin)
             val firstRow = Row(quadrant, 1, Fraction.MINUS_ONE, Fraction.ONE)
             castShadows(firstRow, tiles, visibilityGrid)

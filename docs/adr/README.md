@@ -25,3 +25,4 @@ Point-in-time records of **why** significant or hard-to-reverse decisions were m
 | [0009](0009-save-load-and-registries.md) | Save/load: CBOR, seeded RNG streams, registry/module | Accepted |
 | [0010](0010-event-bus.md) | Deferred-dispatch event bus for decoupled notifications | Accepted |
 | [0011](0011-krogue-ui-toolkit.md) | A krogue-side TUI widget toolkit; kotile stays a renderer | Accepted |
+| [0012](0012-rogue-example.md) | A faithful Rogue 5.4.4 example, ported under BSD-3-Clause with attribution | Accepted |
