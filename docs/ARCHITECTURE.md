@@ -1,4 +1,4 @@
-# krogue Architecture
+# korogue Architecture
 
 > Durable design knowledge (what is true now). The live work backlog lives in
 > **beads** (`bd list`); current state snapshots live in [STATUS.md](STATUS.md); the
@@ -6,27 +6,27 @@
 
 ## The two libraries
 
-krogue is a general-purpose, extensible roguelike **game engine** (a library other
+korogue is a general-purpose, extensible roguelike **game engine** (a library other
 roguelike-builders depend on), built on top of **kotile** (`~/development/kotile`),
 a general-purpose libGDX tile **renderer**.
 
 - **kotile** — tile rendering, layered tilemaps, animation, camera/viewport, input,
   fonts. The rendering primitive layer. Reusable by any libGDX tile game.
-- **krogue** — world/zone model, entities, FOV, lighting behavior, AI, generation,
+- **korogue** — world/zone model, entities, FOV, lighting behavior, AI, generation,
   the turn loop, game UI. The roguelike game-engine layer.
 
 ### Boundary principle
 
 **If a non-roguelike libGDX game could plausibly use it, it belongs in kotile.**
-Roguelike-specific helpers (FOV, lighting application) belong in krogue.
+Roguelike-specific helpers (FOV, lighting application) belong in korogue.
 
-During development krogue consumes kotile via Gradle `includeBuild("../kotile")`
+During development korogue consumes kotile via Gradle `includeBuild("../kotile")`
 (no version bumps while iterating), with a `dependencySubstitution` redirecting
 `com.sletmoe:kotile` → `project(":library")`.
 
 ## Entity model (decided)
 
-krogue uses a **lightweight component model** ("Option B") — not pure ECS (no
+korogue uses a **lightweight component model** ("Option B") — not pure ECS (no
 archetype/column storage, no Fleks/Artemis), not OOP inheritance.
 
 - An `Entity` is a thin container of components keyed by concrete type (one per type).
@@ -39,7 +39,7 @@ archetype/column storage, no Fleks/Artemis), not OOP inheritance.
 Rationale: hundreds-of-entities scale doesn't justify pure-ECS overhead; roguelikes
 need runtime mutability (status effects, polymorph) which composition handles well.
 
-## ECS core (`com.sletmoe.krogue.ecs`)
+## ECS core (`com.sletmoe.korogue.ecs`)
 
 The implemented core (one entity/system container others build on):
 
@@ -68,7 +68,7 @@ _Rationale and alternatives for each are in the ADRs: 0002 (entity model), 0003
 1. **Immutable everywhere.** Components are deeply-immutable data classes. "Mutate" =
    produce a new value and replace it via `World.update`. This makes entity state
    snapshottable — the basis for change-tracking / undo / save-load / net-diff. Copies
-   are cheap at krogue's scale; what would change at much larger scale is the query
+   are cheap at korogue's scale; what would change at much larger scale is the query
    index, not the copy model.
 2. **Index-free queries.** Scan all entities; add a component-type index behind the
    same methods only if profiling demands it at much larger scale.
@@ -79,7 +79,7 @@ _Rationale and alternatives for each are in the ADRs: 0002 (entity model), 0003
    string id (e.g. `calculatorId`, `strategyId`) resolved via a registry at load. The
    registry itself is deferred to the save/load phase (4f).
 
-### Standard components (`com.sletmoe.krogue.components`)
+### Standard components (`com.sletmoe.korogue.components`)
 
 `Position(x,y)`, `ZoneMember(zoneId)`, `Named(name, description?)`,
 `Health(current, max)` (with `alive`/`dead`), `Renderable(glyph, color: NormalizedRgb,
@@ -89,7 +89,7 @@ components (transient, consumed by systems each tick): `MoveIntent(dx, dy)`,
 `AttackIntent(targetId)`. Colors are `NormalizedRgb` (immutable), not GDX `Color`; the
 renderer converts at the draw boundary.
 
-### Systems (`com.sletmoe.krogue.systems`)
+### Systems (`com.sletmoe.korogue.systems`)
 
 Registered on the ECS `World` and run in order each `tick`: behavior → movement → portal
 → combat → lighting. Zone-scoped systems (`BehaviorSystem`, `LightingSystem`) take an
@@ -113,7 +113,7 @@ only the active zone(s) are simulated (ADR-0008); dormant zones freeze.
   is resolved via `LightCalculators` — the minimal stand-in for the component registry
   deferred to save/load (4f).
 
-### Events (`ecs.EventBus`, `com.sletmoe.krogue.events`) — 4c, ADR-0010
+### Events (`ecs.EventBus`, `com.sletmoe.korogue.events`) — 4c, ADR-0010
 
 `World.events` is a generic pub/sub bus for **decoupled notifications**, distinct from the
 intent-component pipeline above: intents drive *intra-tick mechanics* (ordered, consumed,
@@ -130,7 +130,7 @@ systems/components (ADR-0005), not handlers.
 
 ## Extending the engine — pluggable strategies, calculators, components (4d, ADR-0009)
 
-krogue is **code-first**: a consuming game extends it by writing Kotlin and registering the
+korogue is **code-first**: a consuming game extends it by writing Kotlin and registering the
 pieces on a `GameModule`, the single seam the engine and save codec read from. Three concerns
 plug in through the same id → instance shape — name a thing by a stable string id, store that
 id in a (serializable) component, and resolve it through the module's narrow registry at run

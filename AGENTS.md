@@ -1,6 +1,6 @@
-# krogue — Agent Configuration
+# korogue — Agent Configuration
 
-krogue is a reusable, extensible roguelike **game engine** built on **kotile** (a
+korogue is a reusable, extensible roguelike **game engine** built on **kotile** (a
 general-purpose libGDX tile renderer; sibling repo at `~/development/kotile`).
 
 > Canonical agent-instructions file. `CLAUDE.md` is a symlink to this one.

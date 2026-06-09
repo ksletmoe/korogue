@@ -1,0 +1,31 @@
+package com.sletmoe.korogue.ui
+
+import com.badlogic.gdx.graphics.Color
+import com.sletmoe.kotile.display.ascii.AsciiTileDescriptor
+import com.sletmoe.kotile.display.ascii.AsciiTileWindow
+
+/**
+ * The real [TileSurface]: writes cells into a kotile [AsciiTileWindow]'s internal z-layered grid
+ * via `drawTile`. The game clears the window, has the [UiRoot] render through this surface, then
+ * calls `window.render(elapsedMs)` once to composite (ADR-0011). Thin and GL-bound (the window
+ * owns GPU resources), so it carries no logic worth a headless test — the toolkit is tested
+ * against a fake surface instead.
+ */
+class WindowSurface(
+    private val window: AsciiTileWindow,
+) : TileSurface {
+    override val width: Int get() = window.widthInTiles
+    override val height: Int get() = window.heightInTiles
+
+    override fun put(
+        x: Int,
+        y: Int,
+        z: Int,
+        glyph: Char,
+        fg: Color,
+        bg: Color,
+    ) {
+        if (x < 0 || x >= width || y < 0 || y >= height) return
+        window.drawTile(x, y, z, AsciiTileDescriptor(glyph, fg, bg))
+    }
+}

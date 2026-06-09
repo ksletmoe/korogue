@@ -13,7 +13,7 @@ through ad-hoc `object` registries (`LightCalculators`, `BehaviorStrategies`). T
 calls for "serialization (kotlinx likely)" and "builds the registry for
 calculatorId/strategyId."
 
-krogue is an **engine consumed by games**, which frames every choice: downstream games
+korogue is an **engine consumed by games**, which frames every choice: downstream games
 add their own component types, AI strategies, and light calculators, so extension points
 must be first-class. The owner also wants **shareable seeds** — the same seed yields the
 same world gen / creature placement / loot for everyone — alongside **exact resume** of a

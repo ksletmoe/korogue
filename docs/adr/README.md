@@ -14,7 +14,7 @@ Point-in-time records of **why** significant or hard-to-reverse decisions were m
 
 | ADR | Title | Status |
 |-----|-------|--------|
-| [0001](0001-split-krogue-kotile.md) | Split krogue (engine) from kotile (renderer) | Accepted |
+| [0001](0001-split-korogue-kotile.md) | Split korogue (engine) from kotile (renderer) | Accepted |
 | [0002](0002-lightweight-component-entity-model.md) | Lightweight component entity model | Accepted |
 | [0003](0003-immutable-components.md) | Immutable components | Accepted |
 | [0004](0004-index-free-queries.md) | Index-free entity queries | Accepted |
@@ -24,5 +24,5 @@ Point-in-time records of **why** significant or hard-to-reverse decisions were m
 | [0008](0008-active-only-multi-zone-simulation.md) | Active-only multi-zone simulation | Accepted |
 | [0009](0009-save-load-and-registries.md) | Save/load: CBOR, seeded RNG streams, registry/module | Accepted |
 | [0010](0010-event-bus.md) | Deferred-dispatch event bus for decoupled notifications | Accepted |
-| [0011](0011-krogue-ui-toolkit.md) | A krogue-side TUI widget toolkit; kotile stays a renderer | Accepted |
+| [0011](0011-korogue-ui-toolkit.md) | A korogue-side TUI widget toolkit; kotile stays a renderer | Accepted |
 | [0012](0012-rogue-example.md) | A faithful Rogue 5.4.4 example, ported under BSD-3-Clause with attribution | Accepted |

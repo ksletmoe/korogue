@@ -29,7 +29,7 @@ The forces:
 
 ## Decision
 
-Add a generic, engine-side **`EventBus`** (`com.sletmoe.krogue.ecs`) with a
+Add a generic, engine-side **`EventBus`** (`com.sletmoe.korogue.ecs`) with a
 **publish-enqueues / dispatch-delivers** model, owned by `World` and drained once per tick:
 
 - `Event` is a marker interface; `EventBus.publish(event)` only appends to an internal FIFO
@@ -51,7 +51,7 @@ Add a generic, engine-side **`EventBus`** (`com.sletmoe.krogue.ecs`) with a
   rather than an id to look up.
 - The bus is **transient**: not touched by the save codec or `World.restore`.
 
-Game-side concrete events live in `com.sletmoe.krogue.events` (`EntityDamaged`, `EntityDied`,
+Game-side concrete events live in `com.sletmoe.korogue.events` (`EntityDamaged`, `EntityDied`,
 `ZoneChanged`), keeping the `ecs` core game-agnostic (ADR-0001). `CombatSystem` emits
 `EntityDamaged`/`EntityDied`; `PortalSystem` emits `ZoneChanged`.
 

@@ -1,4 +1,4 @@
-# krogue / kotile Status
+# korogue / kotile Status
 
 > Current-state snapshots. Design rationale is in [ARCHITECTURE.md](ARCHITECTURE.md);
 > the live task backlog is in **beads** — run `bd list` / `bd ready`.
@@ -7,15 +7,15 @@ _Last updated: 2026-06-08 (after Phase 4c: event bus, and 4d: AI strategy abstra
 
 ## Migration arc (done)
 
-krogue was migrated off its old AWT/Swing/AsciiPanel rendering onto kotile/libGDX,
+korogue was migrated off its old AWT/Swing/AsciiPanel rendering onto kotile/libGDX,
 then given a tested ECS foundation:
 
 - **Phase 0–2** ✅ — toolchain modernized (Kotlin 2.3.21 / JDK 21 / Gradle 9.5.1);
   kotile API hardened (layers, viewport, animation, input).
-- **Phase 3** ✅ — krogue renders entirely through kotile; 100% `java.awt`-free
+- **Phase 3** ✅ — korogue renders entirely through kotile; 100% `java.awt`-free
   (color → GDX, geometry → kotile `Vector2Int` + `IntRect`); test suite built from
   zero; lighting verified.
-- **Phase 4a** ✅ — ECS core (`com.sletmoe.krogue.ecs`).
+- **Phase 4a** ✅ — ECS core (`com.sletmoe.korogue.ecs`).
 - **Phase 4b** ✅ — existing entities migrated onto ECS: `GameWorld` composes `ecs.World`
   (ADR-0007); occupants are entities; renderer reads ECS; behavior, movement, combat, and
   lighting are systems; all legacy `world/` entity classes deleted. Unblocks 4c–4f.
@@ -29,7 +29,7 @@ then given a tested ECS foundation:
 - **Phase 4c** ✅ — event bus (ADR-0010): a generic engine-side `EventBus` (`ecs`) with a
   publish-enqueues / `dispatch`-delivers model, owned by `World` and drained once per tick
   after all systems run (deterministic, observers see a consistent end-of-tick world).
-  Game events live in `com.sletmoe.krogue.events` (`EntityDamaged`/`EntityDied`/`ZoneChanged`);
+  Game events live in `com.sletmoe.korogue.events` (`EntityDamaged`/`EntityDied`/`ZoneChanged`);
   `CombatSystem` and `PortalSystem` emit them. Transient — not part of save state. Decouples
   notifications from the intent-component mechanics pipeline.
 - **Phase 4d** ✅ — AI strategy abstraction (the machinery landed with the 4f registry;
@@ -39,15 +39,15 @@ then given a tested ECS foundation:
   `GameModule` → tag with `Behavior(id)` → `BehaviorSystem` resolves), proven end-to-end by a
   test driving a custom-registered strategy through the real registry. **Phase 4 complete.**
 
-## krogue current state
+## korogue current state
 
-- Renders via `com.sletmoe.krogue.kotile.*`: `Game` (ApplicationAdapter loop,
+- Renders via `com.sletmoe.korogue.kotile.*`: `Game` (ApplicationAdapter loop,
   `render()`→`onTick()`), `MyGame` (demo: player + lantern, two zones linked by `>`/`<`
   stairs), `Main` (Lwjgl3 entry), `KotileZoneRenderer` (FOV + lighting tints + viewport +
   previously-seen dimming; reads ECS entities; rebuilt on zone change but handed the zone's
   retained fog grid, so exploration persists — see `ZoneFog`, krogue-ro8). Run with `./gradlew run`.
 - **100% `java.awt`-free.** Colors are GDX `Color`; geometry is kotile `Vector2Int`
-  + `com.sletmoe.krogue.utilities.IntRect` (helpers in `utilities/Geometry.kt`).
+  + `com.sletmoe.korogue.utilities.IntRect` (helpers in `utilities/Geometry.kt`).
 - **ECS-based (Phase 4b done).** `GameWorld` composes `ecs.World` + a zone registry
   (ADR-0007); occupants (player, creatures, lights) are ECS entities, `Zone` is terrain
   + a `LightingSystem`-written `lightMap`. Behavior/movement/combat/lighting are systems
@@ -76,8 +76,8 @@ then given a tested ECS foundation:
   swaps in the loaded world/RNG/fog, re-registers systems, re-resolves the player, and rebuilds
   the UI bound to the new world (krogue-ar9). Verified in-game: position, world, RNG, and
   remembered fog all restore, including across zone transitions.
-- **UI toolkit (krogue-ui-layout epic, ADR-0011).** A krogue-side, retained-mode TUI widget
-  toolkit in `com.sletmoe.krogue.ui`, on top of kotile's z-layered `AsciiTileWindow` (no kotile
+- **UI toolkit (krogue-ui-layout epic, ADR-0011).** A korogue-side, retained-mode TUI widget
+  toolkit in `com.sletmoe.korogue.ui`, on top of kotile's z-layered `AsciiTileWindow` (no kotile
   changes). `TileSurface` is the draw seam (fake-able → the UI, incl. the map, is headlessly
   testable); `UiRoot` composites a widget layer stack in one pass and routes input to the topmost
   modal (dim-behind via `RegionSurface`). Widgets: `MapPanel` (the map is now a widget, retiring
@@ -105,7 +105,7 @@ then given a tested ECS foundation:
   because each `Tile` serializes its full state (name string, colors) per cell, with no interning
   or RLE (walls are tiles too — only ~6k of 40k cells per zone are carved floor). Functionally
   fine; compaction is a follow-up — krogue-yox.
-- Package `com.sletmoe.krogue.kotile.*` is an odd home for krogue's own classes
+- Package `com.sletmoe.korogue.kotile.*` is an odd home for korogue's own classes
   (consider `.rendering`).
 - README is still a TODO.
 

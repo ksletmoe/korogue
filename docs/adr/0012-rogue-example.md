@@ -5,7 +5,7 @@
 
 ## Context
 
-krogue is a reusable roguelike engine; the demo (`MyGame`) exercises it but isn't a real game.
+korogue is a reusable roguelike engine; the demo (`MyGame`) exercises it but isn't a real game.
 To validate the engine end-to-end — and to surface what's still missing — we will build a
 **faithful clone of the original Rogue** as a shipped example (krogue-sdh). We have the genuine
 **Rogue 5.4.4** C source (the Toy/Arnold/Wichman game, in the Epyx/A.I. Design lineage maintained
@@ -23,25 +23,25 @@ The forces:
   probabilities, the e_levels experience curve, AC/strength/to-hit math, daemons/fuses timing,
   amulet-at-26). We port those, we don't approximate them.
 - **Engine cleanliness.** The engine must stay game-agnostic (ADR-0001). Rogue content lives in an
-  example, consuming krogue's public surface (registries/components/systems, the UI toolkit) — so
-  the example doubles as the reference "how to build a game on krogue".
+  example, consuming korogue's public surface (registries/components/systems, the UI toolkit) — so
+  the example doubles as the reference "how to build a game on korogue".
 - **Two renderers.** Rogue is ASCII, but we want a graphical/tileset rendering too, selectable by
   config, sharing one set of game logic.
 
 ## Decision
 
-Build the example as a **faithful Kotlin reimplementation of Rogue 5.4.4 on krogue**, redistributed
+Build the example as a **faithful Kotlin reimplementation of Rogue 5.4.4 on korogue**, redistributed
 under the original **BSD-3-Clause**:
 
 - **Attribution.** Ship Rogue's original `LICENSE.TXT` and a `NOTICE` crediting Michael Toy, Ken
   Arnold and Glenn Wichman (and Kisseberth for the 5.4.x maintenance) in the example, retaining the
-  copyright notice, conditions, and disclaimer. No wording implies the authors endorse krogue.
-- **Location.** A dedicated example package, `com.sletmoe.krogue.examples.rogue` (a separate Gradle
-  module is a candidate once krogue is published — it would prove the example consumes only the
+  copyright notice, conditions, and disclaimer. No wording implies the authors endorse korogue.
+- **Location.** A dedicated example package, `com.sletmoe.korogue.examples.rogue` (a separate Gradle
+  module is a candidate once korogue is published — it would prove the example consumes only the
   public API). Kept apart from the engine and from the existing `kotile`/`MyGame` demo.
 - **Fidelity from source.** Mechanics, tables, and formulas are ported from the 5.4.4 source as the
   reference (`rooms.c`, `monsters.c`, `things.c`, `fight.c`, `daemons.c`, `chase.c`, …), translated
-  into krogue's ECS (components/systems/registries) rather than C globals.
+  into korogue's ECS (components/systems/registries) rather than C globals.
 - **Engine features promoted from Rogue's needs.** Two general capabilities Rogue requires are added
   to the **engine**, not the example: a **turn-on-input loop** (krogue-lhw) and a **timed-effects
   scheduler** (Rogue's daemons-and-fuses: one-shot fuses and recurring daemons keyed to turns).
@@ -58,7 +58,7 @@ under the original **BSD-3-Clause**:
   level gen, player/stats, item model + generation/identification, item effects, monsters + AI,
   combat, hunger, commands/UI, win-lose/score, tileset renderer).
 - The example demonstrates the consumer extension path (registries, components, systems, UI), which
-  also pressure-tests krogue's public API ahead of a 1.0.
+  also pressure-tests korogue's public API ahead of a 1.0.
 - We carry an attribution obligation (LICENSE + NOTICE in the example) — small and one-time.
 - ASCII-first; the tileset backend is additive behind the surface seam, not a rewrite.
 
@@ -68,7 +68,7 @@ under the original **BSD-3-Clause**:
   both an engine validation and a tribute; fidelity is the point, and the BSD license makes a true
   port legal.
 - **Transpiling / directly porting the C** (globals, `union thing`, ncurses). Rejected: it would
-  fight krogue's ECS/immutable-component design and idiomatic Kotlin; we port *mechanics*, not code
+  fight korogue's ECS/immutable-component design and idiomatic Kotlin; we port *mechanics*, not code
   structure.
 - **Putting the example in the engine's main source / the existing demo.** Rejected: the engine
   must stay game-agnostic, and a separate example better proves the consumer story.

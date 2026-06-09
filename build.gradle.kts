@@ -15,7 +15,7 @@ plugins {
     id("io.github.gradle-nexus.publish-plugin")
 }
 
-group = "com.sletmoe.krogue"
+group = "com.sletmoe.korogue"
 version = Ci.version
 
 repositories {
@@ -98,7 +98,7 @@ tasks.withType<DokkaTask>().configureEach {
 
             sourceLink {
                 localDirectory.set(projectDir.resolve("src"))
-                remoteUrl.set(URL("https://github.com/ksletmoe/krogue/tree/mainline/src"))
+                remoteUrl.set(URL("https://github.com/ksletmoe/korogue/tree/mainline/src"))
                 remoteLineSuffix.set("#L")
             }
 
@@ -131,9 +131,9 @@ publishing {
             from(components["java"])
 
             pom {
-                name.set("krogue")
+                name.set("korogue")
                 description.set("An ASCII Roguelike development framework, written in Kotlin.")
-                url.set("https://www.github.com/ksletmoe/krogue")
+                url.set("https://www.github.com/ksletmoe/korogue")
 
                 licenses {
                     license {
@@ -151,9 +151,9 @@ publishing {
                 }
 
                 scm {
-                    url.set("https://github.com/ksletmoe/krogue")
-                    connection.set("scm:git://github.com/ksletmoe/krogue.git")
-                    developerConnection.set("scm:git://github.com/ksletmoe/krogue")
+                    url.set("https://github.com/ksletmoe/korogue")
+                    connection.set("scm:git://github.com/ksletmoe/korogue.git")
+                    developerConnection.set("scm:git://github.com/ksletmoe/korogue")
                 }
             }
         }

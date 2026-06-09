@@ -25,7 +25,7 @@ refreshVersions {
     }
 }
 
-rootProject.name = "krogue"
+rootProject.name = "korogue"
 
 // Consume kotile via composite build during co-development (kotile is unpublished).
 // kotile is multi-module (its root is a container with no consumable variants), so

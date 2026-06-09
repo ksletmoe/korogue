@@ -5,11 +5,11 @@
 
 ## Context
 
-Phase 4a introduced `com.sletmoe.krogue.ecs.World` — a generic entity/system
+Phase 4a introduced `com.sletmoe.korogue.ecs.World` — a generic entity/system
 container (`spawn`/`despawn`, the `set`/`update`/`remove` mutation seam,
-index-free queries, `tick`). It knows nothing about krogue.
+index-free queries, `tick`). It knows nothing about korogue.
 
-The pre-ECS game state still lives in `com.sletmoe.krogue.world.World`: a
+The pre-ECS game state still lives in `com.sletmoe.korogue.world.World`: a
 `Map<String, Zone>` + `currentZoneId` + the `World.create { zone(...) { … } }`
 builder DSL. Each `Zone` owns its terrain (`Grid<Tile>`) **and** its dynamic
 occupants — `_creatures: MutableList<Creature>`, `lightSources`, and a derived
@@ -27,7 +27,7 @@ one; **(c)** `ecs.World` *gains* a zone registry.
 Two constraints frame the choice:
 
 - **The boundary principle (ARCHITECTURE.md):** `ecs.World` is the generic core
-  "others build on." Zones and tiles are krogue game concepts.
+  "others build on." Zones and tiles are korogue game concepts.
 - **Preserve the `World.create { zone {} }` builder DSL** — the ergonomic entry
   point used by `MyGame` and the tests.
 
@@ -36,7 +36,7 @@ Two constraints frame the choice:
 **(a) The game world composes the ECS world.** Keep `ecs.World` generic and
 game-agnostic. Introduce a game-level aggregate — rename `world.World` to
 **`GameWorld`** to end the `World` / `World` name collision — that *holds* an
-`ecs.World` and adds the krogue-specific zone registry: the terrain map
+`ecs.World` and adds the korogue-specific zone registry: the terrain map
 (`zones`), `currentZoneId` / `currentZone`, and the existing builder DSL.
 
 Entities are owned solely by the `ecs.World`. A `Zone` becomes a **terrain**
@@ -51,7 +51,7 @@ hand-maintained `Zone` state.
 Easier:
 
 - The reusable ECS core stays pure — no tile/zone concepts leak in; it remains
-  testable in isolation and reusable beyond krogue.
+  testable in isolation and reusable beyond korogue.
 - One owner for all game state (`ecs.World`): the mutation chokepoint (ADR-0005)
   and the immutable-snapshot model (ADR-0003) cover creatures, light, and the
   player uniformly — exactly what 4f save/load needs.
@@ -82,7 +82,7 @@ This shapes the remaining 4b steps:
 ## Alternatives considered
 
 - **(b) Merge into one `World`** — a single class owning entities, systems, zones,
-  and `currentZoneId`. Rejected: bakes krogue's zone/tile model into the generic
+  and `currentZoneId`. Rejected: bakes korogue's zone/tile model into the generic
   ECS container, breaking the boundary principle, hurting isolated testability,
   and giving the reusable core a game-specific surface. Its only win — "one object
   to pass around" — is recovered by composition plus a thin accessor.

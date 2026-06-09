@@ -5,7 +5,7 @@
 
 ## Context
 
-krogue is an extensible engine others build games on, so its entity architecture is a
+korogue is an extensible engine others build games on, so its entity architecture is a
 keystone. The main options were pure ECS (archetype/column storage, e.g. Fleks), an
 OOP inheritance hierarchy, or a lightweight component model. Expected scale is hundreds
 to low thousands of entities. Roguelikes need heavy runtime mutability (status effects,

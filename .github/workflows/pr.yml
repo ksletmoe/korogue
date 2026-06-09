@@ -16,7 +16,7 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.inputs.branch }}
 
-      # krogue consumes kotile as a sibling composite build (settings.gradle.kts).
+      # korogue consumes kotile as a sibling composite build (settings.gradle.kts).
       - name: Checkout kotile (sibling composite build)
         run: git clone --depth 1 https://github.com/ksletmoe/kotile.git ../kotile
 

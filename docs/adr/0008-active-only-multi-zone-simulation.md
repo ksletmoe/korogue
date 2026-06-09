@@ -21,7 +21,7 @@ shapes how every system iterates. Two questions (from the issue):
 2. **Do zones persist** across switches (return to a zone and find it as you left it)?
 
 Constraints/forces:
-- krogue is small (hundreds of entities), but a multi-zone world multiplies that if every
+- korogue is small (hundreds of entities), but a multi-zone world multiplies that if every
   zone ticks every frame.
 - The roguelike norm is that off-level monsters are frozen until you return — and that
   levels persist.
@@ -62,7 +62,7 @@ Easier:
 Harder / accepted trade-offs:
 - Zone-scoped systems need a current-zone filter (small: inject the provider, add one
   `zoneId ==` guard). `MovementSystem`/`CombatSystem` are unaffected.
-- All zones stay in memory. Fine at krogue's scale; a future huge-world variant could add
+- All zones stay in memory. Fine at korogue's scale; a future huge-world variant could add
   unload/serialize (see alternatives) once 4f exists.
 - "Dormant" means literally frozen — no off-screen ecology/clocks. Acceptable for a
   classic roguelike; revisit if background simulation is ever wanted.
@@ -76,7 +76,7 @@ Harder / accepted trade-offs:
 - **Active-only with unload/serialize of dormant zones** — keep only the current zone in
   memory, serialize others to disk and reload on entry. More memory-efficient for very
   large worlds, but couples directly to 4f serialization, adds load latency and failure
-  modes, and is premature at krogue's scale. Defer; revisit as an extension of 4f if a
+  modes, and is premature at korogue's scale. Defer; revisit as an extension of 4f if a
   world ever outgrows memory.
 
 ## Future extension: simulating a zone neighborhood
