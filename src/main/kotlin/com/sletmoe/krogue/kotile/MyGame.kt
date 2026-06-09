@@ -23,6 +23,8 @@ import com.sletmoe.krogue.components.RenderLayer
 import com.sletmoe.krogue.components.Renderable
 import com.sletmoe.krogue.components.ZoneMember
 import com.sletmoe.krogue.ecs.EntityId
+import com.sletmoe.krogue.events.EntityDamaged
+import com.sletmoe.krogue.events.EntityDied
 import com.sletmoe.krogue.random.GameRandom
 import com.sletmoe.krogue.registry.GameModule
 import com.sletmoe.krogue.save.SaveCodec
@@ -37,6 +39,7 @@ import com.sletmoe.krogue.ui.BarValue
 import com.sletmoe.krogue.ui.BarWidget
 import com.sletmoe.krogue.ui.Dialog
 import com.sletmoe.krogue.ui.Frame
+import com.sletmoe.krogue.ui.LogPanel
 import com.sletmoe.krogue.ui.MapPanel
 import com.sletmoe.krogue.ui.Menu
 import com.sletmoe.krogue.ui.MenuItem
@@ -44,6 +47,7 @@ import com.sletmoe.krogue.ui.UiRoot
 import com.sletmoe.krogue.ui.WindowSurface
 import com.sletmoe.krogue.ui.inset
 import com.sletmoe.krogue.ui.splitBottom
+import com.sletmoe.krogue.ui.splitRight
 import com.sletmoe.krogue.utilities.IntRect
 import com.sletmoe.krogue.world.GameWorld
 import com.sletmoe.krogue.world.Tile
@@ -52,9 +56,9 @@ import java.io.File
 import kotlin.random.Random
 
 /**
- * Kotile-backed roguelike demo. The screen is a [UiRoot] of widgets (ADR-0011): a [MapPanel]
- * filling most of the window over a bottom [Frame]d status strip with the player's HP [BarWidget].
- * The map draws the current zone with:
+ * Kotile-backed roguelike demo. The screen is a [UiRoot] of widgets (ADR-0011): a [MapPanel] with
+ * a [LogPanel] combat-log sidebar (fed by the event bus) over a bottom [Frame]d status strip with
+ * the player's HP [BarWidget]. The map draws the current zone with:
  * - FOV via [SymmetricShadowCaster] (toggle to omniscient with SPACE)
  * - Lighting via [DiminishingLightValueCalculator] on the player's lantern
  * - Previously-viewed tile dimming
@@ -97,6 +101,7 @@ class MyGame(
 
     private lateinit var ui: UiRoot
     private lateinit var mapPanel: MapPanel
+    private lateinit var logPanel: LogPanel
 
     /** The open modal dialog (system menu / game over), or null. Tracked so it can be closed. */
     private var modalDialog: Dialog? = null
@@ -163,17 +168,20 @@ class MyGame(
     }
 
     /**
-     * Builds the [UiRoot] and its [MapPanel] bound to the current [world] (the map fills the
-     * window for now). Called at startup and again after [load] swaps in a new world; [los]
-     * carries the FOV mode across the rebuild.
+     * Builds the [UiRoot] and its widgets bound to the current [world]: a [MapPanel], a [LogPanel]
+     * sidebar (subscribed to the world's event bus), and a status strip with the HP bar. Called at
+     * startup and again after [load] swaps in a new world; [los] carries the FOV mode across.
      */
     private fun buildUi(los: LineOfSightCalculator) {
         // A fresh UiRoot has no dialogs; clear the modal/game-over tracking to match.
         modalDialog = null
         gameOverShown = false
         ui = UiRoot(WindowSurface(window))
-        val (mapRect, statusRect) =
+        // Layout: a full-width status strip along the bottom, then the rest split into the map
+        // (left) and a message-log sidebar (right).
+        val (topRect, statusRect) =
             IntRect(0, 0, window.widthInTiles, window.heightInTiles).splitBottom(STATUS_ROWS)
+        val (mapRect, logRect) = topRect.splitRight(LOG_WIDTH)
 
         mapPanel =
             MapPanel(
@@ -183,6 +191,10 @@ class MyGame(
                 losCalculator = los,
             )
         ui.add(mapPanel)
+
+        logPanel = LogPanel(logRect, title = "Log")
+        ui.add(logPanel)
+        wireCombatLog()
 
         // A bottom status strip: a bordered frame with the player's HP bar inside it.
         ui.add(Frame(statusRect, title = "Status"))
@@ -202,6 +214,21 @@ class MyGame(
         val health = world.ecs.get(playerId)?.get<Health>() ?: return BarValue(0, 0)
         return BarValue(health.current, health.max)
     }
+
+    /**
+     * Subscribes the [logPanel] to the current world's event bus (ADR-0010) — the bus's first real
+     * consumer. Re-subscribed per [buildUi] because a load swaps in a new world (and bus).
+     */
+    private fun wireCombatLog() {
+        world.ecs.events.subscribe<EntityDamaged> { event ->
+            logPanel.append("${nameOf(event.attacker)} hits ${nameOf(event.target)} for ${event.amount}")
+        }
+        world.ecs.events.subscribe<EntityDied> { event ->
+            logPanel.append("${event.name ?: "Something"} dies")
+        }
+    }
+
+    private fun nameOf(id: EntityId): String = world.ecs.get(id)?.get<Named>()?.name ?: "something"
 
     override fun onKeyDown(keycode: Int) {
         if (ui.handleKey(keycode)) return // a modal/widget consumed it; don't treat as gameplay
@@ -432,6 +459,7 @@ class MyGame(
         private const val WINDOW_W = 80
         private const val WINDOW_H = 40
         private const val STATUS_ROWS = 3
+        private const val LOG_WIDTH = 24
         private const val DIALOG_WIDTH = 24
         private const val DIALOG_CHROME_ROWS = 2 // top + bottom border around the menu rows
         private const val ZONE_1 = "Level 1"
