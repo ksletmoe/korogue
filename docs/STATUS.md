@@ -80,18 +80,22 @@ then given a tested ECS foundation:
   toolkit in `com.sletmoe.krogue.ui`, on top of kotile's z-layered `AsciiTileWindow` (no kotile
   changes). `TileSurface` is the draw seam (fake-able → the UI, incl. the map, is headlessly
   testable); `UiRoot` composites a widget layer stack in one pass and routes input to the topmost
-  modal (dim-behind via `RegionSurface`). Widgets so far: `MapPanel` (the map is now a widget,
-  retiring `KotileZoneRenderer`), `Frame` (CP437 border+title), `BarWidget` (HP/mana). The demo
-  is a `MapPanel` over a bordered status strip with a live **HP bar**. Remaining epic children:
-  `LogPanel` (yte), `Dialog`+`Menu` (wh9), inventory panel (sgs).
-- **~266 tests** (`./gradlew test`). Example-based Kotest.
+  modal (dim-behind via `RegionSurface`). Widgets: `MapPanel` (the map is now a widget, retiring
+  `KotileZoneRenderer`), `Frame` (CP437 border+title), `BarWidget` (HP/mana), `Menu` (selectable
+  list), `Dialog` (opaque modal that dims the rest). The demo is a `MapPanel` over a bordered
+  status strip with a live **HP bar**, plus an Esc **system menu** (resume/save/load/quit, pauses
+  the world) and a **game-over dialog** at 0 HP (krogue-4zi). Remaining epic children:
+  `LogPanel` (yte), inventory panel (sgs).
+- **~274 tests** (`./gradlew test`). Example-based Kotest.
 
 ### Known issues / cleanups still open
 - AI strategies (`wander`, `hunt-player`) carry a 2%-per-tick act gate so creatures stay
   sane under the per-frame tick; revisit once the loop is turn-based.
 - Ticking the ECS world once per frame is interim — a turn-on-input loop is still wanted
   (would also let AI act every turn without the throttle above).
-- Player death/HP feedback is unhandled (`CombatSystem` spares the player) — see krogue-4zi.
+- Player HP is shown (HP bar) and death is handled (game-over dialog at 0 HP; krogue-4zi done).
+  `CombatSystem` still spares the player from despawn — the game-over modal freezes the world and
+  offers load/quit rather than removing the entity.
 - Save files are large (~13 MB for the demo's two 200×200 = 80k-cell zones): terrain dominates
   because each `Tile` serializes its full state (name string, colors) per cell, with no interning
   or RLE (walls are tiles too — only ~6k of 40k cells per zone are carved floor). Functionally

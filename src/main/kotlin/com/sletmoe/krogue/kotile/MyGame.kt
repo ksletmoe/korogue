@@ -1,5 +1,6 @@
 package com.sletmoe.krogue.kotile
 
+import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Color
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
@@ -34,8 +35,11 @@ import com.sletmoe.krogue.systems.PortalSystem
 import com.sletmoe.krogue.systems.WanderStrategy
 import com.sletmoe.krogue.ui.BarValue
 import com.sletmoe.krogue.ui.BarWidget
+import com.sletmoe.krogue.ui.Dialog
 import com.sletmoe.krogue.ui.Frame
 import com.sletmoe.krogue.ui.MapPanel
+import com.sletmoe.krogue.ui.Menu
+import com.sletmoe.krogue.ui.MenuItem
 import com.sletmoe.krogue.ui.UiRoot
 import com.sletmoe.krogue.ui.WindowSurface
 import com.sletmoe.krogue.ui.inset
@@ -56,6 +60,7 @@ import kotlin.random.Random
  * - Previously-viewed tile dimming
  * - Arrow key player movement
  * - F5 saves and F9 loads (CBOR via [SaveCodec]; entities + terrain + RNG + fog)
+ * - Esc opens a modal system menu (resume/save/load/quit); a game-over dialog appears at 0 HP
  *
  * Occupants are ECS entities in [GameWorld.ecs] (ADR-0007), driven by systems each tick:
  * [BehaviorSystem] (AI) and player input emit [MoveIntent]s; [MovementSystem] resolves
@@ -92,6 +97,10 @@ class MyGame(
 
     private lateinit var ui: UiRoot
     private lateinit var mapPanel: MapPanel
+
+    /** The open modal dialog (system menu / game over), or null. Tracked so it can be closed. */
+    private var modalDialog: Dialog? = null
+    private var gameOverShown = false
 
     /**
      * Per-zone fog-of-war memory, owned here (not the [MapPanel]) so it survives a save/load
@@ -139,10 +148,12 @@ class MyGame(
     }
 
     override fun onTick() {
+        if (ui.hasModal) return // a dialog (menu / game over) is up: pause the world
         // Advance the world one tick: BehaviorSystem -> MovementSystem -> PortalSystem ->
         // CombatSystem -> LightingSystem. Gameplay randomness (AI/combat) draws from its
         // own stream. One tick per frame is interim; a turn-on-input loop can come later.
         world.ecs.tick(random = gameRandom.stream("gameplay"))
+        if (!gameOverShown && (world.ecs.get(playerId)?.get<Health>()?.dead == true)) openGameOver()
     }
 
     override fun drawFrame(elapsedMs: Long) {
@@ -157,6 +168,9 @@ class MyGame(
      * carries the FOV mode across the rebuild.
      */
     private fun buildUi(los: LineOfSightCalculator) {
+        // A fresh UiRoot has no dialogs; clear the modal/game-over tracking to match.
+        modalDialog = null
+        gameOverShown = false
         ui = UiRoot(WindowSurface(window))
         val (mapRect, statusRect) =
             IntRect(0, 0, window.widthInTiles, window.heightInTiles).splitBottom(STATUS_ROWS)
@@ -199,7 +213,73 @@ class MyGame(
             Input.Keys.SPACE -> toggleLos()
             Input.Keys.F5 -> save()
             Input.Keys.F9 -> load()
+            Input.Keys.ESCAPE -> openSystemMenu()
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // Dialogs (system menu / game over) — UI toolkit modals
+    // -------------------------------------------------------------------------
+
+    /** The pause / system menu (Esc): resume, save, load, or quit. Cancellable with Esc. */
+    private fun openSystemMenu() {
+        // "Load" runs load(), which rebuilds the UI and so clears this dialog on its own.
+        openDialog(
+            title = "Menu",
+            cancellable = true,
+            items =
+                listOf(
+                    MenuItem("Resume") { closeModal() },
+                    MenuItem("Save") {
+                        save()
+                        closeModal()
+                    },
+                    MenuItem("Load") { load() },
+                    MenuItem("Quit") { Gdx.app.exit() },
+                ),
+        )
+    }
+
+    /** Shown when the player reaches 0 HP (krogue-4zi). Not cancellable — load a save or quit. */
+    private fun openGameOver() {
+        gameOverShown = true
+        openDialog(
+            title = "You died",
+            cancellable = false,
+            items =
+                listOf(
+                    MenuItem("Load last save") { load() },
+                    MenuItem("Quit") { Gdx.app.exit() },
+                ),
+        )
+    }
+
+    private fun openDialog(
+        title: String,
+        cancellable: Boolean,
+        items: List<MenuItem>,
+    ) {
+        closeModal()
+        val rect = centeredRect(DIALOG_WIDTH, items.size + DIALOG_CHROME_ROWS)
+        val inner = IntRect(0, 0, rect.width, rect.height).inset(1)
+        val menu = Menu(IntRect(0, 0, inner.width, inner.height), items)
+        val dialog = Dialog(rect, title, menu, onCancel = if (cancellable) ({ closeModal() }) else null)
+        ui.add(dialog, modal = true)
+        modalDialog = dialog
+    }
+
+    private fun closeModal() {
+        modalDialog?.let { ui.remove(it) }
+        modalDialog = null
+    }
+
+    private fun centeredRect(
+        w: Int,
+        h: Int,
+    ): IntRect {
+        val width = w.coerceAtMost(window.widthInTiles)
+        val height = h.coerceAtMost(window.heightInTiles)
+        return IntRect((window.widthInTiles - width) / 2, (window.heightInTiles - height) / 2, width, height)
     }
 
     // -------------------------------------------------------------------------
@@ -352,6 +432,8 @@ class MyGame(
         private const val WINDOW_W = 80
         private const val WINDOW_H = 40
         private const val STATUS_ROWS = 3
+        private const val DIALOG_WIDTH = 24
+        private const val DIALOG_CHROME_ROWS = 2 // top + bottom border around the menu rows
         private const val ZONE_1 = "Level 1"
         private const val ZONE_2 = "Level 2"
         private const val SAVE_FILE_NAME = "krogue-save.cbor"
