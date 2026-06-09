@@ -36,9 +36,12 @@ under the original **BSD-3-Clause**:
 - **Attribution.** Ship Rogue's original `LICENSE.TXT` and a `NOTICE` crediting Michael Toy, Ken
   Arnold and Glenn Wichman (and Kisseberth for the 5.4.x maintenance) in the example, retaining the
   copyright notice, conditions, and disclaimer. No wording implies the authors endorse korogue.
-- **Location.** A dedicated example package, `com.sletmoe.korogue.examples.rogue` (a separate Gradle
-  module is a candidate once korogue is published — it would prove the example consumes only the
-  public API). Kept apart from the engine and from the existing `kotile`/`MyGame` demo.
+- **Location (revised 2026-06-09).** A **separate repository**, `korogue-rogue`
+  (`~/development/korogue-rogue`), consuming korogue as a downstream dependency — via a Gradle
+  composite build (`includeBuild("../korogue")`) during local co-development, and the published
+  artifact for releases. This is a stronger test of korogue's public API than an in-repo package
+  (a true external consumer) and cleanly isolates the Rogue BSD attribution. (The original plan was
+  an in-engine `com.sletmoe.korogue.examples.rogue` package; superseded by a dedicated repo.)
 - **Fidelity from source.** Mechanics, tables, and formulas are ported from the 5.4.4 source as the
   reference (`rooms.c`, `monsters.c`, `things.c`, `fight.c`, `daemons.c`, `chase.c`, …), translated
   into korogue's ECS (components/systems/registries) rather than C globals.
