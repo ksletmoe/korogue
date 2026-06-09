@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>com.sletmoe.korogue.ui</title>
+    <link href="../../images/logo-icon.svg" rel="icon" type="image/svg">
+        <script>var pathToRoot = "../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../scripts/sourceset_dependencies.js" async="async"></script>
+<link href="../../styles/style.css" rel="Stylesheet">
+<link href="../../styles/main.css" rel="Stylesheet">
+<link href="../../styles/prism.css" rel="Stylesheet">
+<link href="../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../scripts/navigation-loader.js" async="async"></script>
+<script type="text/javascript" src="../../scripts/platform-content-handler.js" async="async"></script>
+<script type="text/javascript" src="../../scripts/main.js" defer="defer"></script>
+<script type="text/javascript" src="../../scripts/prism.js" async="async"></script>
+<script type="text/javascript" src="../../ui-kit/ui-kit.min.js" defer="defer"></script>
+</head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+            <a class="library-name--link" href="../../index.html" tabindex="1">
+                    korogue
+            </a>
+        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle"
+                type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+1.0.0.2-SNAPSHOT        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true"
+                        data-filter=":/main">jvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox"
+                        data-role="dropdown-toggle"
+                        aria-controls="platform-tags-listbox"
+                        aria-haspopup="listbox"
+                        aria-expanded="false"
+                        aria-label="Toggle source sets"
+                ></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":/main"
+                                       data-filter=":/main"/>
+                                <span class="checkbox--icon"></span>
+                                jvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button"
+                    type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config='{"defaultSize": 280, "minSize": 200, "maxSize": 400}'>
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list"
+                    data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    korogue
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="package" id="content" pageIds="korogue::com.sletmoe.korogue.ui////PointingToDeclaration//-251573632">
+  <div class="breadcrumbs"><a href="../../index.html">korogue</a><span class="delimiter">/</span><span class="current">com.sletmoe.korogue.ui</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>Package-level</span></span> <span><span>declarations</span></span></h1>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="TYPE">Types</button><button class="section-tab" data-togglable="FUNCTION,EXTENSION_FUNCTION">Functions</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="TYPE">
+        <h2 class="tableheader">Types</h2>
+        <div class="table"><a data-name="347134480%2FClasslikes%2F-251573632" anchor-label="BarValue" id="347134480%2FClasslikes%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-bar-value/index.html"><span>Bar</span><wbr></wbr><span><span>Value</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="347134480%2FClasslikes%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="-bar-value/index.html">BarValue</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>current<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>max<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">A current/max pair for a <a href="-bar-widget/index.html">BarWidget</a> (e.g. hit points, mana).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="583963197%2FClasslikes%2F-251573632" anchor-label="BarWidget" id="583963197%2FClasslikes%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-bar-widget/index.html"><span>Bar</span><wbr></wbr><span><span>Widget</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="583963197%2FClasslikes%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-bar-widget/index.html">BarWidget</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>bounds<span class="token operator">: </span><a href="../com.sletmoe.korogue.utilities/-int-rect/index.html">IntRect</a><span class="token punctuation">, </span></span><span class="parameter ">label<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">filled<span class="token operator">: </span><span data-unresolved-link="com.badlogic.gdx.graphics/Color///PointingToDeclaration/">Color</span><span class="token punctuation">, </span></span><span class="parameter ">empty<span class="token operator">: </span><span data-unresolved-link="com.badlogic.gdx.graphics/Color///PointingToDeclaration/">Color</span><span class="token punctuation">, </span></span><span class="parameter ">labelColor<span class="token operator">: </span><span data-unresolved-link="com.badlogic.gdx.graphics/Color///PointingToDeclaration/">Color</span><span class="token operator"> = </span>Color.WHITE<span class="token punctuation">, </span></span><span class="parameter ">z<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">0</span><span class="token punctuation">, </span></span><span class="parameter ">value<span class="token operator">: </span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="-bar-value/index.html">BarValue</a></span></span><span class="token punctuation">)</span> : <a href="-widget/index.html">Widget</a></div><div class="brief "><p class="paragraph">A single-row stat bar (ADR-0011): <code class="lang-kotlin">LABEL ████████░░ cur/max</code>. Reads its <span data-unresolved-link="com.sletmoe.korogue.ui/BarWidget//#com.sletmoe.korogue.utilities.IntRect#kotlin.String#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color#kotlin.Int#kotlin.Function0[com.sletmoe.korogue.ui.BarValue]/PointingToCallableParameters(6)/">value</span> each frame (via the supplied function) so it always reflects live state — point it at the player's health for an HP bar, mana for a mana bar, etc. Filled cells use <span data-unresolved-link="com.sletmoe.korogue.ui/BarWidget//#com.sletmoe.korogue.utilities.IntRect#kotlin.String#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color#kotlin.Int#kotlin.Function0[com.sletmoe.korogue.ui.BarValue]/PointingToCallableParameters(2)/">filled</span>, the remainder <span data-unresolved-link="com.sletmoe.korogue.ui/BarWidget//#com.sletmoe.korogue.utilities.IntRect#kotlin.String#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color#kotlin.Int#kotlin.Function0[com.sletmoe.korogue.ui.BarValue]/PointingToCallableParameters(3)/">empty</span>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1656713111%2FClasslikes%2F-251573632" anchor-label="Cp437" id="-1656713111%2FClasslikes%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-cp437/index.html"><span><span>Cp437</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1656713111%2FClasslikes%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">object </span><a href="-cp437/index.html">Cp437</a></div><div class="brief "><p class="paragraph">CP437 glyphs by code-page index. kotile's font maps a <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-char/index.html">Char</a> to a glyph by <code class="lang-kotlin">char.code</code> into a 256-cell CP437 sheet, so box-drawing and block characters must be referenced by their CP437 byte value (e.g. <code class="lang-kotlin">Char(196)</code> = <code class="lang-kotlin">─</code>), not their Unicode code point (<code class="lang-kotlin">'─'</code> = U+2500 would miss).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1800234086%2FClasslikes%2F-251573632" anchor-label="Dialog" id="1800234086%2FClasslikes%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-dialog/index.html"><span><span>Dialog</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1800234086%2FClasslikes%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-dialog/index.html">Dialog</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>bounds<span class="token operator">: </span><a href="../com.sletmoe.korogue.utilities/-int-rect/index.html">IntRect</a><span class="token punctuation">, </span></span><span class="parameter ">title<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span><span class="token punctuation">, </span></span><span class="parameter ">content<span class="token operator">: </span><a href="-widget/index.html">Widget</a><span class="token punctuation">, </span></span><span class="parameter ">fg<span class="token operator">: </span><span data-unresolved-link="com.badlogic.gdx.graphics/Color///PointingToDeclaration/">Color</span><span class="token operator"> = </span>Color.WHITE<span class="token punctuation">, </span></span><span class="parameter ">bg<span class="token operator">: </span><span data-unresolved-link="com.badlogic.gdx.graphics/Color///PointingToDeclaration/">Color</span><span class="token operator"> = </span>Color.BLACK<span class="token punctuation">, </span></span><span class="parameter ">z<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">0</span><span class="token punctuation">, </span></span><span class="parameter ">onCancel<span class="token operator">: </span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a><span class="token operator">?</span><span class="token operator"> = </span>null</span></span><span class="token punctuation">)</span> : <a href="-widget/index.html">Widget</a></div><div class="brief "><p class="paragraph">An opaque modal box (ADR-0011): fills its <span data-unresolved-link="com.sletmoe.korogue.ui/Dialog//#com.sletmoe.korogue.utilities.IntRect#kotlin.String?#com.sletmoe.korogue.ui.Widget#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color#kotlin.Int#kotlin.Function0[kotlin.Unit]?/PointingToCallableParameters(0)/">bounds</span> with <span data-unresolved-link="com.sletmoe.korogue.ui/Dialog//#com.sletmoe.korogue.utilities.IntRect#kotlin.String?#com.sletmoe.korogue.ui.Widget#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color#kotlin.Int#kotlin.Function0[kotlin.Unit]?/PointingToCallableParameters(4)/">bg</span>, draws a <a href="-frame/index.html">Frame</a> (border + <span data-unresolved-link="com.sletmoe.korogue.ui/Dialog//#com.sletmoe.korogue.utilities.IntRect#kotlin.String?#com.sletmoe.korogue.ui.Widget#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color#kotlin.Int#kotlin.Function0[kotlin.Unit]?/PointingToCallableParameters(1)/">title</span>) and its <span data-unresolved-link="com.sletmoe.korogue.ui/Dialog//#com.sletmoe.korogue.utilities.IntRect#kotlin.String?#com.sletmoe.korogue.ui.Widget#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color#kotlin.Int#kotlin.Function0[kotlin.Unit]?/PointingToCallableParameters(2)/">content</span> inside the border. Added to a <a href="-ui-root/index.html">UiRoot</a> with <code class="lang-kotlin">modal = true</code>, so the root routes input to it and renders the layers beneath it dimmed (the dim-behind effect) — the dialog itself is opaque, so what's behind is darkened, not blended through.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1743822009%2FClasslikes%2F-251573632" anchor-label="Frame" id="-1743822009%2FClasslikes%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-frame/index.html"><span><span>Frame</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1743822009%2FClasslikes%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-frame/index.html">Frame</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>bounds<span class="token operator">: </span><a href="../com.sletmoe.korogue.utilities/-int-rect/index.html">IntRect</a><span class="token punctuation">, </span></span><span class="parameter ">title<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter ">fg<span class="token operator">: </span><span data-unresolved-link="com.badlogic.gdx.graphics/Color///PointingToDeclaration/">Color</span><span class="token operator"> = </span>Color.GRAY<span class="token punctuation">, </span></span><span class="parameter ">bg<span class="token operator">: </span><span data-unresolved-link="com.badlogic.gdx.graphics/Color///PointingToDeclaration/">Color</span><span class="token operator"> = </span>Color.BLACK<span class="token punctuation">, </span></span><span class="parameter ">z<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">0</span></span></span><span class="token punctuation">)</span> : <a href="-widget/index.html">Widget</a></div><div class="brief "><p class="paragraph">A bordered box (ADR-0011): draws a single-line CP437 border around its <span data-unresolved-link="com.sletmoe.korogue.ui/Frame//#com.sletmoe.korogue.utilities.IntRect#kotlin.String?#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color#kotlin.Int/PointingToCallableParameters(0)/">bounds</span> with an optional <span data-unresolved-link="com.sletmoe.korogue.ui/Frame//#com.sletmoe.korogue.utilities.IntRect#kotlin.String?#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color#kotlin.Int/PointingToCallableParameters(1)/">title</span> on the top edge. The interior is left untouched, so a caller draws content into <code class="lang-kotlin">bounds.inset(1)</code> (typically on a higher layer). Used by the status bar, dialogs, the log, and the inventory panel. A border needs at least 2x2; smaller bounds draw nothing.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-605356708%2FClasslikes%2F-251573632" anchor-label="HSplit" id="-605356708%2FClasslikes%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-h-split/index.html"><span><span>HSplit</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-605356708%2FClasslikes%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="-h-split/index.html">HSplit</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>top<span class="token operator">: </span><a href="../com.sletmoe.korogue.utilities/-int-rect/index.html">IntRect</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>bottom<span class="token operator">: </span><a href="../com.sletmoe.korogue.utilities/-int-rect/index.html">IntRect</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">A horizontal cut of a rect into a <span data-unresolved-link="com.sletmoe.korogue.ui/HSplit//#com.sletmoe.korogue.utilities.IntRect#com.sletmoe.korogue.utilities.IntRect/PointingToCallableParameters(0)/">top</span> band and the <span data-unresolved-link="com.sletmoe.korogue.ui/HSplit//#com.sletmoe.korogue.utilities.IntRect#com.sletmoe.korogue.utilities.IntRect/PointingToCallableParameters(1)/">bottom</span> remainder.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1832979802%2FClasslikes%2F-251573632" anchor-label="InventoryPanel" id="-1832979802%2FClasslikes%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-inventory-panel/index.html"><span>Inventory</span><wbr></wbr><span><span>Panel</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1832979802%2FClasslikes%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-inventory-panel/index.html">InventoryPanel</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>bounds<span class="token operator">: </span><a href="../com.sletmoe.korogue.utilities/-int-rect/index.html">IntRect</a><span class="token punctuation">, </span></span><span class="parameter ">title<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span><span class="token operator"> = </span><span class="token string">&quot;Inventory&quot;</span><span class="token punctuation">, </span></span><span class="parameter ">fg<span class="token operator">: </span><span data-unresolved-link="com.badlogic.gdx.graphics/Color///PointingToDeclaration/">Color</span><span class="token operator"> = </span>Color.LIGHT_GRAY<span class="token punctuation">, </span></span><span class="parameter ">bg<span class="token operator">: </span><span data-unresolved-link="com.badlogic.gdx.graphics/Color///PointingToDeclaration/">Color</span><span class="token operator"> = </span>Color.BLACK<span class="token punctuation">, </span></span><span class="parameter ">borderColor<span class="token operator">: </span><span data-unresolved-link="com.badlogic.gdx.graphics/Color///PointingToDeclaration/">Color</span><span class="token operator"> = </span>Color.GRAY<span class="token punctuation">, </span></span><span class="parameter ">emptyText<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">&quot;(empty)&quot;</span><span class="token punctuation">, </span></span><span class="parameter ">z<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">0</span><span class="token punctuation">, </span></span><span class="parameter ">items<span class="token operator">: </span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span> : <a href="-widget/index.html">Widget</a></div><div class="brief "><p class="paragraph">A bordered panel listing the carried items (ADR-0011). Reads <span data-unresolved-link="com.sletmoe.korogue.ui/InventoryPanel//#com.sletmoe.korogue.utilities.IntRect#kotlin.String?#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color#kotlin.String#kotlin.Int#kotlin.Function0[kotlin.collections.List[kotlin.String]]/PointingToCallableParameters(7)/">items</span> each frame so it tracks the live inventory; shows an empty-state line when there's nothing. Rows past the interior height are not drawn (no scrolling yet — the demo inventory is small). Lines are truncated to fit the width.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-516466610%2FClasslikes%2F-251573632" anchor-label="LogPanel" id="-516466610%2FClasslikes%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-log-panel/index.html"><span>Log</span><wbr></wbr><span><span>Panel</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-516466610%2FClasslikes%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-log-panel/index.html">LogPanel</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>bounds<span class="token operator">: </span><a href="../com.sletmoe.korogue.utilities/-int-rect/index.html">IntRect</a><span class="token punctuation">, </span></span><span class="parameter ">title<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter ">fg<span class="token operator">: </span><span data-unresolved-link="com.badlogic.gdx.graphics/Color///PointingToDeclaration/">Color</span><span class="token operator"> = </span>Color.LIGHT_GRAY<span class="token punctuation">, </span></span><span class="parameter ">bg<span class="token operator">: </span><span data-unresolved-link="com.badlogic.gdx.graphics/Color///PointingToDeclaration/">Color</span><span class="token operator"> = </span>Color.BLACK<span class="token punctuation">, </span></span><span class="parameter ">borderColor<span class="token operator">: </span><span data-unresolved-link="com.badlogic.gdx.graphics/Color///PointingToDeclaration/">Color</span><span class="token operator"> = </span>Color.GRAY<span class="token punctuation">, </span></span><span class="parameter ">z<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">0</span><span class="token punctuation">, </span></span><span class="parameter ">maxLines<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span>DEFAULT_MAX_LINES</span></span><span class="token punctuation">)</span> : <a href="-widget/index.html">Widget</a></div><div class="brief "><p class="paragraph">A bordered, scrollable message log (ADR-0011): <a href="-log-panel/append.html">append</a> adds a line; the panel shows the most recent lines, newest at the bottom, hard-wrapped to its interior width. PageUp/PageDown scroll back through history; once scrolled to the bottom it auto-follows new lines. The buffer is capped at <span data-unresolved-link="com.sletmoe.korogue.ui/LogPanel//#com.sletmoe.korogue.utilities.IntRect#kotlin.String?#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color#kotlin.Int#kotlin.Int/PointingToCallableParameters(6)/">maxLines</span>. In the demo this is driven by the event bus (combat messages) — its first consumer.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1466261402%2FClasslikes%2F-251573632" anchor-label="MapPanel" id="-1466261402%2FClasslikes%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-map-panel/index.html"><span>Map</span><wbr></wbr><span><span>Panel</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1466261402%2FClasslikes%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-map-panel/index.html">MapPanel</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>bounds<span class="token operator">: </span><a href="../com.sletmoe.korogue.utilities/-int-rect/index.html">IntRect</a><span class="token punctuation">, </span></span><span class="parameter ">gameWorld<span class="token operator">: </span><a href="../com.sletmoe.korogue.world/-game-world/index.html">GameWorld</a><span class="token punctuation">, </span></span><span class="parameter ">fogFor<span class="token operator">: </span><span class="token punctuation">(</span><a href="../com.sletmoe.korogue.world/-zone/index.html">Zone</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="../com.sletmoe.korogue.utilities/-grid/index.html">Grid</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">var </span>losCalculator<span class="token operator">: </span><a href="../com.sletmoe.korogue.algorithms.los/-line-of-sight-calculator/index.html">LineOfSightCalculator</a><span class="token punctuation">, </span></span><span class="parameter ">maximumVisibilityDistance<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html">Double</a><span class="token operator"> = </span>DEFAULT_MAX_VISIBILITY</span></span><span class="token punctuation">)</span> : <a href="-widget/index.html">Widget</a></div><div class="brief "><p class="paragraph">The map as a <a href="-widget/index.html">Widget</a> (ADR-0011): draws <a href="../com.sletmoe.korogue.world/-game-world/index.html">GameWorld</a>'s current zone — terrain (with lighting tints + previously-seen dimming) and the occupying entities — into its <span data-unresolved-link="com.sletmoe.korogue.ui/MapPanel//#com.sletmoe.korogue.utilities.IntRect#com.sletmoe.korogue.world.GameWorld#kotlin.Function1[com.sletmoe.korogue.world.Zone,com.sletmoe.korogue.utilities.Grid[kotlin.Boolean]]#com.sletmoe.korogue.algorithms.los.LineOfSightCalculator#kotlin.Double/PointingToCallableParameters(0)/">bounds</span> on the supplied <a href="-tile-surface/index.html">TileSurface</a>. Replaces the old window-blitting <code class="lang-kotlin">KotileZoneRenderer</code>: instead of building a zone-sized tilemap and viewporting the whole window, it samples a player-centred viewport sized to its own pane and writes visible cells directly, so it composes with other panels in the one UI render pass.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="644890479%2FClasslikes%2F-251573632" anchor-label="Menu" id="644890479%2FClasslikes%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-menu/index.html"><span><span>Menu</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="644890479%2FClasslikes%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-menu/index.html">Menu</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>bounds<span class="token operator">: </span><a href="../com.sletmoe.korogue.utilities/-int-rect/index.html">IntRect</a><span class="token punctuation">, </span></span><span class="parameter ">items<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="-menu-item/index.html">MenuItem</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">fg<span class="token operator">: </span><span data-unresolved-link="com.badlogic.gdx.graphics/Color///PointingToDeclaration/">Color</span><span class="token operator"> = </span>Color.WHITE<span class="token punctuation">, </span></span><span class="parameter ">bg<span class="token operator">: </span><span data-unresolved-link="com.badlogic.gdx.graphics/Color///PointingToDeclaration/">Color</span><span class="token operator"> = </span>Color.BLACK<span class="token punctuation">, </span></span><span class="parameter ">selectedFg<span class="token operator">: </span><span data-unresolved-link="com.badlogic.gdx.graphics/Color///PointingToDeclaration/">Color</span><span class="token operator"> = </span>Color.BLACK<span class="token punctuation">, </span></span><span class="parameter ">selectedBg<span class="token operator">: </span><span data-unresolved-link="com.badlogic.gdx.graphics/Color///PointingToDeclaration/">Color</span><span class="token operator"> = </span>Color.WHITE<span class="token punctuation">, </span></span><span class="parameter ">z<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">0</span></span></span><span class="token punctuation">)</span> : <a href="-widget/index.html">Widget</a></div><div class="brief "><p class="paragraph">A vertical list of selectable <span data-unresolved-link="com.sletmoe.korogue.ui/Menu//#com.sletmoe.korogue.utilities.IntRect#kotlin.collections.List[com.sletmoe.korogue.ui.MenuItem]#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color#kotlin.Int/PointingToCallableParameters(1)/">items</span> (ADR-0011): Up/Down move the highlight (wrapping), Enter runs the selected item's action. The selected row is drawn full-width in inverted colors. One item per row from the top of <span data-unresolved-link="com.sletmoe.korogue.ui/Menu//#com.sletmoe.korogue.utilities.IntRect#kotlin.collections.List[com.sletmoe.korogue.ui.MenuItem]#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color#kotlin.Int/PointingToCallableParameters(0)/">bounds</span>; rows past the bottom are not drawn. Typically placed inside a <a href="-dialog/index.html">Dialog</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="2143350940%2FClasslikes%2F-251573632" anchor-label="MenuItem" id="2143350940%2FClasslikes%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-menu-item/index.html"><span>Menu</span><wbr></wbr><span><span>Item</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2143350940%2FClasslikes%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-menu-item/index.html">MenuItem</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>label<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>action<span class="token operator">: </span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">One selectable row in a <a href="-menu/index.html">Menu</a>: a <span data-unresolved-link="com.sletmoe.korogue.ui/MenuItem//#kotlin.String#kotlin.Function0[kotlin.Unit]/PointingToCallableParameters(0)/">label</span> and the <span data-unresolved-link="com.sletmoe.korogue.ui/MenuItem//#kotlin.String#kotlin.Function0[kotlin.Unit]/PointingToCallableParameters(1)/">action</span> run when it is activated.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1677520869%2FClasslikes%2F-251573632" anchor-label="RegionSurface" id="-1677520869%2FClasslikes%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-region-surface/index.html"><span>Region</span><wbr></wbr><span><span>Surface</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1677520869%2FClasslikes%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-region-surface/index.html">RegionSurface</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">delegate<span class="token operator">: </span><a href="-tile-surface/index.html">TileSurface</a><span class="token punctuation">, </span></span><span class="parameter ">rect<span class="token operator">: </span><a href="../com.sletmoe.korogue.utilities/-int-rect/index.html">IntRect</a><span class="token punctuation">, </span></span><span class="parameter ">zOffset<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">0</span><span class="token punctuation">, </span></span><span class="parameter ">dim<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span><span class="token constant">1.0f</span></span></span><span class="token punctuation">)</span> : <a href="-tile-surface/index.html">TileSurface</a></div><div class="brief "><p class="paragraph">A <a href="-tile-surface/index.html">TileSurface</a> view restricted to <span data-unresolved-link="com.sletmoe.korogue.ui/RegionSurface//#com.sletmoe.korogue.ui.TileSurface#com.sletmoe.korogue.utilities.IntRect#kotlin.Int#kotlin.Float/PointingToCallableParameters(1)/">rect</span> of <span data-unresolved-link="com.sletmoe.korogue.ui/RegionSurface//#com.sletmoe.korogue.ui.TileSurface#com.sletmoe.korogue.utilities.IntRect#kotlin.Int#kotlin.Float/PointingToCallableParameters(0)/">delegate</span> (ADR-0011): local (0, 0) maps to <code class="lang-kotlin">rect.(x, y)</code>, writes are clipped to the rect, <span data-unresolved-link="com.sletmoe.korogue.ui/RegionSurface//#com.sletmoe.korogue.ui.TileSurface#com.sletmoe.korogue.utilities.IntRect#kotlin.Int#kotlin.Float/PointingToCallableParameters(2)/">zOffset</span> is added to every layer index, and colors are scaled by <span data-unresolved-link="com.sletmoe.korogue.ui/RegionSurface//#com.sletmoe.korogue.ui.TileSurface#com.sletmoe.korogue.utilities.IntRect#kotlin.Int#kotlin.Float/PointingToCallableParameters(3)/">dim</span>. This is how a widget draws in coordinates local to its own bounds, on its layer's z-band, without knowing where it sits on screen.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="915681429%2FClasslikes%2F-251573632" anchor-label="TileSurface" id="915681429%2FClasslikes%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-tile-surface/index.html"><span>Tile</span><wbr></wbr><span><span>Surface</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="915681429%2FClasslikes%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-tile-surface/index.html">TileSurface</a></div><div class="brief "><p class="paragraph">The seam the UI toolkit draws through (ADR-0011): a z-layered, cell-addressable sink. Widgets write cells here and never touch the renderer directly, so the real backing (<a href="-window-surface/index.html">WindowSurface</a> over a kotile <code class="lang-kotlin">AsciiTileWindow</code>) can be swapped for a fake in tests — making the toolkit's layout and drawing logic headlessly testable.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1301322712%2FClasslikes%2F-251573632" anchor-label="UiRoot" id="1301322712%2FClasslikes%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-ui-root/index.html"><span>Ui</span><wbr></wbr><span><span>Root</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1301322712%2FClasslikes%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-ui-root/index.html">UiRoot</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">surface<span class="token operator">: </span><a href="-tile-surface/index.html">TileSurface</a><span class="token punctuation">, </span></span><span class="parameter ">dimFactor<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-float/index.html">Float</a><span class="token operator"> = </span>DEFAULT_DIM_FACTOR</span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">The root of the UI toolkit (ADR-0011): an ordered stack of widget layers composited into one <a href="-tile-surface/index.html">TileSurface</a>. Layers are added bottom-to-top; each draws on its own z-band (<a href="-ui-root/-companion/-l-a-y-e-r_-z_-s-p-a-n.html">LAYER_Z_SPAN</a> slots) so a higher layer always draws over a lower one.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="10875114%2FClasslikes%2F-251573632" anchor-label="VSplit" id="10875114%2FClasslikes%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-v-split/index.html"><span><span>VSplit</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="10875114%2FClasslikes%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="-v-split/index.html">VSplit</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>left<span class="token operator">: </span><a href="../com.sletmoe.korogue.utilities/-int-rect/index.html">IntRect</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>right<span class="token operator">: </span><a href="../com.sletmoe.korogue.utilities/-int-rect/index.html">IntRect</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">A vertical cut of a rect into a <span data-unresolved-link="com.sletmoe.korogue.ui/VSplit//#com.sletmoe.korogue.utilities.IntRect#com.sletmoe.korogue.utilities.IntRect/PointingToCallableParameters(0)/">left</span> band and the <span data-unresolved-link="com.sletmoe.korogue.ui/VSplit//#com.sletmoe.korogue.utilities.IntRect#com.sletmoe.korogue.utilities.IntRect/PointingToCallableParameters(1)/">right</span> remainder.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1689429270%2FClasslikes%2F-251573632" anchor-label="Widget" id="-1689429270%2FClasslikes%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-widget/index.html"><span><span>Widget</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1689429270%2FClasslikes%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-widget/index.html">Widget</a></div><div class="brief "><p class="paragraph">A unit of UI in the toolkit (ADR-0011). A widget knows its screen <a href="-widget/bounds.html">bounds</a> and draws itself into a <a href="-tile-surface/index.html">TileSurface</a> that is already clipped/translated to those bounds (so it draws in local coordinates). Registered on a <a href="-ui-root/index.html">UiRoot</a> as a layer.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1767101719%2FClasslikes%2F-251573632" anchor-label="WindowSurface" id="1767101719%2FClasslikes%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-window-surface/index.html"><span>Window</span><wbr></wbr><span><span>Surface</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1767101719%2FClasslikes%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-window-surface/index.html">WindowSurface</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">window<span class="token operator">: </span><span data-unresolved-link="com.sletmoe.kotile.display.ascii/AsciiTileWindow///PointingToDeclaration/">AsciiTileWindow</span></span></span><span class="token punctuation">)</span> : <a href="-tile-surface/index.html">TileSurface</a></div><div class="brief "><p class="paragraph">The real <a href="-tile-surface/index.html">TileSurface</a>: writes cells into a kotile <span data-unresolved-link="com.sletmoe.kotile.display.ascii/AsciiTileWindow///PointingToDeclaration/">AsciiTileWindow</span>'s internal z-layered grid via <code class="lang-kotlin">drawTile</code>. The game clears the window, has the <a href="-ui-root/index.html">UiRoot</a> render through this surface, then calls <code class="lang-kotlin">window.render(elapsedMs)</code> once to composite (ADR-0011). Thin and GL-bound (the window owns GPU resources), so it carries no logic worth a headless test — the toolkit is tested against a fake surface instead.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="EXTENSION_FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="-618828999%2FFunctions%2F-251573632" anchor-label="fill" id="-618828999%2FFunctions%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="fill.html"><span><span>fill</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-618828999%2FFunctions%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="-tile-surface/index.html">TileSurface</a><span class="token punctuation">.</span><a href="fill.html"><span class="token function">fill</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">z<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">glyph<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-char/index.html">Char</a><span class="token punctuation">, </span></span><span class="parameter ">fg<span class="token operator">: </span><span data-unresolved-link="com.badlogic.gdx.graphics/Color///PointingToDeclaration/">Color</span><span class="token punctuation">, </span></span><span class="parameter ">bg<span class="token operator">: </span><span data-unresolved-link="com.badlogic.gdx.graphics/Color///PointingToDeclaration/">Color</span></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Fills the whole surface on layer <a href="fill.html">z</a> with <a href="fill.html">glyph</a>/<a href="fill.html">fg</a>/<a href="fill.html">bg</a> (e.g. a panel background).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2082268603%2FFunctions%2F-251573632" anchor-label="inset" id="-2082268603%2FFunctions%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="inset.html"><span><span>inset</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2082268603%2FFunctions%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="../com.sletmoe.korogue.utilities/-int-rect/index.html">IntRect</a><span class="token punctuation">.</span><a href="inset.html"><span class="token function">inset</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">by<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../com.sletmoe.korogue.utilities/-int-rect/index.html">IntRect</a></div><div class="brief "><p class="paragraph">Shrinks the rect by <a href="inset.html">by</a> cells on every side (e.g. to fit content inside a border). Clamped at 0.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1662070771%2FFunctions%2F-251573632" anchor-label="splitBottom" id="-1662070771%2FFunctions%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="split-bottom.html"><span>split</span><wbr></wbr><span><span>Bottom</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1662070771%2FFunctions%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="../com.sletmoe.korogue.utilities/-int-rect/index.html">IntRect</a><span class="token punctuation">.</span><a href="split-bottom.html"><span class="token function">splitBottom</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">rows<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-h-split/index.html">HSplit</a></div><div class="brief "><p class="paragraph">Cuts <a href="split-bottom.html">rows</a> off the bottom; <a href="-h-split/bottom.html">HSplit.bottom</a> is <code class="lang-kotlin">rows</code> tall, <a href="-h-split/top.html">HSplit.top</a> is what's left.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1077924503%2FFunctions%2F-251573632" anchor-label="splitLeft" id="-1077924503%2FFunctions%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="split-left.html"><span>split</span><wbr></wbr><span><span>Left</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1077924503%2FFunctions%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="../com.sletmoe.korogue.utilities/-int-rect/index.html">IntRect</a><span class="token punctuation">.</span><a href="split-left.html"><span class="token function">splitLeft</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">cols<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-v-split/index.html">VSplit</a></div><div class="brief "><p class="paragraph">Cuts <a href="split-left.html">cols</a> off the left; <a href="-v-split/left.html">VSplit.left</a> is <code class="lang-kotlin">cols</code> wide, <a href="-v-split/right.html">VSplit.right</a> is what's left.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1399731230%2FFunctions%2F-251573632" anchor-label="splitRight" id="-1399731230%2FFunctions%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="split-right.html"><span>split</span><wbr></wbr><span><span>Right</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1399731230%2FFunctions%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="../com.sletmoe.korogue.utilities/-int-rect/index.html">IntRect</a><span class="token punctuation">.</span><a href="split-right.html"><span class="token function">splitRight</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">cols<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-v-split/index.html">VSplit</a></div><div class="brief "><p class="paragraph">Cuts <a href="split-right.html">cols</a> off the right; <a href="-v-split/right.html">VSplit.right</a> is <code class="lang-kotlin">cols</code> wide, <a href="-v-split/left.html">VSplit.left</a> is what's left.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="58979995%2FFunctions%2F-251573632" anchor-label="splitTop" id="58979995%2FFunctions%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="split-top.html"><span>split</span><wbr></wbr><span><span>Top</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="58979995%2FFunctions%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="../com.sletmoe.korogue.utilities/-int-rect/index.html">IntRect</a><span class="token punctuation">.</span><a href="split-top.html"><span class="token function">splitTop</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">rows<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-h-split/index.html">HSplit</a></div><div class="brief "><p class="paragraph">Cuts <a href="split-top.html">rows</a> off the top; <a href="-h-split/top.html">HSplit.top</a> is <code class="lang-kotlin">rows</code> tall, <a href="-h-split/bottom.html">HSplit.bottom</a> is what's left.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1483829420%2FFunctions%2F-251573632" anchor-label="text" id="-1483829420%2FFunctions%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="text.html"><span><span>text</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1483829420%2FFunctions%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="-tile-surface/index.html">TileSurface</a><span class="token punctuation">.</span><a href="text.html"><span class="token function">text</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">x<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">y<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">z<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">text<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">fg<span class="token operator">: </span><span data-unresolved-link="com.badlogic.gdx.graphics/Color///PointingToDeclaration/">Color</span><span class="token punctuation">, </span></span><span class="parameter ">bg<span class="token operator">: </span><span data-unresolved-link="com.badlogic.gdx.graphics/Color///PointingToDeclaration/">Color</span><span class="token operator"> = </span>Color.BLACK</span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Writes <a href="text.html">text</a> left-to-right starting at (<a href="text.html">x</a>, <a href="text.html">y</a>) on layer <a href="text.html">z</a>, one char per cell.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

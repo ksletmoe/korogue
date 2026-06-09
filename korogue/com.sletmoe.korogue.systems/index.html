@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>com.sletmoe.korogue.systems</title>
+    <link href="../../images/logo-icon.svg" rel="icon" type="image/svg">
+        <script>var pathToRoot = "../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../scripts/sourceset_dependencies.js" async="async"></script>
+<link href="../../styles/style.css" rel="Stylesheet">
+<link href="../../styles/main.css" rel="Stylesheet">
+<link href="../../styles/prism.css" rel="Stylesheet">
+<link href="../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../scripts/navigation-loader.js" async="async"></script>
+<script type="text/javascript" src="../../scripts/platform-content-handler.js" async="async"></script>
+<script type="text/javascript" src="../../scripts/main.js" defer="defer"></script>
+<script type="text/javascript" src="../../scripts/prism.js" async="async"></script>
+<script type="text/javascript" src="../../ui-kit/ui-kit.min.js" defer="defer"></script>
+</head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+            <a class="library-name--link" href="../../index.html" tabindex="1">
+                    korogue
+            </a>
+        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle"
+                type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+1.0.0.2-SNAPSHOT        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true"
+                        data-filter=":/main">jvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox"
+                        data-role="dropdown-toggle"
+                        aria-controls="platform-tags-listbox"
+                        aria-haspopup="listbox"
+                        aria-expanded="false"
+                        aria-label="Toggle source sets"
+                ></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":/main"
+                                       data-filter=":/main"/>
+                                <span class="checkbox--icon"></span>
+                                jvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button"
+                    type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config='{"defaultSize": 280, "minSize": 200, "maxSize": 400}'>
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list"
+                    data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    korogue
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="package" id="content" pageIds="korogue::com.sletmoe.korogue.systems////PointingToDeclaration//-251573632">
+  <div class="breadcrumbs"><a href="../../index.html">korogue</a><span class="delimiter">/</span><span class="current">com.sletmoe.korogue.systems</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>Package-level</span></span> <span><span>declarations</span></span></h1>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="TYPE">Types</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="TYPE">
+        <h2 class="tableheader">Types</h2>
+        <div class="table"><a data-name="-274004855%2FClasslikes%2F-251573632" anchor-label="BehaviorStrategy" id="-274004855%2FClasslikes%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-behavior-strategy/index.html"><span>Behavior</span><wbr></wbr><span><span>Strategy</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-274004855%2FClasslikes%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token keyword">interface </span><a href="-behavior-strategy/index.html">BehaviorStrategy</a></div><div class="brief "><p class="paragraph">The AI extension point (Phase 4d): one entity's decision for the current tick. A consuming game implements this, registers the instance under a stable id on its <code class="lang-kotlin">GameModule</code> (<code class="lang-kotlin">module.strategy(id, impl)</code>), and tags entities with <code class="lang-kotlin">Behavior(id)</code>; each tick <code class="lang-kotlin">BehaviorSystem</code> resolves the id and calls <a href="-behavior-strategy/decide.html">decide</a>. The built-in strategies (<a href="-wander-strategy/index.html">WanderStrategy</a>, <a href="-hunt-player-strategy/index.html">HuntPlayerStrategy</a>) live in <code class="lang-kotlin">BehaviorStrategies.kt</code>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-750477299%2FClasslikes%2F-251573632" anchor-label="BehaviorSystem" id="-750477299%2FClasslikes%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-behavior-system/index.html"><span>Behavior</span><wbr></wbr><span><span>System</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-750477299%2FClasslikes%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-behavior-system/index.html">BehaviorSystem</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">resolveStrategy<span class="token operator">: </span><span class="token punctuation">(</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="-behavior-strategy/index.html">BehaviorStrategy</a><span class="token punctuation">, </span></span><span class="parameter ">activeZones<span class="token operator">: </span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-set/index.html">Set</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span><span class="token operator">?</span><span class="token operator"> = </span>null</span></span><span class="token punctuation">)</span> : <a href="../com.sletmoe.korogue.ecs/-system/index.html">System</a></div><div class="brief "><p class="paragraph">Runs each <a href="../com.sletmoe.korogue.components/-behavior/index.html">Behavior</a> entity's strategy and emits the resulting <a href="../com.sletmoe.korogue.components/-move-intent/index.html">com.sletmoe.korogue.components.MoveIntent</a>. Registered before <code class="lang-kotlin">MovementSystem</code> so AI intents are resolved in the same tick as the player's. <span data-unresolved-link="com.sletmoe.korogue.systems/BehaviorSystem//#kotlin.Function1[kotlin.String,com.sletmoe.korogue.systems.BehaviorStrategy]#kotlin.Function0[kotlin.collections.Set[kotlin.String]]?/PointingToCallableParameters(0)/">resolveStrategy</span> is the narrow seam onto a <code class="lang-kotlin">GameModule</code>'s strategy registry (<code class="lang-kotlin">module.strategies::resolve</code>); tests inject deterministic stand-ins.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1353912939%2FClasslikes%2F-251573632" anchor-label="CombatSystem" id="1353912939%2FClasslikes%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-combat-system/index.html"><span>Combat</span><wbr></wbr><span><span>System</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1353912939%2FClasslikes%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-combat-system/index.html">CombatSystem</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">damage<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span>DEFAULT_DAMAGE</span></span><span class="token punctuation">)</span> : <a href="../com.sletmoe.korogue.ecs/-system/index.html">System</a></div><div class="brief "><p class="paragraph">Resolves <a href="../com.sletmoe.korogue.components/-attack-intent/index.html">AttackIntent</a>s into damage, then clears the dead. Each attacker's intent is consumed and applied to the target's <a href="../com.sletmoe.korogue.components/-health/index.html">Health</a>; afterwards any non-player entity at 0 HP is despawned. The player is spared here — death/game-over handling is out of scope (tracked separately as krogue-4zi).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="778924935%2FClasslikes%2F-251573632" anchor-label="HuntPlayerStrategy" id="778924935%2FClasslikes%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-hunt-player-strategy/index.html"><span>Hunt</span><wbr></wbr><span>Player</span><wbr></wbr><span><span>Strategy</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="778924935%2FClasslikes%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-hunt-player-strategy/index.html">HuntPlayerStrategy</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">range<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span>DEFAULT_RANGE<span class="token punctuation">, </span></span><span class="parameter ">actChance<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html">Double</a><span class="token operator"> = </span>DEFAULT_ACT_CHANCE</span></span><span class="token punctuation">)</span> : <a href="-behavior-strategy/index.html">BehaviorStrategy</a></div><div class="brief "><p class="paragraph">Hunt the player: with probability <span data-unresolved-link="com.sletmoe.korogue.systems/HuntPlayerStrategy//#kotlin.Int#kotlin.Double/PointingToCallableParameters(1)/">actChance</span> per tick, if the player is within <span data-unresolved-link="com.sletmoe.korogue.systems/HuntPlayerStrategy//#kotlin.Int#kotlin.Double/PointingToCallableParameters(0)/">range</span> (Chebyshev) tiles, step one tile toward them; otherwise stay put.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="655325203%2FClasslikes%2F-251573632" anchor-label="LightingSystem" id="655325203%2FClasslikes%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-lighting-system/index.html"><span>Lighting</span><wbr></wbr><span><span>System</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="655325203%2FClasslikes%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-lighting-system/index.html">LightingSystem</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">zones<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-map/index.html">Map</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span><a href="../com.sletmoe.korogue.world/-zone/index.html">Zone</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">resolveCalculator<span class="token operator">: </span><span class="token punctuation">(</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="../com.sletmoe.korogue.algorithms.lighting/-light-value-calculator/index.html">LightValueCalculator</a><span class="token punctuation">, </span></span><span class="parameter ">activeZones<span class="token operator">: </span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-set/index.html">Set</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span><span class="token operator">?</span><span class="token operator"> = </span>null</span></span><span class="token punctuation">)</span> : <a href="../com.sletmoe.korogue.ecs/-system/index.html">System</a></div><div class="brief "><p class="paragraph">Recomputes every <span data-unresolved-link="com.sletmoe.korogue.systems/LightingSystem//#kotlin.collections.Map[kotlin.String,com.sletmoe.korogue.world.Zone]#kotlin.Function1[kotlin.String,com.sletmoe.korogue.algorithms.lighting.LightValueCalculator]#kotlin.Function0[kotlin.collections.Set[kotlin.String]]?/PointingToCallableParameters(0)/">zone</span>'s <code class="lang-kotlin">lightMap</code> from the <a href="../com.sletmoe.korogue.components/-light-emitter/index.html">LightEmitter</a> entities in it, once per tick. Replaces the old <code class="lang-kotlin">Zone.recalculateLightMap</code>: instead of a Zone owning light sources, light is a query — each entity with <a href="../com.sletmoe.korogue.components/-light-emitter/index.html">LightEmitter</a> + <a href="../com.sletmoe.korogue.components/-position/index.html">Position</a> + <a href="../com.sletmoe.korogue.components/-zone-member/index.html">ZoneMember</a> contributes to its zone's map, and overlapping sources blend (softLight on colour, screen on intensity, matching the prior behaviour and its tests).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="673105424%2FClasslikes%2F-251573632" anchor-label="MovementSystem" id="673105424%2FClasslikes%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-movement-system/index.html"><span>Movement</span><wbr></wbr><span><span>System</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="673105424%2FClasslikes%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-movement-system/index.html">MovementSystem</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">zones<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-map/index.html">Map</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span><a href="../com.sletmoe.korogue.world/-zone/index.html">Zone</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span> : <a href="../com.sletmoe.korogue.ecs/-system/index.html">System</a></div><div class="brief "><p class="paragraph">Resolves <a href="../com.sletmoe.korogue.components/-move-intent/index.html">MoveIntent</a>s into actual movement. For each entity with a <a href="../com.sletmoe.korogue.components/-move-intent/index.html">MoveIntent</a> + <a href="../com.sletmoe.korogue.components/-position/index.html">Position</a> + <a href="../com.sletmoe.korogue.components/-zone-member/index.html">ZoneMember</a>, the intent is consumed and one of three things happens: a step onto walkable, unoccupied terrain (updates <a href="../com.sletmoe.korogue.components/-position/index.html">Position</a>); a bump into another entity in the destination cell (emits an <a href="../com.sletmoe.korogue.components/-attack-intent/index.html">AttackIntent</a> for <code class="lang-kotlin">CombatSystem</code>); or a no-op into a wall.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1820169699%2FClasslikes%2F-251573632" anchor-label="PickupSystem" id="1820169699%2FClasslikes%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-pickup-system/index.html"><span>Pickup</span><wbr></wbr><span><span>System</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1820169699%2FClasslikes%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-pickup-system/index.html">PickupSystem</a> : <a href="../com.sletmoe.korogue.ecs/-system/index.html">System</a></div><div class="brief "><p class="paragraph">Picks up <a href="../com.sletmoe.korogue.components/-item/index.html">Item</a> entities the player is standing on: each is despawned, its name appended to the player's <a href="../com.sletmoe.korogue.components/-inventory/index.html">Inventory</a>, and an <a href="../com.sletmoe.korogue.events/-item-picked-up/index.html">ItemPickedUp</a> event published (consumed by the log). Items are non-blocking (the player walks onto them — see <code class="lang-kotlin">MovementSystem</code>), so this runs after movement. No-op unless the player has an <a href="../com.sletmoe.korogue.components/-inventory/index.html">Inventory</a> component.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1563318771%2FClasslikes%2F-251573632" anchor-label="PortalSystem" id="1563318771%2FClasslikes%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-portal-system/index.html"><span>Portal</span><wbr></wbr><span><span>System</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1563318771%2FClasslikes%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-portal-system/index.html">PortalSystem</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">gameWorld<span class="token operator">: </span><a href="../com.sletmoe.korogue.world/-game-world/index.html">GameWorld</a></span></span><span class="token punctuation">)</span> : <a href="../com.sletmoe.korogue.ecs/-system/index.html">System</a></div><div class="brief "><p class="paragraph">Sends the player through a <a href="../com.sletmoe.korogue.components/-portal/index.html">Portal</a> it is standing on: moves the player to the portal's target (zone + position) and switches <a href="../com.sletmoe.korogue.world/-game-world/current-zone-id.html">GameWorld.currentZoneId</a> so the active — simulated and rendered — zone follows the player (ADR-0008), and publishes a <a href="../com.sletmoe.korogue.events/-zone-changed/index.html">ZoneChanged</a> event (Phase 4c). Runs after <code class="lang-kotlin">MovementSystem</code> (the player must have stepped onto the portal) and before <code class="lang-kotlin">LightingSystem</code> (so the arriving zone is lit the same tick). Only the player transitions for now; dormant-zone occupants stay put.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1243534030%2FClasslikes%2F-251573632" anchor-label="WanderStrategy" id="1243534030%2FClasslikes%2F-251573632" data-filterable-set=":/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":/main" data-filterable-set=":/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-wander-strategy/index.html"><span>Wander</span><wbr></wbr><span><span>Strategy</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1243534030%2FClasslikes%2F-251573632"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-wander-strategy/index.html">WanderStrategy</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">actChance<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html">Double</a><span class="token operator"> = </span>DEFAULT_ACT_CHANCE</span></span><span class="token punctuation">)</span> : <a href="-behavior-strategy/index.html">BehaviorStrategy</a></div><div class="brief "><p class="paragraph">The engine's built-in <a href="-behavior-strategy/index.html">BehaviorStrategy</a> implementations (Phase 4d). The extension-point contract is in <code class="lang-kotlin">BehaviorStrategy.kt</code>; a consuming game adds its own strategies the same way these are registered (<code class="lang-kotlin">GameModule.engineDefaults()</code> pre-loads both by id).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
