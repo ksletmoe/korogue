@@ -1,0 +1,145 @@
+# AGENTS.md
+
+Guidance for AI coding agents working in this repository.
+
+## What kotile is
+
+kotile is a Kotlin/JVM library for rendering grids of tiles, built on
+**LibGDX**. It supports two tile styles on the same rendering core:
+
+- **Image sprite sheets** — slice any image into tiles and draw them, with an
+  optional per-tile color tint.
+- **ASCII tiles** — a CP437 bitmap font drawn as foreground/background colored
+  cells.
+
+Rendering is immediate-mode: tile state is held in memory and the whole
+visible grid is redrawn every frame via a batched `SpriteBatch`.
+
+## Project layout
+
+A Gradle multi-module build:
+
+- **`:library`** — the published artifact (`com.sletmoe:kotile`). Depends only
+  on **gdx core** (`api`), so consumers choose their own gdx backend. Bundles
+  the CP437 font. Its tests add the LWJGL3 backend to get a GL context.
+- **`:demo`** — a runnable LWJGL3 application showing both tile styles. Depends
+  on `:library` plus the `gdx-backend-lwjgl3` backend and desktop natives, and
+  owns the demo-only assets (the Vaarn sprite sheet).
+
+Shared versions live in `gradle.properties` (`gdxVersion`, `kotestVersion`);
+the Kotlin plugin version is pinned in `settings.gradle.kts`.
+
+## Build, run, test
+
+The project uses the Gradle wrapper (Gradle 9.5.1, Kotlin 2.3.21, JDK 21
+toolchain). Run everything through `./gradlew`.
+
+```bash
+./gradlew build                  # compile + assemble + test both modules
+./gradlew :library:test          # library unit tests (GL tests skip, see below)
+./gradlew :demo:run              # launch the demo app (opens a window)
+./gradlew :demo:installDist      # stage the demo under demo/build/install/kotile
+./gradlew :library:publishToMavenLocal   # publish com.sletmoe:kotile to ~/.m2
+./gradlew :library:dokkaGenerate         # render API docs to library/build/dokka/html
+```
+
+Tests use **Kotest** (`FunSpec`) and live in `:library`. Two kinds:
+
+- **Unit tests** for GL-free logic (`Grid`, `LayeredTilemap`, `StaticTile`) —
+  run anywhere via `./gradlew :library:test`.
+- **Headless GL integration tests** (`RenderingIntegrationTest`) that boot a
+  real offscreen LWJGL3 context, render through the public API, and assert on
+  framebuffer pixels. They are auto-skipped when no display is present
+  (`HeadlessGl.available`). To run them, provide a virtual display with
+  software OpenGL:
+
+  ```bash
+  xvfb-run -a -s "-screen 0 1024x768x24" ./gradlew :library:test --no-daemon
+  ```
+
+  The `test` task forwards `DISPLAY` and forces Mesa software GL
+  (`LIBGL_ALWAYS_SOFTWARE=1`, `GALLIUM_DRIVER=llvmpipe`).
+
+## Running headless (no display / CI / agents)
+
+The demo is a GUI program, so a display and an OpenGL context are required.
+In a headless environment use a virtual framebuffer plus Mesa software GL, and
+the built-in snapshot hook (`-Dkotile.snapshot=<path>`) which renders one
+frame to a PNG and exits:
+
+```bash
+./gradlew :demo:installDist -q
+LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe \
+  KOTILE_OPTS="-Dkotile.snapshot=$PWD/render.png" \
+  xvfb-run -a -s "-screen 0 1024x768x24" demo/build/install/kotile/bin/kotile
+```
+
+`render.png` is gitignored. Pass JVM flags to the installed app via the
+`KOTILE_OPTS` env var (Gradle's `run` does NOT forward `-D` to the forked JVM).
+
+## Publishing
+
+`:library` applies `maven-publish` and publishes `com.sletmoe:kotile` with
+three jars: the classes, a **sources** jar, and a **javadoc** jar packaged from
+the Dokka HTML output. The POM declares only **gdx core** as a dependency — the
+LWJGL3 backend and natives are test-only and do not leak to consumers. Maven
+Central would additionally require GPG signing and Sonatype credentials (not
+set up here).
+
+## Documentation
+
+The public API is documented with **KDoc**. `org.jetbrains.dokka` (applied in
+`:library`) renders it: `./gradlew :library:dokkaGenerate` writes HTML to
+`library/build/dokka/html`, and the same output is bundled as the javadoc jar.
+The JDK external doc link is disabled (the JDK docs aren't reachable here) and
+`reportUndocumented` is on, so undocumented public declarations surface as build
+warnings — keep new public API documented.
+
+## Architecture
+
+Library source lives under `library/src/main/kotlin`. Package root:
+`com.sletmoe.kotile`. The demo's `Main.kt` is in `:demo`.
+
+- `display/KotileCanvas` — wraps a `SpriteBatch`; draws tile-sized
+  `TextureRegion`s with an optional tint. Tile coordinates are **top-left
+  origin, y increasing downwards**; the canvas maps that onto the GPU's
+  bottom-left origin.
+- `tiles/TileSheet` — slices an image into a grid of `TextureRegion`s. Takes
+  an optional `keyColor` that is zeroed out to transparent on load (so a sheet
+  with a solid background color can alpha-blend). Nearest filtering keeps
+  pixel art crisp.
+- `tiles/StaticTile` — a sheet cell `(sheetX, sheetY)` plus a `tint`
+  (default `Color.WHITE` = unmodified).
+- `rendering/TileRenderer` — abstract; holds a `LayeredTilemap` of
+  `StaticTile`s (z-ordered) and redraws it each frame, applying each tile's
+  tint. Subclasses map a tile to its region.
+- `rendering/SpriteTileRenderer` — concrete `TileRenderer` backed by a
+  `TileSheet`. The entry point for image sprite-sheet rendering.
+- `display/ascii/` — the ASCII layer: `AsciiTileWindow` (holds a grid of
+  descriptors, draws a background quad + foreground-tinted glyph per cell),
+  `AsciiTileDescriptor` (char + fg/bg color), and `Font`/`Fonts` (loads a
+  16x16 CP437 sheet; key color defaults to black, overridable).
+- `utilities/` — `Grid<T>` (flat 2D array), `LayeredTilemap` (z-layered tile
+  storage), `Vector2Int`, `Vector3Int`.
+
+## How tint works
+
+`SpriteBatch` multiplies each texel by the tint color (including alpha), so a
+tint can only darken/recolor and can fade via alpha. `Color.WHITE` is the
+identity (no manipulation) and is the default everywhere tint is accepted.
+
+## Conventions
+
+- Kotlin official code style.
+- LibGDX resources that own native memory (`Texture`, `SpriteBatch`,
+  `TileSheet`, `KotileCanvas`, `AsciiTileWindow`) implement/use `Disposable`;
+  dispose them when done.
+- Assets are loaded via `Gdx.files.classpath(...)`. Library assets (the CP437
+  font) live in `library/src/main/resources` and ship in the published jar;
+  demo-only assets live in `demo/src/main/resources`. Bundled third-party
+  assets must be open-licensed; record provenance next to the file (see
+  `demo/src/main/resources/vaarn-8x8.license.txt`, CC0).
+
+## Git
+
+Active development happens on the `task/initial-implementation` branch.
