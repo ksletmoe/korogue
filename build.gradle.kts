@@ -30,9 +30,9 @@ dependencies {
     implementation("io.github.microutils:kotlin-logging:_")
     implementation("org.slf4j:slf4j-log4j12:_")
     implementation("org.apache.commons:commons-math3:_")
-    // kotile rendering engine (composite build — see settings.gradle.kts).
+    // kotile rendering engine — an in-repo Gradle subproject (see settings.gradle.kts).
     // Brings libGDX gdx-core transitively via its `api` dependency.
-    implementation("com.sletmoe:kotile")
+    implementation(project(":kotile:library"))
     // libGDX LWJGL3 desktop backend — required to launch an AsciiTileWindow application.
     // Version must match kotile's gdx-core transitive dependency (1.14.1).
     implementation("com.badlogicgames.gdx:gdx-backend-lwjgl3:1.14.1")

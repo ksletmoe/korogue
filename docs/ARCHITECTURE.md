@@ -7,8 +7,8 @@
 ## The two libraries
 
 korogue is a general-purpose, extensible roguelike **game engine** (a library other
-roguelike-builders depend on), built on top of **kotile** (`~/development/kotile`),
-a general-purpose libGDX tile **renderer**.
+roguelike-builders depend on), built on top of **kotile** (the `:kotile:library`
+subproject in this repo), a general-purpose libGDX tile **renderer**.
 
 - **kotile** — tile rendering, layered tilemaps, animation, camera/viewport, input,
   fonts. The rendering primitive layer. Reusable by any libGDX tile game.
@@ -20,9 +20,11 @@ a general-purpose libGDX tile **renderer**.
 **If a non-roguelike libGDX game could plausibly use it, it belongs in kotile.**
 Roguelike-specific helpers (FOV, lighting application) belong in korogue.
 
-During development korogue consumes kotile via Gradle `includeBuild("../kotile")`
-(no version bumps while iterating), with a `dependencySubstitution` redirecting
-`com.sletmoe:kotile` → `project(":library")`.
+kotile lives in this repo as Gradle subprojects (`:kotile:library`, `:kotile:demo`),
+folded in from its former sibling repo. It keeps its own maven coordinates
+(`com.sletmoe:kotile`, published from `:kotile:library`); the engine depends on
+`project(":kotile:library")`. Atomic cross-cutting commits, one CI, no composite-build
+substitution.
 
 ## Entity model (decided)
 

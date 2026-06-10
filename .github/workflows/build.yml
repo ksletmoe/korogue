@@ -16,11 +16,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      # korogue consumes kotile as a sibling composite build (settings.gradle.kts:
-      # includeBuild("../kotile")); CI must check it out next to korogue. checkout's
-      # path must stay inside the workspace, so clone the (public) repo directly.
-      - name: Checkout kotile (sibling composite build)
-        run: git clone --depth 1 https://github.com/ksletmoe/kotile.git ../kotile
       - uses: actions/setup-java@v4
         with:
           distribution: 'corretto'

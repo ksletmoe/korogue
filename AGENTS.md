@@ -1,7 +1,8 @@
 # korogue — Agent Configuration
 
 korogue is a reusable, extensible roguelike **game engine** built on **kotile** (a
-general-purpose libGDX tile renderer; sibling repo at `~/development/kotile`).
+general-purpose libGDX tile renderer; in-repo Gradle subproject `:kotile:library`,
+sources under `kotile/`).
 
 > Canonical agent-instructions file. `CLAUDE.md` is a symlink to this one.
 

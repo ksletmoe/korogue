@@ -109,7 +109,7 @@ then given a tested ECS foundation:
   (consider `.rendering`).
 - README is still a TODO.
 
-## kotile current state (sibling repo `~/development/kotile`)
+## kotile current state (in-repo subprojects `:kotile:library` / `:kotile:demo`, under `kotile/`)
 
 - `com.sletmoe:kotile`, libGDX 1.14.1, 1.0-SNAPSHOT. maven-publish configured but **not
   yet on Sonatype** (needs credentials).

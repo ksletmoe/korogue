@@ -15,9 +15,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      # korogue consumes kotile as a sibling composite build (settings.gradle.kts).
-      - name: Checkout kotile (sibling composite build)
-        run: git clone --depth 1 https://github.com/ksletmoe/kotile.git ../kotile
       - uses: actions/setup-java@v4
         with:
           distribution: 'corretto'
