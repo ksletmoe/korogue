@@ -45,7 +45,7 @@ then given a tested ECS foundation:
   `render()`→`onTick()`), `MyGame` (demo: player + lantern, two zones linked by `>`/`<`
   stairs), `Main` (Lwjgl3 entry), `KotileZoneRenderer` (FOV + lighting tints + viewport +
   previously-seen dimming; reads ECS entities; rebuilt on zone change but handed the zone's
-  retained fog grid, so exploration persists — see `ZoneFog`, krogue-ro8). Run with `./gradlew run`.
+  retained fog grid, so exploration persists — see `ZoneFog`, krogue-ro8). Run with `./gradlew :demo:run`.
 - **100% `java.awt`-free.** Colors are GDX `Color`; geometry is kotile `Vector2Int`
   + `com.sletmoe.korogue.utilities.IntRect` (helpers in `utilities/Geometry.kt`).
 - **ECS-based (Phase 4b done).** `GameWorld` composes `ecs.World` + a zone registry

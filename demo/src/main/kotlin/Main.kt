@@ -1,6 +1,6 @@
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
-import com.sletmoe.korogue.kotile.MyGame
+import com.sletmoe.korogue.demo.MyGame
 
 fun main() {
     val config =

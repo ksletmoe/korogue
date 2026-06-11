@@ -12,7 +12,7 @@ import com.sletmoe.korogue.utilities.Grid
  * [forZone] returns the *same* grid for a given zone id across calls, so exploration is
  * additive across visits.
  */
-internal class ZoneFog {
+class ZoneFog {
     private val byZone = mutableMapOf<String, Grid<Boolean>>()
 
     /**

@@ -35,10 +35,14 @@ workflow and sync details are in the "Beads Issue Tracker" section below and via
 ## Build & test
 
 ```bash
-./gradlew test           # full suite (Kotest)
-./gradlew compileKotlin   # quick compile check
-./gradlew run             # run the demo (MainKt; macOS -XstartOnFirstThread is wired in)
+./gradlew test            # full suite (Kotest), all modules
+./gradlew :engine:compileKotlin   # quick compile check of the engine
+./gradlew :demo:run       # run the demo (macOS -XstartOnFirstThread is wired in)
 ```
+
+Module layout (multi-project): root is a pure aggregator; `:engine` is the korogue
+library, `:demo` is the runnable demo (consumes `:engine`), and kotile is in-repo as
+`:kotile:library` (publishable `com.sletmoe:kotile`) + `:kotile:demo`.
 
 Always run tests after code changes and verify the build before committing.
 

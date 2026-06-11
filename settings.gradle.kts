@@ -27,7 +27,7 @@ refreshVersions {
 
 rootProject.name = "korogue"
 
-// kotile lives in this repo as Gradle subprojects (folded in from its former sibling
-// repo). It keeps its own maven coordinates (com.sletmoe:kotile via the :kotile:library
-// publication); the engine depends on project(":kotile:library").
-include(":kotile:library", ":kotile:demo")
+// Multi-project: the root is a pure aggregator. The korogue engine library is :engine,
+// the runnable demo is :demo, and kotile (folded in from its former sibling repo) lives as
+// :kotile:library (publishable, com.sletmoe:kotile) + :kotile:demo.
+include(":engine", ":demo", ":kotile:library", ":kotile:demo")

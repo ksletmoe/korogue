@@ -1,4 +1,4 @@
-package com.sletmoe.korogue.kotile
+package com.sletmoe.korogue.demo
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
@@ -26,6 +26,8 @@ import com.sletmoe.korogue.ecs.EntityId
 import com.sletmoe.korogue.events.EntityDamaged
 import com.sletmoe.korogue.events.EntityDied
 import com.sletmoe.korogue.events.ItemPickedUp
+import com.sletmoe.korogue.kotile.Game
+import com.sletmoe.korogue.kotile.ZoneFog
 import com.sletmoe.korogue.random.GameRandom
 import com.sletmoe.korogue.registry.GameModule
 import com.sletmoe.korogue.save.SaveCodec

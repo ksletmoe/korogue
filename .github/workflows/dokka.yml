@@ -20,9 +20,9 @@ jobs:
           distribution: 'corretto'
           java-version: '21'
       - name: Build documentation
-        run: ./gradlew :dokkaGenerateHtml --no-daemon --stacktrace
+        run: ./gradlew :engine:dokkaGenerateHtml --no-daemon --stacktrace
       - name: Publish documentation
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: build/dokka/html
+          publish_dir: engine/build/dokka/html
