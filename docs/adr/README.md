@@ -26,3 +26,4 @@ Point-in-time records of **why** significant or hard-to-reverse decisions were m
 | [0010](0010-event-bus.md) | Deferred-dispatch event bus for decoupled notifications | Accepted |
 | [0011](0011-korogue-ui-toolkit.md) | A korogue-side TUI widget toolkit; kotile stays a renderer | Accepted |
 | [0012](0012-rogue-example.md) | A faithful Rogue 5.4.4 example, ported under BSD-3-Clause with attribution | Accepted |
+| [0013](0013-monorepo-and-module-layout.md) | korogue rename, monorepo with kotile, and the module layout | Accepted |
