@@ -203,13 +203,14 @@ class MyGame(
         primeLighting()
     }
 
-    override fun onTick() {
+    override fun onTick(deltaMs: Long) {
         if (ui.hasModal) return // a dialog (menu / game over) is up: pause the world
         // The loop decides whether this frame advances the world: turn-based ticks once per player
-        // move (requestTurn from intendMove); real-time ticks every frame. A tick runs all systems
-        // (BehaviorSystem -> MovementSystem -> PortalSystem -> PickupSystem -> CombatSystem ->
-        // LightingSystem); gameplay randomness draws from its own stream (ADR-0009).
-        gameLoop.advance {
+        // move (requestTurn from intendMove); real-time ticks at a fixed timestep, accumulating
+        // deltaMs so speed is FPS-independent (krogue-k7q). A tick runs all systems (BehaviorSystem
+        // -> MovementSystem -> PortalSystem -> PickupSystem -> CombatSystem -> LightingSystem);
+        // gameplay randomness draws from its own stream (ADR-0009).
+        gameLoop.advance(deltaMs) {
             world.ecs.tick(random = gameRandom.stream("gameplay"))
             if (!gameOverShown && (world.ecs.get(playerId)?.get<Health>()?.dead == true)) openGameOver()
         }

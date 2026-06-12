@@ -91,13 +91,17 @@ then given a tested ECS foundation:
   `Inventory(items)` components (serializable, registered), a `PickupSystem` (walk onto a
   non-blocking item → despawn + add to inventory + `ItemPickedUp` event), and the `InventoryPanel`.
   Names-only for now; richer items grow with krogue-sdh.
-- **Game loop modes (krogue-lhw).** A pluggable `GameLoop` (`com.sletmoe.korogue.loop`) decides
-  when the world advances: `TurnBasedLoop` ticks once per committed player action (turn-on-input —
-  the demo's default now, so monsters wait for you and you can't die instantly), or `RealTimeLoop`
-  ticks every frame (continuous, the original behavior; `MyGame(turnBased = false)`). Turn-based AI
-  acts every turn (the demo registers strategies with `actChance = 1.0`); real-time keeps the
-  per-tick act-chance throttle so creatures don't move at frame rate.
-- **~289 tests** (`./gradlew test`). Example-based Kotest.
+- **Game loop modes (krogue-lhw, krogue-k7q).** A pluggable `GameLoop` (`com.sletmoe.korogue.loop`)
+  decides when the world advances: `TurnBasedLoop` ticks once per committed player action
+  (turn-on-input — the demo's default now, so monsters wait for you and you can't die instantly), or
+  `RealTimeLoop` ticks continuously at a **fixed timestep** (`MyGame(turnBased = false)`).
+  `RealTimeLoop` accumulates the per-frame `deltaMs` (threaded through `Game.onTick(deltaMs)`) and
+  advances once per whole `stepMs` (default 100ms / 10 Hz), with a `maxCatchUpSteps` cap that drops
+  the backlog after a long frame — so game speed is independent of render FPS (no more "faster
+  machine = faster monsters") and frame hitches don't stutter the sim. Turn-based AI acts every turn
+  (the demo registers strategies with `actChance = 1.0`); real-time keeps the per-tick act-chance
+  throttle so creatures don't move at frame rate.
+- **~293 tests** (`./gradlew test`). Example-based Kotest.
 
 ### Known issues / cleanups still open
 - Player HP is shown (HP bar) and death is handled (game-over dialog at 0 HP; krogue-4zi done).

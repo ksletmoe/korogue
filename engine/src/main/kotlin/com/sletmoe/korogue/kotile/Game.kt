@@ -47,8 +47,11 @@ abstract class Game : ApplicationAdapter() {
     /**
      * Called once per frame before [drawFrame]. Advance game state here
      * (creature AI, world ticks, etc.).
+     *
+     * @param deltaMs wall-clock milliseconds since the previous frame; thread into a
+     *   fixed-timestep game loop so world speed is independent of render FPS.
      */
-    protected open fun onTick() {}
+    protected open fun onTick(deltaMs: Long) {}
 
     /**
      * Called once per frame after [onTick]. Write tiles into [window] and call
@@ -89,12 +92,13 @@ abstract class Game : ApplicationAdapter() {
     }
 
     override fun render() {
-        elapsedMs += (Gdx.graphics.deltaTime * 1000).toLong()
+        val deltaMs = (Gdx.graphics.deltaTime * 1000).toLong()
+        elapsedMs += deltaMs
 
         Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
 
-        onTick()
+        onTick(deltaMs)
         drawFrame(elapsedMs)
     }
 
