@@ -6,6 +6,7 @@ import com.sletmoe.korogue.components.Position
 import com.sletmoe.korogue.ecs.Entity
 import com.sletmoe.korogue.ecs.TickContext
 import com.sletmoe.korogue.ecs.World
+import com.sletmoe.korogue.utilities.Direction
 import kotlin.math.abs
 
 /**
@@ -25,8 +26,7 @@ class WanderStrategy(
         ctx: TickContext,
     ): MoveIntent? {
         if (ctx.random.nextDouble() >= actChance) return null
-        val (dx, dy) = STEPS.random(ctx.random)
-        return MoveIntent(dx, dy)
+        return MoveIntent(Direction.CARDINAL.random(ctx.random))
     }
 
     companion object {
@@ -69,4 +69,3 @@ class HuntPlayerStrategy(
 
 private const val DEFAULT_ACT_CHANCE = 0.02
 private const val DEFAULT_RANGE = 10
-private val STEPS = listOf(1 to 0, -1 to 0, 0 to 1, 0 to -1)

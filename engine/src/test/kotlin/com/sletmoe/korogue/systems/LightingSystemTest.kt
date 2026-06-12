@@ -3,6 +3,7 @@ package com.sletmoe.korogue.systems
 import com.badlogic.gdx.graphics.Color
 import com.sletmoe.korogue.algorithms.color.toNormalizedRgb
 import com.sletmoe.korogue.algorithms.lighting.DiminishingLightValueCalculator
+import com.sletmoe.korogue.algorithms.lighting.LightValue
 import com.sletmoe.korogue.components.LightEmitter
 import com.sletmoe.korogue.components.Position
 import com.sletmoe.korogue.components.ZoneMember
@@ -101,6 +102,45 @@ class LightingSystemTest : DescribeSpec({
             val blended = zone.lightMap[10, 10].shouldNotBeNull()
             blended.intensity shouldBe (0.91 plusOrMinus 1e-9)
             blended.intensity shouldBeGreaterThan 0.7
+        }
+
+        it("with a fullbright ambient, every cell is lit even with no emitters (global illumination)") {
+            val zone = Zone("test", Grid(21, 21, BLANK_TILE))
+            val world =
+                World().addSystem(
+                    LightingSystem(
+                        mapOf(zone.zoneId to zone),
+                        calculators::resolve,
+                        ambientLight = LightValue.FULLBRIGHT,
+                    ),
+                )
+
+            world.tick()
+
+            // No LightEmitter anywhere, yet the whole map is lit at full intensity.
+            zone.lightMap[0, 0].shouldNotBeNull().intensity shouldBe 1.0
+            zone.lightMap[20, 20].shouldNotBeNull().intensity shouldBe 1.0
+            zone.lightMap[10, 10].shouldNotBeNull().intensity shouldBe 1.0
+        }
+
+        it("ambient is a baseline emitters still blend on top of") {
+            val zone = Zone("test", Grid(21, 21, BLANK_TILE))
+            val world =
+                World().addSystem(
+                    LightingSystem(
+                        mapOf(zone.zoneId to zone),
+                        calculators::resolve,
+                        // A dim ambient so an emitter visibly raises intensity above it.
+                        ambientLight = LightValue(Color.WHITE.toNormalizedRgb(), 0.2),
+                    ),
+                )
+            world.addLightAt(10, 10, radius = 5.0)
+
+            world.tick()
+
+            // A far corner sits at the ambient baseline; near the emitter it's brighter.
+            zone.lightMap[0, 0].shouldNotBeNull().intensity shouldBe (0.2 plusOrMinus 1e-9)
+            zone.lightMap[10, 10].shouldNotBeNull().intensity shouldBeGreaterThan 0.2
         }
 
         it("only recomputes active zones; a dormant zone keeps its prior light (ADR-0008)") {

@@ -109,7 +109,20 @@ then given a tested ECS foundation:
   advances it once per world turn (register it in the system pipeline). The demo wires it through
   registerSystems + save/load but registers no effects yet; it's the foundation for Rogue's hunger
   clock, regen, status-effect expiry, and wandering-monster spawns (krogue-fwh/pyh/m07).
-- **~310 tests** (`./gradlew test`). Example-based Kotest.
+- **Engine pieces surfaced by the Rogue example (ADR-0012).** Building `korogue-rogue` (the separate
+  downstream repo at `~/development/korogue-rogue`, consuming korogue via a Gradle composite build)
+  as a real consumer turned up gaps now filled in the engine:
+  - **Global-illumination lighting (krogue-0vg).** `LightingSystem` takes an `ambientLight:
+    LightValue?` baseline (default `null` = the old emitter-only behaviour). Pass
+    `LightValue.FULLBRIGHT` for a uniformly-lit zone — the model for games that don't track light
+    per-source (Rogue), where map visibility is just line-of-sight; emitters still blend on top.
+  - **`Direction` (krogue-0uz).** The 8 compass directions as a grid primitive in
+    `utilities` (unit `dx`/`dy`, `opposite`, `from`, `CARDINAL`/`DIAGONAL`, `ofStep`/`between`),
+    plus a `MoveIntent(Direction)` constructor. `WanderStrategy` now uses it instead of an ad-hoc
+    step list.
+  - **`Label` widget (krogue-e43).** A single line of (live) text in the UI toolkit, for status
+    lines / captions / HUD readouts — the gap that previously forced a hand-rolled widget.
+- **~321 tests** (`./gradlew test`). Example-based Kotest.
 
 ### Known issues / cleanups still open
 - Player HP is shown (HP bar) and death is handled (game-over dialog at 0 HP; krogue-4zi done).

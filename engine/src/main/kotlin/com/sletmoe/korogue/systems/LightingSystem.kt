@@ -18,11 +18,17 @@ import com.sletmoe.korogue.world.Zone
  * light sources, light is a query — each entity with [LightEmitter] + [Position] +
  * [ZoneMember] contributes to its zone's map, and overlapping sources blend (softLight
  * on colour, screen on intensity, matching the prior behaviour and its tests).
+ *
+ * [ambientLight] is the baseline every cell starts at before emitters are added (default `null` =
+ * unlit, so only cells within an emitter's reach are visible). Pass [LightValue.FULLBRIGHT] for a
+ * uniformly-lit zone ("global illumination") — the model for games that don't track light per-source
+ * (e.g. Rogue), where map visibility is just line-of-sight; emitters, if any, still blend on top.
  */
 class LightingSystem(
     private val zones: Map<String, Zone>,
     private val resolveCalculator: (String) -> LightValueCalculator,
     private val activeZones: (() -> Set<String>)? = null,
+    private val ambientLight: LightValue? = null,
 ) : System {
     override fun update(
         world: World,
@@ -31,7 +37,7 @@ class LightingSystem(
         val active = activeZones?.invoke()
         // Only recompute active zones; dormant zones keep their last (frozen) lightMap.
         val target = if (active == null) zones else zones.filterKeys { it in active }
-        target.values.forEach { it.lightMap.fill(null) }
+        target.values.forEach { it.lightMap.fill(ambientLight) }
 
         for (entity in world.entitiesWith<LightEmitter, Position, ZoneMember>()) {
             if (active != null && entity.require<ZoneMember>().zoneId !in active) continue
