@@ -122,6 +122,10 @@ then given a tested ECS foundation:
     step list.
   - **`Label` widget (krogue-e43).** A single line of (live) text in the UI toolkit, for status
     lines / captions / HUD readouts — the gap that previously forced a hand-rolled widget.
+  - **Uncapped view distance (krogue-f50).** `MapPanel.maximumVisibilityDistance` is now `Double?`
+    and **defaults to `null`** (visibility limited only by walls) instead of a surprise 30-tile
+    circular cap — least-footgun default. (Interim: a mutable per-observer sight radius belongs on
+    a future `Vision`/perception model — see the visibility-rework discussion / forthcoming ADR.)
 - **~321 tests** (`./gradlew test`). Example-based Kotest.
 
 ### Known issues / cleanups still open

@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.Color
 import com.sletmoe.korogue.algorithms.color.toNormalizedRgb
 import com.sletmoe.korogue.algorithms.lighting.LightValue
 import com.sletmoe.korogue.algorithms.los.OmnicientLineOfSightCalculator
+import com.sletmoe.korogue.algorithms.los.SymmetricShadowCaster
 import com.sletmoe.korogue.components.Player
 import com.sletmoe.korogue.components.Position
 import com.sletmoe.korogue.components.RenderLayer
@@ -57,6 +58,27 @@ class MapPanelTest : FunSpec({
 
         surface.top(3, 3).shouldNotBeNull().glyph shouldBe '.' // lit floor shown
         surface.top(0, 0).shouldBeNull() // unlit, never seen -> hidden (left black)
+    }
+
+    test("maximumVisibilityDistance caps how far is seen; null is uncapped (walls only)") {
+        // Player at (2,2); a far lit cell at (5,5), distance ~4.24. The zone is open (no walls
+        // between), so SymmetricShadowCaster reveals (5,5) unless the distance cap hides it.
+        fun panelWith(distance: Double?) =
+            MapPanel(
+                IntRect(0, 0, 6, 6),
+                world(lit = arrayOf(5 to 5)),
+                { Grid(6, 6, false) },
+                SymmetricShadowCaster(),
+                maximumVisibilityDistance = distance,
+            )
+
+        val capped = RecordingSurface(6, 6)
+        panelWith(2.0).draw(capped)
+        capped.top(5, 5).shouldBeNull() // lit, but beyond the 2-tile cap -> not seen
+
+        val uncapped = RecordingSurface(6, 6)
+        panelWith(null).draw(uncapped)
+        uncapped.top(5, 5).shouldNotBeNull().glyph shouldBe '.' // no cap, no walls -> seen
     }
 
     test("previously-seen (fog) terrain is drawn even when not currently lit") {

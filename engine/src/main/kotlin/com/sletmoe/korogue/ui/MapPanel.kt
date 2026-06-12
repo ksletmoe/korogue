@@ -36,7 +36,10 @@ class MapPanel(
     private val gameWorld: GameWorld,
     private val fogFor: (Zone) -> Grid<Boolean>,
     var losCalculator: LineOfSightCalculator,
-    private val maximumVisibilityDistance: Double = DEFAULT_MAX_VISIBILITY,
+    // Optional hard circular cap on how far the player sees, regardless of obstacles. Defaults to
+    // null = uncapped, so visibility is limited only by walls (least surprise); set a distance for
+    // a hand-held-light feel, where lighting alone doesn't already bound how far you see.
+    private val maximumVisibilityDistance: Double? = null,
 ) : Widget {
     override fun draw(surface: TileSurface) {
         val zone = gameWorld.currentZone
@@ -174,7 +177,6 @@ class MapPanel(
 
     companion object {
         private const val TERRAIN_Z = 0
-        private const val DEFAULT_MAX_VISIBILITY = 30.0
         private const val PREVIOUSLY_VIEWED_DIM_FACTOR = 0.25
         private const val PREVIOUSLY_VIEWED_BLUE_BOOST = 0.10f
     }
