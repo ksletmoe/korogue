@@ -15,6 +15,7 @@ import com.sletmoe.korogue.components.Position
 import com.sletmoe.korogue.components.Renderable
 import com.sletmoe.korogue.components.ZoneMember
 import com.sletmoe.korogue.ecs.Component
+import com.sletmoe.korogue.schedule.TimedEffect
 import com.sletmoe.korogue.systems.BehaviorStrategy
 import com.sletmoe.korogue.systems.HuntPlayerStrategy
 import com.sletmoe.korogue.systems.WanderStrategy
@@ -32,11 +33,13 @@ import kotlin.reflect.KClass
 class GameModule private constructor(
     val strategies: Registry<BehaviorStrategy>,
     val calculators: Registry<LightValueCalculator>,
+    val effects: Registry<TimedEffect>,
     val components: ComponentRegistry,
 ) {
     class Builder internal constructor(
         private val strategies: MutableMap<String, BehaviorStrategy>,
         private val calculators: MutableMap<String, LightValueCalculator>,
+        private val effects: MutableMap<String, TimedEffect>,
         private val components: MutableMap<KClass<out Component>, KSerializer<out Component>>,
     ) {
         /** Register (or override) an AI strategy under [id]. */
@@ -44,6 +47,12 @@ class GameModule private constructor(
             id: String,
             strategy: BehaviorStrategy,
         ): Builder = apply { strategies[id] = strategy }
+
+        /** Register (or override) a scheduled [TimedEffect] (daemon/fuse) under [id]. */
+        fun effect(
+            id: String,
+            effect: TimedEffect,
+        ): Builder = apply { effects[id] = effect }
 
         /** Register (or override) a light calculator under [id]. */
         fun calculator(
@@ -64,6 +73,7 @@ class GameModule private constructor(
             GameModule(
                 Registry(strategies.toMap()),
                 Registry(calculators.toMap()),
+                Registry(effects.toMap()),
                 ComponentRegistry(components.toMap()),
             )
     }
@@ -82,6 +92,8 @@ class GameModule private constructor(
                         DiminishingLightValueCalculator.ID to DiminishingLightValueCalculator(),
                         GlobalLightValueCalculator.ID to GlobalLightValueCalculator(),
                     ),
+                // No built-in timed effects: the engine provides the scheduler; games provide effects.
+                effects = mutableMapOf(),
                 components = mutableMapOf(),
             ).component<Position>()
                 .component<ZoneMember>()

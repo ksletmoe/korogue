@@ -35,6 +35,8 @@ import com.sletmoe.korogue.loop.TurnBasedLoop
 import com.sletmoe.korogue.random.GameRandom
 import com.sletmoe.korogue.registry.GameModule
 import com.sletmoe.korogue.save.SaveCodec
+import com.sletmoe.korogue.schedule.Scheduler
+import com.sletmoe.korogue.schedule.SchedulerSystem
 import com.sletmoe.korogue.systems.BehaviorSystem
 import com.sletmoe.korogue.systems.CombatSystem
 import com.sletmoe.korogue.systems.HuntPlayerStrategy
@@ -124,6 +126,11 @@ class MyGame(
     /** Drives world advancement: turn-on-input or continuous (see [turnBased], krogue-lhw). */
     private val gameLoop: GameLoop = if (turnBased) TurnBasedLoop() else RealTimeLoop()
 
+    // Daemon/fuse timers (krogue-6uq). The demo registers no timed effects yet, so this is empty;
+    // it's wired through registerSystems and save/load so the Rogue example (krogue-sdh) only needs
+    // to register effects (gameModule.effect(...)) and schedule them. Restored in place on load.
+    private val scheduler: Scheduler = Scheduler()
+
     // Save/load (F5/F9). The codec knows every registered component; the save file lives in
     // the working directory so it's easy to find when running the demo.
     private val saveCodec: SaveCodec = SaveCodec(gameModule.components)
@@ -164,6 +171,8 @@ class MyGame(
         lightingSystem =
             LightingSystem(world.zones, gameModule.calculators::resolve, activeZones = world::simulatedZones)
         world.ecs
+            // First in the pipeline: timed effects (regen/hunger/spawns) resolve at the top of the turn.
+            .addSystem(SchedulerSystem(scheduler, gameModule.effects::resolve))
             .addSystem(BehaviorSystem(gameModule.strategies::resolve, activeZones = world::simulatedZones))
             .addSystem(MovementSystem(world.zones))
             .addSystem(PortalSystem(world))
@@ -375,9 +384,9 @@ class MyGame(
     // Save / load (F5 / F9)
     // -------------------------------------------------------------------------
 
-    /** Writes the full game state (entities + terrain + RNG + per-zone fog) to [saveFile]. */
+    /** Writes the full game state (entities + terrain + RNG + per-zone fog + timers) to [saveFile]. */
     private fun save() {
-        val bytes = saveCodec.save(world, gameRandom, zoneFog.snapshot())
+        val bytes = saveCodec.save(world, gameRandom, zoneFog.snapshot(), scheduler.snapshot())
         saveFile.writeBytes(bytes)
         println("Saved ${bytes.size} bytes to ${saveFile.absolutePath}")
     }
@@ -398,6 +407,7 @@ class MyGame(
         world = loaded.world
         gameRandom = loaded.random
         zoneFog.restore(loaded.fog)
+        scheduler.restore(loaded.schedule)
         playerId = world.ecs.entitiesWith<Player>().first().id
         registerSystems()
         buildUi(los)

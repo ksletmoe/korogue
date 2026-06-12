@@ -5,6 +5,7 @@ import com.sletmoe.korogue.ecs.EntityId
 import com.sletmoe.korogue.ecs.World
 import com.sletmoe.korogue.random.GameRandom
 import com.sletmoe.korogue.registry.ComponentRegistry
+import com.sletmoe.korogue.schedule.SchedulerState
 import com.sletmoe.korogue.utilities.Grid
 import com.sletmoe.korogue.world.GameWorld
 import com.sletmoe.korogue.world.Zone
@@ -22,6 +23,7 @@ data class LoadedGame(
     val world: GameWorld,
     val random: GameRandom,
     val fog: Map<String, Grid<Boolean>> = emptyMap(),
+    val schedule: SchedulerState = SchedulerState(),
 )
 
 /**
@@ -40,6 +42,7 @@ class SaveCodec(
         world: GameWorld,
         random: GameRandom,
         fog: Map<String, Grid<Boolean>> = emptyMap(),
+        schedule: SchedulerState = SchedulerState(),
     ): ByteArray {
         val ecs = world.ecs
         val entities =
@@ -63,6 +66,7 @@ class SaveCodec(
                 zones = zones,
                 entities = entities,
                 fog = savedFog,
+                schedule = schedule,
             )
         val payload = cbor.encodeToByteArray(SaveData.serializer(), data)
         return cbor.encodeToByteArray(SaveEnvelope.serializer(), SaveEnvelope(FORMAT_VERSION, payload))
@@ -83,7 +87,7 @@ class SaveCodec(
             nextId = data.nextEntityId,
             entities = data.entities.map { Entity(EntityId(it.id), it.components) },
         )
-        return LoadedGame(GameWorld(ecs, zones, data.currentZoneId), GameRandom.restore(data.rng), fog)
+        return LoadedGame(GameWorld(ecs, zones, data.currentZoneId), GameRandom.restore(data.rng), fog, data.schedule)
     }
 
     private fun <T> flatten(grid: Grid<T>): List<T> {

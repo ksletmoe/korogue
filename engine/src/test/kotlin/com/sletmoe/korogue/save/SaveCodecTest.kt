@@ -10,6 +10,8 @@ import com.sletmoe.korogue.components.Position
 import com.sletmoe.korogue.components.ZoneMember
 import com.sletmoe.korogue.random.GameRandom
 import com.sletmoe.korogue.registry.GameModule
+import com.sletmoe.korogue.schedule.Scheduler
+import com.sletmoe.korogue.schedule.SchedulerState
 import com.sletmoe.korogue.systems.HuntPlayerStrategy
 import com.sletmoe.korogue.utilities.Grid
 import com.sletmoe.korogue.world.GameWorld
@@ -102,6 +104,30 @@ class SaveCodecTest : FunSpec({
         val loaded = codec.load(codec.save(world, GameRandom.fromSeed(1)))
 
         loaded.fog shouldBe emptyMap()
+    }
+
+    test("round-trips the daemon/fuse schedule so timers resume after load") {
+        val world = GameWorld.create { zone("a", 2, 2, isCurrentZone = true) { fill(floor) } }
+        val scheduler =
+            Scheduler().apply {
+                fuse("regen", afterTurns = 5)
+                daemon("hunger", everyTurns = 10)
+            }
+
+        val loaded = codec.load(codec.save(world, GameRandom.fromSeed(1), schedule = scheduler.snapshot()))
+
+        loaded.schedule shouldBe scheduler.snapshot()
+        // Restore into a fresh scheduler and confirm the timers are live.
+        val resumed = Scheduler().apply { restore(loaded.schedule) }
+        resumed.size shouldBe 2
+    }
+
+    test("a save without a schedule loads with an empty one (additive default)") {
+        val world = GameWorld.create { zone("a", 2, 2, isCurrentZone = true) { fill(floor) } }
+
+        val loaded = codec.load(codec.save(world, GameRandom.fromSeed(1)))
+
+        loaded.schedule shouldBe SchedulerState()
     }
 
     test("rejects an unsupported format version (fail-fast)") {

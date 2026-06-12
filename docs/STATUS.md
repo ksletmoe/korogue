@@ -101,7 +101,15 @@ then given a tested ECS foundation:
   machine = faster monsters") and frame hitches don't stutter the sim. Turn-based AI acts every turn
   (the demo registers strategies with `actChance = 1.0`); real-time keeps the per-tick act-chance
   throttle so creatures don't move at frame rate.
-- **~293 tests** (`./gradlew test`). Example-based Kotest.
+- **Timed-effects scheduler (krogue-6uq).** A turn-keyed `Scheduler` (`com.sletmoe.korogue.schedule`,
+  modelled on Rogue's `daemons.c`) schedules **fuses** (one-shot, fire after N turns) and **daemons**
+  (recurring, every N turns), with `cancel`/`lengthen` by handle. Effects are `TimedEffect`s
+  registered by id in `GameModule` (new `effects` registry) — so the schedule is fully serializable
+  (`SchedulerState`, a defaulted `SaveData` field) and timers resume across save/load. `SchedulerSystem`
+  advances it once per world turn (register it in the system pipeline). The demo wires it through
+  registerSystems + save/load but registers no effects yet; it's the foundation for Rogue's hunger
+  clock, regen, status-effect expiry, and wandering-monster spawns (krogue-fwh/pyh/m07).
+- **~310 tests** (`./gradlew test`). Example-based Kotest.
 
 ### Known issues / cleanups still open
 - Player HP is shown (HP bar) and death is handled (game-over dialog at 0 HP; krogue-4zi done).

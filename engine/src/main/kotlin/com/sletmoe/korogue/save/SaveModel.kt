@@ -2,6 +2,7 @@ package com.sletmoe.korogue.save
 
 import com.sletmoe.korogue.ecs.Component
 import com.sletmoe.korogue.random.GameRandomState
+import com.sletmoe.korogue.schedule.SchedulerState
 import com.sletmoe.korogue.world.Tile
 import kotlinx.serialization.Polymorphic
 import kotlinx.serialization.Serializable
@@ -22,7 +23,9 @@ data class SaveEnvelope(
  * The persisted game state (ADR-0009). Derived state (lightMap) and transient intents are
  * excluded. [fog] is player knowledge (explored cells), kept as its own per-zone section
  * rather than folded into [zones] (terrain) — it defaults to empty so older, fog-less
- * payloads still decode (the additive-change path from ADR-0009, no version bump).
+ * payloads still decode (the additive-change path from ADR-0009, no version bump). [schedule]
+ * (krogue-6uq) is the daemon/fuse timer state; it defaults to empty so pre-scheduler payloads
+ * still decode.
  */
 @Serializable
 data class SaveData(
@@ -33,6 +36,7 @@ data class SaveData(
     val zones: List<SavedZone>,
     val entities: List<SavedEntity>,
     val fog: List<SavedFog> = emptyList(),
+    val schedule: SchedulerState = SchedulerState(),
 )
 
 /** A zone's terrain: dimensions plus its tiles in row-major order. */
