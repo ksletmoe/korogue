@@ -23,11 +23,15 @@ import com.sletmoe.korogue.components.RenderLayer
 import com.sletmoe.korogue.components.Renderable
 import com.sletmoe.korogue.components.ZoneMember
 import com.sletmoe.korogue.ecs.EntityId
+import com.sletmoe.korogue.ecs.TickContext
 import com.sletmoe.korogue.events.EntityDamaged
 import com.sletmoe.korogue.events.EntityDied
 import com.sletmoe.korogue.events.ItemPickedUp
 import com.sletmoe.korogue.kotile.Game
 import com.sletmoe.korogue.kotile.ZoneFog
+import com.sletmoe.korogue.loop.GameLoop
+import com.sletmoe.korogue.loop.RealTimeLoop
+import com.sletmoe.korogue.loop.TurnBasedLoop
 import com.sletmoe.korogue.random.GameRandom
 import com.sletmoe.korogue.registry.GameModule
 import com.sletmoe.korogue.save.SaveCodec
@@ -74,6 +78,10 @@ import kotlin.random.Random
  * - F5 saves and F9 loads (CBOR via [SaveCodec]; entities + terrain + RNG + fog)
  * - Esc opens a modal system menu (resume/save/load/quit); a game-over dialog appears at 0 HP
  *
+ * Advances via a pluggable [GameLoop] (krogue-lhw): **turn-based by default** (the world ticks once
+ * per move, so it waits for you), or real-time (`MyGame(turnBased = false)`, the original
+ * continuous behavior). See the constructor.
+ *
  * Occupants are ECS entities in [GameWorld.ecs] (ADR-0007), driven by systems each tick:
  * [BehaviorSystem] (AI) and player input emit [MoveIntent]s; [MovementSystem] resolves
  * them; [PortalSystem] applies zone transitions; [CombatSystem] applies attacks and clears
@@ -85,6 +93,12 @@ import kotlin.random.Random
  */
 class MyGame(
     private var gameRandom: GameRandom = GameRandom.random(),
+    /**
+     * Turn-based (default) advances the world once per player move (krogue-lhw); real-time advances
+     * every frame as the demo originally did. Real-time keeps the per-tick AI act-chance throttle so
+     * creatures don't move at frame rate; turn-based lets them act every turn.
+     */
+    private val turnBased: Boolean = true,
 ) : Game() {
     private val startPoint = Vector2Int(10, 10)
 
@@ -95,9 +109,20 @@ class MyGame(
     // another, so the same master seed always yields the same world (ADR-0009).
     private val worldgen: Random = gameRandom.stream("worldgen")
 
-    // Engine defaults are enough for the demo; a richer game would register its own
-    // strategies/calculators here (and, from 4f-s3, component serializers).
-    private val gameModule: GameModule = GameModule.engineDefaults().build()
+    // Engine defaults plus, in turn-based mode, AI that acts every turn (override the built-in
+    // strategies' per-tick act chance, which only makes sense under real-time's per-frame ticking).
+    private val gameModule: GameModule =
+        GameModule
+            .engineDefaults()
+            .apply {
+                if (turnBased) {
+                    strategy(WanderStrategy.ID, WanderStrategy(actChance = 1.0))
+                    strategy(HuntPlayerStrategy.ID, HuntPlayerStrategy(actChance = 1.0))
+                }
+            }.build()
+
+    /** Drives world advancement: turn-on-input or continuous (see [turnBased], krogue-lhw). */
+    private val gameLoop: GameLoop = if (turnBased) TurnBasedLoop() else RealTimeLoop()
 
     // Save/load (F5/F9). The codec knows every registered component; the save file lives in
     // the working directory so it's easy to find when running the demo.
@@ -110,6 +135,7 @@ class MyGame(
     private lateinit var ui: UiRoot
     private lateinit var mapPanel: MapPanel
     private lateinit var logPanel: LogPanel
+    private lateinit var lightingSystem: LightingSystem
 
     /** The open modal dialog (system menu / game over), or null. Tracked so it can be closed. */
     private var modalDialog: Dialog? = null
@@ -135,15 +161,29 @@ class MyGame(
      * Called for the initial world and again after [load] swaps in a fresh (system-less) world.
      */
     private fun registerSystems() {
+        lightingSystem =
+            LightingSystem(world.zones, gameModule.calculators::resolve, activeZones = world::simulatedZones)
         world.ecs
             .addSystem(BehaviorSystem(gameModule.strategies::resolve, activeZones = world::simulatedZones))
             .addSystem(MovementSystem(world.zones))
             .addSystem(PortalSystem(world))
             .addSystem(PickupSystem())
             .addSystem(CombatSystem())
-            .addSystem(
-                LightingSystem(world.zones, gameModule.calculators::resolve, activeZones = world::simulatedZones),
-            )
+            .addSystem(lightingSystem)
+    }
+
+    /**
+     * Computes the light map once so the first frame renders lit terrain. Map visibility is gated on
+     * lighting (normally computed during a world tick), but turn-based mode hasn't ticked yet at
+     * startup, and a loaded game's light map (derived state) isn't saved — so without this the map
+     * is black until the first move. Runs only the lighting system, not a full tick, so monsters
+     * don't take a free turn.
+     */
+    private fun primeLighting() {
+        lightingSystem.update(
+            world.ecs,
+            TickContext(turn = world.ecs.currentTurn, elapsedMs = 0L, random = Random.Default),
+        )
     }
 
     // -------------------------------------------------------------------------
@@ -160,15 +200,19 @@ class MyGame(
     override fun create() {
         super.create()
         buildUi(symmetricShadowCaster)
+        primeLighting()
     }
 
     override fun onTick() {
         if (ui.hasModal) return // a dialog (menu / game over) is up: pause the world
-        // Advance the world one tick: BehaviorSystem -> MovementSystem -> PortalSystem ->
-        // CombatSystem -> LightingSystem. Gameplay randomness (AI/combat) draws from its
-        // own stream. One tick per frame is interim; a turn-on-input loop can come later.
-        world.ecs.tick(random = gameRandom.stream("gameplay"))
-        if (!gameOverShown && (world.ecs.get(playerId)?.get<Health>()?.dead == true)) openGameOver()
+        // The loop decides whether this frame advances the world: turn-based ticks once per player
+        // move (requestTurn from intendMove); real-time ticks every frame. A tick runs all systems
+        // (BehaviorSystem -> MovementSystem -> PortalSystem -> PickupSystem -> CombatSystem ->
+        // LightingSystem); gameplay randomness draws from its own stream (ADR-0009).
+        gameLoop.advance {
+            world.ecs.tick(random = gameRandom.stream("gameplay"))
+            if (!gameOverShown && (world.ecs.get(playerId)?.get<Health>()?.dead == true)) openGameOver()
+        }
     }
 
     override fun drawFrame(elapsedMs: Long) {
@@ -356,15 +400,20 @@ class MyGame(
         playerId = world.ecs.entitiesWith<Player>().first().id
         registerSystems()
         buildUi(los)
+        primeLighting()
         println("Loaded game from ${saveFile.absolutePath}")
     }
 
-    /** Player input is data too: attach a [MoveIntent] that MovementSystem resolves next tick. */
+    /**
+     * Player input is data too: attach a [MoveIntent] that MovementSystem resolves on the next
+     * tick, and tell the loop the player took a turn (turn-based advances on it; real-time ignores).
+     */
     private fun intendMove(
         dx: Int,
         dy: Int,
     ) {
         world.ecs.set(playerId, MoveIntent(dx, dy))
+        gameLoop.requestTurn()
     }
 
     // -------------------------------------------------------------------------

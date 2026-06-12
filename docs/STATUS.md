@@ -91,13 +91,15 @@ then given a tested ECS foundation:
   `Inventory(items)` components (serializable, registered), a `PickupSystem` (walk onto a
   non-blocking item → despawn + add to inventory + `ItemPickedUp` event), and the `InventoryPanel`.
   Names-only for now; richer items grow with krogue-sdh.
-- **~286 tests** (`./gradlew test`). Example-based Kotest.
+- **Game loop modes (krogue-lhw).** A pluggable `GameLoop` (`com.sletmoe.korogue.loop`) decides
+  when the world advances: `TurnBasedLoop` ticks once per committed player action (turn-on-input —
+  the demo's default now, so monsters wait for you and you can't die instantly), or `RealTimeLoop`
+  ticks every frame (continuous, the original behavior; `MyGame(turnBased = false)`). Turn-based AI
+  acts every turn (the demo registers strategies with `actChance = 1.0`); real-time keeps the
+  per-tick act-chance throttle so creatures don't move at frame rate.
+- **~289 tests** (`./gradlew test`). Example-based Kotest.
 
 ### Known issues / cleanups still open
-- AI strategies (`wander`, `hunt-player`) carry a 2%-per-tick act gate so creatures stay
-  sane under the per-frame tick; revisit once the loop is turn-based.
-- Ticking the ECS world once per frame is interim — a turn-on-input loop is still wanted
-  (would also let AI act every turn without the throttle above).
 - Player HP is shown (HP bar) and death is handled (game-over dialog at 0 HP; krogue-4zi done).
   `CombatSystem` still spares the player from despawn — the game-over modal freezes the world and
   offers load/quit rather than removing the entity.
