@@ -188,6 +188,18 @@ $dokka.location:com.sletmoe.korogue.kotile/ZoneFog/ZoneFog/#/PointingToDeclarati
 $dokka.location:com.sletmoe.korogue.kotile/ZoneFog/forZone/#kotlin.String#kotlin.Int#kotlin.Int/PointingToDeclaration/engine/com.sletmoe.korogue.kotile/-zone-fog/for-zone.html
 $dokka.location:com.sletmoe.korogue.kotile/ZoneFog/restore/#kotlin.collections.Map[kotlin.String,com.sletmoe.korogue.utilities.Grid[kotlin.Boolean]]/PointingToDeclaration/engine/com.sletmoe.korogue.kotile/-zone-fog/restore.html
 $dokka.location:com.sletmoe.korogue.kotile/ZoneFog/snapshot/#/PointingToDeclaration/engine/com.sletmoe.korogue.kotile/-zone-fog/snapshot.html
+$dokka.location:com.sletmoe.korogue.loop////PointingToDeclaration/engine/com.sletmoe.korogue.loop/index.html
+$dokka.location:com.sletmoe.korogue.loop/GameLoop///PointingToDeclaration/engine/com.sletmoe.korogue.loop/-game-loop/index.html
+$dokka.location:com.sletmoe.korogue.loop/GameLoop/advance/#kotlin.Function0[kotlin.Unit]/PointingToDeclaration/engine/com.sletmoe.korogue.loop/-game-loop/advance.html
+$dokka.location:com.sletmoe.korogue.loop/GameLoop/requestTurn/#/PointingToDeclaration/engine/com.sletmoe.korogue.loop/-game-loop/request-turn.html
+$dokka.location:com.sletmoe.korogue.loop/RealTimeLoop///PointingToDeclaration/engine/com.sletmoe.korogue.loop/-real-time-loop/index.html
+$dokka.location:com.sletmoe.korogue.loop/RealTimeLoop/RealTimeLoop/#/PointingToDeclaration/engine/com.sletmoe.korogue.loop/-real-time-loop/-real-time-loop.html
+$dokka.location:com.sletmoe.korogue.loop/RealTimeLoop/advance/#kotlin.Function0[kotlin.Unit]/PointingToDeclaration/engine/com.sletmoe.korogue.loop/-real-time-loop/advance.html
+$dokka.location:com.sletmoe.korogue.loop/RealTimeLoop/requestTurn/#/PointingToDeclaration/engine/com.sletmoe.korogue.loop/-real-time-loop/request-turn.html
+$dokka.location:com.sletmoe.korogue.loop/TurnBasedLoop///PointingToDeclaration/engine/com.sletmoe.korogue.loop/-turn-based-loop/index.html
+$dokka.location:com.sletmoe.korogue.loop/TurnBasedLoop/TurnBasedLoop/#/PointingToDeclaration/engine/com.sletmoe.korogue.loop/-turn-based-loop/-turn-based-loop.html
+$dokka.location:com.sletmoe.korogue.loop/TurnBasedLoop/advance/#kotlin.Function0[kotlin.Unit]/PointingToDeclaration/engine/com.sletmoe.korogue.loop/-turn-based-loop/advance.html
+$dokka.location:com.sletmoe.korogue.loop/TurnBasedLoop/requestTurn/#/PointingToDeclaration/engine/com.sletmoe.korogue.loop/-turn-based-loop/request-turn.html
 $dokka.location:com.sletmoe.korogue.random////PointingToDeclaration/engine/com.sletmoe.korogue.random/index.html
 $dokka.location:com.sletmoe.korogue.random/GameRandom.Companion///PointingToDeclaration/engine/com.sletmoe.korogue.random/-game-random/-companion/index.html
 $dokka.location:com.sletmoe.korogue.random/GameRandom.Companion/fromSeed/#kotlin.Long/PointingToDeclaration/engine/com.sletmoe.korogue.random/-game-random/-companion/from-seed.html
@@ -497,6 +509,7 @@ com.sletmoe.korogue.components
 com.sletmoe.korogue.ecs
 com.sletmoe.korogue.events
 com.sletmoe.korogue.kotile
+com.sletmoe.korogue.loop
 com.sletmoe.korogue.random
 com.sletmoe.korogue.registry
 com.sletmoe.korogue.save
