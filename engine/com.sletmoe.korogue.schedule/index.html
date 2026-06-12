@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>com.sletmoe.korogue.schedule</title>
+    <link href="../../images/logo-icon.svg" rel="icon" type="image/svg">
+        <script>var pathToRoot = "../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../scripts/sourceset_dependencies.js" async="async"></script>
+<link href="../../styles/style.css" rel="Stylesheet">
+<link href="../../styles/main.css" rel="Stylesheet">
+<link href="../../styles/prism.css" rel="Stylesheet">
+<link href="../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../scripts/navigation-loader.js" async="async"></script>
+<script type="text/javascript" src="../../scripts/platform-content-handler.js" async="async"></script>
+<script type="text/javascript" src="../../scripts/main.js" defer="defer"></script>
+<script type="text/javascript" src="../../scripts/prism.js" async="async"></script>
+<script type="text/javascript" src="../../ui-kit/ui-kit.min.js" defer="defer"></script>
+</head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+            <a class="library-name--link" href="../../index.html" tabindex="1">
+                    engine
+            </a>
+        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle"
+                type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+1.0.0.9-SNAPSHOT        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true"
+                        data-filter=":engine/main">jvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox"
+                        data-role="dropdown-toggle"
+                        aria-controls="platform-tags-listbox"
+                        aria-haspopup="listbox"
+                        aria-expanded="false"
+                        aria-label="Toggle source sets"
+                ></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":engine/main"
+                                       data-filter=":engine/main"/>
+                                <span class="checkbox--icon"></span>
+                                jvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button"
+                    type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config='{"defaultSize": 280, "minSize": 200, "maxSize": 400}'>
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list"
+                    data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    engine
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="package" id="content" pageIds="engine::com.sletmoe.korogue.schedule////PointingToDeclaration//-56654334">
+  <div class="breadcrumbs"><a href="../../index.html">engine</a><span class="delimiter">/</span><span class="current">com.sletmoe.korogue.schedule</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>Package-level</span></span> <span><span>declarations</span></span></h1>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="TYPE">Types</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="TYPE">
+        <h2 class="tableheader">Types</h2>
+        <div class="table"><a data-name="-465571117%2FClasslikes%2F-56654334" anchor-label="ScheduledEffect" id="-465571117%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-scheduled-effect/index.html"><span>Scheduled</span><wbr></wbr><span><span>Effect</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-465571117%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><span data-unresolved-link="kotlinx.serialization/Serializable///PointingToDeclaration/"><span class="token annotation builtin">Serializable</span></span></div></div><span class="token keyword">data </span><span class="token keyword">class </span><a href="-scheduled-effect/index.html">ScheduledEffect</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>handle<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>effectId<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>fireOnTurn<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>period<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">One scheduled timer: a <a href="-timed-effect/index.html">TimedEffect</a> (by registered <span data-unresolved-link="com.sletmoe.korogue.schedule/ScheduledEffect//#kotlin.Long#kotlin.String#kotlin.Long#kotlin.Long/PointingToCallableParameters(1)/">effectId</span>) due to fire on turn <span data-unresolved-link="com.sletmoe.korogue.schedule/ScheduledEffect//#kotlin.Long#kotlin.String#kotlin.Long#kotlin.Long/PointingToCallableParameters(2)/">fireOnTurn</span>. <span data-unresolved-link="com.sletmoe.korogue.schedule/ScheduledEffect//#kotlin.Long#kotlin.String#kotlin.Long#kotlin.Long/PointingToCallableParameters(3)/">period</span> distinguishes the two kinds Rogue uses — <code class="lang-kotlin">0</code> is a one-shot <strong>fuse</strong> (fires once, then gone); <code class="lang-kotlin">&gt; 0</code> is a recurring <strong>daemon</strong> (after firing it reschedules for <code class="lang-kotlin">currentTurn + period</code>). <span data-unresolved-link="com.sletmoe.korogue.schedule/ScheduledEffect//#kotlin.Long#kotlin.String#kotlin.Long#kotlin.Long/PointingToCallableParameters(0)/">handle</span> is the stable id the <a href="-scheduler/index.html">Scheduler</a> returns so callers can <a href="-scheduler/cancel.html">Scheduler.cancel</a> or <a href="-scheduler/lengthen.html">Scheduler.lengthen</a> the timer later. Pure data, so the whole schedule round-trips through saves.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-493900458%2FClasslikes%2F-56654334" anchor-label="Scheduler" id="-493900458%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-scheduler/index.html"><span><span>Scheduler</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-493900458%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-scheduler/index.html">Scheduler</a></div><div class="brief "><p class="paragraph">A general turn-keyed scheduler — the engine's daemon/fuse mechanism (krogue-6uq, modelled on Rogue's <code class="lang-kotlin">daemons.c</code>). Schedule <strong>fuses</strong> (one-shot, fire after N turns) and <strong>daemons</strong> (recurring, fire every N turns); <a href="-scheduler/cancel.html">cancel</a> or <a href="-scheduler/lengthen.html">lengthen</a> them by <a href="-scheduler/-handle/index.html">Handle</a>; <a href="-scheduler/advance.html">advance</a> once per world turn to fire everything due. Effects are referenced by registered id (see <a href="-timed-effect/index.html">TimedEffect</a>) so the schedule is fully serializable (<a href="-scheduler/snapshot.html">snapshot</a> / <a href="-scheduler/restore.html">restore</a>) and timers resume after a save/load.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1207760165%2FClasslikes%2F-56654334" anchor-label="SchedulerState" id="-1207760165%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-scheduler-state/index.html"><span>Scheduler</span><wbr></wbr><span><span>State</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1207760165%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><span data-unresolved-link="kotlinx.serialization/Serializable///PointingToDeclaration/"><span class="token annotation builtin">Serializable</span></span></div></div><span class="token keyword">data </span><span class="token keyword">class </span><a href="-scheduler-state/index.html">SchedulerState</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>currentTurn<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a><span class="token operator"> = </span><span class="token constant">0</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>nextHandle<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a><span class="token operator"> = </span><span class="token constant">0</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>effects<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="-scheduled-effect/index.html">ScheduledEffect</a><span class="token operator">&gt;</span><span class="token operator"> = </span>emptyList()</span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">The <a href="-scheduler/index.html">Scheduler</a>'s persistable state: its pending timers plus the counters needed to resume.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="594413095%2FClasslikes%2F-56654334" anchor-label="SchedulerSystem" id="594413095%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-scheduler-system/index.html"><span>Scheduler</span><wbr></wbr><span><span>System</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="594413095%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-scheduler-system/index.html">SchedulerSystem</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">scheduler<span class="token operator">: </span><a href="-scheduler/index.html">Scheduler</a><span class="token punctuation">, </span></span><span class="parameter ">resolve<span class="token operator">: </span><span class="token punctuation">(</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="-timed-effect/index.html">TimedEffect</a></span></span><span class="token punctuation">)</span> : <a href="../com.sletmoe.korogue.ecs/-system/index.html">System</a></div><div class="brief "><p class="paragraph">Drives a <a href="-scheduler/index.html">Scheduler</a> from the ECS turn loop (krogue-6uq): each <a href="../com.sletmoe.korogue.ecs/-world/tick.html">World.tick</a> it fires every timer due this turn. Register it like any other <a href="../com.sletmoe.korogue.ecs/-system/index.html">System</a>; its position in the pipeline sets when timed effects run relative to AI/movement/combat (e.g. register first so hunger/regen apply at the top of the turn). Resolve effect ids through a <code class="lang-kotlin">GameModule</code>'s effects registry (<code class="lang-kotlin">gameModule.effects::resolve</code>), mirroring how <a href="../com.sletmoe.korogue.systems/-behavior-system/index.html">com.sletmoe.korogue.systems.BehaviorSystem</a> resolves strategies.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1566382857%2FClasslikes%2F-56654334" anchor-label="TimedEffect" id="1566382857%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-timed-effect/index.html"><span>Timed</span><wbr></wbr><span><span>Effect</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1566382857%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token keyword">interface </span><a href="-timed-effect/index.html">TimedEffect</a></div><div class="brief "><p class="paragraph">A turn-keyed effect run by the <a href="-scheduler/index.html">Scheduler</a> (krogue-6uq) — the engine's analogue of Rogue's daemon/fuse callbacks (regen, hunger, status-effect expiry, wandering-monster spawns, …). The engine provides the <i>scheduling mechanism</i>; a consuming game provides the effects and registers each under a string id (via <code class="lang-kotlin">GameModule.effect(...)</code>), exactly like a com.sletmoe.korogue
+.systems.BehaviorStrategy. Referencing effects by id is what lets the schedule be saved: only the id and turn counters are persisted, never the (unserializable) code.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

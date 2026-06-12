@@ -237,12 +237,14 @@ $dokka.location:com.sletmoe.korogue.registry/GameModule.Builder/build/#/Pointing
 $dokka.location:com.sletmoe.korogue.registry/GameModule.Builder/calculator/#kotlin.String#com.sletmoe.korogue.algorithms.lighting.LightValueCalculator/PointingToDeclaration/engine/com.sletmoe.korogue.registry/-game-module/-builder/calculator.html
 $dokka.location:com.sletmoe.korogue.registry/GameModule.Builder/component/#/PointingToDeclaration/engine/com.sletmoe.korogue.registry/-game-module/-builder/component.html
 $dokka.location:com.sletmoe.korogue.registry/GameModule.Builder/component/#kotlin.reflect.KClass[TypeParam(bounds=[com.sletmoe.korogue.ecs.Component])]#kotlinx.serialization.KSerializer[TypeParam(bounds=[com.sletmoe.korogue.ecs.Component])]/PointingToDeclaration/engine/com.sletmoe.korogue.registry/-game-module/-builder/component.html
+$dokka.location:com.sletmoe.korogue.registry/GameModule.Builder/effect/#kotlin.String#com.sletmoe.korogue.schedule.TimedEffect/PointingToDeclaration/engine/com.sletmoe.korogue.registry/-game-module/-builder/effect.html
 $dokka.location:com.sletmoe.korogue.registry/GameModule.Builder/strategy/#kotlin.String#com.sletmoe.korogue.systems.BehaviorStrategy/PointingToDeclaration/engine/com.sletmoe.korogue.registry/-game-module/-builder/strategy.html
 $dokka.location:com.sletmoe.korogue.registry/GameModule.Companion///PointingToDeclaration/engine/com.sletmoe.korogue.registry/-game-module/-companion/index.html
 $dokka.location:com.sletmoe.korogue.registry/GameModule.Companion/engineDefaults/#/PointingToDeclaration/engine/com.sletmoe.korogue.registry/-game-module/-companion/engine-defaults.html
 $dokka.location:com.sletmoe.korogue.registry/GameModule///PointingToDeclaration/engine/com.sletmoe.korogue.registry/-game-module/index.html
 $dokka.location:com.sletmoe.korogue.registry/GameModule/calculators/#/PointingToDeclaration/engine/com.sletmoe.korogue.registry/-game-module/calculators.html
 $dokka.location:com.sletmoe.korogue.registry/GameModule/components/#/PointingToDeclaration/engine/com.sletmoe.korogue.registry/-game-module/components.html
+$dokka.location:com.sletmoe.korogue.registry/GameModule/effects/#/PointingToDeclaration/engine/com.sletmoe.korogue.registry/-game-module/effects.html
 $dokka.location:com.sletmoe.korogue.registry/GameModule/strategies/#/PointingToDeclaration/engine/com.sletmoe.korogue.registry/-game-module/strategies.html
 $dokka.location:com.sletmoe.korogue.registry/Registry///PointingToDeclaration/engine/com.sletmoe.korogue.registry/-registry/index.html
 $dokka.location:com.sletmoe.korogue.registry/Registry/contains/#kotlin.String/PointingToDeclaration/engine/com.sletmoe.korogue.registry/-registry/contains.html
@@ -250,23 +252,25 @@ $dokka.location:com.sletmoe.korogue.registry/Registry/ids/#/PointingToDeclaratio
 $dokka.location:com.sletmoe.korogue.registry/Registry/resolve/#kotlin.String/PointingToDeclaration/engine/com.sletmoe.korogue.registry/-registry/resolve.html
 $dokka.location:com.sletmoe.korogue.save////PointingToDeclaration/engine/com.sletmoe.korogue.save/index.html
 $dokka.location:com.sletmoe.korogue.save/LoadedGame///PointingToDeclaration/engine/com.sletmoe.korogue.save/-loaded-game/index.html
-$dokka.location:com.sletmoe.korogue.save/LoadedGame/LoadedGame/#com.sletmoe.korogue.world.GameWorld#com.sletmoe.korogue.random.GameRandom#kotlin.collections.Map[kotlin.String,com.sletmoe.korogue.utilities.Grid[kotlin.Boolean]]/PointingToDeclaration/engine/com.sletmoe.korogue.save/-loaded-game/-loaded-game.html
+$dokka.location:com.sletmoe.korogue.save/LoadedGame/LoadedGame/#com.sletmoe.korogue.world.GameWorld#com.sletmoe.korogue.random.GameRandom#kotlin.collections.Map[kotlin.String,com.sletmoe.korogue.utilities.Grid[kotlin.Boolean]]#com.sletmoe.korogue.schedule.SchedulerState/PointingToDeclaration/engine/com.sletmoe.korogue.save/-loaded-game/-loaded-game.html
 $dokka.location:com.sletmoe.korogue.save/LoadedGame/fog/#/PointingToDeclaration/engine/com.sletmoe.korogue.save/-loaded-game/fog.html
 $dokka.location:com.sletmoe.korogue.save/LoadedGame/random/#/PointingToDeclaration/engine/com.sletmoe.korogue.save/-loaded-game/random.html
+$dokka.location:com.sletmoe.korogue.save/LoadedGame/schedule/#/PointingToDeclaration/engine/com.sletmoe.korogue.save/-loaded-game/schedule.html
 $dokka.location:com.sletmoe.korogue.save/LoadedGame/world/#/PointingToDeclaration/engine/com.sletmoe.korogue.save/-loaded-game/world.html
 $dokka.location:com.sletmoe.korogue.save/SaveCodec.Companion///PointingToDeclaration/engine/com.sletmoe.korogue.save/-save-codec/-companion/index.html
 $dokka.location:com.sletmoe.korogue.save/SaveCodec.Companion/FORMAT_VERSION/#/PointingToDeclaration/engine/com.sletmoe.korogue.save/-save-codec/-companion/-f-o-r-m-a-t_-v-e-r-s-i-o-n.html
 $dokka.location:com.sletmoe.korogue.save/SaveCodec///PointingToDeclaration/engine/com.sletmoe.korogue.save/-save-codec/index.html
 $dokka.location:com.sletmoe.korogue.save/SaveCodec/SaveCodec/#com.sletmoe.korogue.registry.ComponentRegistry/PointingToDeclaration/engine/com.sletmoe.korogue.save/-save-codec/-save-codec.html
 $dokka.location:com.sletmoe.korogue.save/SaveCodec/load/#kotlin.ByteArray/PointingToDeclaration/engine/com.sletmoe.korogue.save/-save-codec/load.html
-$dokka.location:com.sletmoe.korogue.save/SaveCodec/save/#com.sletmoe.korogue.world.GameWorld#com.sletmoe.korogue.random.GameRandom#kotlin.collections.Map[kotlin.String,com.sletmoe.korogue.utilities.Grid[kotlin.Boolean]]/PointingToDeclaration/engine/com.sletmoe.korogue.save/-save-codec/save.html
+$dokka.location:com.sletmoe.korogue.save/SaveCodec/save/#com.sletmoe.korogue.world.GameWorld#com.sletmoe.korogue.random.GameRandom#kotlin.collections.Map[kotlin.String,com.sletmoe.korogue.utilities.Grid[kotlin.Boolean]]#com.sletmoe.korogue.schedule.SchedulerState/PointingToDeclaration/engine/com.sletmoe.korogue.save/-save-codec/save.html
 $dokka.location:com.sletmoe.korogue.save/SaveData///PointingToDeclaration/engine/com.sletmoe.korogue.save/-save-data/index.html
-$dokka.location:com.sletmoe.korogue.save/SaveData/SaveData/#kotlin.String#kotlin.Long#kotlin.Long#com.sletmoe.korogue.random.GameRandomState#kotlin.collections.List[com.sletmoe.korogue.save.SavedZone]#kotlin.collections.List[com.sletmoe.korogue.save.SavedEntity]#kotlin.collections.List[com.sletmoe.korogue.save.SavedFog]/PointingToDeclaration/engine/com.sletmoe.korogue.save/-save-data/-save-data.html
+$dokka.location:com.sletmoe.korogue.save/SaveData/SaveData/#kotlin.String#kotlin.Long#kotlin.Long#com.sletmoe.korogue.random.GameRandomState#kotlin.collections.List[com.sletmoe.korogue.save.SavedZone]#kotlin.collections.List[com.sletmoe.korogue.save.SavedEntity]#kotlin.collections.List[com.sletmoe.korogue.save.SavedFog]#com.sletmoe.korogue.schedule.SchedulerState/PointingToDeclaration/engine/com.sletmoe.korogue.save/-save-data/-save-data.html
 $dokka.location:com.sletmoe.korogue.save/SaveData/currentZoneId/#/PointingToDeclaration/engine/com.sletmoe.korogue.save/-save-data/current-zone-id.html
 $dokka.location:com.sletmoe.korogue.save/SaveData/entities/#/PointingToDeclaration/engine/com.sletmoe.korogue.save/-save-data/entities.html
 $dokka.location:com.sletmoe.korogue.save/SaveData/fog/#/PointingToDeclaration/engine/com.sletmoe.korogue.save/-save-data/fog.html
 $dokka.location:com.sletmoe.korogue.save/SaveData/nextEntityId/#/PointingToDeclaration/engine/com.sletmoe.korogue.save/-save-data/next-entity-id.html
 $dokka.location:com.sletmoe.korogue.save/SaveData/rng/#/PointingToDeclaration/engine/com.sletmoe.korogue.save/-save-data/rng.html
+$dokka.location:com.sletmoe.korogue.save/SaveData/schedule/#/PointingToDeclaration/engine/com.sletmoe.korogue.save/-save-data/schedule.html
 $dokka.location:com.sletmoe.korogue.save/SaveData/turn/#/PointingToDeclaration/engine/com.sletmoe.korogue.save/-save-data/turn.html
 $dokka.location:com.sletmoe.korogue.save/SaveData/zones/#/PointingToDeclaration/engine/com.sletmoe.korogue.save/-save-data/zones.html
 $dokka.location:com.sletmoe.korogue.save/SaveEnvelope///PointingToDeclaration/engine/com.sletmoe.korogue.save/-save-envelope/index.html
@@ -289,6 +293,38 @@ $dokka.location:com.sletmoe.korogue.save/SavedZone/height/#/PointingToDeclaratio
 $dokka.location:com.sletmoe.korogue.save/SavedZone/tiles/#/PointingToDeclaration/engine/com.sletmoe.korogue.save/-saved-zone/tiles.html
 $dokka.location:com.sletmoe.korogue.save/SavedZone/width/#/PointingToDeclaration/engine/com.sletmoe.korogue.save/-saved-zone/width.html
 $dokka.location:com.sletmoe.korogue.save/SavedZone/zoneId/#/PointingToDeclaration/engine/com.sletmoe.korogue.save/-saved-zone/zone-id.html
+$dokka.location:com.sletmoe.korogue.schedule////PointingToDeclaration/engine/com.sletmoe.korogue.schedule/index.html
+$dokka.location:com.sletmoe.korogue.schedule/ScheduledEffect///PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduled-effect/index.html
+$dokka.location:com.sletmoe.korogue.schedule/ScheduledEffect/ScheduledEffect/#kotlin.Long#kotlin.String#kotlin.Long#kotlin.Long/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduled-effect/-scheduled-effect.html
+$dokka.location:com.sletmoe.korogue.schedule/ScheduledEffect/effectId/#/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduled-effect/effect-id.html
+$dokka.location:com.sletmoe.korogue.schedule/ScheduledEffect/fireOnTurn/#/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduled-effect/fire-on-turn.html
+$dokka.location:com.sletmoe.korogue.schedule/ScheduledEffect/handle/#/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduled-effect/handle.html
+$dokka.location:com.sletmoe.korogue.schedule/ScheduledEffect/period/#/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduled-effect/period.html
+$dokka.location:com.sletmoe.korogue.schedule/Scheduler.Handle///PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler/-handle/index.html
+$dokka.location:com.sletmoe.korogue.schedule/Scheduler.Handle/Handle/#kotlin.Long/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler/-handle/-handle.html
+$dokka.location:com.sletmoe.korogue.schedule/Scheduler.Handle/value/#/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler/-handle/value.html
+$dokka.location:com.sletmoe.korogue.schedule/Scheduler///PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler/index.html
+$dokka.location:com.sletmoe.korogue.schedule/Scheduler/Scheduler/#/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler/-scheduler.html
+$dokka.location:com.sletmoe.korogue.schedule/Scheduler/advance/#com.sletmoe.korogue.ecs.World#com.sletmoe.korogue.ecs.TickContext#kotlin.Function1[kotlin.String,com.sletmoe.korogue.schedule.TimedEffect]/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler/advance.html
+$dokka.location:com.sletmoe.korogue.schedule/Scheduler/cancel/#com.sletmoe.korogue.schedule.Scheduler.Handle/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler/cancel.html
+$dokka.location:com.sletmoe.korogue.schedule/Scheduler/currentTurn/#/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler/current-turn.html
+$dokka.location:com.sletmoe.korogue.schedule/Scheduler/daemon/#kotlin.String#kotlin.Long/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler/daemon.html
+$dokka.location:com.sletmoe.korogue.schedule/Scheduler/fuse/#kotlin.String#kotlin.Long/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler/fuse.html
+$dokka.location:com.sletmoe.korogue.schedule/Scheduler/isScheduled/#com.sletmoe.korogue.schedule.Scheduler.Handle/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler/is-scheduled.html
+$dokka.location:com.sletmoe.korogue.schedule/Scheduler/lengthen/#com.sletmoe.korogue.schedule.Scheduler.Handle#kotlin.Long/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler/lengthen.html
+$dokka.location:com.sletmoe.korogue.schedule/Scheduler/restore/#com.sletmoe.korogue.schedule.SchedulerState/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler/restore.html
+$dokka.location:com.sletmoe.korogue.schedule/Scheduler/size/#/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler/size.html
+$dokka.location:com.sletmoe.korogue.schedule/Scheduler/snapshot/#/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler/snapshot.html
+$dokka.location:com.sletmoe.korogue.schedule/SchedulerState///PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler-state/index.html
+$dokka.location:com.sletmoe.korogue.schedule/SchedulerState/SchedulerState/#kotlin.Long#kotlin.Long#kotlin.collections.List[com.sletmoe.korogue.schedule.ScheduledEffect]/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler-state/-scheduler-state.html
+$dokka.location:com.sletmoe.korogue.schedule/SchedulerState/currentTurn/#/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler-state/current-turn.html
+$dokka.location:com.sletmoe.korogue.schedule/SchedulerState/effects/#/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler-state/effects.html
+$dokka.location:com.sletmoe.korogue.schedule/SchedulerState/nextHandle/#/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler-state/next-handle.html
+$dokka.location:com.sletmoe.korogue.schedule/SchedulerSystem///PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler-system/index.html
+$dokka.location:com.sletmoe.korogue.schedule/SchedulerSystem/SchedulerSystem/#com.sletmoe.korogue.schedule.Scheduler#kotlin.Function1[kotlin.String,com.sletmoe.korogue.schedule.TimedEffect]/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler-system/-scheduler-system.html
+$dokka.location:com.sletmoe.korogue.schedule/SchedulerSystem/update/#com.sletmoe.korogue.ecs.World#com.sletmoe.korogue.ecs.TickContext/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler-system/update.html
+$dokka.location:com.sletmoe.korogue.schedule/TimedEffect///PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-timed-effect/index.html
+$dokka.location:com.sletmoe.korogue.schedule/TimedEffect/apply/#com.sletmoe.korogue.ecs.World#com.sletmoe.korogue.schedule.Scheduler#com.sletmoe.korogue.ecs.TickContext/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-timed-effect/apply.html
 $dokka.location:com.sletmoe.korogue.systems////PointingToDeclaration/engine/com.sletmoe.korogue.systems/index.html
 $dokka.location:com.sletmoe.korogue.systems/BehaviorStrategy///PointingToDeclaration/engine/com.sletmoe.korogue.systems/-behavior-strategy/index.html
 $dokka.location:com.sletmoe.korogue.systems/BehaviorStrategy/decide/#com.sletmoe.korogue.ecs.World#com.sletmoe.korogue.ecs.Entity#com.sletmoe.korogue.ecs.TickContext/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-behavior-strategy/decide.html
@@ -513,6 +549,7 @@ com.sletmoe.korogue.loop
 com.sletmoe.korogue.random
 com.sletmoe.korogue.registry
 com.sletmoe.korogue.save
+com.sletmoe.korogue.schedule
 com.sletmoe.korogue.systems
 com.sletmoe.korogue.ui
 com.sletmoe.korogue.utilities
