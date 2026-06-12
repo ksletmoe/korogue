@@ -43,7 +43,7 @@
         </button>
         <div class="navigation-controls--break ui-kit_mobile-only"></div>
         <div class="library-version" id="library-version">
-1.0.0.7-SNAPSHOT        </div>
+1.0.0.8-SNAPSHOT        </div>
         <div class="navigation-controls">
         <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
                 <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true"
@@ -138,7 +138,7 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-real-time-loop/index.html">RealTimeLoop</a> : <a href="-game-loop/index.html">GameLoop</a></div><div class="brief "><p class="paragraph">Advances the world <strong>every frame</strong> (continuous / real-time). The world runs on its own, so player input doesn't gate it (<a href="-real-time-loop/request-turn.html">requestTurn</a> is a no-op). Pair with AI that only acts <i>sometimes</i> (a per-tick act chance) so creatures don't move at the frame rate.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-real-time-loop/index.html">RealTimeLoop</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">stepMs<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a><span class="token operator"> = </span><span class="token constant">100</span><span class="token punctuation">, </span></span><span class="parameter ">maxCatchUpSteps<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">5</span></span></span><span class="token punctuation">)</span> : <a href="-game-loop/index.html">GameLoop</a></div><div class="brief "><p class="paragraph">Advances the world at a <strong>fixed timestep</strong> (<span data-unresolved-link="com.sletmoe.korogue.loop/RealTimeLoop//#kotlin.Long#kotlin.Int/PointingToCallableParameters(0)/">stepMs</span>) independent of render FPS (krogue-k7q): per-frame deltas accumulate, and the world ticks once for each whole <span data-unresolved-link="com.sletmoe.korogue.loop/RealTimeLoop//#kotlin.Long#kotlin.Int/PointingToCallableParameters(0)/">stepMs</span> of accumulated time. This decouples game speed from frame rate (a faster machine no longer means faster monsters) and smooths over frame hitches.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -153,7 +153,7 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-turn-based-loop/index.html">TurnBasedLoop</a> : <a href="-game-loop/index.html">GameLoop</a></div><div class="brief "><p class="paragraph">Advances the world <strong>exactly once per committed player action</strong> (turn-on-input); otherwise it stays frozen. Multiple <a href="-turn-based-loop/request-turn.html">requestTurn</a>s before an <a href="-turn-based-loop/advance.html">advance</a> coalesce into a single turn (you can't act twice before the world responds). Pair with AI that acts every turn, so one player action resolves into one world turn for everyone.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-turn-based-loop/index.html">TurnBasedLoop</a> : <a href="-game-loop/index.html">GameLoop</a></div><div class="brief "><p class="paragraph">Advances the world <strong>exactly once per committed player action</strong> (turn-on-input); otherwise it stays frozen. Multiple <a href="-turn-based-loop/request-turn.html">requestTurn</a>s before an <a href="-turn-based-loop/advance.html">advance</a> coalesce into a single turn (you can't act twice before the world responds). Pair with AI that acts every turn, so one player action resolves into one world turn for everyone. <a href="-turn-based-loop/advance.html">advance</a>'s <code class="lang-kotlin">deltaMs</code> is ignored — turns come from input, not the clock.</p></div></div></div>
                 </div>
               </div>
             </div>

@@ -43,7 +43,7 @@
         </button>
         <div class="navigation-controls--break ui-kit_mobile-only"></div>
         <div class="library-version" id="library-version">
-1.0.0.7-SNAPSHOT        </div>
+1.0.0.8-SNAPSHOT        </div>
         <div class="navigation-controls">
         <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
                 <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true"
@@ -107,7 +107,7 @@
   <div class="breadcrumbs"><a href="../../../index.html">engine</a><span class="delimiter">/</span><a href="../index.html">com.sletmoe.korogue.loop</a><span class="delimiter">/</span><span class="current">TurnBasedLoop</span></div>
   <div class="cover ">
     <h1 class="cover"><span>Turn</span><wbr></wbr><span>Based</span><wbr></wbr><span><span>Loop</span></span></h1>
-    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">TurnBasedLoop</a> : <a href="../-game-loop/index.html">GameLoop</a></div><p class="paragraph">Advances the world <strong>exactly once per committed player action</strong> (turn-on-input); otherwise it stays frozen. Multiple <a href="request-turn.html">requestTurn</a>s before an <a href="advance.html">advance</a> coalesce into a single turn (you can't act twice before the world responds). Pair with AI that acts every turn, so one player action resolves into one world turn for everyone.</p></div></div>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">TurnBasedLoop</a> : <a href="../-game-loop/index.html">GameLoop</a></div><p class="paragraph">Advances the world <strong>exactly once per committed player action</strong> (turn-on-input); otherwise it stays frozen. Multiple <a href="request-turn.html">requestTurn</a>s before an <a href="advance.html">advance</a> coalesce into a single turn (you can't act twice before the world responds). Pair with AI that acts every turn, so one player action resolves into one world turn for everyone. <a href="advance.html">advance</a>'s <code class="lang-kotlin">deltaMs</code> is ignored — turns come from input, not the clock.</p></div></div>
   </div>
   <div class="tabbedcontent">
     <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
@@ -133,17 +133,17 @@
       </div>
       <div data-togglable="FUNCTION">
         <h2 class="tableheader">Functions</h2>
-        <div class="table"><a data-name="1723144931%2FFunctions%2F-56654334" anchor-label="advance" id="1723144931%2FFunctions%2F-56654334" data-filterable-set=":engine/main"></a>
+        <div class="table"><a data-name="546076349%2FFunctions%2F-56654334" anchor-label="advance" id="546076349%2FFunctions%2F-56654334" data-filterable-set=":engine/main"></a>
           <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
             <div class="main-subrow keyValue ">
               <div class=""><span class="inline-flex">
                   <div><a href="advance.html"><span><span>advance</span></span></a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1723144931%2FFunctions%2F-56654334"></span>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="546076349%2FFunctions%2F-56654334"></span>
                     <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="advance.html"><span class="token function">advance</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">tick<span class="token operator">: </span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Called once per frame; runs <a href="../-game-loop/advance.html">tick</a> zero or more times according to this loop's policy.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="advance.html"><span class="token function">advance</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">deltaMs<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a><span class="token punctuation">, </span></span><span class="parameter ">tick<span class="token operator">: </span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Called once per frame with the wall-clock time <a href="../-game-loop/advance.html">deltaMs</a> elapsed since the previous frame; runs <a href="../-game-loop/advance.html">tick</a> zero or more times according to this loop's policy. <a href="index.html">TurnBasedLoop</a> ignores <a href="../-game-loop/advance.html">deltaMs</a> (it advances on input); <a href="../-real-time-loop/index.html">RealTimeLoop</a> accumulates it to advance at a fixed rate.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -158,7 +158,7 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="request-turn.html"><span class="token function">requestTurn</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Records that the player has committed a turn-consuming action this frame. <a href="index.html">TurnBasedLoop</a> advances on it; <a href="../-real-time-loop/index.html">RealTimeLoop</a> ignores it (the world advances regardless of input).</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="request-turn.html"><span class="token function">requestTurn</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Records that the player has committed a turn-consuming action this frame. <a href="index.html">TurnBasedLoop</a> advances on it; <a href="../-real-time-loop/index.html">RealTimeLoop</a> ignores it (the world advances on the clock, not on input).</p></div></div></div>
                 </div>
               </div>
             </div>

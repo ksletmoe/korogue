@@ -43,7 +43,7 @@
         </button>
         <div class="navigation-controls--break ui-kit_mobile-only"></div>
         <div class="library-version" id="library-version">
-1.0.0.7-SNAPSHOT        </div>
+1.0.0.8-SNAPSHOT        </div>
         <div class="navigation-controls">
         <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
                 <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true"
@@ -107,24 +107,24 @@
   <div class="breadcrumbs"><a href="../../../index.html">engine</a><span class="delimiter">/</span><a href="../index.html">com.sletmoe.korogue.loop</a><span class="delimiter">/</span><span class="current">RealTimeLoop</span></div>
   <div class="cover ">
     <h1 class="cover"><span>Real</span><wbr></wbr><span>Time</span><wbr></wbr><span><span>Loop</span></span></h1>
-    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">RealTimeLoop</a> : <a href="../-game-loop/index.html">GameLoop</a></div><p class="paragraph">Advances the world <strong>every frame</strong> (continuous / real-time). The world runs on its own, so player input doesn't gate it (<a href="request-turn.html">requestTurn</a> is a no-op). Pair with AI that only acts <i>sometimes</i> (a per-tick act chance) so creatures don't move at the frame rate.</p></div></div>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">RealTimeLoop</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">stepMs<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a><span class="token operator"> = </span><span class="token constant">100</span><span class="token punctuation">, </span></span><span class="parameter ">maxCatchUpSteps<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">5</span></span></span><span class="token punctuation">)</span> : <a href="../-game-loop/index.html">GameLoop</a></div><p class="paragraph">Advances the world at a <strong>fixed timestep</strong> (<span data-unresolved-link="com.sletmoe.korogue.loop/RealTimeLoop//#kotlin.Long#kotlin.Int/PointingToCallableParameters(0)/">stepMs</span>) independent of render FPS (krogue-k7q): per-frame deltas accumulate, and the world ticks once for each whole <span data-unresolved-link="com.sletmoe.korogue.loop/RealTimeLoop//#kotlin.Long#kotlin.Int/PointingToCallableParameters(0)/">stepMs</span> of accumulated time. This decouples game speed from frame rate (a faster machine no longer means faster monsters) and smooths over frame hitches.</p><p class="paragraph">Player input doesn't gate it (<a href="request-turn.html">requestTurn</a> is a no-op) — the world runs on the clock. Pair with AI that acts every tick, since each fixed tick is one world step.</p><h4 class="tableheader">Parameters</h4><div class="table"><div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><u><span>step</span><wbr></wbr><span><span>Ms</span></span></u></div></span></div><div><div class="title"><p class="paragraph">wall-clock milliseconds per world tick (e.g. 100 → 10 ticks/sec).</p></div></div></div></div><div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><u><span>max</span><wbr></wbr><span>Catch</span><wbr></wbr><span>Up</span><wbr></wbr><span><span>Steps</span></span></u></div></span></div><div><div class="title"><p class="paragraph">cap on ticks run in a single <a href="advance.html">advance</a> after a long frame. Without it, a one-second stall would queue dozens of ticks at once (the &quot;spiral of death&quot;); when the cap is hit, leftover accumulated time is dropped so the sim stays responsive rather than falling further behind.</p></div></div></div></div></div></div></div>
   </div>
   <div class="tabbedcontent">
     <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
     <div class="tabs-section-body">
       <div data-togglable="CONSTRUCTOR">
         <h2 class="tableheader">Constructors</h2>
-        <div class="table"><a data-name="842501825%2FConstructors%2F-56654334" anchor-label="RealTimeLoop" id="842501825%2FConstructors%2F-56654334" data-filterable-set=":engine/main"></a>
+        <div class="table"><a data-name="350604421%2FConstructors%2F-56654334" anchor-label="RealTimeLoop" id="350604421%2FConstructors%2F-56654334" data-filterable-set=":engine/main"></a>
           <div class="table-row table-row_content" data-togglable="CONSTRUCTOR" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
             <div class="main-subrow keyValue ">
               <div class=""><span class="inline-flex">
                   <div><a href="-real-time-loop.html"><span>Real</span><wbr></wbr><span>Time</span><wbr></wbr><span><span>Loop</span></span></a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="842501825%2FConstructors%2F-56654334"></span>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="350604421%2FConstructors%2F-56654334"></span>
                     <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="token punctuation">)</span></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">stepMs<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a><span class="token operator"> = </span><span class="token constant">100</span><span class="token punctuation">, </span></span><span class="parameter ">maxCatchUpSteps<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token operator"> = </span><span class="token constant">5</span></span></span><span class="token punctuation">)</span></div></div></div>
                 </div>
               </div>
             </div>
@@ -133,17 +133,17 @@
       </div>
       <div data-togglable="FUNCTION">
         <h2 class="tableheader">Functions</h2>
-        <div class="table"><a data-name="-1597121986%2FFunctions%2F-56654334" anchor-label="advance" id="-1597121986%2FFunctions%2F-56654334" data-filterable-set=":engine/main"></a>
+        <div class="table"><a data-name="-2129525352%2FFunctions%2F-56654334" anchor-label="advance" id="-2129525352%2FFunctions%2F-56654334" data-filterable-set=":engine/main"></a>
           <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
             <div class="main-subrow keyValue ">
               <div class=""><span class="inline-flex">
                   <div><a href="advance.html"><span><span>advance</span></span></a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1597121986%2FFunctions%2F-56654334"></span>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2129525352%2FFunctions%2F-56654334"></span>
                     <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="advance.html"><span class="token function">advance</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">tick<span class="token operator">: </span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Called once per frame; runs <a href="../-game-loop/advance.html">tick</a> zero or more times according to this loop's policy.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="advance.html"><span class="token function">advance</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">deltaMs<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a><span class="token punctuation">, </span></span><span class="parameter ">tick<span class="token operator">: </span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-unit/index.html">Unit</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Called once per frame with the wall-clock time <a href="../-game-loop/advance.html">deltaMs</a> elapsed since the previous frame; runs <a href="../-game-loop/advance.html">tick</a> zero or more times according to this loop's policy. <a href="../-turn-based-loop/index.html">TurnBasedLoop</a> ignores <a href="../-game-loop/advance.html">deltaMs</a> (it advances on input); <a href="index.html">RealTimeLoop</a> accumulates it to advance at a fixed rate.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -158,7 +158,7 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="request-turn.html"><span class="token function">requestTurn</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Records that the player has committed a turn-consuming action this frame. <a href="../-turn-based-loop/index.html">TurnBasedLoop</a> advances on it; <a href="index.html">RealTimeLoop</a> ignores it (the world advances regardless of input).</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="request-turn.html"><span class="token function">requestTurn</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Records that the player has committed a turn-consuming action this frame. <a href="../-turn-based-loop/index.html">TurnBasedLoop</a> advances on it; <a href="index.html">RealTimeLoop</a> ignores it (the world advances on the clock, not on input).</p></div></div></div>
                 </div>
               </div>
             </div>
