@@ -496,10 +496,9 @@ $dokka.location:com.sletmoe.korogue.ui/LogPanel/draw/#com.sletmoe.korogue.ui.Til
 $dokka.location:com.sletmoe.korogue.ui/LogPanel/handleKey/#kotlin.Int/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-log-panel/handle-key.html
 $dokka.location:com.sletmoe.korogue.ui/MapPanel.Companion///PointingToDeclaration/engine/com.sletmoe.korogue.ui/-map-panel/-companion/index.html
 $dokka.location:com.sletmoe.korogue.ui/MapPanel///PointingToDeclaration/engine/com.sletmoe.korogue.ui/-map-panel/index.html
-$dokka.location:com.sletmoe.korogue.ui/MapPanel/MapPanel/#com.sletmoe.korogue.utilities.IntRect#com.sletmoe.korogue.world.GameWorld#kotlin.Function1[com.sletmoe.korogue.world.Zone,com.sletmoe.korogue.utilities.Grid[kotlin.Boolean]]#com.sletmoe.korogue.algorithms.los.LineOfSightCalculator#kotlin.Double?/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-map-panel/-map-panel.html
+$dokka.location:com.sletmoe.korogue.ui/MapPanel/MapPanel/#com.sletmoe.korogue.utilities.IntRect#com.sletmoe.korogue.world.GameWorld#kotlin.Function1[com.sletmoe.korogue.world.Zone,com.sletmoe.korogue.utilities.Grid[kotlin.Boolean]]#kotlin.Function1[com.sletmoe.korogue.world.GameWorld,com.sletmoe.korogue.ecs.Entity?]/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-map-panel/-map-panel.html
 $dokka.location:com.sletmoe.korogue.ui/MapPanel/bounds/#/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-map-panel/bounds.html
 $dokka.location:com.sletmoe.korogue.ui/MapPanel/draw/#com.sletmoe.korogue.ui.TileSurface/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-map-panel/draw.html
-$dokka.location:com.sletmoe.korogue.ui/MapPanel/losCalculator/#/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-map-panel/los-calculator.html
 $dokka.location:com.sletmoe.korogue.ui/Menu///PointingToDeclaration/engine/com.sletmoe.korogue.ui/-menu/index.html
 $dokka.location:com.sletmoe.korogue.ui/Menu/Menu/#com.sletmoe.korogue.utilities.IntRect#kotlin.collections.List[com.sletmoe.korogue.ui.MenuItem]#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color#kotlin.Int/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-menu/-menu.html
 $dokka.location:com.sletmoe.korogue.ui/Menu/bounds/#/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-menu/bounds.html
