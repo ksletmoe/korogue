@@ -3,7 +3,7 @@
 > Current-state snapshots. Design rationale is in [ARCHITECTURE.md](ARCHITECTURE.md);
 > the live task backlog is in **beads** — run `bd list` / `bd ready`.
 
-_Last updated: 2026-06-13 (after the perception core, krogue-1my.1 / ADR-0015)._
+_Last updated: 2026-06-13 (after built-in senses, krogue-1my.2 / ADR-0015)._
 
 ## Migration arc (done)
 
@@ -136,10 +136,19 @@ then given a tested ECS foundation:
   (perceived cells + entities) doubles as a **derived, per-observer cache component**: opt in by
   attaching an empty `Perceived` and `PerceptionSystem` rewrites it each tick (the `lightMap`
   pattern, active-zone-scoped), while the query stays callable directly for AI/occasional observers.
-  Ships **inert** — no built-in senses (krogue-1my.2) or concrete concealments/suppressors
-  (krogue-1my.3) yet, so an observer perceives nothing until a game adds a sense; `MapPanel` still
-  uses the interim `LOS ∧ lit` path until krogue-1my.4 renders `Perceived`.
-- **~337 tests** (`./gradlew test`). Example-based Kotest.
+- **Built-in senses (krogue-1my.2, ADR-0015).** The engine now ships four opt-in sense
+  *components* — `Sight`, `Darkvision`, `Tremorsense`, `Telepathy` (each its own type; the ECS keys
+  by class) — and their `Sense` *contributors*, registered in `engineDefaults()`. `Sight`
+  (`{visual, light-dependent}`) is LOS gated on lighting; `Darkvision` (`{visual}`) is LOS ignoring
+  lighting; `Tremorsense` (`{vibration}`) and `Telepathy` (`{mental}`) reveal living creatures
+  (`Health`) within radius through walls, contributing entities only. The **view distance moved onto
+  `Sight.radius`** (per-observer, mutable, `null` = wall-limited), superseding `MapPanel`'s old cap.
+  Engine tag ids live in `PerceptionTags`. LOS senses take a `LineOfSightCalculator` injected at
+  registration (defaults to `SymmetricShadowCaster`; no LOS registry yet). The sense components are
+  registered for save/load. A basic game now just attaches a `Sight` and perception works — though
+  `MapPanel` still uses the interim `LOS ∧ lit` path until krogue-1my.4 renders `Perceived`, and
+  concrete concealments/suppressors (`Invisible`, `Blind`) arrive in krogue-1my.3.
+- **~353 tests** (`./gradlew test`). Example-based Kotest.
 
 ### Known issues / cleanups still open
 - Player HP is shown (HP bar) and death is handled (game-over dialog at 0 HP; krogue-4zi done).

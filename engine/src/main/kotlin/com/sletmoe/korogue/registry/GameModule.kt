@@ -3,6 +3,7 @@ package com.sletmoe.korogue.registry
 import com.sletmoe.korogue.algorithms.lighting.DiminishingLightValueCalculator
 import com.sletmoe.korogue.algorithms.lighting.GlobalLightValueCalculator
 import com.sletmoe.korogue.algorithms.lighting.LightValueCalculator
+import com.sletmoe.korogue.algorithms.los.SymmetricShadowCaster
 import com.sletmoe.korogue.components.Behavior
 import com.sletmoe.korogue.components.Health
 import com.sletmoe.korogue.components.Inventory
@@ -15,9 +16,17 @@ import com.sletmoe.korogue.components.Position
 import com.sletmoe.korogue.components.Renderable
 import com.sletmoe.korogue.components.ZoneMember
 import com.sletmoe.korogue.ecs.Component
+import com.sletmoe.korogue.perception.Darkvision
+import com.sletmoe.korogue.perception.DarkvisionSense
 import com.sletmoe.korogue.perception.PerceptionModel
 import com.sletmoe.korogue.perception.Sense
+import com.sletmoe.korogue.perception.Sight
+import com.sletmoe.korogue.perception.SightSense
 import com.sletmoe.korogue.perception.StandardPerception
+import com.sletmoe.korogue.perception.Telepathy
+import com.sletmoe.korogue.perception.TelepathySense
+import com.sletmoe.korogue.perception.Tremorsense
+import com.sletmoe.korogue.perception.TremorsenseSense
 import com.sletmoe.korogue.schedule.TimedEffect
 import com.sletmoe.korogue.systems.BehaviorStrategy
 import com.sletmoe.korogue.systems.HuntPlayerStrategy
@@ -122,9 +131,16 @@ class GameModule private constructor(
                     ),
                 // No built-in timed effects: the engine provides the scheduler; games provide effects.
                 effects = mutableMapOf(),
-                // Built-in senses are populated by krogue-1my.2; the default perception model
-                // (StandardPerception) is wired in build(), so both start empty here.
-                senses = mutableMapOf(),
+                // The engine's built-in senses (ADR-0015). LOS senses are injected with the default
+                // shadow caster (no LOS registry yet); the default perception model (StandardPerception)
+                // is wired to this senses registry in build().
+                senses =
+                    mutableMapOf(
+                        SightSense.ID to SightSense(SymmetricShadowCaster()),
+                        DarkvisionSense.ID to DarkvisionSense(SymmetricShadowCaster()),
+                        TremorsenseSense.ID to TremorsenseSense(),
+                        TelepathySense.ID to TelepathySense(),
+                    ),
                 perceptionModels = mutableMapOf(),
                 components = mutableMapOf(),
             ).component<Position>()
@@ -138,5 +154,9 @@ class GameModule private constructor(
                 .component<Portal>()
                 .component<Item>()
                 .component<Inventory>()
+                .component<Sight>()
+                .component<Darkvision>()
+                .component<Tremorsense>()
+                .component<Telepathy>()
     }
 }

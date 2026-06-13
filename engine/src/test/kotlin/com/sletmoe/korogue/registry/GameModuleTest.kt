@@ -3,11 +3,15 @@ package com.sletmoe.korogue.registry
 import com.sletmoe.korogue.algorithms.lighting.DiminishingLightValueCalculator
 import com.sletmoe.korogue.ecs.Entity
 import com.sletmoe.korogue.perception.Contribution
+import com.sletmoe.korogue.perception.DarkvisionSense
 import com.sletmoe.korogue.perception.PerceptionModel
 import com.sletmoe.korogue.perception.Perceived
 import com.sletmoe.korogue.perception.Sense
 import com.sletmoe.korogue.perception.SenseComponent
+import com.sletmoe.korogue.perception.SightSense
 import com.sletmoe.korogue.perception.StandardPerception
+import com.sletmoe.korogue.perception.TelepathySense
+import com.sletmoe.korogue.perception.TremorsenseSense
 import com.sletmoe.korogue.systems.BehaviorStrategy
 import com.sletmoe.korogue.systems.HuntPlayerStrategy
 import com.sletmoe.korogue.systems.WanderStrategy
@@ -44,7 +48,15 @@ class GameModuleTest : FunSpec({
     test("engine defaults register StandardPerception as the default perception model") {
         val module = GameModule.engineDefaults().build()
         module.perceptionModels.resolve(StandardPerception.ID).shouldBeInstanceOf<StandardPerception>()
-        module.senses.ids shouldBe emptySet() // built-in senses arrive in krogue-1my.2
+    }
+
+    test("engine defaults register the built-in senses") {
+        val module = GameModule.engineDefaults().build()
+        module.senses.ids shouldBe setOf(SightSense.ID, DarkvisionSense.ID, TremorsenseSense.ID, TelepathySense.ID)
+        module.senses.resolve(SightSense.ID).shouldBeInstanceOf<SightSense>()
+        module.senses.resolve(DarkvisionSense.ID).shouldBeInstanceOf<DarkvisionSense>()
+        module.senses.resolve(TremorsenseSense.ID).shouldBeInstanceOf<TremorsenseSense>()
+        module.senses.resolve(TelepathySense.ID).shouldBeInstanceOf<TelepathySense>()
     }
 
     test("a consumer can register and resolve its own sense, wired into the default model") {
