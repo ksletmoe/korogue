@@ -4,8 +4,8 @@ import com.sletmoe.korogue.components.ZoneMember
 import com.sletmoe.korogue.ecs.Entity
 import com.sletmoe.korogue.ecs.EntityId
 import com.sletmoe.korogue.ecs.World
-import com.sletmoe.korogue.perception.PerceptionModel
 import com.sletmoe.korogue.perception.Perceived
+import com.sletmoe.korogue.perception.PerceptionModel
 import com.sletmoe.korogue.utilities.Grid
 import com.sletmoe.korogue.world.BLANK_TILE
 import com.sletmoe.korogue.world.GameWorld
@@ -24,6 +24,7 @@ class PerceptionSystemTest : DescribeSpec({
     /** A model that records how many times it's been asked, encoding the count into the result. */
     class CountingModel : PerceptionModel {
         var calls = 0
+
         override fun perceive(
             observer: Entity,
             world: GameWorld,

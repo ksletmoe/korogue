@@ -11,15 +11,15 @@ import com.sletmoe.korogue.world.GameWorld
 import com.sletmoe.korogue.world.Zone
 import com.sletmoe.kotile.utilities.Vector2Int
 
-/**
- * The engine's built-in [Sense] contributors (ADR-0015): the behaviour behind the [Sight], [Darkvision],
- * [Tremorsense], and [Telepathy] components. `GameModule.engineDefaults()` registers them under the ids
+/*
+ * The engine's built-in Sense contributors (ADR-0015): the behaviour behind the Sight, Darkvision,
+ * Tremorsense, and Telepathy components. `GameModule.engineDefaults()` registers them under the ids
  * named on those components, so a basic game just attaches a `Sight` and these do the rest; a game
  * overrides one by re-registering its id, or adds a wholly new sense (`HeatSense`) the same way.
  *
  * Each is stateless and shared across every observer bearing its id (per-observer data lives on the
- * component), and pure — `reveal` only reads the world. They declare [Sense.tags] so concealments and
- * suppressors interact by tag without a sense×effect matrix; none [Sense.pierces] anything by default
+ * component), and pure — `reveal` only reads the world. They declare Sense.tags so concealments and
+ * suppressors interact by tag without a sense×effect matrix; none Sense.pierces anything by default
  * (see-invisible/true-sight are a game's piercing senses, krogue-1my.3).
  */
 

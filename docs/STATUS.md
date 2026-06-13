@@ -122,10 +122,10 @@ then given a tested ECS foundation:
     step list.
   - **`Label` widget (krogue-e43).** A single line of (live) text in the UI toolkit, for status
     lines / captions / HUD readouts — the gap that previously forced a hand-rolled widget.
-  - **Uncapped view distance (krogue-f50).** `MapPanel.maximumVisibilityDistance` is now `Double?`
-    and **defaults to `null`** (visibility limited only by walls) instead of a surprise 30-tile
-    circular cap — least-footgun default. (Interim: a mutable per-observer sight radius belongs on
-    a future `Vision`/perception model — see the visibility-rework discussion / forthcoming ADR.)
+  - **Uncapped view distance (krogue-f50 → ADR-0015).** Was the interim `MapPanel`-owned
+    `maximumVisibilityDistance` (`Double?`, defaulting to `null` = wall-limited). Now **superseded**:
+    the per-observer sight radius lives on `Sight.radius` and `MapPanel` no longer owns a cap
+    (krogue-1my.4, below).
 - **Perception core (krogue-1my.1, ADR-0015).** The third visibility layer's skeleton, in
   `com.sletmoe.korogue.perception`: a `PerceptionModel` query (`perceive(observer, world) ->
   Perceived`) resolved by id via a new `GameModule.perceptionModels` registry, with the engine's
@@ -145,10 +145,20 @@ then given a tested ECS foundation:
   `Sight.radius`** (per-observer, mutable, `null` = wall-limited), superseding `MapPanel`'s old cap.
   Engine tag ids live in `PerceptionTags`. LOS senses take a `LineOfSightCalculator` injected at
   registration (defaults to `SymmetricShadowCaster`; no LOS registry yet). The sense components are
-  registered for save/load. A basic game now just attaches a `Sight` and perception works — though
-  `MapPanel` still uses the interim `LOS ∧ lit` path until krogue-1my.4 renders `Perceived`, and
-  concrete concealments/suppressors (`Invisible`, `Blind`) arrive in krogue-1my.3.
-- **~353 tests** (`./gradlew test`). Example-based Kotest.
+  registered for save/load. A basic game now just attaches a `Sight` and perception works; concrete
+  concealments/suppressors (`Invisible`, `Blind`) arrive in krogue-1my.3.
+- **`MapPanel` renders `Perceived` (krogue-1my.4, ADR-0015).** The renderer no longer computes
+  `LOS ∧ lit` or owns a view distance: it draws a **chosen observer's `Perceived`** (the player by
+  default, via a `observer: (GameWorld) -> Entity?` selector) and centres the camera on that
+  observer — a cell is drawn when perceived, an occupant when *that entity* is perceived (so an
+  invisible monster on a lit cell is hidden, a tremor/telepathy contact behind a wall is shown). It
+  reads the per-tick `Perceived` cache, so the host attaches an empty `Perceived` to the player and
+  runs `PerceptionSystem` after `LightingSystem`. `MapPanel.maximumVisibilityDistance` is **gone**
+  (relocated to `Sight.radius`), finishing the krogue-f50 → ADR-0015 migration; `LineOfSightCalculator`
+  is now a `fun interface`. Both the demo (`MyGame`, with SPACE still toggling FOV by swapping the
+  LOS behind its `SightSense`) and the Rogue example (`korogue-rogue`: player gets a `Sight` + an
+  empty `Perceived`) are wired onto the model.
+- **~356 tests** (`./gradlew test`). Example-based Kotest.
 
 ### Known issues / cleanups still open
 - Player HP is shown (HP bar) and death is handled (game-over dialog at 0 HP; krogue-4zi done).

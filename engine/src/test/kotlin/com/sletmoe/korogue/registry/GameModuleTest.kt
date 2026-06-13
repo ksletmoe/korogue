@@ -4,8 +4,8 @@ import com.sletmoe.korogue.algorithms.lighting.DiminishingLightValueCalculator
 import com.sletmoe.korogue.ecs.Entity
 import com.sletmoe.korogue.perception.Contribution
 import com.sletmoe.korogue.perception.DarkvisionSense
-import com.sletmoe.korogue.perception.PerceptionModel
 import com.sletmoe.korogue.perception.Perceived
+import com.sletmoe.korogue.perception.PerceptionModel
 import com.sletmoe.korogue.perception.Sense
 import com.sletmoe.korogue.perception.SenseComponent
 import com.sletmoe.korogue.perception.SightSense
@@ -63,6 +63,7 @@ class GameModuleTest : FunSpec({
         val sense =
             object : Sense {
                 override val tags = setOf("heat")
+
                 override fun reveal(
                     observer: Entity,
                     sense: SenseComponent,

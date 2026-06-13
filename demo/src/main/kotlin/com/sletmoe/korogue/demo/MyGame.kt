@@ -32,6 +32,10 @@ import com.sletmoe.korogue.kotile.ZoneFog
 import com.sletmoe.korogue.loop.GameLoop
 import com.sletmoe.korogue.loop.RealTimeLoop
 import com.sletmoe.korogue.loop.TurnBasedLoop
+import com.sletmoe.korogue.perception.Perceived
+import com.sletmoe.korogue.perception.Sight
+import com.sletmoe.korogue.perception.SightSense
+import com.sletmoe.korogue.perception.StandardPerception
 import com.sletmoe.korogue.random.GameRandom
 import com.sletmoe.korogue.registry.GameModule
 import com.sletmoe.korogue.save.SaveCodec
@@ -42,6 +46,7 @@ import com.sletmoe.korogue.systems.CombatSystem
 import com.sletmoe.korogue.systems.HuntPlayerStrategy
 import com.sletmoe.korogue.systems.LightingSystem
 import com.sletmoe.korogue.systems.MovementSystem
+import com.sletmoe.korogue.systems.PerceptionSystem
 import com.sletmoe.korogue.systems.PickupSystem
 import com.sletmoe.korogue.systems.PortalSystem
 import com.sletmoe.korogue.systems.WanderStrategy
@@ -107,21 +112,36 @@ class MyGame(
     private val symmetricShadowCaster = SymmetricShadowCaster()
     private val omnipresentLos = OmnicientLineOfSightCalculator()
 
+    // The FOV mode the player's sight uses now (SPACE toggles it, krogue-f50's debug feature). It is
+    // the LOS behind the `Sight` sense (ADR-0015): instead of MapPanel owning a LOS calculator, the
+    // demo overrides the built-in `SightSense` with one reading this swappable delegate, so the
+    // toggle still works while visibility is decided in the perception layer, not the renderer.
+    private var activeLos: LineOfSightCalculator = symmetricShadowCaster
+    private val toggleableLos =
+        LineOfSightCalculator { origin, tiles, maxViewDistance ->
+            activeLos.calculateLineOfSight(origin, tiles, maxViewDistance)
+        }
+
     // Content (world gen + placement) draws from one stream; gameplay (AI/combat) from
     // another, so the same master seed always yields the same world (ADR-0009).
     private val worldgen: Random = gameRandom.stream("worldgen")
 
-    // Engine defaults plus, in turn-based mode, AI that acts every turn (override the built-in
-    // strategies' per-tick act chance, which only makes sense under real-time's per-frame ticking).
+    // Engine defaults plus the demo's overrides: a `SightSense` reading the toggleable FOV above, and
+    // — in turn-based mode — AI that acts every turn (overriding the built-in strategies' per-tick act
+    // chance, which only makes sense under real-time's per-frame ticking).
     private val gameModule: GameModule =
         GameModule
             .engineDefaults()
+            .sense(SightSense.ID, SightSense(toggleableLos))
             .apply {
                 if (turnBased) {
                     strategy(WanderStrategy.ID, WanderStrategy(actChance = 1.0))
                     strategy(HuntPlayerStrategy.ID, HuntPlayerStrategy(actChance = 1.0))
                 }
             }.build()
+
+    /** The perception model the [PerceptionSystem] caches each tick (ADR-0015): the engine default. */
+    private val perceptionModel = gameModule.perceptionModels.resolve(StandardPerception.ID)
 
     /** Drives world advancement: turn-on-input or continuous (see [turnBased], krogue-lhw). */
     private val gameLoop: GameLoop = if (turnBased) TurnBasedLoop() else RealTimeLoop()
@@ -140,9 +160,9 @@ class MyGame(
     private var playerId: EntityId = spawnPlayer()
 
     private lateinit var ui: UiRoot
-    private lateinit var mapPanel: MapPanel
     private lateinit var logPanel: LogPanel
     private lateinit var lightingSystem: LightingSystem
+    private lateinit var perceptionSystem: PerceptionSystem
 
     /** The open modal dialog (system menu / game over), or null. Tracked so it can be closed. */
     private var modalDialog: Dialog? = null
@@ -170,6 +190,9 @@ class MyGame(
     private fun registerSystems() {
         lightingSystem =
             LightingSystem(world.zones, gameModule.calculators::resolve, activeZones = world::simulatedZones)
+        // Perception caches each observer's Perceived (ADR-0015) and runs *after* lighting, since the
+        // `Sight` sense reveals only lit cells — so it reads the light map this same tick produced.
+        perceptionSystem = PerceptionSystem(world, perceptionModel, activeZones = world::simulatedZones)
         world.ecs
             // First in the pipeline: timed effects (regen/hunger/spawns) resolve at the top of the turn.
             .addSystem(SchedulerSystem(scheduler, gameModule.effects::resolve))
@@ -179,6 +202,7 @@ class MyGame(
             .addSystem(PickupSystem())
             .addSystem(CombatSystem())
             .addSystem(lightingSystem)
+            .addSystem(perceptionSystem)
     }
 
     /**
@@ -190,6 +214,18 @@ class MyGame(
      */
     private fun primeLighting() {
         lightingSystem.update(
+            world.ecs,
+            TickContext(turn = world.ecs.currentTurn, elapsedMs = 0L, random = Random.Default),
+        )
+    }
+
+    /**
+     * Caches the player's `Perceived` once so the first frame draws what they see — and again after a
+     * [toggleLos], since perception is now computed on a tick (by [perceptionSystem]) rather than in
+     * the renderer. Runs after [primeLighting] so the sight sense sees the freshly-lit cells.
+     */
+    private fun primePerception() {
+        perceptionSystem.update(
             world.ecs,
             TickContext(turn = world.ecs.currentTurn, elapsedMs = 0L, random = Random.Default),
         )
@@ -208,8 +244,9 @@ class MyGame(
 
     override fun create() {
         super.create()
-        buildUi(symmetricShadowCaster)
+        buildUi()
         primeLighting()
+        primePerception()
     }
 
     override fun onTick(deltaMs: Long) {
@@ -234,9 +271,10 @@ class MyGame(
     /**
      * Builds the [UiRoot] and its widgets bound to the current [world]: a [MapPanel], a [LogPanel]
      * sidebar (subscribed to the world's event bus), and a status strip with the HP bar. Called at
-     * startup and again after [load] swaps in a new world; [los] carries the FOV mode across.
+     * startup and again after [load] swaps in a new world; the FOV mode lives on [activeLos], so it
+     * survives the rebuild without being threaded through.
      */
-    private fun buildUi(los: LineOfSightCalculator) {
+    private fun buildUi() {
         // A fresh UiRoot has no dialogs; clear the modal/game-over tracking to match.
         modalDialog = null
         gameOverShown = false
@@ -249,14 +287,15 @@ class MyGame(
         // The sidebar stacks the message log (top) over the inventory panel (bottom).
         val (logRect, inventoryRect) = sidebarRect.splitBottom(INVENTORY_ROWS)
 
-        mapPanel =
+        // The MapPanel renders the player's cached `Perceived` (ADR-0015); it defaults its observer
+        // to the player, so nothing more to wire here.
+        ui.add(
             MapPanel(
                 bounds = mapRect,
                 gameWorld = world,
                 fogFor = { zone -> zoneFog.forZone(zone.zoneId, zone.width, zone.height) },
-                losCalculator = los,
-            )
-        ui.add(mapPanel)
+            ),
+        )
 
         logPanel = LogPanel(logRect, title = "Log")
         ui.add(logPanel)
@@ -403,15 +442,15 @@ class MyGame(
             return
         }
         val loaded = saveCodec.load(saveFile.readBytes())
-        val los = mapPanel.losCalculator
         world = loaded.world
         gameRandom = loaded.random
         zoneFog.restore(loaded.fog)
         scheduler.restore(loaded.schedule)
         playerId = world.ecs.entitiesWith<Player>().first().id
         registerSystems()
-        buildUi(los)
+        buildUi()
         primeLighting()
+        primePerception()
         println("Loaded game from ${saveFile.absolutePath}")
     }
 
@@ -494,6 +533,11 @@ class MyGame(
                     15.0,
                     DiminishingLightValueCalculator.ID,
                 ),
+                // Senses the world by sight (ADR-0015), uncapped — limited only by walls and lighting,
+                // matching the demo's old uncapped LOS — and an empty Perceived so PerceptionSystem
+                // caches the player's view each tick for the renderer.
+                Sight(),
+                Perceived(),
             ).id
 
     private fun populateZone(
@@ -544,12 +588,9 @@ class MyGame(
     private fun playerItems(): List<String> = world.ecs.get(playerId)?.get<Inventory>()?.items ?: emptyList()
 
     private fun toggleLos() {
-        mapPanel.losCalculator =
-            if (mapPanel.losCalculator === symmetricShadowCaster) {
-                omnipresentLos
-            } else {
-                symmetricShadowCaster
-            }
+        activeLos = if (activeLos === symmetricShadowCaster) omnipresentLos else symmetricShadowCaster
+        // Perception is cached on a tick, so recompute it now for the change to show this frame.
+        primePerception()
     }
 
     companion object {

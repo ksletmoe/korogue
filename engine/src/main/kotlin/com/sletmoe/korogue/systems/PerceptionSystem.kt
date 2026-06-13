@@ -4,8 +4,8 @@ import com.sletmoe.korogue.components.ZoneMember
 import com.sletmoe.korogue.ecs.System
 import com.sletmoe.korogue.ecs.TickContext
 import com.sletmoe.korogue.ecs.World
-import com.sletmoe.korogue.perception.PerceptionModel
 import com.sletmoe.korogue.perception.Perceived
+import com.sletmoe.korogue.perception.PerceptionModel
 import com.sletmoe.korogue.world.GameWorld
 
 /**
