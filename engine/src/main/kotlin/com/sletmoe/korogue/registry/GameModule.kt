@@ -15,6 +15,9 @@ import com.sletmoe.korogue.components.Position
 import com.sletmoe.korogue.components.Renderable
 import com.sletmoe.korogue.components.ZoneMember
 import com.sletmoe.korogue.ecs.Component
+import com.sletmoe.korogue.perception.PerceptionModel
+import com.sletmoe.korogue.perception.Sense
+import com.sletmoe.korogue.perception.StandardPerception
 import com.sletmoe.korogue.schedule.TimedEffect
 import com.sletmoe.korogue.systems.BehaviorStrategy
 import com.sletmoe.korogue.systems.HuntPlayerStrategy
@@ -26,20 +29,25 @@ import kotlin.reflect.KClass
 /**
  * The single seam describing a game's pluggable pieces to the engine (ADR-0009, hybrid
  * option iii). It bundles the per-concern registries — [strategies] (AI), [calculators]
- * (lighting), and [components] (serialization) — so a consumer configures everything in one
- * place (`GameModule.engineDefaults().strategy(...).component<Foo>().build()`), while systems
+ * (lighting), [senses] / [perceptionModels] (perception, ADR-0015), and [components]
+ * (serialization) — so a consumer configures everything in one place
+ * (`GameModule.engineDefaults().strategy(...).component<Foo>().build()`), while systems
  * and the save codec each depend only on the narrow registry they need, never the whole module.
  */
 class GameModule private constructor(
     val strategies: Registry<BehaviorStrategy>,
     val calculators: Registry<LightValueCalculator>,
     val effects: Registry<TimedEffect>,
+    val senses: Registry<Sense>,
+    val perceptionModels: Registry<PerceptionModel>,
     val components: ComponentRegistry,
 ) {
     class Builder internal constructor(
         private val strategies: MutableMap<String, BehaviorStrategy>,
         private val calculators: MutableMap<String, LightValueCalculator>,
         private val effects: MutableMap<String, TimedEffect>,
+        private val senses: MutableMap<String, Sense>,
+        private val perceptionModels: MutableMap<String, PerceptionModel>,
         private val components: MutableMap<KClass<out Component>, KSerializer<out Component>>,
     ) {
         /** Register (or override) an AI strategy under [id]. */
@@ -60,6 +68,18 @@ class GameModule private constructor(
             calculator: LightValueCalculator,
         ): Builder = apply { calculators[id] = calculator }
 
+        /** Register (or override) a perception [Sense] contributor under [id] (ADR-0015). */
+        fun sense(
+            id: String,
+            sense: Sense,
+        ): Builder = apply { senses[id] = sense }
+
+        /** Register (or override) a [PerceptionModel] under [id] (ADR-0015). Overrides the default [StandardPerception]. */
+        fun perceptionModel(
+            id: String,
+            model: PerceptionModel,
+        ): Builder = apply { perceptionModels[id] = model }
+
         /** Register a `@Serializable` [Component] type so it can be saved/loaded. */
         fun <T : Component> component(
             type: KClass<T>,
@@ -69,13 +89,21 @@ class GameModule private constructor(
         /** Register a `@Serializable` [Component] type by reified type. */
         inline fun <reified T : Component> component(): Builder = component(T::class, serializer<T>())
 
-        fun build(): GameModule =
-            GameModule(
+        fun build(): GameModule {
+            val sensesRegistry = Registry(senses.toMap())
+            // The default StandardPerception is wired to the finalised senses registry here, unless a
+            // game has registered its own model under that id — breaking the model↔senses cycle.
+            val models = perceptionModels.toMutableMap()
+            models.putIfAbsent(StandardPerception.ID, StandardPerception(sensesRegistry))
+            return GameModule(
                 Registry(strategies.toMap()),
                 Registry(calculators.toMap()),
                 Registry(effects.toMap()),
+                sensesRegistry,
+                Registry(models.toMap()),
                 ComponentRegistry(components.toMap()),
             )
+        }
     }
 
     companion object {
@@ -94,6 +122,10 @@ class GameModule private constructor(
                     ),
                 // No built-in timed effects: the engine provides the scheduler; games provide effects.
                 effects = mutableMapOf(),
+                // Built-in senses are populated by krogue-1my.2; the default perception model
+                // (StandardPerception) is wired in build(), so both start empty here.
+                senses = mutableMapOf(),
+                perceptionModels = mutableMapOf(),
                 components = mutableMapOf(),
             ).component<Position>()
                 .component<ZoneMember>()

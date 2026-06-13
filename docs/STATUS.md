@@ -3,7 +3,7 @@
 > Current-state snapshots. Design rationale is in [ARCHITECTURE.md](ARCHITECTURE.md);
 > the live task backlog is in **beads** — run `bd list` / `bd ready`.
 
-_Last updated: 2026-06-08 (after Phase 4c: event bus, and 4d: AI strategy abstraction — Phase 4 complete)._
+_Last updated: 2026-06-13 (after the perception core, krogue-1my.1 / ADR-0015)._
 
 ## Migration arc (done)
 
@@ -126,7 +126,20 @@ then given a tested ECS foundation:
     and **defaults to `null`** (visibility limited only by walls) instead of a surprise 30-tile
     circular cap — least-footgun default. (Interim: a mutable per-observer sight radius belongs on
     a future `Vision`/perception model — see the visibility-rework discussion / forthcoming ADR.)
-- **~321 tests** (`./gradlew test`). Example-based Kotest.
+- **Perception core (krogue-1my.1, ADR-0015).** The third visibility layer's skeleton, in
+  `com.sletmoe.korogue.perception`: a `PerceptionModel` query (`perceive(observer, world) ->
+  Perceived`) resolved by id via a new `GameModule.perceptionModels` registry, with the engine's
+  default `StandardPerception` implementing the **two-phase reveal/suppress** model — phase 1 unions
+  every `SenseComponent` the observer carries (each resolved to a registered `Sense` contributor via
+  the new `GameModule.senses` registry), phase 2 drops contributions whose sense tags an observer
+  `Suppressor` or a target `Concealment` negates, unless the sense `pierces` the tag. `Perceived`
+  (perceived cells + entities) doubles as a **derived, per-observer cache component**: opt in by
+  attaching an empty `Perceived` and `PerceptionSystem` rewrites it each tick (the `lightMap`
+  pattern, active-zone-scoped), while the query stays callable directly for AI/occasional observers.
+  Ships **inert** — no built-in senses (krogue-1my.2) or concrete concealments/suppressors
+  (krogue-1my.3) yet, so an observer perceives nothing until a game adds a sense; `MapPanel` still
+  uses the interim `LOS ∧ lit` path until krogue-1my.4 renders `Perceived`.
+- **~337 tests** (`./gradlew test`). Example-based Kotest.
 
 ### Known issues / cleanups still open
 - Player HP is shown (HP bar) and death is handled (game-over dialog at 0 HP; krogue-4zi done).
