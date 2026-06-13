@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>com.sletmoe.korogue.perception</title>
+    <link href="../../images/logo-icon.svg" rel="icon" type="image/svg">
+        <script>var pathToRoot = "../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../scripts/sourceset_dependencies.js" async="async"></script>
+<link href="../../styles/style.css" rel="Stylesheet">
+<link href="../../styles/main.css" rel="Stylesheet">
+<link href="../../styles/prism.css" rel="Stylesheet">
+<link href="../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../scripts/navigation-loader.js" async="async"></script>
+<script type="text/javascript" src="../../scripts/platform-content-handler.js" async="async"></script>
+<script type="text/javascript" src="../../scripts/main.js" defer="defer"></script>
+<script type="text/javascript" src="../../scripts/prism.js" async="async"></script>
+<script type="text/javascript" src="../../ui-kit/ui-kit.min.js" defer="defer"></script>
+</head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+            <a class="library-name--link" href="../../index.html" tabindex="1">
+                    engine
+            </a>
+        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle"
+                type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+1.0.0.11-SNAPSHOT        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true"
+                        data-filter=":engine/main">jvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox"
+                        data-role="dropdown-toggle"
+                        aria-controls="platform-tags-listbox"
+                        aria-haspopup="listbox"
+                        aria-expanded="false"
+                        aria-label="Toggle source sets"
+                ></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":engine/main"
+                                       data-filter=":engine/main"/>
+                                <span class="checkbox--icon"></span>
+                                jvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button"
+                    type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config='{"defaultSize": 280, "minSize": 200, "maxSize": 400}'>
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list"
+                    data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    engine
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="package" id="content" pageIds="engine::com.sletmoe.korogue.perception////PointingToDeclaration//-56654334">
+  <div class="breadcrumbs"><a href="../../index.html">engine</a><span class="delimiter">/</span><span class="current">com.sletmoe.korogue.perception</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>Package-level</span></span> <span><span>declarations</span></span></h1>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="TYPE">Types</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="TYPE">
+        <h2 class="tableheader">Types</h2>
+        <div class="table"><a data-name="869520534%2FClasslikes%2F-56654334" anchor-label="Concealment" id="869520534%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-concealment/index.html"><span><span>Concealment</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="869520534%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-concealment/index.html">Concealment</a> : <a href="../com.sletmoe.korogue.ecs/-component/index.html">Component</a></div><div class="brief "><p class="paragraph">A component on the <strong>target</strong> that hides it from senses whose tags it conceals from it matches — <code class="lang-kotlin">Invisible</code> conceals from <code class="lang-kotlin">{visual}</code>, a future <code class="lang-kotlin">Silenced</code> from <code class="lang-kotlin">{vibration}</code>. A new concealment targets tags and automatically affects all matching senses, with no sense×effect table. A sense that <a href="-sense/pierces.html">Sense.pierces</a> the matched tag perceives the target anyway.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1166646737%2FClasslikes%2F-56654334" anchor-label="Contribution" id="-1166646737%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-contribution/index.html"><span><span>Contribution</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1166646737%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="-contribution/index.html">Contribution</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>cells<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-set/index.html">Set</a><span class="token operator">&lt;</span><span data-unresolved-link="com.sletmoe.kotile.utilities/Vector2Int///PointingToDeclaration/">Vector2Int</span><span class="token operator">&gt;</span><span class="token operator"> = </span>emptySet()<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>entities<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-set/index.html">Set</a><span class="token operator">&lt;</span><a href="../com.sletmoe.korogue.ecs/-entity-id/index.html">EntityId</a><span class="token operator">&gt;</span><span class="token operator"> = </span>emptySet()</span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">One sense's output for one observer: the <span data-unresolved-link="com.sletmoe.korogue.perception/Contribution//#kotlin.collections.Set[com.sletmoe.kotile.utilities.Vector2Int]#kotlin.collections.Set[com.sletmoe.korogue.ecs.EntityId]/PointingToCallableParameters(0)/">cells</span> it exposes and the <span data-unresolved-link="com.sletmoe.korogue.perception/Contribution//#kotlin.collections.Set[com.sletmoe.kotile.utilities.Vector2Int]#kotlin.collections.Set[com.sletmoe.korogue.ecs.EntityId]/PointingToCallableParameters(1)/">entities</span> it makes the observer aware of. <a href="-standard-perception/index.html">StandardPerception</a> tags each contribution with its producing <a href="-sense/index.html">Sense</a>'s <a href="-sense/tags.html">Sense.tags</a>/<a href="-sense/pierces.html">Sense.pierces</a> when applying the suppress phase, so a contributor only states <i>what</i> it reveals, not <i>how</i> it interacts with concealment.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="56588961%2FClasslikes%2F-56654334" anchor-label="Darkvision" id="56588961%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-darkvision/index.html"><span><span>Darkvision</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="56588961%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><span data-unresolved-link="kotlinx.serialization/Serializable///PointingToDeclaration/"><span class="token annotation builtin">Serializable</span></span></div><div class="block"><span class="token annotation builtin">@</span><span data-unresolved-link="kotlinx.serialization/SerialName///PointingToDeclaration/"><span class="token annotation builtin">SerialName</span></span><span class="token punctuation">(</span><span>value<span class="token operator"> = </span><span class="breakable-word"><span class="token string">&quot;darkvision&quot;</span></span></span><wbr></wbr><span class="token punctuation">)</span></div></div><span class="token keyword">data </span><span class="token keyword">class </span><a href="-darkvision/index.html">Darkvision</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>radius<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html">Double</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>senseId<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span>DarkvisionSense.ID</span></span><span class="token punctuation">)</span> : <a href="-sense-component/index.html">SenseComponent</a></div><div class="brief "><p class="paragraph">Darkvision: a <code class="lang-kotlin">{visual}</code> sense that sees by line-of-sight to <span data-unresolved-link="com.sletmoe.korogue.perception/Darkvision//#kotlin.Double?#kotlin.String/PointingToCallableParameters(0)/">radius</span> regardless of lighting.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1482375181%2FClasslikes%2F-56654334" anchor-label="DarkvisionSense" id="-1482375181%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-darkvision-sense/index.html"><span>Darkvision</span><wbr></wbr><span><span>Sense</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1482375181%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-darkvision-sense/index.html">DarkvisionSense</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">los<span class="token operator">: </span><a href="../com.sletmoe.korogue.algorithms.los/-line-of-sight-calculator/index.html">LineOfSightCalculator</a></span></span><span class="token punctuation">)</span> : <a href="-sense/index.html">Sense</a></div><div class="brief "><p class="paragraph"><code class="lang-kotlin">{visual}</code> line-of-sight to <a href="-darkvision/radius.html">Darkvision.radius</a> <i>regardless of lighting</i> — it sees in the dark. Otherwise identical to <a href="-sight-sense/index.html">SightSense</a>: walls still block, and entities on revealed cells are perceived.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-767784968%2FClasslikes%2F-56654334" anchor-label="Perceived" id="-767784968%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-perceived/index.html"><span><span>Perceived</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-767784968%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="-perceived/index.html">Perceived</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>zoneId<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">&quot;&quot;</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>cells<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-set/index.html">Set</a><span class="token operator">&lt;</span><span data-unresolved-link="com.sletmoe.kotile.utilities/Vector2Int///PointingToDeclaration/">Vector2Int</span><span class="token operator">&gt;</span><span class="token operator"> = </span>emptySet()<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>entities<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-set/index.html">Set</a><span class="token operator">&lt;</span><a href="../com.sletmoe.korogue.ecs/-entity-id/index.html">EntityId</a><span class="token operator">&gt;</span><span class="token operator"> = </span>emptySet()</span></span><span class="token punctuation">)</span> : <a href="../com.sletmoe.korogue.ecs/-component/index.html">Component</a></div><div class="brief "><p class="paragraph">What an observer perceives right now (ADR-0015, layer 3): the set of <span data-unresolved-link="com.sletmoe.korogue.perception/Perceived//#kotlin.String#kotlin.collections.Set[com.sletmoe.kotile.utilities.Vector2Int]#kotlin.collections.Set[com.sletmoe.korogue.ecs.EntityId]/PointingToCallableParameters(1)/">cells</span> it can see and the set of <span data-unresolved-link="com.sletmoe.korogue.perception/Perceived//#kotlin.String#kotlin.collections.Set[com.sletmoe.kotile.utilities.Vector2Int]#kotlin.collections.Set[com.sletmoe.korogue.ecs.EntityId]/PointingToCallableParameters(2)/">entities</span> it is aware of, both relative to the observer's current <span data-unresolved-link="com.sletmoe.korogue.perception/Perceived//#kotlin.String#kotlin.collections.Set[com.sletmoe.kotile.utilities.Vector2Int]#kotlin.collections.Set[com.sletmoe.korogue.ecs.EntityId]/PointingToCallableParameters(0)/">zoneId</span>. Produced by a <a href="-perception-model/index.html">PerceptionModel</a>; consumed by the renderer (which observer's eyes to draw) and by AI (&quot;can I perceive the player?&quot;).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1273591713%2FClasslikes%2F-56654334" anchor-label="PerceptionModel" id="-1273591713%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-perception-model/index.html"><span>Perception</span><wbr></wbr><span><span>Model</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1273591713%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token keyword">interface </span><a href="-perception-model/index.html">PerceptionModel</a></div><div class="brief "><p class="paragraph">Perception's policy seam (ADR-0015, layer 3): turns the world facts (illumination, line-of-sight) plus an observer's senses and targets' concealment into a <a href="-perceived/index.html">Perceived</a> result. The primitive is a <strong>query</strong> — callable for the player, a companion, a charmed monster, or a monster asking &quot;can I see the player?&quot; — so the renderer, AI, and faction visibility all reuse one model.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1733410783%2FClasslikes%2F-56654334" anchor-label="PerceptionTags" id="-1733410783%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-perception-tags/index.html"><span>Perception</span><wbr></wbr><span><span>Tags</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1733410783%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">object </span><a href="-perception-tags/index.html">PerceptionTags</a></div><div class="brief "><p class="paragraph">The engine's built-in perception <strong>tag ids</strong> (ADR-0015). A <a href="-sense/index.html">Sense</a> declares the tags describing what it <i>is</i> or <i>depends on</i>; a <a href="-concealment/index.html">Concealment</a> or <a href="-suppressor/index.html">Suppressor</a> negates senses by matching these tags, and a sense <a href="-sense/pierces.html">Sense.pierces</a> the tags it sees through anyway. Selective interaction is thus expressed by tags rather than a sense×effect matrix.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1504684021%2FClasslikes%2F-56654334" anchor-label="Sense" id="1504684021%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-sense/index.html"><span><span>Sense</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1504684021%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-sense/index.html">Sense</a></div><div class="brief "><p class="paragraph">The behaviour behind a <a href="-sense-component/index.html">SenseComponent</a> (ADR-0015, ADR-0009 registry style): given an observer and its sense component, it <a href="-sense/reveal.html">reveal</a>s the cells and entities that sense exposes. Registered by id on the <code class="lang-kotlin">GameModule</code> (<code class="lang-kotlin">module.sense(id, impl)</code>); <a href="-standard-perception/index.html">StandardPerception</a> resolves the id from each of the observer's <a href="-sense-component/index.html">SenseComponent</a>s and unions the contributions in its reveal phase.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1946273456%2FClasslikes%2F-56654334" anchor-label="SenseComponent" id="1946273456%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-sense-component/index.html"><span>Sense</span><wbr></wbr><span><span>Component</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1946273456%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-sense-component/index.html">SenseComponent</a> : <a href="../com.sletmoe.korogue.ecs/-component/index.html">Component</a></div><div class="brief "><p class="paragraph">An opt-in data <strong>component</strong> declaring that its owner has a sense (ADR-0015): <code class="lang-kotlin">Sight</code>, <code class="lang-kotlin">Darkvision</code>, <code class="lang-kotlin">Tremorsense</code>, a game's own <code class="lang-kotlin">HeatSense</code>, …. The component carries the sense's per-entity data (e.g. a sight radius) and names the <a href="-sense-component/sense-id.html">senseId</a> of the <a href="-sense/index.html">Sense</a> contributor that interprets it, resolved through the <code class="lang-kotlin">GameModule</code> senses registry — mirroring <code class="lang-kotlin">LightEmitter</code>'s <code class="lang-kotlin">calculatorId</code> and <code class="lang-kotlin">Behavior</code>'s strategy id (ADR-0003: components are data, behaviour resolves by id). No component, no sense: a creature with only <code class="lang-kotlin">Tremorsense</code> never triggers sight, so per-entity opt-out is automatic. The engine's built-in sense components arrive with the senses themselves (krogue-1my.2).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="242756838%2FClasslikes%2F-56654334" anchor-label="Sight" id="242756838%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-sight/index.html"><span><span>Sight</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="242756838%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><span data-unresolved-link="kotlinx.serialization/Serializable///PointingToDeclaration/"><span class="token annotation builtin">Serializable</span></span></div><div class="block"><span class="token annotation builtin">@</span><span data-unresolved-link="kotlinx.serialization/SerialName///PointingToDeclaration/"><span class="token annotation builtin">SerialName</span></span><span class="token punctuation">(</span><span>value<span class="token operator"> = </span><span class="breakable-word"><span class="token string">&quot;sight&quot;</span></span></span><wbr></wbr><span class="token punctuation">)</span></div></div><span class="token keyword">data </span><span class="token keyword">class </span><a href="-sight/index.html">Sight</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>radius<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html">Double</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>senseId<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span>SightSense.ID</span></span><span class="token punctuation">)</span> : <a href="-sense-component/index.html">SenseComponent</a></div><div class="brief "><p class="paragraph">Sight: the <code class="lang-kotlin">{visual, light-dependent}</code> sense — line-of-sight gated on lighting, capped at <span data-unresolved-link="com.sletmoe.korogue.perception/Sight//#kotlin.Double?#kotlin.String/PointingToCallableParameters(0)/">radius</span>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1462066%2FClasslikes%2F-56654334" anchor-label="SightSense" id="-1462066%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-sight-sense/index.html"><span>Sight</span><wbr></wbr><span><span>Sense</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1462066%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-sight-sense/index.html">SightSense</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">los<span class="token operator">: </span><a href="../com.sletmoe.korogue.algorithms.los/-line-of-sight-calculator/index.html">LineOfSightCalculator</a></span></span><span class="token punctuation">)</span> : <a href="-sense/index.html">Sense</a></div><div class="brief "><p class="paragraph"><code class="lang-kotlin">{visual, light-dependent}</code> line-of-sight, gated on lighting: a cell is revealed only where it is both in line-of-sight from the observer and lit (<code class="lang-kotlin">lightMap != null</code>) — the interim <code class="lang-kotlin">MapPanel</code> rule, now a sense. The <a href="-sight/radius.html">Sight.radius</a> caps the line-of-sight (null = limited only by walls). Entities standing on a revealed cell are perceived. The <span data-unresolved-link="com.sletmoe.korogue.perception/SightSense//#com.sletmoe.korogue.algorithms.los.LineOfSightCalculator/PointingToCallableParameters(0)/">los</span> calculator is injected at registration (there is no LOS registry yet); a game wanting a different one re-registers this sense with its own.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="698887357%2FClasslikes%2F-56654334" anchor-label="StandardPerception" id="698887357%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-standard-perception/index.html"><span>Standard</span><wbr></wbr><span><span>Perception</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="698887357%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-standard-perception/index.html">StandardPerception</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">senses<span class="token operator">: </span><a href="../com.sletmoe.korogue.registry/-registry/index.html">Registry</a><span class="token operator">&lt;</span><a href="-sense/index.html">Sense</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span> : <a href="-perception-model/index.html">PerceptionModel</a></div><div class="brief "><p class="paragraph">The engine's default <a href="-perception-model/index.html">PerceptionModel</a> (ADR-0015): the <strong>two-phase reveal/suppress</strong> model over the observer's composable senses.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1760979097%2FClasslikes%2F-56654334" anchor-label="Suppressor" id="-1760979097%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-suppressor/index.html"><span><span>Suppressor</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1760979097%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-suppressor/index.html">Suppressor</a> : <a href="../com.sletmoe.korogue.ecs/-component/index.html">Component</a></div><div class="brief "><p class="paragraph">A component on the <strong>observer</strong> that removes its own perception by negating sense tags it negates — <code class="lang-kotlin">Blind</code> negates <code class="lang-kotlin">{visual}</code>, <code class="lang-kotlin">Dazzled</code> …. Because it is a separate component, a <i>transient</i> blind effect suppresses without deleting a permanent <code class="lang-kotlin">Sight</code>, and a scheduler (krogue-6uq) can expire it to restore sight cleanly.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1836898969%2FClasslikes%2F-56654334" anchor-label="Telepathy" id="1836898969%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-telepathy/index.html"><span><span>Telepathy</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1836898969%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><span data-unresolved-link="kotlinx.serialization/Serializable///PointingToDeclaration/"><span class="token annotation builtin">Serializable</span></span></div><div class="block"><span class="token annotation builtin">@</span><span data-unresolved-link="kotlinx.serialization/SerialName///PointingToDeclaration/"><span class="token annotation builtin">SerialName</span></span><span class="token punctuation">(</span><span>value<span class="token operator"> = </span><span class="breakable-word"><span class="token string">&quot;telepathy&quot;</span></span></span><wbr></wbr><span class="token punctuation">)</span></div></div><span class="token keyword">data </span><span class="token keyword">class </span><a href="-telepathy/index.html">Telepathy</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>radius<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html">Double</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>senseId<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span>TelepathySense.ID</span></span><span class="token punctuation">)</span> : <a href="-sense-component/index.html">SenseComponent</a></div><div class="brief "><p class="paragraph">Telepathy: a <code class="lang-kotlin">{mental}</code> sense that perceives living minds within <span data-unresolved-link="com.sletmoe.korogue.perception/Telepathy//#kotlin.Double?#kotlin.String/PointingToCallableParameters(0)/">radius</span> (the whole zone when <code class="lang-kotlin">null</code>) regardless of line-of-sight, lighting, or walls — the &quot;detect monsters&quot; staple. Reveals the creatures, not the terrain.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-885220613%2FClasslikes%2F-56654334" anchor-label="TelepathySense" id="-885220613%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-telepathy-sense/index.html"><span>Telepathy</span><wbr></wbr><span><span>Sense</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-885220613%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-telepathy-sense/index.html">TelepathySense</a> : <a href="-sense/index.html">Sense</a></div><div class="brief "><p class="paragraph"><code class="lang-kotlin">{mental}</code> sense: reveals living creatures (those with <a href="../com.sletmoe.korogue.components/-health/index.html">Health</a>) within <a href="-telepathy/radius.html">Telepathy.radius</a> — the whole zone when <code class="lang-kotlin">null</code> — ignoring walls, line-of-sight, and lighting. Like <a href="-tremorsense-sense/index.html">TremorsenseSense</a> it perceives minds, not terrain, so it contributes entities only.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-828091202%2FClasslikes%2F-56654334" anchor-label="Tremorsense" id="-828091202%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-tremorsense/index.html"><span><span>Tremorsense</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-828091202%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><span data-unresolved-link="kotlinx.serialization/Serializable///PointingToDeclaration/"><span class="token annotation builtin">Serializable</span></span></div><div class="block"><span class="token annotation builtin">@</span><span data-unresolved-link="kotlinx.serialization/SerialName///PointingToDeclaration/"><span class="token annotation builtin">SerialName</span></span><span class="token punctuation">(</span><span>value<span class="token operator"> = </span><span class="breakable-word"><span class="token string">&quot;tremorsense&quot;</span></span></span><wbr></wbr><span class="token punctuation">)</span></div></div><span class="token keyword">data </span><span class="token keyword">class </span><a href="-tremorsense/index.html">Tremorsense</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>radius<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-double/index.html">Double</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>senseId<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span>TremorsenseSense.ID</span></span><span class="token punctuation">)</span> : <a href="-sense-component/index.html">SenseComponent</a></div><div class="brief "><p class="paragraph">Tremorsense: a <code class="lang-kotlin">{vibration}</code> sense that feels living creatures within <span data-unresolved-link="com.sletmoe.korogue.perception/Tremorsense//#kotlin.Double?#kotlin.String/PointingToCallableParameters(0)/">radius</span> through the ground — no line-of-sight, no lighting; it reveals the creatures, not the terrain.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="2027204598%2FClasslikes%2F-56654334" anchor-label="TremorsenseSense" id="2027204598%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-tremorsense-sense/index.html"><span>Tremorsense</span><wbr></wbr><span><span>Sense</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2027204598%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-tremorsense-sense/index.html">TremorsenseSense</a> : <a href="-sense/index.html">Sense</a></div><div class="brief "><p class="paragraph"><code class="lang-kotlin">{vibration}</code> sense: reveals living creatures (those with <a href="../com.sletmoe.korogue.components/-health/index.html">Health</a>) within <a href="-tremorsense/radius.html">Tremorsense.radius</a>, ignoring walls, line-of-sight, and lighting — you feel them through the ground but don't perceive the terrain, so it contributes entities only, no cells.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

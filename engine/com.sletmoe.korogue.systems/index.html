@@ -43,7 +43,7 @@
         </button>
         <div class="navigation-controls--break ui-kit_mobile-only"></div>
         <div class="library-version" id="library-version">
-1.0.0.10-SNAPSHOT        </div>
+1.0.0.11-SNAPSHOT        </div>
         <div class="navigation-controls">
         <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
                 <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true"
@@ -199,6 +199,21 @@
               <div>
                 <div class="title">
                   <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-movement-system/index.html">MovementSystem</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">zones<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-map/index.html">Map</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span><a href="../com.sletmoe.korogue.world/-zone/index.html">Zone</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span> : <a href="../com.sletmoe.korogue.ecs/-system/index.html">System</a></div><div class="brief "><p class="paragraph">Resolves <a href="../com.sletmoe.korogue.components/-move-intent/index.html">MoveIntent</a>s into actual movement. For each entity with a <a href="../com.sletmoe.korogue.components/-move-intent/index.html">MoveIntent</a> + <a href="../com.sletmoe.korogue.components/-position/index.html">Position</a> + <a href="../com.sletmoe.korogue.components/-zone-member/index.html">ZoneMember</a>, the intent is consumed and one of three things happens: a step onto walkable, unoccupied terrain (updates <a href="../com.sletmoe.korogue.components/-position/index.html">Position</a>); a bump into another entity in the destination cell (emits an <a href="../com.sletmoe.korogue.components/-attack-intent/index.html">AttackIntent</a> for <code class="lang-kotlin">CombatSystem</code>); or a no-op into a wall.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="2103706650%2FClasslikes%2F-56654334" anchor-label="PerceptionSystem" id="2103706650%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-perception-system/index.html"><span>Perception</span><wbr></wbr><span><span>System</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2103706650%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-perception-system/index.html">PerceptionSystem</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">gameWorld<span class="token operator">: </span><a href="../com.sletmoe.korogue.world/-game-world/index.html">GameWorld</a><span class="token punctuation">, </span></span><span class="parameter ">model<span class="token operator">: </span><a href="../com.sletmoe.korogue.perception/-perception-model/index.html">PerceptionModel</a><span class="token punctuation">, </span></span><span class="parameter ">activeZones<span class="token operator">: </span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-set/index.html">Set</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span><span class="token operator">?</span><span class="token operator"> = </span>null</span></span><span class="token punctuation">)</span> : <a href="../com.sletmoe.korogue.ecs/-system/index.html">System</a></div><div class="brief "><p class="paragraph">Caches each observer's <a href="../com.sletmoe.korogue.perception/-perceived/index.html">Perceived</a> once per tick (ADR-0015), the per-observer analogue of <a href="-lighting-system/index.html">LightingSystem</a> rewriting <code class="lang-kotlin">Zone.lightMap</code>: perception only changes on a tick, but the renderer and tick-by-tick AI sample it ~60×/sec, so computing it once per tick and storing it pays off.</p></div></div></div>
                 </div>
               </div>
             </div>
