@@ -43,7 +43,7 @@
         </button>
         <div class="navigation-controls--break ui-kit_mobile-only"></div>
         <div class="library-version" id="library-version">
-1.0.0.12-SNAPSHOT        </div>
+1.0.0.13-SNAPSHOT        </div>
         <div class="navigation-controls">
         <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
                 <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true"
@@ -108,7 +108,7 @@
   <div class="cover ">
     <h1 class="cover"><span><span>pierces</span></span></h1>
   </div>
-  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">val </span><a href="pierces.html">pierces</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-set/index.html">Set</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span></div><p class="paragraph">Concealment/suppressor tags this sense sees through despite a match (e.g. see-invisible).</p></div></div>
+  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">val </span><a href="pierces.html">pierces</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-set/index.html">Set</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span></div><p class="paragraph"><strong>Concealment</strong> tags this sense sees through despite a match (e.g. see-invisible / true-sight). Piercing defeats target-side concealment only — it does <strong>not</strong> override an observer's <a href="../-suppressor/index.html">Suppressor</a> (ADR-0015): a blinded <code class="lang-kotlin">{visual}</code> sense is dropped however much it pierces, because a suppressor disables the channel the sense runs on. Immunity to a suppressor comes from being on a channel it doesn't negate (a non-<code class="lang-kotlin">{visual}</code> sense survives <code class="lang-kotlin">Blind</code>), not from piercing.</p></div></div>
 </div>
     <div class="footer">
         <div class="footer--container">

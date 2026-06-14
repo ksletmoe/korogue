@@ -204,6 +204,8 @@ $dokka.location:com.sletmoe.korogue.loop/TurnBasedLoop/TurnBasedLoop/#/PointingT
 $dokka.location:com.sletmoe.korogue.loop/TurnBasedLoop/advance/#kotlin.Long#kotlin.Function0[kotlin.Unit]/PointingToDeclaration/engine/com.sletmoe.korogue.loop/-turn-based-loop/advance.html
 $dokka.location:com.sletmoe.korogue.loop/TurnBasedLoop/requestTurn/#/PointingToDeclaration/engine/com.sletmoe.korogue.loop/-turn-based-loop/request-turn.html
 $dokka.location:com.sletmoe.korogue.perception////PointingToDeclaration/engine/com.sletmoe.korogue.perception/index.html
+$dokka.location:com.sletmoe.korogue.perception/Blind///PointingToDeclaration/engine/com.sletmoe.korogue.perception/-blind/index.html
+$dokka.location:com.sletmoe.korogue.perception/Blind/negatesTags/#/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-blind/negates-tags.html
 $dokka.location:com.sletmoe.korogue.perception/Concealment///PointingToDeclaration/engine/com.sletmoe.korogue.perception/-concealment/index.html
 $dokka.location:com.sletmoe.korogue.perception/Concealment/concealsFromTags/#/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-concealment/conceals-from-tags.html
 $dokka.location:com.sletmoe.korogue.perception/Contribution.Companion///PointingToDeclaration/engine/com.sletmoe.korogue.perception/-contribution/-companion/index.html
@@ -222,6 +224,10 @@ $dokka.location:com.sletmoe.korogue.perception/DarkvisionSense///PointingToDecla
 $dokka.location:com.sletmoe.korogue.perception/DarkvisionSense/DarkvisionSense/#com.sletmoe.korogue.algorithms.los.LineOfSightCalculator/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-darkvision-sense/-darkvision-sense.html
 $dokka.location:com.sletmoe.korogue.perception/DarkvisionSense/reveal/#com.sletmoe.korogue.ecs.Entity#com.sletmoe.korogue.perception.SenseComponent#com.sletmoe.korogue.world.GameWorld/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-darkvision-sense/reveal.html
 $dokka.location:com.sletmoe.korogue.perception/DarkvisionSense/tags/#/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-darkvision-sense/tags.html
+$dokka.location:com.sletmoe.korogue.perception/Dazzled///PointingToDeclaration/engine/com.sletmoe.korogue.perception/-dazzled/index.html
+$dokka.location:com.sletmoe.korogue.perception/Dazzled/negatesTags/#/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-dazzled/negates-tags.html
+$dokka.location:com.sletmoe.korogue.perception/Invisible///PointingToDeclaration/engine/com.sletmoe.korogue.perception/-invisible/index.html
+$dokka.location:com.sletmoe.korogue.perception/Invisible/concealsFromTags/#/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-invisible/conceals-from-tags.html
 $dokka.location:com.sletmoe.korogue.perception/Perceived///PointingToDeclaration/engine/com.sletmoe.korogue.perception/-perceived/index.html
 $dokka.location:com.sletmoe.korogue.perception/Perceived/Perceived/#kotlin.String#kotlin.collections.Set[com.sletmoe.kotile.utilities.Vector2Int]#kotlin.collections.Set[com.sletmoe.korogue.ecs.EntityId]/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-perceived/-perceived.html
 $dokka.location:com.sletmoe.korogue.perception/Perceived/cells/#/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-perceived/cells.html
@@ -279,6 +285,17 @@ $dokka.location:com.sletmoe.korogue.perception/TremorsenseSense///PointingToDecl
 $dokka.location:com.sletmoe.korogue.perception/TremorsenseSense/TremorsenseSense/#/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-tremorsense-sense/-tremorsense-sense.html
 $dokka.location:com.sletmoe.korogue.perception/TremorsenseSense/reveal/#com.sletmoe.korogue.ecs.Entity#com.sletmoe.korogue.perception.SenseComponent#com.sletmoe.korogue.world.GameWorld/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-tremorsense-sense/reveal.html
 $dokka.location:com.sletmoe.korogue.perception/TremorsenseSense/tags/#/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-tremorsense-sense/tags.html
+$dokka.location:com.sletmoe.korogue.perception/TrueSight///PointingToDeclaration/engine/com.sletmoe.korogue.perception/-true-sight/index.html
+$dokka.location:com.sletmoe.korogue.perception/TrueSight/TrueSight/#kotlin.Double?#kotlin.String/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-true-sight/-true-sight.html
+$dokka.location:com.sletmoe.korogue.perception/TrueSight/radius/#/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-true-sight/radius.html
+$dokka.location:com.sletmoe.korogue.perception/TrueSight/senseId/#/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-true-sight/sense-id.html
+$dokka.location:com.sletmoe.korogue.perception/TrueSightSense.Companion///PointingToDeclaration/engine/com.sletmoe.korogue.perception/-true-sight-sense/-companion/index.html
+$dokka.location:com.sletmoe.korogue.perception/TrueSightSense.Companion/ID/#/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-true-sight-sense/-companion/-i-d.html
+$dokka.location:com.sletmoe.korogue.perception/TrueSightSense///PointingToDeclaration/engine/com.sletmoe.korogue.perception/-true-sight-sense/index.html
+$dokka.location:com.sletmoe.korogue.perception/TrueSightSense/TrueSightSense/#com.sletmoe.korogue.algorithms.los.LineOfSightCalculator/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-true-sight-sense/-true-sight-sense.html
+$dokka.location:com.sletmoe.korogue.perception/TrueSightSense/pierces/#/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-true-sight-sense/pierces.html
+$dokka.location:com.sletmoe.korogue.perception/TrueSightSense/reveal/#com.sletmoe.korogue.ecs.Entity#com.sletmoe.korogue.perception.SenseComponent#com.sletmoe.korogue.world.GameWorld/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-true-sight-sense/reveal.html
+$dokka.location:com.sletmoe.korogue.perception/TrueSightSense/tags/#/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-true-sight-sense/tags.html
 $dokka.location:com.sletmoe.korogue.random////PointingToDeclaration/engine/com.sletmoe.korogue.random/index.html
 $dokka.location:com.sletmoe.korogue.random/GameRandom.Companion///PointingToDeclaration/engine/com.sletmoe.korogue.random/-game-random/-companion/index.html
 $dokka.location:com.sletmoe.korogue.random/GameRandom.Companion/fromSeed/#kotlin.Long/PointingToDeclaration/engine/com.sletmoe.korogue.random/-game-random/-companion/from-seed.html
