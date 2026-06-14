@@ -42,7 +42,13 @@ interface Sense {
     /** What this sense *is* / depends on. Concealments and suppressors negate by matching these. */
     val tags: Set<String>
 
-    /** Concealment/suppressor tags this sense sees through despite a match (e.g. see-invisible). */
+    /**
+     * **Concealment** tags this sense sees through despite a match (e.g. see-invisible / true-sight).
+     * Piercing defeats target-side concealment only — it does **not** override an observer's
+     * [Suppressor] (ADR-0015): a blinded `{visual}` sense is dropped however much it pierces, because a
+     * suppressor disables the channel the sense runs on. Immunity to a suppressor comes from being on a
+     * channel it doesn't negate (a non-`{visual}` sense survives `Blind`), not from piercing.
+     */
     val pierces: Set<String>
         get() = emptySet()
 

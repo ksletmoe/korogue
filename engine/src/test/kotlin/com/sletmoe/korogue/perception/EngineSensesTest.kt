@@ -116,6 +116,24 @@ class EngineSensesTest : DescribeSpec({
         }
     }
 
+    describe("TrueSightSense") {
+        it("tags itself visual and pierces visual") {
+            TrueSightSense(los).tags shouldBe setOf(PerceptionTags.VISUAL)
+            TrueSightSense(los).pierces shouldBe setOf(PerceptionTags.VISUAL)
+        }
+
+        it("reveals in-sight cells regardless of lighting, like darkvision") {
+            val zone = Zone("z", Grid(8, 8, BLANK_TILE)) // wholly unlit
+            val gw = world(zone)
+            val observer = gw.ecs.spawn(Position(4, 4), ZoneMember("z"), TrueSight())
+
+            val c = TrueSightSense(los).reveal(observer, observer.require<TrueSight>(), gw)
+
+            c.cells shouldContain Vector2Int(4, 4)
+            c.cells shouldContain Vector2Int(4, 1)
+        }
+    }
+
     describe("TremorsenseSense") {
         it("tags itself vibration") {
             TremorsenseSense().tags shouldBe setOf(PerceptionTags.VIBRATION)

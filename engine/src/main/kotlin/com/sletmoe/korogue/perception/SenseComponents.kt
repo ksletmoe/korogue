@@ -38,6 +38,21 @@ data class Darkvision(
 ) : SenseComponent
 
 /**
+ * TrueSight: a `{visual}` sense that *pierces visual concealment* — it sees [Invisible] targets
+ * (see-invisible / true-sight). Otherwise it is line-of-sight to [radius] regardless of lighting, like
+ * [Darkvision]. Piercing defeats concealment only, never suppression (ADR-0015), so true-sight is
+ * still **blinded by [Blind]/[Dazzled]**: it upgrades eyesight, it is not a separate organ. A sense
+ * that should keep working while blinded must live on a non-`{visual}` channel (Tremorsense, a game's
+ * blindsight) — that, not piercing, is how blindness is shrugged off.
+ */
+@Serializable
+@SerialName("truesight")
+data class TrueSight(
+    val radius: Double? = null,
+    override val senseId: String = TrueSightSense.ID,
+) : SenseComponent
+
+/**
  * Tremorsense: a `{vibration}` sense that feels living creatures within [radius] through the ground —
  * no line-of-sight, no lighting; it reveals the creatures, not the terrain.
  */
@@ -52,6 +67,11 @@ data class Tremorsense(
  * Telepathy: a `{mental}` sense that perceives living minds within [radius] (the whole zone when
  * `null`) regardless of line-of-sight, lighting, or walls — the "detect monsters" staple. Reveals the
  * creatures, not the terrain.
+ *
+ * The name follows the **roguelike** lineage (Brogue's Potion of Telepathy and NetHack's telepathy
+ * both reveal monsters through walls), *not* tabletop D&D 5e — where "telepathy" is a communication
+ * ability and minds-as-radar is *Detect Thoughts*. This engine borrows from the roguelike tradition,
+ * so the genre-expected meaning wins.
  */
 @Serializable
 @SerialName("telepathy")

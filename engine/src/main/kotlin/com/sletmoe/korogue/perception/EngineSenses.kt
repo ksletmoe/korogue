@@ -67,6 +67,30 @@ class DarkvisionSense(
 }
 
 /**
+ * `{visual}` line-of-sight that **pierces `{visual}` concealment** — see-invisible / true-sight.
+ * Reveals like [DarkvisionSense] (line-of-sight to [TrueSight.radius] regardless of lighting), but
+ * because it [Sense.pierces] `visual` it perceives [Invisible] targets. Piercing defeats concealment
+ * only, not suppression (ADR-0015), so true-sight is **still blinded by [Blind]/[Dazzled]** — it is
+ * better eyesight, not a non-visual sense. Surviving blindness is a job for a different channel.
+ */
+class TrueSightSense(
+    private val los: LineOfSightCalculator,
+) : Sense {
+    override val tags = setOf(PerceptionTags.VISUAL)
+    override val pierces = setOf(PerceptionTags.VISUAL)
+
+    override fun reveal(
+        observer: Entity,
+        sense: SenseComponent,
+        world: GameWorld,
+    ): Contribution = lineOfSightContribution(observer, world, los, (sense as? TrueSight)?.radius, requireLit = false)
+
+    companion object {
+        const val ID = "truesight"
+    }
+}
+
+/**
  * `{vibration}` sense: reveals living creatures (those with [Health]) within [Tremorsense.radius],
  * ignoring walls, line-of-sight, and lighting — you feel them through the ground but don't perceive the
  * terrain, so it contributes entities only, no cells.

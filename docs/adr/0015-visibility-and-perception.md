@@ -98,8 +98,17 @@ modelled distinctly rather than as negative senses:
 
 - **Execution is two phases.** *Reveal:* union every sense the observer has, each contribution
   tagged by its sense's tags. *Suppress:* apply observer **suppressors** and target **concealments**,
-  which remove contributions whose tags they negate (unless a contributing sense pierces them).
-  Union-then-suppress keeps phase 1 order-independent and confines precedence to one place.
+  which remove contributions whose tags they negate. Union-then-suppress keeps phase 1
+  order-independent and confines precedence to one place.
+- **Piercing defeats concealment, not suppression** (refined during krogue-1my.3 — see the note
+  below). A sense's *pierces* set lets it see a **target** that conceals from it (see-invisible /
+  true-sight), but a **suppressor** that negates one of the sense's tags drops it unconditionally: a
+  suppressor disables the *channel* the sense runs on, and you cannot pierce your own blinded eyes.
+  **Immunity to a suppressor comes from being on a channel it doesn't negate** — a non-`{visual}`
+  sense (`Tremorsense`, a game's blindsight) survives `Blind` for free — not from piercing. This
+  keeps "I see hidden things" and "I can't be blinded" as two separately-chosen capabilities, and
+  makes D&D's four special senses fall out of the channel scheme (truesight = better *sight*, blinded
+  like any sight; blindsight/tremorsense = non-visual channels, unblinded).
 - **Suppressors are components** (`Blind` negates `{visual}`; `Dazzled`, …), so a *transient* blind
   effect suppresses without deleting the observer's permanent `Sight`, and is expired by the
   scheduler (krogue-6uq) — restoring sight cleanly. (Confirmed in design: blindness is a suppressor,
@@ -163,3 +172,11 @@ generation (krogue-c20).
   need per-observer perception; the query is per-observer with per-observer caching.
 - **Behaviour on components (a `Sense` that is itself a component).** Rejected: ADR-0003 keeps
   components data; senses resolve behaviour by id from the registry, like every other policy.
+- **Uniform piercing (pierce defeats suppression as well as concealment).** Rejected during
+  krogue-1my.3. It conflates two distinct real capabilities — seeing hidden things and being immune
+  to blindness — so a see-invisible sense would silently also un-blind itself. Restricting pierce to
+  concealment is *simpler* (the suppress check drops the pierce test) and lets the channel/tag scheme
+  do the blindness-immunity work (a non-`{visual}` sense survives `Blind` by construction). A game
+  that genuinely wants uniform piercing keeps full freedom: `PerceptionModel` is a pluggable policy
+  (ADR-0014), so it registers a `StandardPerception` variant whose suppress check honours `pierces` —
+  the fusion is opt-in, not baked into the default.

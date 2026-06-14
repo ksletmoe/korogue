@@ -3,7 +3,7 @@
 > Current-state snapshots. Design rationale is in [ARCHITECTURE.md](ARCHITECTURE.md);
 > the live task backlog is in **beads** — run `bd list` / `bd ready`.
 
-_Last updated: 2026-06-13 (after built-in senses, krogue-1my.2 / ADR-0015)._
+_Last updated: 2026-06-13 (after concealment/piercing/suppressors, krogue-1my.3 — perception epic complete / ADR-0015)._
 
 ## Migration arc (done)
 
@@ -158,7 +158,19 @@ then given a tested ECS foundation:
   is now a `fun interface`. Both the demo (`MyGame`, with SPACE still toggling FOV by swapping the
   LOS behind its `SightSense`) and the Rogue example (`korogue-rogue`: player gets a `Sight` + an
   empty `Perceived`) are wired onto the model.
-- **~356 tests** (`./gradlew test`). Example-based Kotest.
+- **Concealment, piercing & suppressors (krogue-1my.3, ADR-0015) — epic complete.** The concrete
+  payload for the suppress phase: `Invisible` (a `Concealment` of `{visual}`), `Blind`/`Dazzled`
+  (`Suppressor`s of `{visual}`) — all dataless `data object`s in `PerceptionEffects.kt`, registered
+  for save/load — and `TrueSight`, a `{visual}` LOS sense that *pierces* `{visual}` (engine built-in,
+  registered in `engineDefaults()`). So an invisible monster is hidden from `Sight` (its floor still
+  seen) yet felt by `Tremorsense` and seen by `TrueSight`; blindness drops visual senses without
+  deleting `Sight`. **Piercing defeats concealment, never suppression** — `TrueSight` sees the
+  invisible but is *still blinded by `Blind`*, because a suppressor disables the channel a sense runs
+  on; immunity to blindness comes from being on a non-`{visual}` channel (`Tremorsense`), not from
+  piercing (ADR-0015, refined here; a game wanting uniform piercing swaps the `PerceptionModel`).
+  Transient effects are scheduler-expirable: a fuse (krogue-6uq) removes the `Blind` component to
+  restore an untouched `Sight` (proven end-to-end in `PerceptionScenarioTest`).
+- **~366 tests** (`./gradlew test`). Example-based Kotest.
 
 ### Known issues / cleanups still open
 - Player HP is shown (HP bar) and death is handled (game-over dialog at 0 HP; krogue-4zi done).

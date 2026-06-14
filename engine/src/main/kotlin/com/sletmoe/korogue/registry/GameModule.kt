@@ -16,8 +16,11 @@ import com.sletmoe.korogue.components.Position
 import com.sletmoe.korogue.components.Renderable
 import com.sletmoe.korogue.components.ZoneMember
 import com.sletmoe.korogue.ecs.Component
+import com.sletmoe.korogue.perception.Blind
 import com.sletmoe.korogue.perception.Darkvision
 import com.sletmoe.korogue.perception.DarkvisionSense
+import com.sletmoe.korogue.perception.Dazzled
+import com.sletmoe.korogue.perception.Invisible
 import com.sletmoe.korogue.perception.PerceptionModel
 import com.sletmoe.korogue.perception.Sense
 import com.sletmoe.korogue.perception.Sight
@@ -27,6 +30,8 @@ import com.sletmoe.korogue.perception.Telepathy
 import com.sletmoe.korogue.perception.TelepathySense
 import com.sletmoe.korogue.perception.Tremorsense
 import com.sletmoe.korogue.perception.TremorsenseSense
+import com.sletmoe.korogue.perception.TrueSight
+import com.sletmoe.korogue.perception.TrueSightSense
 import com.sletmoe.korogue.schedule.TimedEffect
 import com.sletmoe.korogue.systems.BehaviorStrategy
 import com.sletmoe.korogue.systems.HuntPlayerStrategy
@@ -138,6 +143,7 @@ class GameModule private constructor(
                     mutableMapOf(
                         SightSense.ID to SightSense(SymmetricShadowCaster()),
                         DarkvisionSense.ID to DarkvisionSense(SymmetricShadowCaster()),
+                        TrueSightSense.ID to TrueSightSense(SymmetricShadowCaster()),
                         TremorsenseSense.ID to TremorsenseSense(),
                         TelepathySense.ID to TelepathySense(),
                     ),
@@ -156,7 +162,11 @@ class GameModule private constructor(
                 .component<Inventory>()
                 .component<Sight>()
                 .component<Darkvision>()
+                .component<TrueSight>()
                 .component<Tremorsense>()
                 .component<Telepathy>()
+                .component<Invisible>()
+                .component<Blind>()
+                .component<Dazzled>()
     }
 }

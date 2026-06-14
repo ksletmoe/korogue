@@ -113,7 +113,7 @@ class StandardPerceptionTest : DescribeSpec({
             perceived.cells.shouldContainExactly() // blinded: sight contributes nothing
         }
 
-        it("keeps a suppressed sense's contribution when that sense pierces the negated tag") {
+        it("drops a suppressed sense even when it pierces the negated tag (pierce is concealment-only)") {
             val gw = gameWorld()
             val observer =
                 gw.ecs.spawn(ZoneMember("z"), FakeSenseComponent("truesight"), FakeSuppressor(setOf("visual")))
@@ -124,7 +124,19 @@ class StandardPerceptionTest : DescribeSpec({
                         FakeSense(setOf("visual"), pierces = setOf("visual"), cells = setOf(Vector2Int(3, 3))),
                 ).perceive(observer, gw)
 
-            perceived.cells shouldContainExactly setOf(Vector2Int(3, 3))
+            perceived.cells.shouldContainExactly() // suppression is absolute on its channel; pierces doesn't save it
+        }
+
+        it("keeps a suppressed-channel-adjacent sense whose tags the suppressor doesn't negate") {
+            val gw = gameWorld()
+            val observer =
+                gw.ecs.spawn(ZoneMember("z"), FakeSenseComponent("tremor"), FakeSuppressor(setOf("visual")))
+
+            val perceived =
+                perception("tremor" to FakeSense(setOf("vibration"), cells = setOf(Vector2Int(3, 3))))
+                    .perceive(observer, gw)
+
+            perceived.cells shouldContainExactly setOf(Vector2Int(3, 3)) // different channel survives blindness
         }
 
         it("does not perceive a target concealed from a matching sense (cell still revealed)") {

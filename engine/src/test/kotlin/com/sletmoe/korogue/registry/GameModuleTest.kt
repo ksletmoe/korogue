@@ -12,6 +12,7 @@ import com.sletmoe.korogue.perception.SightSense
 import com.sletmoe.korogue.perception.StandardPerception
 import com.sletmoe.korogue.perception.TelepathySense
 import com.sletmoe.korogue.perception.TremorsenseSense
+import com.sletmoe.korogue.perception.TrueSightSense
 import com.sletmoe.korogue.systems.BehaviorStrategy
 import com.sletmoe.korogue.systems.HuntPlayerStrategy
 import com.sletmoe.korogue.systems.WanderStrategy
@@ -52,9 +53,11 @@ class GameModuleTest : FunSpec({
 
     test("engine defaults register the built-in senses") {
         val module = GameModule.engineDefaults().build()
-        module.senses.ids shouldBe setOf(SightSense.ID, DarkvisionSense.ID, TremorsenseSense.ID, TelepathySense.ID)
+        module.senses.ids shouldBe
+            setOf(SightSense.ID, DarkvisionSense.ID, TrueSightSense.ID, TremorsenseSense.ID, TelepathySense.ID)
         module.senses.resolve(SightSense.ID).shouldBeInstanceOf<SightSense>()
         module.senses.resolve(DarkvisionSense.ID).shouldBeInstanceOf<DarkvisionSense>()
+        module.senses.resolve(TrueSightSense.ID).shouldBeInstanceOf<TrueSightSense>()
         module.senses.resolve(TremorsenseSense.ID).shouldBeInstanceOf<TremorsenseSense>()
         module.senses.resolve(TelepathySense.ID).shouldBeInstanceOf<TelepathySense>()
     }
