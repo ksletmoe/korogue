@@ -16,12 +16,24 @@ import kotlin.random.Random
  * Occupants (creatures, the player, light emitters) are ECS entities tagged with
  * [ZoneMember] + [Position] and owned by [ecs]; a [Zone] is terrain only. Query
  * occupancy via [entityAt] (4b-s3).
+ *
+ * The zone registry is **mutable**: zones can be [addZone]ed and [removeZone]d after
+ * construction, so a world can grow or regenerate its map over a session — e.g. a
+ * roguelike generating each dungeon level on descent (ADR-0016, krogue-go8). The
+ * exposed [zones] map is a live, read-only view of that registry, so zone-scoped
+ * systems (lighting, perception, movement) and the renderer that captured it at wiring
+ * time observe additions and removals without being rebuilt.
  */
 open class GameWorld(
     val ecs: World,
-    val zones: Map<String, Zone>,
+    zones: Map<String, Zone>,
     private var _currentZoneId: String,
 ) {
+    private val zoneRegistry: MutableMap<String, Zone> = zones.toMutableMap()
+
+    /** The zone registry as a live, read-only view — reflects later [addZone]/[removeZone] calls. */
+    val zones: Map<String, Zone> = zoneRegistry
+
     var currentZoneId: String
         get() = _currentZoneId
         set(value) {
@@ -30,6 +42,26 @@ open class GameWorld(
             }
             _currentZoneId = value
         }
+
+    /**
+     * Registers [zone] (replacing any existing zone with the same [Zone.zoneId]) so it can be
+     * entered. Does not change [currentZoneId]; set that once the new zone is populated.
+     */
+    fun addZone(zone: Zone) {
+        zoneRegistry[zone.zoneId] = zone
+    }
+
+    /**
+     * Drops the zone [zoneId] from the registry — its terrain is discarded (an ephemeral level the
+     * player has left, say). Occupant entities tagged with that zone are the ECS's concern and are
+     * not touched here; despawn them first. The [currentZoneId] cannot be removed.
+     */
+    fun removeZone(zoneId: String) {
+        if (zoneId == currentZoneId) {
+            throw RuntimeException("Cannot remove the current zone '$zoneId'")
+        }
+        zoneRegistry.remove(zoneId)
+    }
 
     val currentZone: Zone
         get() = zones[currentZoneId]!!

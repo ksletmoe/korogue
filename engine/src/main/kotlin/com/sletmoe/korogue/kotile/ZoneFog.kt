@@ -26,6 +26,15 @@ class ZoneFog {
     ): Grid<Boolean> = byZone.getOrPut(zoneId) { Grid(width, height, false) }
 
     /**
+     * Discards the remembered fog for [zoneId] — for an ephemeral zone the player has left for good
+     * (a regenerated roguelike level, say), so it neither lingers in memory nor rides into a save.
+     * A no-op if the zone was never explored; a later [forZone] call starts it fresh.
+     */
+    fun forget(zoneId: String) {
+        byZone.remove(zoneId)
+    }
+
+    /**
      * A defensive copy of every zone's fog grid, for persistence — pass to `SaveCodec.save`.
      * Copies decouple the snapshot from the live grids, which keep mutating after a save.
      */

@@ -29,3 +29,4 @@ Point-in-time records of **why** significant or hard-to-reverse decisions were m
 | [0013](0013-monorepo-and-module-layout.md) | korogue rename, monorepo with kotile, and the module layout | Accepted |
 | [0014](0014-extensibility-ethos.md) | Extensibility ethos — pluggable policy, fixed mechanism | Accepted |
 | [0015](0015-visibility-and-perception.md) | Visibility & perception — three layers, composable senses | Accepted |
+| [0016](0016-dynamic-zones-for-multi-level-worlds.md) | Dynamic zones for multi-level worlds | Accepted |

@@ -50,6 +50,23 @@ class ZoneFogTest : FunSpec({
         snap.getValue("a") shouldNotBeSameInstanceAs fog.forZone("a", 4, 4)
     }
 
+    test("forget drops a zone's memory; a later call starts it fresh") {
+        val fog = ZoneFog()
+        val original = fog.forZone("a", 4, 4)
+        original[1, 1] = true
+
+        fog.forget("a")
+
+        val reborn = fog.forZone("a", 4, 4)
+        reborn shouldNotBeSameInstanceAs original
+        reborn[1, 1] shouldBe false // exploration is gone
+    }
+
+    test("forget is a no-op for an unknown zone") {
+        val fog = ZoneFog()
+        fog.forget("never-seen") // must not throw
+    }
+
     test("restore replaces memory with copies of the given grids") {
         val fog = ZoneFog()
         fog.forZone("a", 4, 4)[0, 0] = true // pre-existing memory, should be replaced
