@@ -31,6 +31,15 @@ workflow and sync details are in the "Beads Issue Tracker" section below and via
 - Keep files focused (~500 lines).
 - Commits use a `Co-Authored-By: Claude …` trailer (Claude Code's default
   attribution, which includes the current model version).
+- **The Rogue example is a faithful recreation — don't deviate on gameplay.**
+  Reproduce original Rogue's behavior, rules, and data exactly (the canonical
+  BSD 5.4.4 C source is at `~/Downloads/rogue5.4.4`; transcribe tables and port
+  logic from there, not from memory). The renderer/engine plumbing may be
+  idiomatic Kotlin, but *what the game does* must match. Do not silently
+  simplify, "improve", or shortcut a mechanic for implementation convenience —
+  if a faithful port has to wait on something else, port what you can and file
+  a beads issue for the rest; never bake a divergence in quietly. RNG need not
+  be bit-identical (different PRNG), only algorithmically faithful.
 
 ## Build & test
 
