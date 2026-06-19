@@ -189,6 +189,7 @@ $dokka.location:com.sletmoe.korogue.kotile/Game/resize/#kotlin.Int#kotlin.Int/Po
 $dokka.location:com.sletmoe.korogue.kotile/ZoneFog///PointingToDeclaration/engine/com.sletmoe.korogue.kotile/-zone-fog/index.html
 $dokka.location:com.sletmoe.korogue.kotile/ZoneFog/ZoneFog/#/PointingToDeclaration/engine/com.sletmoe.korogue.kotile/-zone-fog/-zone-fog.html
 $dokka.location:com.sletmoe.korogue.kotile/ZoneFog/forZone/#kotlin.String#kotlin.Int#kotlin.Int/PointingToDeclaration/engine/com.sletmoe.korogue.kotile/-zone-fog/for-zone.html
+$dokka.location:com.sletmoe.korogue.kotile/ZoneFog/forget/#kotlin.String/PointingToDeclaration/engine/com.sletmoe.korogue.kotile/-zone-fog/forget.html
 $dokka.location:com.sletmoe.korogue.kotile/ZoneFog/restore/#kotlin.collections.Map[kotlin.String,com.sletmoe.korogue.utilities.Grid[kotlin.Boolean]]/PointingToDeclaration/engine/com.sletmoe.korogue.kotile/-zone-fog/restore.html
 $dokka.location:com.sletmoe.korogue.kotile/ZoneFog/snapshot/#/PointingToDeclaration/engine/com.sletmoe.korogue.kotile/-zone-fog/snapshot.html
 $dokka.location:com.sletmoe.korogue.loop////PointingToDeclaration/engine/com.sletmoe.korogue.loop/index.html
@@ -627,11 +628,13 @@ $dokka.location:com.sletmoe.korogue.world/GameWorld.Companion///PointingToDeclar
 $dokka.location:com.sletmoe.korogue.world/GameWorld.Companion/create/#kotlin.Function1[com.sletmoe.korogue.world.GameWorld.Builder,kotlin.Unit]/PointingToDeclaration/engine/com.sletmoe.korogue.world/-game-world/-companion/create.html
 $dokka.location:com.sletmoe.korogue.world/GameWorld///PointingToDeclaration/engine/com.sletmoe.korogue.world/-game-world/index.html
 $dokka.location:com.sletmoe.korogue.world/GameWorld/GameWorld/#com.sletmoe.korogue.ecs.World#kotlin.collections.Map[kotlin.String,com.sletmoe.korogue.world.Zone]#kotlin.String/PointingToDeclaration/engine/com.sletmoe.korogue.world/-game-world/-game-world.html
+$dokka.location:com.sletmoe.korogue.world/GameWorld/addZone/#com.sletmoe.korogue.world.Zone/PointingToDeclaration/engine/com.sletmoe.korogue.world/-game-world/add-zone.html
 $dokka.location:com.sletmoe.korogue.world/GameWorld/currentZone/#/PointingToDeclaration/engine/com.sletmoe.korogue.world/-game-world/current-zone.html
 $dokka.location:com.sletmoe.korogue.world/GameWorld/currentZoneId/#/PointingToDeclaration/engine/com.sletmoe.korogue.world/-game-world/current-zone-id.html
 $dokka.location:com.sletmoe.korogue.world/GameWorld/ecs/#/PointingToDeclaration/engine/com.sletmoe.korogue.world/-game-world/ecs.html
 $dokka.location:com.sletmoe.korogue.world/GameWorld/entityAt/#kotlin.String#kotlin.Int#kotlin.Int/PointingToDeclaration/engine/com.sletmoe.korogue.world/-game-world/entity-at.html
 $dokka.location:com.sletmoe.korogue.world/GameWorld/isWalkable/#kotlin.String#kotlin.Int#kotlin.Int/PointingToDeclaration/engine/com.sletmoe.korogue.world/-game-world/is-walkable.html
+$dokka.location:com.sletmoe.korogue.world/GameWorld/removeZone/#kotlin.String/PointingToDeclaration/engine/com.sletmoe.korogue.world/-game-world/remove-zone.html
 $dokka.location:com.sletmoe.korogue.world/GameWorld/simulatedZones/#/PointingToDeclaration/engine/com.sletmoe.korogue.world/-game-world/simulated-zones.html
 $dokka.location:com.sletmoe.korogue.world/GameWorld/zones/#/PointingToDeclaration/engine/com.sletmoe.korogue.world/-game-world/zones.html
 $dokka.location:com.sletmoe.korogue.world/GdxColorSerializer///PointingToDeclaration/engine/com.sletmoe.korogue.world/-gdx-color-serializer/index.html
