@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "kotlin": {
+      "type": "stdio",
+      "command": "/Users/kyle/go/bin/mcp-language-server",
+      "args": [
+        "--workspace",
+        ".",
+        "--lsp",
+        "/opt/homebrew/bin/kotlin-lsp",
+        "--",
+        "--stdio"
+      ],
+      "env": {}
+    }
+  }
+}
