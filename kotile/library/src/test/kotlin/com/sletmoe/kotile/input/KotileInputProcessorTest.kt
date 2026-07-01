@@ -1,5 +1,7 @@
 package com.sletmoe.kotile.input
 
+import com.sletmoe.kotile.rendering.GridLayout
+import com.sletmoe.kotile.rendering.IntegerScale
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
@@ -23,6 +25,36 @@ class KotileInputProcessorTest : FunSpec({
         gridWidth = { gridW },
         gridHeight = { gridH },
     )
+
+    // ── Layout-based constructor (scaling / letterboxing) ─────────────────
+
+    test("layout constructor maps a click inside a scaled, letterboxed grid") {
+        // 80×24 grid, 10px native, 2x scale, centered at (50, 20): a click at
+        // grid cell (2, 3) lands at pixel (50 + 2*20 + 5, 20 + 3*20 + 5).
+        val layout = GridLayout.forFixedGrid(1700, 520, 80, 24, 10, 10, IntegerScale)
+        val clicks = mutableListOf<Triple<Int, Int, Int>>()
+        val proc = KotileInputProcessor(layout = { layout })
+        proc.addListener(object : KotileInputAdapter() {
+            override fun onTileClicked(tileX: Int, tileY: Int, button: Int) {
+                clicks.add(Triple(tileX, tileY, button))
+            }
+        })
+        proc.touchDown(95, 85, 0, 1)
+        clicks shouldBe listOf(Triple(2, 3, 1))
+    }
+
+    test("layout constructor drops a click in the letterbox margin") {
+        val layout = GridLayout.forFixedGrid(1700, 520, 80, 24, 10, 10, IntegerScale)
+        val clicks = mutableListOf<Triple<Int, Int, Int>>()
+        val proc = KotileInputProcessor(layout = { layout })
+        proc.addListener(object : KotileInputAdapter() {
+            override fun onTileClicked(tileX: Int, tileY: Int, button: Int) {
+                clicks.add(Triple(tileX, tileY, button))
+            }
+        })
+        proc.touchDown(10, 10, 0, 0) // top-left letterbox bar
+        clicks.shouldBeEmpty()
+    }
 
     // ── Tile-click dispatch ───────────────────────────────────────────────
 

@@ -1,6 +1,7 @@
 package com.sletmoe.kotile.input
 
 import com.badlogic.gdx.InputProcessor
+import com.sletmoe.kotile.rendering.GridLayout
 
 /**
  * A libGDX [InputProcessor] that translates pixel-space mouse events into
@@ -58,17 +59,52 @@ import com.badlogic.gdx.InputProcessor
  * unmodified. No remapping or action-mapping is performed; that is a
  * consumer-side concern.
  *
- * @param tileWidthPx returns the current tile width in pixels; called per event
- * @param tileHeightPx returns the current tile height in pixels; called per event
- * @param gridWidth returns the current grid width in tiles; called per event
- * @param gridHeight returns the current grid height in tiles; called per event
+ * ## Scaling and letterboxing
+ *
+ * The four-lambda constructor assumes tiles start at pixel (0, 0) and are laid
+ * out at the given tile size — correct for reflow mode with no centering. When
+ * the display is scaled or letterboxed (a centered reflow remainder, or the
+ * fixed-grid [com.sletmoe.kotile.rendering.ScalePolicy] path), use the
+ * [GridLayout]-based constructor instead: it consults the current
+ * [GridLayout.tileAt], which accounts for the centering offset and the
+ * on-screen (possibly scaled, possibly fractional) tile size.
  */
-class KotileInputProcessor(
-    private val tileWidthPx: () -> Int,
-    private val tileHeightPx: () -> Int,
-    private val gridWidth: () -> Int,
-    private val gridHeight: () -> Int,
+class KotileInputProcessor private constructor(
+    private val translate: (screenX: Int, screenY: Int) -> Pair<Int, Int>?,
 ) : InputProcessor {
+
+    /**
+     * Creates a processor that maps pixels with the raw
+     * [pixelToTile] formula (tiles at origin, no centering offset). Suitable for
+     * reflow displays that are an exact tile multiple. The lambdas are read per
+     * event so the current tile size / grid dimensions are always used.
+     *
+     * @param tileWidthPx returns the current tile width in pixels; called per event
+     * @param tileHeightPx returns the current tile height in pixels; called per event
+     * @param gridWidth returns the current grid width in tiles; called per event
+     * @param gridHeight returns the current grid height in tiles; called per event
+     */
+    constructor(
+        tileWidthPx: () -> Int,
+        tileHeightPx: () -> Int,
+        gridWidth: () -> Int,
+        gridHeight: () -> Int,
+    ) : this({ screenX, screenY ->
+        pixelToTile(screenX, screenY, tileWidthPx(), tileHeightPx(), gridWidth(), gridHeight())
+    })
+
+    /**
+     * Creates a processor that maps pixels through the current [GridLayout],
+     * correctly handling centering offsets and scaled/fractional tile sizes.
+     * This is the recommended constructor; pass a provider that returns the
+     * canvas's live layout (e.g. `{ window.layout }`) so it stays correct across
+     * resizes.
+     *
+     * @param layout returns the current [GridLayout]; called per event
+     */
+    constructor(layout: () -> GridLayout) : this({ screenX, screenY ->
+        layout().tileAt(screenX.toFloat(), screenY.toFloat())
+    })
 
     private val listeners = mutableListOf<KotileInputListener>()
 
@@ -190,16 +226,4 @@ class KotileInputProcessor(
      * [KotileInputListener]. Always returns `false`.
      */
     override fun touchCancelled(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean = false
-
-    // ── Helpers ───────────────────────────────────────────────────────────
-
-    private fun translate(screenX: Int, screenY: Int): Pair<Int, Int>? =
-        pixelToTile(
-            screenPixelX = screenX,
-            screenPixelY = screenY,
-            tileWidthPx = tileWidthPx(),
-            tileHeightPx = tileHeightPx(),
-            gridWidthInTiles = gridWidth(),
-            gridHeightInTiles = gridHeight(),
-        )
 }

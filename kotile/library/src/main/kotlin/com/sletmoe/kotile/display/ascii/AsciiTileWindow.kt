@@ -6,6 +6,8 @@ import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.utils.Disposable
 import com.sletmoe.kotile.display.KotileCanvas
+import com.sletmoe.kotile.rendering.IntegerScale
+import com.sletmoe.kotile.rendering.ScalePolicy
 import com.sletmoe.kotile.rendering.TileViewport
 import com.sletmoe.kotile.utilities.LayeredTilemap
 import com.sletmoe.kotile.utilities.Vector2Int
@@ -91,6 +93,7 @@ class AsciiTileWindow private constructor(
     widthInTiles: Int,
     heightInTiles: Int,
     private val fitToWindow: Boolean,
+    private val scalePolicy: ScalePolicy = IntegerScale,
     /** When `false` the canvas was supplied externally and [dispose] must not release it. */
     private val ownsCanvas: Boolean = true,
     /** When `false` the font was supplied externally and [dispose] must not release it. */
@@ -124,6 +127,14 @@ class AsciiTileWindow private constructor(
      */
     val tileHeightPx: Int get() = canvas.tileHeightPx
 
+    /**
+     * The current grid placement (visible cell count, on-screen tile size, and
+     * centering offset). Pass a provider of this to
+     * [com.sletmoe.kotile.input.KotileInputProcessor] so mouse→tile mapping
+     * stays correct under scaling and letterboxing.
+     */
+    val layout: com.sletmoe.kotile.rendering.GridLayout get() = canvas.layout
+
     private var layeredTiles = LayeredTilemap<AnimatableAsciiTile>(widthInTiles, heightInTiles)
 
     private val backgroundTexture: Texture
@@ -136,6 +147,13 @@ class AsciiTileWindow private constructor(
         backgroundTexture = Texture(pixmap)
         backgroundRegion = TextureRegion(backgroundTexture)
         pixmap.dispose()
+
+        // Fixed-grid mode: let the canvas scale/letterbox our fixed cell count
+        // to the window. Reflow mode leaves the canvas in its default reflow
+        // layout and follows its column/row count on resize.
+        if (!fitToWindow) {
+            canvas.useFixedGrid(this.widthInTiles, this.heightInTiles, scalePolicy)
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -399,8 +417,10 @@ class AsciiTileWindow private constructor(
         canvas.resize(widthPx, heightPx)
         if (!fitToWindow) return
 
-        val newWidthInTiles = widthPx / font.charWidthPx
-        val newHeightInTiles = heightPx / font.charHeightPx
+        // Follow the canvas's reflow layout so the grid matches the (centered)
+        // visible cell count.
+        val newWidthInTiles = canvas.layout.columns
+        val newHeightInTiles = canvas.layout.rows
         if (newWidthInTiles == widthInTiles && newHeightInTiles == heightInTiles) return
 
         val oldLayeredTiles = layeredTiles
@@ -473,7 +493,14 @@ class AsciiTileWindow private constructor(
             val font = config.font ?: Fonts.cp437_10x10()
             val canvas = KotileCanvas(font.charWidthPx, font.charHeightPx)
 
-            return AsciiTileWindow(font, canvas, config.widthInTiles, config.heightInTiles, config.fitToWindow)
+            return AsciiTileWindow(
+                font,
+                canvas,
+                config.widthInTiles,
+                config.heightInTiles,
+                config.fitToWindow,
+                config.scalePolicy,
+            )
         }
 
         /**
@@ -531,6 +558,7 @@ class AsciiTileWindow private constructor(
                 widthInTiles = config.widthInTiles,
                 heightInTiles = config.heightInTiles,
                 fitToWindow = config.fitToWindow,
+                scalePolicy = config.scalePolicy,
                 ownsCanvas = false,
                 ownsFont = false,
             )
@@ -550,12 +578,17 @@ class AsciiTileWindow private constructor(
  * @property heightInTiles initial grid height in cells; used when [fitToWindow]
  *   is `false` or before the first [AsciiTileWindow.resize] call
  * @property fitToWindow when `true` (default), [AsciiTileWindow.resize]
- *   recomputes the tile grid to fit the new pixel dimensions; when `false` the
- *   grid stays at its construction-time size
+ *   recomputes the tile grid to fit the new pixel dimensions (reflow); when
+ *   `false` the grid stays at its construction-time size and is scaled +
+ *   letterboxed to the window by [scalePolicy]
+ * @property scalePolicy how the fixed grid is scaled to the window when
+ *   [fitToWindow] is `false`; defaults to [IntegerScale] (crisp, pixel-perfect).
+ *   Ignored when [fitToWindow] is `true`.
  */
 data class AsciiTileWindowConfig(
     var font: Font? = null,
     var widthInTiles: Int = 80,
     var heightInTiles: Int = 30,
     var fitToWindow: Boolean = true,
+    var scalePolicy: ScalePolicy = IntegerScale,
 )

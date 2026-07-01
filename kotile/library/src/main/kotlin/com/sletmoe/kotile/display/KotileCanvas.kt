@@ -6,6 +6,9 @@ import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.utils.Disposable
+import com.sletmoe.kotile.rendering.GridLayout
+import com.sletmoe.kotile.rendering.IntegerScale
+import com.sletmoe.kotile.rendering.ScalePolicy
 
 /**
  * Draws tile-sized texture regions onto the screen via a batched [SpriteBatch].
@@ -28,15 +31,44 @@ import com.badlogic.gdx.utils.Disposable
  * Draw calls must be made between [begin] and [end]. Instances own GPU
  * resources and must be [dispose]d.
  *
+ * ## Display modes and scaling
+ *
+ * The canvas places the tile grid within the window using a [GridLayout],
+ * recomputed on every [resize]. Two modes are supported:
+ *
+ * - **Reflow** (default): tiles keep their native pixel size ([tileWidthPx] x
+ *   [tileHeightPx]); the visible tile count grows and shrinks with the window,
+ *   and any sub-tile remainder is split into centered letterbox margins.
+ * - **Fixed grid** (via [useFixedGrid]): the tile count is fixed; tiles are
+ *   scaled by a [ScalePolicy] to fill the window while preserving aspect ratio,
+ *   then centered with letterbox margins.
+ *
+ * In both modes the grid is centered; leftover window space is left at the
+ * clear color (soft letterboxing). Overflow when a fixed grid is larger than
+ * the window at 1x is not hard-clipped — see krogue-n64 follow-ups.
+ *
  * The class is `open` to allow subclassing — for example, in tests that need
  * to track dispose calls, or in consumers that want to add instrumentation.
  *
- * @property tileWidthPx on-screen width of a tile, in pixels
- * @property tileHeightPx on-screen height of a tile, in pixels
+ * @property tileWidthPx a tile's **native** width in pixels (pre-scaling)
+ * @property tileHeightPx a tile's **native** height in pixels (pre-scaling)
  */
 open class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposable {
     private val batch = SpriteBatch()
     private val camera = OrthographicCamera()
+
+    private var fixedColumns: Int = 0
+    private var fixedRows: Int = 0
+    private var scalePolicy: ScalePolicy = IntegerScale
+
+    /**
+     * Current placement of the grid within the window: visible column/row
+     * count, on-screen (possibly scaled) tile size, and the centering offset.
+     * Recomputed on every [resize] and mode change. Use [GridLayout.tileAt] to
+     * map a mouse pixel position to a tile cell under the current layout.
+     */
+    var layout: GridLayout = GridLayout.forReflow(1, 1, tileWidthPx, tileHeightPx)
+        private set
 
     /** Current drawable width in pixels (the application's framebuffer width). */
     val widthPx: Int get() = Gdx.graphics.width
@@ -44,23 +76,58 @@ open class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposabl
     /** Current drawable height in pixels (the application's framebuffer height). */
     val heightPx: Int get() = Gdx.graphics.height
 
-    /** Number of whole tiles that fit across [widthPx]. */
-    val width: Int get() = widthPx / tileWidthPx
+    /** Number of tile columns currently displayed (see [layout]). */
+    val width: Int get() = layout.columns
 
-    /** Number of whole tiles that fit down [heightPx]. */
-    val height: Int get() = heightPx / tileHeightPx
+    /** Number of tile rows currently displayed (see [layout]). */
+    val height: Int get() = layout.rows
 
     init {
         resize(widthPx, heightPx)
     }
 
     /**
-     * Updates the projection to a [widthPx] x [heightPx] viewport. Call this
-     * from the application's resize callback.
+     * Switches to **fixed-grid** mode: [columns] x [rows] cells scaled by
+     * [policy] to fill the window (preserving aspect ratio) and centered with
+     * letterbox margins. Recomputes the [layout] immediately.
+     */
+    fun useFixedGrid(columns: Int, rows: Int, policy: ScalePolicy = IntegerScale) {
+        fixedColumns = columns
+        fixedRows = rows
+        scalePolicy = policy
+        recomputeLayout()
+    }
+
+    /**
+     * Switches to **reflow** mode (the default): native-size tiles, visible
+     * count derived from the window, sub-tile remainder centered. Recomputes
+     * the [layout] immediately.
+     */
+    fun useReflow() {
+        fixedColumns = 0
+        fixedRows = 0
+        recomputeLayout()
+    }
+
+    /**
+     * Updates the projection to a [widthPx] x [heightPx] viewport and recomputes
+     * the grid [layout]. Call this from the application's resize callback.
      */
     fun resize(widthPx: Int, heightPx: Int) {
         camera.setToOrtho(false, widthPx.toFloat(), heightPx.toFloat())
         batch.projectionMatrix = camera.combined
+        recomputeLayout()
+    }
+
+    private fun recomputeLayout() {
+        val w = widthPx
+        val h = heightPx
+        layout =
+            if (fixedColumns > 0 && fixedRows > 0) {
+                GridLayout.forFixedGrid(w, h, fixedColumns, fixedRows, tileWidthPx, tileHeightPx, scalePolicy)
+            } else {
+                GridLayout.forReflow(w, h, tileWidthPx, tileHeightPx)
+            }
     }
 
     /** Begins a batch of [drawTile] calls. */
@@ -71,13 +138,19 @@ open class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposabl
 
     /**
      * Draws [region] in the cell at column [x], row [y] (top-left origin),
-     * scaled to the tile size and multiplied by [tint] (white = unchanged).
-     * Must be called between [begin] and [end].
+     * scaled to the current on-screen tile size and offset by the layout's
+     * centering margin, then multiplied by [tint] (white = unchanged). Must be
+     * called between [begin] and [end].
      */
     fun drawTile(x: Int, y: Int, region: TextureRegion, tint: Color = Color.WHITE) {
         batch.color = tint
-        val screenY = (heightPx - (y + 1) * tileHeightPx).toFloat()
-        batch.draw(region, (x * tileWidthPx).toFloat(), screenY, tileWidthPx.toFloat(), tileHeightPx.toFloat())
+        val tileW = layout.tileWidthPx
+        val tileH = layout.tileHeightPx
+        val px = layout.offsetXPx + x * tileW
+        // Flip to GL's bottom-left origin: the top of row y is offsetY + y*tileH
+        // from the top, so its bottom edge sits (offsetY + (y+1)*tileH) from the top.
+        val screenY = heightPx - (layout.offsetYPx + (y + 1) * tileH)
+        batch.draw(region, px, screenY, tileW, tileH)
     }
 
     /** Disposes the underlying sprite batch. */

@@ -75,12 +75,9 @@ abstract class Game : ApplicationAdapter() {
         window = buildWindow()
 
         val inputProcessor =
-            KotileInputProcessor(
-                tileWidthPx = { window.tileWidthPx },
-                tileHeightPx = { window.tileHeightPx },
-                gridWidth = { window.widthInTiles },
-                gridHeight = { window.heightInTiles },
-            )
+            // Layout-based mapping so mouse→tile stays correct under the
+            // centering/scaling introduced for dynamic resize (krogue-n64).
+            KotileInputProcessor(layout = { window.layout })
         inputProcessor.addListener(
             object : KotileInputAdapter() {
                 override fun onKeyDown(keycode: Int) {
