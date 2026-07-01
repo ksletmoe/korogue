@@ -129,4 +129,40 @@ class GridLayoutTest : FunSpec({
         // Right edge of content is 50 + 1600 = 1650; anything >= is out.
         layout.tileAt(1650f, 100f).shouldBeNull()
     }
+
+    // ── tileAt on a reflow layout (offset 0) — the plain pixel→tile mapping ──
+
+    test("tileAt maps interior pixels on an exact-fit reflow grid") {
+        // 8×4 grid at 10px, no margin. Mirrors the classic pixel/tile division.
+        val layout = GridLayout.forReflow(80, 40, 10, 10)
+        layout.tileAt(0f, 0f) shouldBe (0 to 0)
+        layout.tileAt(9f, 9f) shouldBe (0 to 0) // still inside the first cell
+        layout.tileAt(35f, 25f) shouldBe (3 to 2)
+        layout.tileAt(79f, 39f) shouldBe (7 to 3) // last valid pixel
+    }
+
+    test("tileAt returns null past the edge and for negatives on a reflow grid") {
+        val layout = GridLayout.forReflow(80, 40, 10, 10)
+        layout.tileAt(80f, 0f).shouldBeNull() // one past the right edge
+        layout.tileAt(0f, 40f).shouldBeNull() // one past the bottom edge
+        layout.tileAt(-1f, 5f).shouldBeNull()
+        layout.tileAt(5f, -1f).shouldBeNull()
+    }
+
+    test("tileAt handles non-square tiles") {
+        // 16×24 tiles, 80×120 window → 5×5 grid, offset 0.
+        val layout = GridLayout.forReflow(80, 120, 16, 24)
+        layout.columns shouldBe 5
+        layout.rows shouldBe 5
+        layout.tileAt(32f, 48f) shouldBe (2 to 2)
+        layout.tileAt(79f, 119f) shouldBe (4 to 4)
+    }
+
+    test("tileAt returns null in a centered reflow remainder margin") {
+        // 85×45 window at 10px → 8×4 cells (80×40 content), centered: offset (2.5, 2.5).
+        val layout = GridLayout.forReflow(85, 45, 10, 10)
+        layout.tileAt(1f, 1f).shouldBeNull()     // top-left margin
+        layout.tileAt(2.5f, 2.5f) shouldBe (0 to 0) // first cell begins after the margin
+        layout.tileAt(82.5f, 20f).shouldBeNull() // right margin (content ends at x=82.5)
+    }
 })

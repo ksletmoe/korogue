@@ -531,6 +531,16 @@ class AsciiTileWindow private constructor(
          * font.dispose()
          * ```
          *
+         * ## Fixed-grid caveat
+         *
+         * A [KotileCanvas] has a single layout. A window created with
+         * `fitToWindow = false` puts the canvas into fixed-grid mode sized to
+         * *its* dimensions. Two windows sharing one canvas with `fitToWindow =
+         * false` and **different** dimensions would fight over that one layout
+         * (last one built wins), so both would then render at the wrong scale.
+         * A shared canvas supports at most one fixed-grid pane; use reflow
+         * (`fitToWindow = true`) for multi-pane layouts on a shared canvas.
+         *
          * ## Ownership and dispose contract
          *
          * The window created by this factory does **not** own [canvas] or

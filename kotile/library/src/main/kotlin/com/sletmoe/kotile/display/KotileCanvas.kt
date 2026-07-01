@@ -25,8 +25,9 @@ import com.sletmoe.kotile.rendering.ScalePolicy
  * **Mouse pixel coordinates** from `Gdx.input` (via libGDX Desktop /
  * `InputProcessor`) also use a top-left origin (0, 0 = top-left of window, y
  * increases downward). They are therefore in the same axis orientation as tile
- * coordinates and do **not** need a y-axis flip before pixel-to-tile division.
- * See [com.sletmoe.kotile.input.pixelToTile] for the conversion.
+ * coordinates and do **not** need a y-axis flip before pixel-to-tile mapping.
+ * See [layout] and [com.sletmoe.kotile.rendering.GridLayout.tileAt] for the
+ * offset/scale-aware conversion.
  *
  * Draw calls must be made between [begin] and [end]. Instances own GPU
  * resources and must be [dispose]d.
@@ -90,6 +91,12 @@ open class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposabl
      * Switches to **fixed-grid** mode: [columns] x [rows] cells scaled by
      * [policy] to fill the window (preserving aspect ratio) and centered with
      * letterbox margins. Recomputes the [layout] immediately.
+     *
+     * A canvas has exactly **one** [layout]. If several windows share this
+     * canvas (see [com.sletmoe.kotile.display.ascii.AsciiTileWindow.createWithCanvas]),
+     * at most one of them may drive a fixed grid — the last call wins, so
+     * driving fixed grids of *different* dimensions from two panes makes them
+     * fight (both then render/hit-test with whichever dimensions were set last).
      */
     fun useFixedGrid(columns: Int, rows: Int, policy: ScalePolicy = IntegerScale) {
         fixedColumns = columns

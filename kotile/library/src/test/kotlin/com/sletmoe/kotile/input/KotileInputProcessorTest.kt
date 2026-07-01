@@ -15,15 +15,11 @@ import io.kotest.matchers.shouldBe
  */
 class KotileInputProcessorTest : FunSpec({
 
-    // Helper to build a processor with 10×10 tiles and an 8×4 grid.
-    fun processor(
-        tileW: Int = 10, tileH: Int = 10,
-        gridW: Int = 8, gridH: Int = 4,
-    ) = KotileInputProcessor(
-        tileWidthPx = { tileW },
-        tileHeightPx = { tileH },
-        gridWidth = { gridW },
-        gridHeight = { gridH },
+    // Helper: a processor over a reflow layout of 8×4 tiles at 10×10px (offset 0),
+    // so pixel (x, y) maps to tile (x/10, y/10) — the fixed mapping the dispatch
+    // tests below assume.
+    fun processor() = KotileInputProcessor(
+        layout = { GridLayout.forReflow(80, 40, 10, 10) },
     )
 
     // ── Layout-based constructor (scaling / letterboxing) ─────────────────
@@ -224,19 +220,14 @@ class KotileInputProcessorTest : FunSpec({
         clicks shouldBe listOf(0 to 0)
     }
 
-    // ── Lazy tile-dimension lambdas ───────────────────────────────────────
+    // ── Lazy layout provider ──────────────────────────────────────────────
 
-    test("processor reads current tile dimensions on each event") {
-        var currentTileW = 10
-        var currentGridW = 8
+    test("processor reads the current layout on each event") {
+        // 10px tiles → 8×4 grid; a simulated resize to 20px tiles → 4×2 grid.
+        var layout = GridLayout.forReflow(80, 40, 10, 10)
         val clicks = mutableListOf<Pair<Int, Int>>()
 
-        val proc = KotileInputProcessor(
-            tileWidthPx = { currentTileW },
-            tileHeightPx = { 10 },
-            gridWidth = { currentGridW },
-            gridHeight = { 4 },
-        )
+        val proc = KotileInputProcessor(layout = { layout })
         proc.addListener(object : KotileInputAdapter() {
             override fun onTileClicked(tileX: Int, tileY: Int, button: Int) {
                 clicks.add(tileX to tileY)
@@ -247,8 +238,7 @@ class KotileInputProcessorTest : FunSpec({
         proc.touchDown(35, 0, 0, 0)
 
         // Simulate resize: tiles become 20px wide, grid shrinks to 4 cols
-        currentTileW = 20
-        currentGridW = 4
+        layout = GridLayout.forReflow(80, 40, 20, 20)
 
         // With 20px tiles: pixel 35 → tile 1
         proc.touchDown(35, 0, 0, 0)
