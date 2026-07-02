@@ -1,5 +1,6 @@
 package com.sletmoe.korogue.world
 
+import com.sletmoe.korogue.algorithms.zonegen.SpawnRequest
 import com.sletmoe.korogue.components.Position
 import com.sletmoe.korogue.components.ZoneMember
 import com.sletmoe.korogue.ecs.Entity
@@ -98,6 +99,11 @@ open class GameWorld(
         private val zones: MutableMap<String, Zone> = mutableMapOf()
         private var currentZoneId: String? = null
 
+        // Entity spawns buffered by entity-aware zone generators (ADR-0019), paired with their
+        // zone id. Materialized in build() once the ECS World exists — generation itself never
+        // touches a live World.
+        private val pendingSpawns: MutableList<Pair<String, SpawnRequest>> = mutableListOf()
+
         fun zone(
             zoneId: String,
             width: Int,
@@ -106,13 +112,18 @@ open class GameWorld(
             random: Random = Random.Default,
             zoneBuilderInit: Zone.Builder.() -> Unit = {},
         ): Zone {
-            zones[zoneId] = Zone.create(zoneId, width, height, random, zoneBuilderInit)
+            // Build the Zone.Builder directly (rather than Zone.create) so its buffered
+            // pendingSpawns can be captured and materialized in build().
+            val zoneBuilder = initialize(Zone.Builder(zoneId, width, height, random), zoneBuilderInit)
+            val zone = zoneBuilder.build()
+            zones[zoneId] = zone
+            zoneBuilder.pendingSpawns.forEach { pendingSpawns += zoneId to it }
 
             if (isCurrentZone) {
                 currentZoneId = zoneId
             }
 
-            return zones[zoneId]!!
+            return zone
         }
 
         fun build(): GameWorld {
@@ -124,7 +135,15 @@ open class GameWorld(
                 throw RuntimeException("A World must have the currentZoneId set")
             }
 
-            return GameWorld(World(), zones, currentZoneId!!)
+            val gameWorld = GameWorld(World(), zones, currentZoneId!!)
+
+            // Materialize buffered zone-gen spawns now that the ECS world exists (ADR-0019),
+            // adding Position (the cell) and ZoneMember (the zone) to each entity's own components.
+            pendingSpawns.forEach { (zoneId, request) ->
+                gameWorld.ecs.spawn(request.components + Position(request.x, request.y) + ZoneMember(zoneId))
+            }
+
+            return gameWorld
         }
     }
 
