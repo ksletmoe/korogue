@@ -90,11 +90,13 @@ open class Zone(
 
     companion object {
         /**
-         * Builds a standalone terrain [Zone]. **Terrain only:** entity spawns buffered by
-         * entity-aware [Builder.addFeature] generators are discarded here (there is no ECS world to
-         * materialize them into). For entity-aware generation use
-         * [GameWorld.Builder.zone][com.sletmoe.korogue.world.GameWorld.Builder.zone], which captures
-         * and materializes them.
+         * Builds a standalone terrain [Zone]. **Terrain only:** it does not materialize entities,
+         * so it rejects (rather than silently drops) any entity spawns buffered by an entity-aware
+         * [Builder.addFeature] generator — use
+         * [GameWorld.Builder.zone][com.sletmoe.korogue.world.GameWorld.Builder.zone] for
+         * entity-aware generation, which captures and materializes them.
+         *
+         * @throws IllegalStateException if the [zoneBuilderInit] buffered any entity spawns.
          */
         fun create(
             zoneId: String,
@@ -103,7 +105,13 @@ open class Zone(
             random: Random = Random.Default,
             zoneBuilderInit: Builder.() -> Unit = {},
         ): Zone {
-            return initialize(Builder(zoneId, width, height, random), zoneBuilderInit).build()
+            val builder = initialize(Builder(zoneId, width, height, random), zoneBuilderInit)
+            check(builder.pendingSpawns.isEmpty()) {
+                "Zone.create is terrain-only but ${builder.pendingSpawns.size} entity spawn(s) were " +
+                    "buffered by an entity-aware generator. Use GameWorld.Builder.zone(...) for " +
+                    "entity-aware generation so the spawns are materialized into the ECS world."
+            }
+            return builder.build()
         }
     }
 }

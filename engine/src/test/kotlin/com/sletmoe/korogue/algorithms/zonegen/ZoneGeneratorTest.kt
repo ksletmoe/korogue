@@ -6,6 +6,8 @@ import com.sletmoe.korogue.ecs.Component
 import com.sletmoe.korogue.utilities.Grid
 import com.sletmoe.korogue.world.BLANK_TILE
 import com.sletmoe.korogue.world.GameWorld
+import com.sletmoe.korogue.world.Zone
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.nulls.shouldNotBeNull
@@ -60,6 +62,12 @@ class ZoneGeneratorTest : FunSpec({
 
         world.currentZone.tiles[1, 1] shouldBe floor
         world.entityAt("room", 1, 1).shouldNotBeNull()
+    }
+
+    test("Zone.create fails fast if an entity-aware generator buffered spawns") {
+        shouldThrow<IllegalStateException> {
+            Zone.create("t", 5, 5) { addFeature(ZoneGenerator { it.spawn(1, 1, Tag("x")) }) }
+        }
     }
 
     test("terrain-only generation buffers no spawns") {
