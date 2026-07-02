@@ -93,3 +93,4 @@
 {"id":"int-45b7c6d756881fae3b3cad907343dd4b","kind":"field_change","created_at":"2026-07-01T22:32:50.173041Z","actor":"Kyle Sletmoe","issue_id":"krogue-6c0","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
 {"id":"int-d6c2fa220818c486bb5cfef1aa14196a","kind":"field_change","created_at":"2026-07-01T22:53:14.714876Z","actor":"Kyle Sletmoe","issue_id":"krogue-yox","extra":{"field":"status","new_value":"in_progress","old_value":"open"}}
 {"id":"int-cf17a3f57f6ddb9606c123a353f033f9","kind":"field_change","created_at":"2026-07-02T04:41:47.330408Z","actor":"Kyle Sletmoe","issue_id":"krogue-yox","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
+{"id":"int-d5f0e18cc761525f55c969f52a6472d2","kind":"field_change","created_at":"2026-07-02T05:01:30.480849Z","actor":"Kyle Sletmoe","issue_id":"krogue-f8m","extra":{"field":"status","new_value":"closed","old_value":"open","reason":"Closed"}}
