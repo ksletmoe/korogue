@@ -4,6 +4,7 @@ import com.sletmoe.korogue.algorithms.zonegen.SpawnRequest
 import com.sletmoe.korogue.components.Position
 import com.sletmoe.korogue.components.ZoneMember
 import com.sletmoe.korogue.ecs.Entity
+import com.sletmoe.korogue.ecs.EntityId
 import com.sletmoe.korogue.ecs.World
 import com.sletmoe.korogue.utilities.initialize
 import kotlin.random.Random
@@ -73,6 +74,25 @@ open class GameWorld(
      * across transitions without a redesign (see krogue-s67). Zone-scoped systems read this.
      */
     open fun simulatedZones(): Set<String> = setOf(currentZoneId)
+
+    /**
+     * Atomically moves entity [entityId] to ([x], [y]) in zone [zoneId] — sets its [ZoneMember]
+     * and [Position] together, in one place, so no caller can observe (or leave behind) a
+     * half-updated entity with a [ZoneMember] pointing at one zone and a [Position] meant for
+     * another. The atomic primitive for any boundary-crossing move (ADR-0021 Mechanic B) — e.g.
+     * [com.sletmoe.korogue.systems.PortalSystem] sending an entity through a [com.sletmoe.korogue.components.Portal].
+     * No-op if [entityId] doesn't exist (delegates to [World.set], which is itself a no-op for
+     * unknown ids).
+     */
+    fun relocate(
+        entityId: EntityId,
+        zoneId: String,
+        x: Int,
+        y: Int,
+    ) {
+        ecs.set(entityId, ZoneMember(zoneId))
+        ecs.set(entityId, Position(x, y))
+    }
 
     /** The entity occupying ([x], [y]) in zone [zoneId], or null. Occupancy lives in the ECS now. */
     fun entityAt(

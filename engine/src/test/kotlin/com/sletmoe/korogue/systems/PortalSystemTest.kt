@@ -63,4 +63,39 @@ class PortalSystemTest : FunSpec({
             it.to shouldBe "b"
         }
     }
+
+    test("a non-player entity standing on a portal transitions without changing the current zone") {
+        val gw = twoZoneWorld()
+        gw.ecs.addSystem(PortalSystem(gw))
+        val changes = mutableListOf<ZoneChanged>()
+        gw.ecs.events.subscribe<ZoneChanged> { changes.add(it) }
+        gw.ecs.spawn(Position(3, 3), ZoneMember("a"), Portal("b", 7, 7))
+        val monster = gw.ecs.spawn(Position(3, 3), ZoneMember("a")).id
+
+        gw.ecs.tick()
+
+        gw.ecs.get(monster)!!.require<Position>() shouldBe Position(7, 7)
+        gw.ecs.get(monster)!!.require<ZoneMember>().zoneId shouldBe "b"
+        gw.currentZoneId shouldBe "a" // only the player's crossing switches the active zone
+
+        changes.single().let {
+            it.entity shouldBe monster
+            it.from shouldBe "a"
+            it.to shouldBe "b"
+        }
+    }
+
+    test("both a monster and the player transition through the same portal in one tick") {
+        val gw = twoZoneWorld()
+        gw.ecs.addSystem(PortalSystem(gw))
+        gw.ecs.spawn(Position(3, 3), ZoneMember("a"), Portal("b", 7, 7))
+        val monster = gw.ecs.spawn(Position(3, 3), ZoneMember("a")).id
+        val player = gw.ecs.spawn(Player, Position(3, 3), ZoneMember("a")).id
+
+        gw.ecs.tick()
+
+        gw.ecs.get(monster)!!.require<ZoneMember>().zoneId shouldBe "b"
+        gw.ecs.get(player)!!.require<ZoneMember>().zoneId shouldBe "b"
+        gw.currentZoneId shouldBe "b"
+    }
 })
