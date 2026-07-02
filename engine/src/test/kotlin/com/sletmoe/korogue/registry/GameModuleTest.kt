@@ -1,6 +1,8 @@
 package com.sletmoe.korogue.registry
 
 import com.sletmoe.korogue.algorithms.lighting.DiminishingLightValueCalculator
+import com.sletmoe.korogue.algorithms.zonegen.ZoneGenContext
+import com.sletmoe.korogue.algorithms.zonegen.ZoneGenerator
 import com.sletmoe.korogue.ecs.Entity
 import com.sletmoe.korogue.perception.Contribution
 import com.sletmoe.korogue.perception.DarkvisionSense
@@ -83,5 +85,23 @@ class GameModuleTest : FunSpec({
         val module = GameModule.engineDefaults().perceptionModel(StandardPerception.ID, custom).build()
 
         module.perceptionModels.resolve(StandardPerception.ID) shouldBe custom
+    }
+
+    test("engine defaults register no built-in generators (world-gen generators are game-specific)") {
+        val module = GameModule.engineDefaults().build()
+        module.generators.ids shouldBe emptySet()
+    }
+
+    test("a consumer can register and resolve its own world-gen generator") {
+        val generator = ZoneGenerator { ctx: ZoneGenContext -> ctx.spawn(0, 0) }
+        val module = GameModule.engineDefaults().generator("cave", generator).build()
+
+        module.generators.resolve("cave") shouldBe generator
+        ("cave" in module.generators) shouldBe true
+    }
+
+    test("resolving an unknown generator id fails loudly") {
+        val module = GameModule.engineDefaults().build()
+        shouldThrow<IllegalStateException> { module.generators.resolve("nope") }
     }
 })

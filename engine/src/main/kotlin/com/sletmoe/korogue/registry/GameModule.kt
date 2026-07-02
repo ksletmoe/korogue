@@ -4,6 +4,7 @@ import com.sletmoe.korogue.algorithms.lighting.DiminishingLightValueCalculator
 import com.sletmoe.korogue.algorithms.lighting.GlobalLightValueCalculator
 import com.sletmoe.korogue.algorithms.lighting.LightValueCalculator
 import com.sletmoe.korogue.algorithms.los.SymmetricShadowCaster
+import com.sletmoe.korogue.algorithms.zonegen.ZoneGenerator
 import com.sletmoe.korogue.components.Behavior
 import com.sletmoe.korogue.components.Health
 import com.sletmoe.korogue.components.Inventory
@@ -43,8 +44,8 @@ import kotlin.reflect.KClass
 /**
  * The single seam describing a game's pluggable pieces to the engine (ADR-0009, hybrid
  * option iii). It bundles the per-concern registries — [strategies] (AI), [calculators]
- * (lighting), [senses] / [perceptionModels] (perception, ADR-0015), and [components]
- * (serialization) — so a consumer configures everything in one place
+ * (lighting), [senses] / [perceptionModels] (perception, ADR-0015), [generators] (world-gen,
+ * ADR-0019), and [components] (serialization) — so a consumer configures everything in one place
  * (`GameModule.engineDefaults().strategy(...).component<Foo>().build()`), while systems
  * and the save codec each depend only on the narrow registry they need, never the whole module.
  */
@@ -54,6 +55,7 @@ class GameModule private constructor(
     val effects: Registry<TimedEffect>,
     val senses: Registry<Sense>,
     val perceptionModels: Registry<PerceptionModel>,
+    val generators: Registry<ZoneGenerator>,
     val components: ComponentRegistry,
 ) {
     class Builder internal constructor(
@@ -62,6 +64,7 @@ class GameModule private constructor(
         private val effects: MutableMap<String, TimedEffect>,
         private val senses: MutableMap<String, Sense>,
         private val perceptionModels: MutableMap<String, PerceptionModel>,
+        private val generators: MutableMap<String, ZoneGenerator>,
         private val components: MutableMap<KClass<out Component>, KSerializer<out Component>>,
     ) {
         /** Register (or override) an AI strategy under [id]. */
@@ -94,6 +97,12 @@ class GameModule private constructor(
             model: PerceptionModel,
         ): Builder = apply { perceptionModels[id] = model }
 
+        /** Register (or override) a world-gen [ZoneGenerator] under [id] (ADR-0019). */
+        fun generator(
+            id: String,
+            generator: ZoneGenerator,
+        ): Builder = apply { generators[id] = generator }
+
         /** Register a `@Serializable` [Component] type so it can be saved/loaded. */
         fun <T : Component> component(
             type: KClass<T>,
@@ -115,6 +124,7 @@ class GameModule private constructor(
                 Registry(effects.toMap()),
                 sensesRegistry,
                 Registry(models.toMap()),
+                Registry(generators.toMap()),
                 ComponentRegistry(components.toMap()),
             )
         }
@@ -148,6 +158,11 @@ class GameModule private constructor(
                         TelepathySense.ID to TelepathySense(),
                     ),
                 perceptionModels = mutableMapOf(),
+                // No built-in generators: every world-gen generator needs a game-specific ground
+                // Tile (see randomWalkCave's groundTile param), which the engine cannot supply
+                // parameterless the way WanderStrategy() or DiminishingLightValueCalculator() are.
+                // Games register their own via `.generator(id, ...)` (ADR-0019).
+                generators = mutableMapOf(),
                 components = mutableMapOf(),
             ).component<Position>()
                 .component<ZoneMember>()
