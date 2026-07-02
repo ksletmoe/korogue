@@ -181,5 +181,83 @@ class StandardPerceptionTest : DescribeSpec({
 
             perceived.entities.shouldContain(target.id) // tremorsense sees the invisible creature
         }
+
+        // --- region (environmental) concealment: magical darkness (ADR-0020) --------------------
+
+        it("region concealment hides a magically-dark cell from a matching visual sense") {
+            val gw = gameWorld()
+            gw.zones.getValue("z").concealment[4, 4] = setOf("visual")
+            val observer = gw.ecs.spawn(ZoneMember("z"), FakeSenseComponent("dv"))
+
+            val perceived =
+                perception("dv" to FakeSense(setOf("visual"), cells = setOf(Vector2Int(4, 4), Vector2Int(5, 5))))
+                    .perceive(observer, gw)
+
+            perceived.cells.shouldNotContain(Vector2Int(4, 4)) // magically dark
+            perceived.cells.shouldContain(Vector2Int(5, 5)) // ordinary cell still seen
+        }
+
+        it("a piercing sense sees through region concealment (truesight vs magical darkness)") {
+            val gw = gameWorld()
+            gw.zones.getValue("z").concealment[4, 4] = setOf("visual")
+            val observer = gw.ecs.spawn(ZoneMember("z"), FakeSenseComponent("ts"))
+
+            val perceived =
+                perception("ts" to FakeSense(setOf("visual"), pierces = setOf("visual"), cells = setOf(Vector2Int(4, 4))))
+                    .perceive(observer, gw)
+
+            perceived.cells.shouldContain(Vector2Int(4, 4))
+        }
+
+        it("region concealment does not hide a cell from a non-matching (non-visual) sense") {
+            val gw = gameWorld()
+            gw.zones.getValue("z").concealment[4, 4] = setOf("visual")
+            val observer = gw.ecs.spawn(ZoneMember("z"), FakeSenseComponent("tremor"))
+
+            val perceived =
+                perception("tremor" to FakeSense(setOf("vibration"), cells = setOf(Vector2Int(4, 4))))
+                    .perceive(observer, gw)
+
+            perceived.cells.shouldContain(Vector2Int(4, 4)) // vibration isn't a visual channel
+        }
+
+        it("a creature in magical darkness is unseen by a visual sense but felt by a non-visual one") {
+            val gw = gameWorld()
+            gw.zones.getValue("z").concealment[4, 4] = setOf("visual")
+            val target = gw.ecs.spawn(Position(4, 4), ZoneMember("z"))
+
+            // visual sense alone: the creature's cell is region-hidden, so it's not perceived.
+            val visualOnly = gw.ecs.spawn(ZoneMember("z"), FakeSenseComponent("dv"))
+            perception("dv" to FakeSense(setOf("visual"), cells = setOf(Vector2Int(4, 4)), entities = setOf(target.id)))
+                .perceive(visualOnly, gw)
+                .entities
+                .shouldNotContain(target.id)
+
+            // add tremorsense: the creature is felt through the dark.
+            val observer =
+                gw.ecs.spawn(ZoneMember("z"), FakeSenseComponent("dv"), FakeSenseComponent2("tremor"))
+            perception(
+                "dv" to FakeSense(setOf("visual"), cells = setOf(Vector2Int(4, 4)), entities = setOf(target.id)),
+                "tremor" to FakeSense(setOf("vibration"), entities = setOf(target.id)),
+            ).perceive(observer, gw)
+                .entities
+                .shouldContain(target.id)
+        }
+
+        it("real Darkvision is blocked by magical darkness while TrueSight pierces it (acceptance)") {
+            val gw = gameWorld() // 8x8 of transparent BLANK_TILE, so LOS is unobstructed
+            gw.zones.getValue("z").concealment[3, 3] = setOf(PerceptionTags.VISUAL)
+            val target = gw.ecs.spawn(Position(3, 3), ZoneMember("z"))
+
+            val darkvision = gw.ecs.spawn(Position(0, 0), ZoneMember("z"), Darkvision())
+            val dv = perception().perceive(darkvision, gw)
+            dv.sees(3, 3) shouldBe false
+            dv.sees(target.id) shouldBe false
+
+            val truesight = gw.ecs.spawn(Position(7, 7), ZoneMember("z"), TrueSight())
+            val ts = perception().perceive(truesight, gw)
+            ts.sees(3, 3) shouldBe true
+            ts.sees(target.id) shouldBe true
+        }
     }
 })

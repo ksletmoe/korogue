@@ -33,6 +33,17 @@ open class Zone(
     val lightMap: Grid<LightValue?> = Grid(tiles.width, tiles.height, null)
 
     /**
+     * Per-cell environmental concealment tags (ADR-0020): tags that hide a cell — and any entity
+     * standing on it — from perception senses that don't
+     * [pierce][com.sletmoe.korogue.perception.Sense.pierces] them. **Magical darkness** sets
+     * `{visual}` ([com.sletmoe.korogue.perception.PerceptionTags.VISUAL]), so it blocks `Sight` and
+     * `Darkvision` while `TrueSight` pierces it; an empty set means no concealment. Derived /
+     * effect-driven state like [lightMap] — an effect or generator writes regions into it; unlike
+     * [lightMap] it is *not* about light, which is what lets it stop light-independent darkvision.
+     */
+    val concealment: Grid<Set<String>> = Grid(tiles.width, tiles.height, emptySet<String>())
+
+    /**
      * Terrain-only walkability: whether the tile at ([x], [y]) can be stood on.
      * Occupancy is an ECS concern — combine with [GameWorld.entityAt] (see
      * [GameWorld.isWalkable]) when a move also needs the cell to be unoccupied.
