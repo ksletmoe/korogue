@@ -1,0 +1,18 @@
+#!/bin/sh
+# Checked-in pre-commit hook, shared across clones via core.hooksPath (.githooks/).
+# Auto-formats staged Kotlin with ktlint so the CI `build` job (which runs ktlint via
+# `check`) stays green. No-op unless Kotlin files are staged.
+#
+# Activated automatically: `./gradlew check`/`build` runs the :installGitHooks task, which
+# sets `git config core.hooksPath .githooks`. To wire it manually, run that once yourself.
+set -e
+
+staged=$(git diff --cached --name-only --diff-filter=ACM -- '*.kt')
+[ -z "$staged" ] && exit 0
+
+echo "pre-commit: ktlintFormat on staged Kotlin…"
+./gradlew --quiet ktlintFormat
+
+# Re-stage the (possibly reformatted) files that were already staged.
+echo "$staged" | tr '\n' '\0' | xargs -0 git add
+exit 0
