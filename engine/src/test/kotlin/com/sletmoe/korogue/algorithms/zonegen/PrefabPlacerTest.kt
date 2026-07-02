@@ -21,8 +21,9 @@ private fun contextOf(
 ) = ZoneGenContext(Grid(width, height, BLANK_TILE), Random(seed))
 
 /** A fixed-size 3x3 solid-wall prefab, the simplest possible stamp target for these tests. */
-private fun box3x3(@Suppress("UNUSED_PARAMETER") random: Random): Prefab =
-    Prefab.builder("###", "###", "###", legend = mapOf('#' to WALL)).build()
+private fun box3x3(
+    @Suppress("UNUSED_PARAMETER") random: Random,
+): Prefab = Prefab.builder("###", "###", "###", legend = mapOf('#' to WALL)).build()
 
 /** A factory producing a variable-size (2-5 x 2-5) solid-wall prefab, per ADR-0019's shack case. */
 private fun variableBox(random: Random): Prefab {
@@ -150,8 +151,18 @@ class PrefabPlacerTest : FunSpec({
     test("scatter is deterministic for a given seed") {
         val factory = ::variableBox
 
-        val placedA = PrefabPlacer(targetCount = 6, minSpacing = 1, maxAttempts = 200).scatter(contextOf(20, 20, seed = 42), factory)
-        val placedB = PrefabPlacer(targetCount = 6, minSpacing = 1, maxAttempts = 200).scatter(contextOf(20, 20, seed = 42), factory)
+        val placedA =
+            PrefabPlacer(
+                targetCount = 6,
+                minSpacing = 1,
+                maxAttempts = 200,
+            ).scatter(contextOf(20, 20, seed = 42), factory)
+        val placedB =
+            PrefabPlacer(
+                targetCount = 6,
+                minSpacing = 1,
+                maxAttempts = 200,
+            ).scatter(contextOf(20, 20, seed = 42), factory)
 
         placedA shouldBe placedB
     }

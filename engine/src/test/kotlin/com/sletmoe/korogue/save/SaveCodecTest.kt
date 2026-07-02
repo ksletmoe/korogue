@@ -103,7 +103,16 @@ class SaveCodecTest : FunSpec({
     test("round-trips terrain with mixed tiles, long runs, and a decorated one-off, preserving every Tile field") {
         val wall = Tile("stone wall", '#', Color.GRAY, Color.BLACK, isWalkable = false, blocksLineOfSight = true)
         val altar =
-            Tile("altar", '_', Color.GOLD, Color.MAROON, isWalkable = true, blocksLineOfSight = false, description = "a stone altar")
+            Tile(
+                "altar",
+                '_',
+                Color.GOLD,
+                Color.MAROON,
+                isWalkable = true,
+                blocksLineOfSight = false,
+                description = "a stone altar",
+            )
+
         fun expectedAt(
             x: Int,
             y: Int,
@@ -147,6 +156,7 @@ class SaveCodecTest : FunSpec({
         val wall = Tile("stone wall", '#', Color.GRAY, Color.BLACK, isWalkable = false, blocksLineOfSight = true)
         val width = 200
         val height = 200
+
         // A carved-out rectangular room, like randomWalkCave leaves behind: contiguous floor
         // runs rather than scattered single cells, so RLE gets exercised alongside the palette.
         fun tileAt(

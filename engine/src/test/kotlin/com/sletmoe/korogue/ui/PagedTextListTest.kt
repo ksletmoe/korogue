@@ -43,7 +43,10 @@ class PagedTextListTest : FunSpec({
     }
 
     test("the footer text is whatever the caller's lambda returns") {
-        val l = PagedTextList(IntRect(0, 0, width, height), listOf("r0", "r1", "r2"), footer = { "page ${it.page + 1}/${it.pageCount}" })
+        val l =
+            PagedTextList(IntRect(0, 0, width, height), listOf("r0", "r1", "r2"), footer = {
+                "page ${it.page + 1}/${it.pageCount}"
+            })
         l.visibleRows() shouldBe listOf("r0", "r1", "page 1/2")
     }
 

@@ -97,7 +97,10 @@ class StandardPerception(
     }
 
     /** The environmental concealment tags at [cell] in [zone] (empty off-grid or with no zone). */
-    private fun concealmentAt(zone: Zone?, cell: Vector2Int): Set<String> {
+    private fun concealmentAt(
+        zone: Zone?,
+        cell: Vector2Int,
+    ): Set<String> {
         if (zone == null || cell.x !in 0 until zone.width || cell.y !in 0 until zone.height) return emptySet()
         return zone.concealment[cell]
     }

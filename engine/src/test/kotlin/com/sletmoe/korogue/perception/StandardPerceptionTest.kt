@@ -203,7 +203,9 @@ class StandardPerceptionTest : DescribeSpec({
             val observer = gw.ecs.spawn(ZoneMember("z"), FakeSenseComponent("ts"))
 
             val perceived =
-                perception("ts" to FakeSense(setOf("visual"), pierces = setOf("visual"), cells = setOf(Vector2Int(4, 4))))
+                perception(
+                    "ts" to FakeSense(setOf("visual"), pierces = setOf("visual"), cells = setOf(Vector2Int(4, 4))),
+                )
                     .perceive(observer, gw)
 
             perceived.cells.shouldContain(Vector2Int(4, 4))

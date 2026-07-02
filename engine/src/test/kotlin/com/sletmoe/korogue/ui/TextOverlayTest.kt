@@ -9,7 +9,10 @@ import io.kotest.matchers.shouldBe
 class TextOverlayTest : FunSpec({
 
     /** The full grid of [width] x [height], top to bottom, as rendered glyphs (' ' where nothing drawn). */
-    fun TextOverlay.render(width: Int, height: Int): List<String> {
+    fun TextOverlay.render(
+        width: Int,
+        height: Int,
+    ): List<String> {
         val surface = RecordingSurface(width, height)
         draw(surface)
         return (0 until height).map { y ->

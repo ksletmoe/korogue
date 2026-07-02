@@ -36,11 +36,12 @@ class ZoneGeneratorTest : FunSpec({
     test("GameWorld.Builder materializes buffered spawns with Position + ZoneMember") {
         val gen = ZoneGenerator { c -> c.spawn(2, 3, Tag("goblin")) }
 
-        val world = GameWorld.create {
-            zone("cave", width = 10, height = 10, isCurrentZone = true) {
-                addFeature(gen)
+        val world =
+            GameWorld.create {
+                zone("cave", width = 10, height = 10, isCurrentZone = true) {
+                    addFeature(gen)
+                }
             }
-        }
 
         val entity = world.entityAt("cave", 2, 3)
         entity.shouldNotBeNull()
@@ -51,14 +52,16 @@ class ZoneGeneratorTest : FunSpec({
 
     test("a ZoneGenerator can both paint terrain and spawn entities") {
         val floor = BLANK_TILE
-        val gen = ZoneGenerator { c ->
-            c.tiles[1, 1] = floor
-            c.spawn(1, 1, Tag("torch"))
-        }
+        val gen =
+            ZoneGenerator { c ->
+                c.tiles[1, 1] = floor
+                c.spawn(1, 1, Tag("torch"))
+            }
 
-        val world = GameWorld.create {
-            zone("room", width = 4, height = 4, isCurrentZone = true) { addFeature(gen) }
-        }
+        val world =
+            GameWorld.create {
+                zone("room", width = 4, height = 4, isCurrentZone = true) { addFeature(gen) }
+            }
 
         world.currentZone.tiles[1, 1] shouldBe floor
         world.entityAt("room", 1, 1).shouldNotBeNull()

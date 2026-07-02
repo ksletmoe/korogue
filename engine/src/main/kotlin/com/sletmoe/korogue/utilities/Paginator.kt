@@ -25,7 +25,11 @@ class Paginator<T>(
 
     /** The items on the current page (may be shorter than [pageSize] on the last page). */
     val currentPage: List<T>
-        get() = items.subList((page * pageSize).coerceAtMost(items.size), ((page + 1) * pageSize).coerceAtMost(items.size))
+        get() =
+            items.subList(
+                (page * pageSize).coerceAtMost(items.size),
+                ((page + 1) * pageSize).coerceAtMost(items.size),
+            )
 
     val isFirstPage: Boolean get() = page == 0
     val isLastPage: Boolean get() = page == pageCount - 1
@@ -33,10 +37,22 @@ class Paginator<T>(
     val hasPrevious: Boolean get() = !isFirstPage
 
     /** Advances to the next page if there is one; returns true if it moved, false if already at the end. */
-    fun next(): Boolean = if (hasNext) { page++; true } else false
+    fun next(): Boolean =
+        if (hasNext) {
+            page++
+            true
+        } else {
+            false
+        }
 
     /** Steps back one page if there is one; returns true if it moved, false if already at the start. */
-    fun previous(): Boolean = if (hasPrevious) { page--; true } else false
+    fun previous(): Boolean =
+        if (hasPrevious) {
+            page--
+            true
+        } else {
+            false
+        }
 
     /** Jumps to [index], clamped into `[0, pageCount)`. */
     fun toPage(index: Int) {

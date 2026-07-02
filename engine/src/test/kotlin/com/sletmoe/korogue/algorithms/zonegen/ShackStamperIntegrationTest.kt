@@ -33,11 +33,12 @@ class ShackStamperIntegrationTest : FunSpec({
     fun shack(random: Random): Prefab {
         val w = random.nextInt(3, 6)
         val h = random.nextInt(3, 6)
-        val rows = (0 until h).map { y ->
-            (0 until w).joinToString("") { x ->
-                if (x == 0 || y == 0 || x == w - 1 || y == h - 1) "#" else "."
+        val rows =
+            (0 until h).map { y ->
+                (0 until w).joinToString("") { x ->
+                    if (x == 0 || y == 0 || x == w - 1 || y == h - 1) "#" else "."
+                }
             }
-        }
         return Prefab.builder(*rows.toTypedArray(), legend = mapOf('#' to wall, '.' to floor))
             .entity(1, 1, Named("goblin"))
             .build()
@@ -48,16 +49,18 @@ class ShackStamperIntegrationTest : FunSpec({
         val stamper = ZoneGenerator { ctx -> placer.scatter(ctx) { r -> shack(r) } }
         val module = GameModule.engineDefaults().generator("shack-stamper", stamper).build()
 
-        val world = GameWorld.create {
-            zone("dungeon", width = 40, height = 40, isCurrentZone = true, random = Random(42)) {
-                addFeature(module.generators.resolve("shack-stamper"))
+        val world =
+            GameWorld.create {
+                zone("dungeon", width = 40, height = 40, isCurrentZone = true, random = Random(42)) {
+                    addFeature(module.generators.resolve("shack-stamper"))
+                }
             }
-        }
 
         // Each stamped shack materialized exactly one goblin (the b1p.1 buffered spawn sink).
-        val goblins = world.ecs.entitiesWith<Named, Position, ZoneMember>()
-            .filter { it.require<Named>().name == "goblin" && it.require<ZoneMember>().zoneId == "dungeon" }
-            .toList()
+        val goblins =
+            world.ecs.entitiesWith<Named, Position, ZoneMember>()
+                .filter { it.require<Named>().name == "goblin" && it.require<ZoneMember>().zoneId == "dungeon" }
+                .toList()
         goblins.size shouldBeGreaterThan 0
 
         // Terrain was actually painted into the zone.
