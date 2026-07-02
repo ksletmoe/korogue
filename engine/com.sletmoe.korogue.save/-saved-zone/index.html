@@ -43,7 +43,7 @@
         </button>
         <div class="navigation-controls--break ui-kit_mobile-only"></div>
         <div class="library-version" id="library-version">
-1.0.0.30-SNAPSHOT        </div>
+1.0.0.31-SNAPSHOT        </div>
         <div class="navigation-controls">
         <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
                 <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true"
@@ -107,24 +107,24 @@
   <div class="breadcrumbs"><a href="../../../index.html">engine</a><span class="delimiter">/</span><a href="../index.html">com.sletmoe.korogue.save</a><span class="delimiter">/</span><span class="current">SavedZone</span></div>
   <div class="cover ">
     <h1 class="cover"><span>Saved</span><wbr></wbr><span><span>Zone</span></span></h1>
-    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><span data-unresolved-link="kotlinx.serialization/Serializable///PointingToDeclaration/"><span class="token annotation builtin">Serializable</span></span></div></div><span class="token keyword">data </span><span class="token keyword">class </span><a href="index.html">SavedZone</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>zoneId<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>width<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>height<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>tiles<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="../../com.sletmoe.korogue.world/-tile/index.html">Tile</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span></div><p class="paragraph">A zone's terrain: dimensions plus its tiles in row-major order.</p></div></div>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><span data-unresolved-link="kotlinx.serialization/Serializable///PointingToDeclaration/"><span class="token annotation builtin">Serializable</span></span></div></div><span class="token keyword">data </span><span class="token keyword">class </span><a href="index.html">SavedZone</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>zoneId<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>width<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>height<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>palette<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="../../com.sletmoe.korogue.world/-tile/index.html">Tile</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>runs<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="../-tile-run/index.html">TileRun</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span></div><p class="paragraph">A zone's terrain, palette + RLE compressed (krogue-yox). Terrain is heavily repetitive — a 200x200 demo zone is mostly one wall tile and one floor tile — so <span data-unresolved-link="com.sletmoe.korogue.save/SavedZone//#kotlin.String#kotlin.Int#kotlin.Int#kotlin.collections.List[com.sletmoe.korogue.world.Tile]#kotlin.collections.List[com.sletmoe.korogue.save.TileRun]/PointingToCallableParameters(3)/">palette</span> interns each distinct <a href="../../com.sletmoe.korogue.world/-tile/index.html">Tile</a> used in the zone and <span data-unresolved-link="com.sletmoe.korogue.save/SavedZone//#kotlin.String#kotlin.Int#kotlin.Int#kotlin.collections.List[com.sletmoe.korogue.world.Tile]#kotlin.collections.List[com.sletmoe.korogue.save.TileRun]/PointingToCallableParameters(4)/">runs</span> is a row-major run-length encoding of palette indices, instead of writing a full <a href="../../com.sletmoe.korogue.world/-tile/index.html">Tile</a> (name string, two colors, booleans) per cell.</p></div></div>
   </div>
   <div class="tabbedcontent">
     <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
     <div class="tabs-section-body">
       <div data-togglable="CONSTRUCTOR">
         <h2 class="tableheader">Constructors</h2>
-        <div class="table"><a data-name="527962595%2FConstructors%2F-56654334" anchor-label="SavedZone" id="527962595%2FConstructors%2F-56654334" data-filterable-set=":engine/main"></a>
+        <div class="table"><a data-name="412529444%2FConstructors%2F-56654334" anchor-label="SavedZone" id="412529444%2FConstructors%2F-56654334" data-filterable-set=":engine/main"></a>
           <div class="table-row table-row_content" data-togglable="CONSTRUCTOR" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
             <div class="main-subrow keyValue ">
               <div class=""><span class="inline-flex">
                   <div><a href="-saved-zone.html"><span>Saved</span><wbr></wbr><span><span>Zone</span></span></a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="527962595%2FConstructors%2F-56654334"></span>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="412529444%2FConstructors%2F-56654334"></span>
                     <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">zoneId<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">width<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">height<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">tiles<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="../../com.sletmoe.korogue.world/-tile/index.html">Tile</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">zoneId<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">width<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">height<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">palette<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="../../com.sletmoe.korogue.world/-tile/index.html">Tile</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">runs<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="../-tile-run/index.html">TileRun</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span></div></div></div>
                 </div>
               </div>
             </div>
@@ -148,17 +148,32 @@
               </div>
             </div>
           </div>
-<a data-name="1189129710%2FProperties%2F-56654334" anchor-label="tiles" id="1189129710%2FProperties%2F-56654334" data-filterable-set=":engine/main"></a>
+<a data-name="84545080%2FProperties%2F-56654334" anchor-label="palette" id="84545080%2FProperties%2F-56654334" data-filterable-set=":engine/main"></a>
           <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
             <div class="main-subrow keyValue ">
               <div class=""><span class="inline-flex">
-                  <div><a href="tiles.html"><span><span>tiles</span></span></a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1189129710%2FProperties%2F-56654334"></span>
+                  <div><a href="palette.html"><span><span>palette</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="84545080%2FProperties%2F-56654334"></span>
                     <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="tiles.html">tiles</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="../../com.sletmoe.korogue.world/-tile/index.html">Tile</a><span class="token operator">&gt;</span></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="palette.html">palette</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="../../com.sletmoe.korogue.world/-tile/index.html">Tile</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="257602719%2FProperties%2F-56654334" anchor-label="runs" id="257602719%2FProperties%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="runs.html"><span><span>runs</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="257602719%2FProperties%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="runs.html">runs</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="../-tile-run/index.html">TileRun</a><span class="token operator">&gt;</span></div></div></div>
                 </div>
               </div>
             </div>
