@@ -37,4 +37,23 @@ data class IntRect(val x: Int, val y: Int, val width: Int, val height: Int) {
      */
     fun contains(point: Vector2Int): Boolean =
         point.x >= x && point.x < x + width && point.y >= y && point.y < y + height
+
+    /**
+     * Returns true if this rect and [other] intersect once this rect is inflated by [padding] on
+     * every side — i.e. true if the two rects are closer than [padding] apart, not just
+     * overlapping outright. `padding = 0` is a plain AABB intersection test.
+     *
+     * Used by [com.sletmoe.korogue.algorithms.zonegen.PrefabPlacer] to enforce minimum spacing
+     * between scattered prefabs (krogue-b1p.3).
+     */
+    fun overlaps(
+        other: IntRect,
+        padding: Int = 0,
+    ): Boolean {
+        val left = x - padding
+        val top = y - padding
+        val right = x + width + padding
+        val bottom = y + height + padding
+        return other.x < right && other.x + other.width > left && other.y < bottom && other.y + other.height > top
+    }
 }

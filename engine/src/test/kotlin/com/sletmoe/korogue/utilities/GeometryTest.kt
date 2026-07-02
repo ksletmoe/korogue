@@ -115,4 +115,38 @@ class GeometryTest : DescribeSpec({
             IntRect(5, 10, 4, 4).contains(Vector2Int(8, 10)) shouldBe true
         }
     }
+
+    describe("IntRect.overlaps") {
+        it("should be true for rects that overlap outright") {
+            IntRect(0, 0, 3, 3).overlaps(IntRect(2, 2, 3, 3)) shouldBe true
+        }
+
+        it("should be false for rects that don't touch, with no padding") {
+            IntRect(0, 0, 3, 3).overlaps(IntRect(3, 0, 3, 3)) shouldBe false
+        }
+
+        it("should be false for rects that share only an edge, with no padding") {
+            // IntRect covers a half-open box, so x=3 is just past IntRect(0,0,3,3)'s right edge
+            IntRect(0, 0, 3, 3).overlaps(IntRect(3, 0, 3, 3), padding = 0) shouldBe false
+        }
+
+        it("should be true for adjacent rects once padding closes the gap") {
+            IntRect(0, 0, 3, 3).overlaps(IntRect(3, 0, 3, 3), padding = 1) shouldBe true
+        }
+
+        it("should be false for rects further apart than the padding") {
+            IntRect(0, 0, 3, 3).overlaps(IntRect(5, 0, 3, 3), padding = 1) shouldBe false
+        }
+
+        it("should be symmetric") {
+            val a = IntRect(0, 0, 4, 4)
+            val b = IntRect(3, 3, 4, 4)
+            a.overlaps(b) shouldBe b.overlaps(a)
+        }
+
+        it("should be true for an identical rect") {
+            val r = IntRect(2, 2, 5, 5)
+            r.overlaps(r) shouldBe true
+        }
+    }
 })
