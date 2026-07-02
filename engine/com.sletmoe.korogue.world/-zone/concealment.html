@@ -2,7 +2,7 @@
 <html class="no-js" lang="en">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
-    <title>DiminishingLightValueCalculator</title>
+    <title>concealment</title>
     <link href="../../../images/logo-icon.svg" rel="icon" type="image/svg">
         <script>var pathToRoot = "../../../";</script>
     <script>document.documentElement.classList.replace("no-js", "js");</script>
@@ -103,12 +103,12 @@
         </nav>
         <div id="resizer" class="resizer" data-item-type="BAR"></div>
         <div id="main" data-item-type="SECTION" role="main">
-<div class="main-content" data-page-type="member" id="content" pageIds="engine::com.sletmoe.korogue.algorithms.lighting/DiminishingLightValueCalculator/DiminishingLightValueCalculator/#/PointingToDeclaration//-56654334">
-  <div class="breadcrumbs"><a href="../../../index.html">engine</a><span class="delimiter">/</span><a href="../index.html">com.sletmoe.korogue.algorithms.lighting</a><span class="delimiter">/</span><a href="index.html">DiminishingLightValueCalculator</a><span class="delimiter">/</span><span class="current">DiminishingLightValueCalculator</span></div>
+<div class="main-content" data-page-type="member" id="content" pageIds="engine::com.sletmoe.korogue.world/Zone/concealment/#/PointingToDeclaration//-56654334">
+  <div class="breadcrumbs"><a href="../../../index.html">engine</a><span class="delimiter">/</span><a href="../index.html">com.sletmoe.korogue.world</a><span class="delimiter">/</span><a href="index.html">Zone</a><span class="delimiter">/</span><span class="current">concealment</span></div>
   <div class="cover ">
-    <h1 class="cover"><span>Diminishing</span><wbr></wbr><span>Light</span><wbr></wbr><span>Value</span><wbr></wbr><span><span>Calculator</span></span></h1>
+    <h1 class="cover"><span><span>concealment</span></span></h1>
   </div>
-  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="token punctuation">)</span></div></div></div>
+  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="concealment.html">concealment</a><span class="token operator">: </span><a href="../../com.sletmoe.korogue.utilities/-grid/index.html">Grid</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-set/index.html">Set</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span><span class="token operator">&gt;</span></div><p class="paragraph">Per-cell environmental concealment tags (ADR-0020): tags that hide a cell — and any entity standing on it — from perception senses that don't <a href="../../com.sletmoe.korogue.perception/-sense/pierces.html">pierce</a> them. <strong>Magical darkness</strong> sets <code class="lang-kotlin">{visual}</code> (<a href="../../com.sletmoe.korogue.perception/-perception-tags/-v-i-s-u-a-l.html">com.sletmoe.korogue.perception.PerceptionTags.VISUAL</a>), so it blocks <code class="lang-kotlin">Sight</code> and <code class="lang-kotlin">Darkvision</code> while <code class="lang-kotlin">TrueSight</code> pierces it; an empty set means no concealment. Derived / effect-driven state like <a href="light-map.html">lightMap</a> — an effect or generator writes regions into it; unlike <a href="light-map.html">lightMap</a> it is <i>not</i> about light, which is what lets it stop light-independent darkvision.</p></div></div>
 </div>
     <div class="footer">
         <div class="footer--container">

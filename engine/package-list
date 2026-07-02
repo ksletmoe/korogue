@@ -755,6 +755,7 @@ $dokka.location:com.sletmoe.korogue.world/Zone.Companion/create/#kotlin.String#k
 $dokka.location:com.sletmoe.korogue.world/Zone///PointingToDeclaration/engine/com.sletmoe.korogue.world/-zone/index.html
 $dokka.location:com.sletmoe.korogue.world/Zone/Zone/#kotlin.String#com.sletmoe.korogue.utilities.Grid[com.sletmoe.korogue.world.Tile]/PointingToDeclaration/engine/com.sletmoe.korogue.world/-zone/-zone.html
 $dokka.location:com.sletmoe.korogue.world/Zone/bounds/#/PointingToDeclaration/engine/com.sletmoe.korogue.world/-zone/bounds.html
+$dokka.location:com.sletmoe.korogue.world/Zone/concealment/#/PointingToDeclaration/engine/com.sletmoe.korogue.world/-zone/concealment.html
 $dokka.location:com.sletmoe.korogue.world/Zone/height/#/PointingToDeclaration/engine/com.sletmoe.korogue.world/-zone/height.html
 $dokka.location:com.sletmoe.korogue.world/Zone/isWalkable/#kotlin.Int#kotlin.Int/PointingToDeclaration/engine/com.sletmoe.korogue.world/-zone/is-walkable.html
 $dokka.location:com.sletmoe.korogue.world/Zone/lightMap/#/PointingToDeclaration/engine/com.sletmoe.korogue.world/-zone/light-map.html
