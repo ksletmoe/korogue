@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>ZoneGenContext</title>
+    <link href="../../../images/logo-icon.svg" rel="icon" type="image/svg">
+        <script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async="async"></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer="defer"></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async="async"></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer="defer"></script>
+</head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+            <a class="library-name--link" href="../../../index.html" tabindex="1">
+                    engine
+            </a>
+        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle"
+                type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+1.0.0.33-SNAPSHOT        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true"
+                        data-filter=":engine/main">jvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox"
+                        data-role="dropdown-toggle"
+                        aria-controls="platform-tags-listbox"
+                        aria-haspopup="listbox"
+                        aria-expanded="false"
+                        aria-label="Toggle source sets"
+                ></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":engine/main"
+                                       data-filter=":engine/main"/>
+                                <span class="checkbox--icon"></span>
+                                jvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button"
+                    type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config='{"defaultSize": 280, "minSize": 200, "maxSize": 400}'>
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list"
+                    data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    engine
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageIds="engine::com.sletmoe.korogue.algorithms.zonegen/ZoneGenContext///PointingToDeclaration//-56654334">
+  <div class="breadcrumbs"><a href="../../../index.html">engine</a><span class="delimiter">/</span><a href="../index.html">com.sletmoe.korogue.algorithms.zonegen</a><span class="delimiter">/</span><span class="current">ZoneGenContext</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Zone</span><wbr></wbr><span>Gen</span><wbr></wbr><span><span>Context</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">ZoneGenContext</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>tiles<span class="token operator">: </span><a href="../../com.sletmoe.korogue.utilities/-grid/index.html">Grid</a><span class="token operator">&lt;</span><a href="../../com.sletmoe.korogue.world/-tile/index.html">Tile</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>random<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.random/-random/index.html">Random</a></span></span><span class="token punctuation">)</span></div><p class="paragraph">The mutable context a <a href="../-zone-generator/index.html">ZoneGenerator</a> operates on: the tile <a href="../../com.sletmoe.korogue.utilities/-grid/index.html">Grid</a> it paints, the <span data-unresolved-link="com.sletmoe.korogue.algorithms.zonegen/ZoneGenContext//#com.sletmoe.korogue.utilities.Grid[com.sletmoe.korogue.world.Tile]#kotlin.random.Random/PointingToCallableParameters(1)/">random</span> source, and a <strong>buffered entity sink</strong> (<a href="spawn.html">spawn</a>) for placing occupants (monsters, gold, items, traps) as it generates (krogue-b1p, ADR-0019).</p><p class="paragraph">Entities are <i>buffered</i>, not spawned live, because zone generation runs before the ECS <a href="../../com.sletmoe.korogue.ecs/-world/index.html">com.sletmoe.korogue.ecs.World</a> exists (see <a href="../../com.sletmoe.korogue.world/-game-world/-builder/index.html">com.sletmoe.korogue.world.GameWorld.Builder</a>). Generation therefore stays a pure function of (tiles, RNG) → (painted tiles, <a href="pending-spawns.html">pendingSpawns</a>): deterministic, ordering-independent, and unit-testable without a World. The <code class="lang-kotlin">GameWorld</code> builder materializes each request via <code class="lang-kotlin">World.spawn</code>, adding <a href="../../com.sletmoe.korogue.components/-position/index.html">com.sletmoe.korogue.components.Position</a> and <a href="../../com.sletmoe.korogue.components/-zone-member/index.html">com.sletmoe.korogue.components.ZoneMember</a> for the cell and zone.</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="CONSTRUCTOR">
+        <h2 class="tableheader">Constructors</h2>
+        <div class="table"><a data-name="-1279215883%2FConstructors%2F-56654334" anchor-label="ZoneGenContext" id="-1279215883%2FConstructors%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-togglable="CONSTRUCTOR" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-zone-gen-context.html"><span>Zone</span><wbr></wbr><span>Gen</span><wbr></wbr><span><span>Context</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1279215883%2FConstructors%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">tiles<span class="token operator">: </span><a href="../../com.sletmoe.korogue.utilities/-grid/index.html">Grid</a><span class="token operator">&lt;</span><a href="../../com.sletmoe.korogue.world/-tile/index.html">Tile</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">random<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.random/-random/index.html">Random</a></span></span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="tableheader">Properties</h2>
+        <div class="table"><a data-name="-1828808427%2FProperties%2F-56654334" anchor-label="pendingSpawns" id="-1828808427%2FProperties%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="pending-spawns.html"><span>pending</span><wbr></wbr><span><span>Spawns</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1828808427%2FProperties%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="pending-spawns.html">pendingSpawns</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="../-spawn-request/index.html">SpawnRequest</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">The entity spawns buffered so far, in insertion order. Read-only view.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2071838989%2FProperties%2F-56654334" anchor-label="random" id="-2071838989%2FProperties%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="random.html"><span><span>random</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2071838989%2FProperties%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="random.html">random</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.random/-random/index.html">Random</a></div><div class="brief "><p class="paragraph">the generator's RNG (seeded by the caller for reproducibility)</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1261581793%2FProperties%2F-56654334" anchor-label="tiles" id="-1261581793%2FProperties%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="tiles.html"><span><span>tiles</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1261581793%2FProperties%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="tiles.html">tiles</a><span class="token operator">: </span><a href="../../com.sletmoe.korogue.utilities/-grid/index.html">Grid</a><span class="token operator">&lt;</span><a href="../../com.sletmoe.korogue.world/-tile/index.html">Tile</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">the zone's terrain grid, mutated in place</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="226653582%2FFunctions%2F-56654334" anchor-label="spawn" id="226653582%2FFunctions%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="spawn.html"><span><span>spawn</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="226653582%2FFunctions%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="spawn.html"><span class="token function">spawn</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">x<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">y<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">components<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="../../com.sletmoe.korogue.ecs/-component/index.html">Component</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Buffers an entity to be spawned at cell (<a href="spawn.html">x</a>, <a href="spawn.html">y</a>) carrying <a href="spawn.html">components</a>. <code class="lang-kotlin">Position</code> and <code class="lang-kotlin">ZoneMember</code> are added at materialization time, so pass only the entity's own components (e.g. <code class="lang-kotlin">Named</code>, <code class="lang-kotlin">Renderable</code>, <code class="lang-kotlin">Health</code>).</p></div><div class="symbol monospace"><span class="token keyword">fun </span><a href="spawn.html"><span class="token function">spawn</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">x<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">y<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">vararg </span>components<span class="token operator">: </span><a href="../../com.sletmoe.korogue.ecs/-component/index.html">Component</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Buffers an entity to be spawned at cell (<a href="spawn.html">x</a>, <a href="spawn.html">y</a>) carrying <a href="spawn.html">components</a> (vararg form).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
