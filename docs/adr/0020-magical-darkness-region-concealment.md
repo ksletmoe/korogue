@@ -75,12 +75,19 @@ illumination.
   sees them. Only *magical* darkness carries the `{visual}` concealment tag.
 - Relates to krogue-0vg (ambient/global light) and the room-visibility work
   (rogue-phf): those are illumination/policy; this is a distinct perception layer.
-- **Known refinement (not blocking):** the engine's single `TrueSightSense`
-  conflates truesight *and* see-invisible (it pierces `{visual}` to see
-  `Invisible`). So here see-invisible also pierces magical darkness, a minor 5e
-  divergence inherited from that conflation, not introduced here. A game needing
-  them distinct splits the sense and gives magical darkness a dedicated tag that
-  only a truesight-style `pierces` lists.
+- **Known refinement (not blocking) — krogue-lgj:** the engine's single
+  `TrueSightSense` pierces `{visual}`, so it sees through *both* `Invisible` and
+  magical darkness — i.e. see-invisible and truesight are indistinguishable, and
+  see-invisible also pierces magical darkness (a minor 5e divergence, inherited
+  from the shared `{visual}` channel, not introduced here). **Splitting the sense
+  does not fix this:** two senses with the same `tags`/`pierces` still pierce all
+  `{visual}` concealment. Because the model pierces the *matched* tag, it cannot
+  distinguish two concealments that block the same channel. The real fix is a
+  model refinement (krogue-lgj): separate a concealment's **channel** (matched
+  against `sense.tags`) from its **identity** (what `pierces` must list to defeat
+  it) — backward-compatible if identity defaults to the channel tag. Deferred:
+  only a game modelling both magical darkness *and* a distinct see-invisible
+  needs it; until then a game swaps the `PerceptionModel` (ADR-0014).
 
 ## Alternatives considered
 
