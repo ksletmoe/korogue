@@ -1,5 +1,6 @@
 package com.sletmoe.korogue.save
 
+import com.badlogic.gdx.graphics.Color
 import com.sletmoe.korogue.ecs.Entity
 import com.sletmoe.korogue.ecs.EntityId
 import com.sletmoe.korogue.ecs.World
@@ -7,7 +8,9 @@ import com.sletmoe.korogue.random.GameRandom
 import com.sletmoe.korogue.registry.ComponentRegistry
 import com.sletmoe.korogue.schedule.SchedulerState
 import com.sletmoe.korogue.utilities.Grid
+import com.sletmoe.korogue.world.BLANK_TILE
 import com.sletmoe.korogue.world.GameWorld
+import com.sletmoe.korogue.world.Tile
 import com.sletmoe.korogue.world.Zone
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.cbor.Cbor
@@ -50,11 +53,7 @@ class SaveCodec(
                 .entities()
                 .map { entity -> SavedEntity(entity.id.value, entity.components.filter(components::isRegistered)) }
                 .toList()
-        val zones =
-            world.zones.values.map {
-                    zone ->
-                SavedZone(zone.zoneId, zone.width, zone.height, flatten(zone.tiles))
-            }
+        val zones = world.zones.values.map(::encodeZone)
         val savedFog =
             fog.map { (zoneId, grid) -> SavedFog(zoneId, grid.width, grid.height, flatten(grid)) }
         val data =
@@ -98,10 +97,50 @@ class SaveCodec(
         return out
     }
 
+    /**
+     * Palette + RLE encodes a zone's terrain (krogue-yox): interns each distinct [Tile] into
+     * [SavedZone.palette] (terrain is heavily repetitive — a demo zone is mostly one wall tile
+     * and one floor tile) and run-length encodes the row-major sequence of palette indices, so
+     * one CBOR entry covers a whole wall or corridor run instead of one per cell.
+     */
+    private fun encodeZone(zone: Zone): SavedZone {
+        val palette = ArrayList<Tile>()
+        val paletteIndex = HashMap<TileKey, Int>()
+        val runs = ArrayList<TileRun>()
+        var runIndex = -1
+        var runCount = 0
+        for (y in 0 until zone.height) {
+            for (x in 0 until zone.width) {
+                val tile = zone.tiles[x, y]
+                val index =
+                    paletteIndex.getOrPut(TileKey(tile)) {
+                        palette += tile
+                        palette.size - 1
+                    }
+                if (index == runIndex) {
+                    runCount++
+                } else {
+                    if (runCount > 0) runs += TileRun(runIndex, runCount)
+                    runIndex = index
+                    runCount = 1
+                }
+            }
+        }
+        if (runCount > 0) runs += TileRun(runIndex, runCount)
+        return SavedZone(zone.zoneId, zone.width, zone.height, palette, runs)
+    }
+
     private fun rebuildZone(saved: SavedZone): Zone {
-        val grid = Grid(saved.width, saved.height, saved.tiles.first())
-        for (y in 0 until saved.height) {
-            for (x in 0 until saved.width) grid[x, y] = saved.tiles[y * saved.width + x]
+        // palette is empty only for a zero-cell zone, where the fill is never read; fall back
+        // to BLANK_TILE rather than throwing on palette.first().
+        val grid = Grid(saved.width, saved.height, saved.palette.firstOrNull() ?: BLANK_TILE)
+        var i = 0
+        for (run in saved.runs) {
+            val tile = saved.palette[run.paletteIndex]
+            repeat(run.count) {
+                grid[i % saved.width, i / saved.width] = tile
+                i++
+            }
         }
         return Zone(saved.zoneId, grid)
     }
@@ -114,7 +153,37 @@ class SaveCodec(
         return grid
     }
 
+    /**
+     * The palette-interning key for a [Tile]: its full field-value identity. [Tile] is an
+     * `open class` (not `data class` — downstream games extend it), so it has no structural
+     * `equals`/`hashCode`; this stands in for that, scoped to save/load. Colors are compared
+     * by packed RGBA8888 int (how [GdxColorSerializer] already persists them), not GDX
+     * [Color] identity.
+     */
+    private data class TileKey(
+        val name: String,
+        val glyph: Char,
+        val color: Int,
+        val backgroundColor: Int,
+        val isWalkable: Boolean,
+        val blocksLineOfSight: Boolean,
+        val description: String?,
+    ) {
+        constructor(tile: Tile) : this(
+            tile.name,
+            tile.glyph,
+            Color.rgba8888(tile.color),
+            Color.rgba8888(tile.backgroundColor),
+            tile.isWalkable,
+            tile.blocksLineOfSight,
+            tile.description,
+        )
+    }
+
     companion object {
-        const val FORMAT_VERSION = 1
+        // v2 (krogue-yox): palette + RLE terrain encoding, replacing SavedZone.tiles (one full
+        // Tile per cell). Not backward-compatible; old saves fail fast via the version check
+        // above rather than silently misreading the new SavedZone shape — acceptable for a demo.
+        const val FORMAT_VERSION = 2
     }
 }

@@ -39,13 +39,27 @@ data class SaveData(
     val schedule: SchedulerState = SchedulerState(),
 )
 
-/** A zone's terrain: dimensions plus its tiles in row-major order. */
+/**
+ * A zone's terrain, palette + RLE compressed (krogue-yox). Terrain is heavily
+ * repetitive — a 200x200 demo zone is mostly one wall tile and one floor tile — so
+ * [palette] interns each distinct [Tile] used in the zone and [runs] is a row-major
+ * run-length encoding of palette indices, instead of writing a full [Tile] (name
+ * string, two colors, booleans) per cell.
+ */
 @Serializable
 data class SavedZone(
     val zoneId: String,
     val width: Int,
     val height: Int,
-    val tiles: List<Tile>,
+    val palette: List<Tile>,
+    val runs: List<TileRun>,
+)
+
+/** [count] consecutive row-major cells holding `palette[paletteIndex]`. */
+@Serializable
+data class TileRun(
+    val paletteIndex: Int,
+    val count: Int,
 )
 
 /** A zone's fog-of-war memory: which cells the player has ever seen, in row-major order. */
