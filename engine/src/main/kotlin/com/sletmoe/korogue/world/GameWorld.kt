@@ -69,11 +69,18 @@ open class GameWorld(
         get() = zones[currentZoneId]!!
 
     /**
-     * The zones simulated each tick — the seam for ADR-0008's active-only model. Defaults
-     * to just the current zone; widen it (e.g. current + adjacent) to let entities act
-     * across transitions without a redesign (see krogue-s67). Zone-scoped systems read this.
+     * The policy deciding which zones are simulated (ADR-0021, Knob 1). Defaults to
+     * [CurrentZoneOnly] (today's behaviour); swap in [CurrentPlusAdjacent] or a custom
+     * [SimulatedZonePolicy] to widen scope (e.g. so entities keep acting across a zone
+     * transition — see krogue-s67) without a redesign.
      */
-    open fun simulatedZones(): Set<String> = setOf(currentZoneId)
+    var simulatedZonePolicy: SimulatedZonePolicy = CurrentZoneOnly
+
+    /**
+     * The zones simulated each tick — the seam for ADR-0008's active-only model, delegating
+     * to [simulatedZonePolicy]. Zone-scoped systems read this live, each tick.
+     */
+    open fun simulatedZones(): Set<String> = simulatedZonePolicy.simulatedZones(this)
 
     /**
      * Atomically moves entity [entityId] to ([x], [y]) in zone [zoneId] — sets its [ZoneMember]
