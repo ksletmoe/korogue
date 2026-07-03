@@ -35,6 +35,7 @@ import com.sletmoe.korogue.perception.TrueSight
 import com.sletmoe.korogue.perception.TrueSightSense
 import com.sletmoe.korogue.schedule.TimedEffect
 import com.sletmoe.korogue.systems.BehaviorStrategy
+import com.sletmoe.korogue.systems.CrossZoneHuntPlayerStrategy
 import com.sletmoe.korogue.systems.HuntPlayerStrategy
 import com.sletmoe.korogue.systems.WanderStrategy
 import kotlinx.serialization.KSerializer
@@ -138,6 +139,7 @@ class GameModule private constructor(
                     mutableMapOf(
                         WanderStrategy.ID to WanderStrategy(),
                         HuntPlayerStrategy.ID to HuntPlayerStrategy(),
+                        CrossZoneHuntPlayerStrategy.ID to CrossZoneHuntPlayerStrategy(),
                     ),
                 calculators =
                     mutableMapOf(
