@@ -43,7 +43,7 @@
         </button>
         <div class="navigation-controls--break ui-kit_mobile-only"></div>
         <div class="library-version" id="library-version">
-1.0.0.36-SNAPSHOT        </div>
+1.0.0.37-SNAPSHOT        </div>
         <div class="navigation-controls">
         <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
                 <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true"
@@ -212,6 +212,21 @@
               </div>
             </div>
           </div>
+<a data-name="1018328291%2FProperties%2F-56654334" anchor-label="simulatedZonePolicy" id="1018328291%2FProperties%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="simulated-zone-policy.html"><span>simulated</span><wbr></wbr><span>Zone</span><wbr></wbr><span><span>Policy</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1018328291%2FProperties%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">var </span><a href="simulated-zone-policy.html">simulatedZonePolicy</a><span class="token operator">: </span><a href="../-simulated-zone-policy/index.html">SimulatedZonePolicy</a></div><div class="brief "><p class="paragraph">The policy deciding which zones are simulated (ADR-0021, Knob 1). Defaults to <a href="../-current-zone-only/index.html">CurrentZoneOnly</a> (today's behaviour); swap in <a href="../-current-plus-adjacent/index.html">CurrentPlusAdjacent</a> or a custom <a href="../-simulated-zone-policy/index.html">SimulatedZonePolicy</a> to widen scope (e.g. so entities keep acting across a zone transition — see krogue-s67) without a redesign.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
 <a data-name="-2078960486%2FProperties%2F-56654334" anchor-label="zones" id="-2078960486%2FProperties%2F-56654334" data-filterable-set=":engine/main"></a>
           <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
             <div class="main-subrow keyValue ">
@@ -276,6 +291,21 @@
               </div>
             </div>
           </div>
+<a data-name="2476330%2FFunctions%2F-56654334" anchor-label="relocate" id="2476330%2FFunctions%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="relocate.html"><span><span>relocate</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2476330%2FFunctions%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="relocate.html"><span class="token function">relocate</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">entityId<span class="token operator">: </span><a href="../../com.sletmoe.korogue.ecs/-entity-id/index.html">EntityId</a><span class="token punctuation">, </span></span><span class="parameter ">zoneId<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">x<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">y<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Atomically moves entity <a href="relocate.html">entityId</a> to (<a href="relocate.html">x</a>, <a href="relocate.html">y</a>) in zone <a href="relocate.html">zoneId</a> — sets its <a href="../../com.sletmoe.korogue.components/-zone-member/index.html">ZoneMember</a> and <a href="../../com.sletmoe.korogue.components/-position/index.html">Position</a> together, in one place, so no caller can observe (or leave behind) a half-updated entity with a <a href="../../com.sletmoe.korogue.components/-zone-member/index.html">ZoneMember</a> pointing at one zone and a <a href="../../com.sletmoe.korogue.components/-position/index.html">Position</a> meant for another. The atomic primitive for any boundary-crossing move (ADR-0021 Mechanic B) — e.g. <a href="../../com.sletmoe.korogue.systems/-portal-system/index.html">com.sletmoe.korogue.systems.PortalSystem</a> sending an entity through a <a href="../../com.sletmoe.korogue.components/-portal/index.html">com.sletmoe.korogue.components.Portal</a>. No-op if <a href="relocate.html">entityId</a> doesn't exist (delegates to <a href="../../com.sletmoe.korogue.ecs/-world/set.html">World.set</a>, which is itself a no-op for unknown ids).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
 <a data-name="1309492987%2FFunctions%2F-56654334" anchor-label="removeZone" id="1309492987%2FFunctions%2F-56654334" data-filterable-set=":engine/main"></a>
           <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
             <div class="main-subrow keyValue ">
@@ -301,7 +331,7 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="simulated-zones.html"><span class="token function">simulatedZones</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-set/index.html">Set</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">The zones simulated each tick — the seam for ADR-0008's active-only model. Defaults to just the current zone; widen it (e.g. current + adjacent) to let entities act across transitions without a redesign (see krogue-s67). Zone-scoped systems read this.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="simulated-zones.html"><span class="token function">simulatedZones</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-set/index.html">Set</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">The zones simulated each tick — the seam for ADR-0008's active-only model, delegating to <a href="simulated-zone-policy.html">simulatedZonePolicy</a>. Zone-scoped systems read this live, each tick.</p></div></div></div>
                 </div>
               </div>
             </div>
