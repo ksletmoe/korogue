@@ -67,3 +67,28 @@ tasks.register<JavaExec>("spriteHarness") {
     systemProperty("kotile.harness.out", outFile)
     doFirst { logger.lifecycle("Rendering sprite harness scene to: $outFile") }
 }
+
+// Fixed-grid counterpart to renderHarness (krogue-3eu): draws a full-block ring
+// through the scaling/centering/hard-clip path the reflow demo can't reach, and
+// dumps a PNG. All knobs are overridable so several cases snapshot from one box:
+//
+//   ./gradlew :kotile:demo:fixedGridHarness -PoutFile=/tmp/c.png \
+//       -PwinW=850 -PwinH=430 -Pcols=40 -Prows=20 -Ppolicy=integer
+tasks.register<JavaExec>("fixedGridHarness") {
+    group = "verification"
+    description = "Renders a fixed-grid scene (scaling/centering/hard-clip) to a PNG."
+    mainClass.set("FixedGridHarnessKt")
+    classpath = sourceSets["main"].runtimeClasspath
+    if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
+        jvmArgs("-XstartOnFirstThread")
+    }
+    val outFile = (project.findProperty("outFile") as String?)
+        ?: layout.buildDirectory.file("fixed-grid-harness.png").get().asFile.absolutePath
+    systemProperty("kotile.harness.out", outFile)
+    (project.findProperty("winW") as String?)?.let { systemProperty("kotile.harness.winW", it) }
+    (project.findProperty("winH") as String?)?.let { systemProperty("kotile.harness.winH", it) }
+    (project.findProperty("cols") as String?)?.let { systemProperty("kotile.harness.cols", it) }
+    (project.findProperty("rows") as String?)?.let { systemProperty("kotile.harness.rows", it) }
+    (project.findProperty("policy") as String?)?.let { systemProperty("kotile.harness.policy", it) }
+    doFirst { logger.lifecycle("Rendering fixed-grid harness scene to: $outFile") }
+}
