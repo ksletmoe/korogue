@@ -18,9 +18,9 @@ import com.sletmoe.korogue.world.Zone
 /**
  * Resolves [MoveIntent]s into actual movement. For each entity with a [MoveIntent] +
  * [Position] + [ZoneMember], the intent is consumed and one of three things happens:
- * a step onto walkable terrain not blocked by an occupant (updates [Position]); a bump
+ * a step onto passable terrain not blocked by an occupant (updates [Position]); a bump
  * into a [Collision] blocker in the destination cell (emits an [AttackIntent] for
- * `CombatSystem`, or a solid no-op); or a no-op into a wall.
+ * `CombatSystem`, or a solid no-op); or a no-op into terrain the mover cannot enter.
  *
  * Occupancy is data-driven via [Collision] + [Locomotion] (krogue-x9q), not a hardcoded
  * component denylist: an occupant blocks a mover iff every one of the mover's locomotion
@@ -56,7 +56,11 @@ class MovementSystem(
                     if (collisionOf(blocker).bump == BumpResponse.ATTACK) {
                         world.set(entity.id, AttackIntent(blocker.id))
                     }
-                zones[zoneId]?.isWalkable(destX, destY) == true -> world.set(entity.id, Position(destX, destY))
+                zones[zoneId]?.isPassable(destX, destY, moverModes) == true ->
+                    world.set(
+                        entity.id,
+                        Position(destX, destY),
+                    )
                 // else: blocked by terrain — intent already consumed, no move.
             }
         }

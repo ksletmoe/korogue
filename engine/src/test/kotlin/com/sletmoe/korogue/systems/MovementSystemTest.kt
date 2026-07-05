@@ -20,6 +20,18 @@ import io.kotest.matchers.shouldBe
 
 private val WALL = Tile("wall", '#', Color.GRAY, Color.BLACK, isWalkable = false, blocksLineOfSight = true)
 
+// Terrain a walker cannot enter but a flyer/swimmer can: blocks only {walk} (krogue-xeb).
+private val WATER =
+    Tile(
+        "water",
+        '~',
+        Color.BLUE,
+        Color.BLACK,
+        isWalkable = false,
+        blocksLineOfSight = false,
+        blocks = setOf(MovementTags.WALK),
+    )
+
 class MovementSystemTest : FunSpec({
 
     fun worldFor(zone: Zone): World = World().addSystem(MovementSystem(mapOf(zone.zoneId to zone)))
@@ -109,5 +121,29 @@ class MovementSystemTest : FunSpec({
         val walker = walkWorld.spawn(Position(2, 2), ZoneMember("z"), MoveIntent(1, 0)).id
         walkWorld.tick()
         walkWorld.get(walker)!!.require<Position>() shouldBe Position(2, 2)
+    }
+
+    test("a flyer crosses water terrain that blocks {walk}, while a walker cannot enter it") {
+        val tiles = Grid(5, 5, BLANK_TILE)
+        tiles[3, 2] = WATER
+
+        // A flyer: water blocks {walk} but not {fly}, so the terrain is passable.
+        val flyWorld = worldFor(Zone("z", tiles))
+        val flyer =
+            flyWorld.spawn(
+                Position(2, 2),
+                ZoneMember("z"),
+                Locomotion(setOf(MovementTags.FLY)),
+                MoveIntent(1, 0),
+            ).id
+        flyWorld.tick()
+        flyWorld.get(flyer)!!.require<Position>() shouldBe Position(3, 2)
+
+        // A default walker: water blocks {walk}, so it is a terrain no-op (no attack).
+        val walkWorld = worldFor(Zone("z", tiles))
+        val walker = walkWorld.spawn(Position(2, 2), ZoneMember("z"), MoveIntent(1, 0)).id
+        walkWorld.tick()
+        walkWorld.get(walker)!!.require<Position>() shouldBe Position(2, 2)
+        walkWorld.get(walker)!!.get<AttackIntent>().shouldBeNull()
     }
 })

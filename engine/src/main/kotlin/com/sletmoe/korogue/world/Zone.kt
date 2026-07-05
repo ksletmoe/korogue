@@ -5,6 +5,7 @@ import com.sletmoe.korogue.algorithms.zonegen.SpawnRequest
 import com.sletmoe.korogue.algorithms.zonegen.ZoneFeatureGenerator
 import com.sletmoe.korogue.algorithms.zonegen.ZoneGenContext
 import com.sletmoe.korogue.algorithms.zonegen.ZoneGenerator
+import com.sletmoe.korogue.components.MovementTags
 import com.sletmoe.korogue.utilities.Grid
 import com.sletmoe.korogue.utilities.IntRect
 import com.sletmoe.korogue.utilities.initialize
@@ -44,14 +45,29 @@ open class Zone(
     val concealment: Grid<Set<String>> = Grid(tiles.width, tiles.height, emptySet<String>())
 
     /**
-     * Terrain-only walkability: whether the tile at ([x], [y]) can be stood on.
+     * Terrain-only per-mode passability: whether a mover using [moverModes] can
+     * enter the tile at ([x], [y]) — true iff it has at least one [MovementTags]
+     * mode the tile's [Tile.blocks] set does not stop (krogue-xeb, ADR-0022). The
+     * same set relation `MovementSystem` applies to entity occupants, so a flyer
+     * clears a cell that blocks only `{walk}`. Empty [moverModes] never passes.
+     *
      * Occupancy is an ECS concern — combine with [GameWorld.entityAt] (see
      * [GameWorld.isWalkable]) when a move also needs the cell to be unoccupied.
      */
+    fun isPassable(
+        x: Int,
+        y: Int,
+        moverModes: Set<String>,
+    ): Boolean {
+        val blocks = tiles[x, y].blocks
+        return moverModes.any { it !in blocks }
+    }
+
+    /** Terrain-only walkability: the walk-mode special case of [isPassable]. */
     fun isWalkable(
         x: Int,
         y: Int,
-    ): Boolean = tiles[x, y].isWalkable
+    ): Boolean = isPassable(x, y, setOf(MovementTags.WALK))
 
     open class Builder(
         private val zoneId: String,
