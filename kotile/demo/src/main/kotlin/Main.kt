@@ -29,12 +29,26 @@ class KotileDemo : ApplicationAdapter() {
         sheet = TileSheet(Gdx.files.classpath("vaarn-8x8.png"), 8, 8)
         spriteCanvas = KotileCanvas(20, 20)
         sprites = SpriteTileRenderer(spriteCanvas, sheet)
+        overlay = AsciiTileWindow.create {
+            widthInTiles = 80
+            heightInTiles = 30
+        }
 
+        drawSprites()
+        drawOverlay()
+    }
+
+    /**
+     * (Re)populates the sprite renderer. Both surfaces reflow on resize, which
+     * rebuilds their grids and drops the previous content, so the scene is
+     * redrawn from [resize] rather than only once in [create].
+     */
+    private fun drawSprites() {
         // The sheet's art occupies a 14x3 block in the top-left. Draw it as-is
         // (tint defaults to white = no color manipulation).
         for (sheetY in 0..2) {
             for (sheetX in 0..13) {
-                sprites.drawTile(2 + sheetX, 2 + sheetY, z = 0, staticTile = StaticTile(sheetX, sheetY))
+                putSprite(2 + sheetX, 2 + sheetY, StaticTile(sheetX, sheetY))
             }
         }
 
@@ -42,17 +56,27 @@ class KotileDemo : ApplicationAdapter() {
         val stripLength = 36
         repeat(stripLength) { i ->
             val hue = Color(0f, 0f, 0f, 1f).fromHsv(i * 360f / stripLength, 1f, 1f)
-            sprites.drawTile(2 + i, 7, z = 0, staticTile = StaticTile(sheetX = 0, sheetY = 2, tint = hue))
+            putSprite(2 + i, 7, StaticTile(sheetX = 0, sheetY = 2, tint = hue))
         }
         // ...and once more untinted, for comparison.
         repeat(stripLength) { i ->
-            sprites.drawTile(2 + i, 9, z = 0, staticTile = StaticTile(sheetX = 0, sheetY = 2))
+            putSprite(2 + i, 9, StaticTile(sheetX = 0, sheetY = 2))
         }
+    }
 
-        overlay = AsciiTileWindow.create {
-            widthInTiles = 80
-            heightInTiles = 30
+    /**
+     * Places a sprite only if it lands within the current (reflowed) grid.
+     * Unlike [AsciiTileWindow.drawText], the sprite path throws on an
+     * out-of-bounds cell, so shrinking the window past the showcase would
+     * otherwise crash; clip it here instead.
+     */
+    private fun putSprite(x: Int, y: Int, tile: StaticTile) {
+        if (x in 0 until sprites.windowWidth && y in 0 until sprites.windowHeight) {
+            sprites.drawTile(x, y, z = 0, staticTile = tile)
         }
+    }
+
+    private fun drawOverlay() {
         overlay.drawText(2, 0, "kotile - image sprite sheet (CC0 Vaarn 8x8) + tinting", Color.LIME, Color.CLEAR)
         overlay.drawText(2, 2, "the sheet, untinted:", LABEL, Color.CLEAR)
         overlay.drawText(2, 13, "same tile, per-tile hue tint:", LABEL, Color.CLEAR)
@@ -74,7 +98,14 @@ class KotileDemo : ApplicationAdapter() {
         }
     }
 
-    override fun resize(width: Int, height: Int) = overlay.resize(width, height)
+    override fun resize(width: Int, height: Int) {
+        // Resize BOTH surfaces (not just the overlay) and redraw, since each
+        // reflows its grid and drops content that no longer fits.
+        sprites.onResize(width, height)
+        overlay.resize(width, height)
+        drawSprites()
+        drawOverlay()
+    }
 
     override fun dispose() {
         overlay.dispose()
