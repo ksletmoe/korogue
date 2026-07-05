@@ -6,10 +6,12 @@ import com.sletmoe.korogue.algorithms.lighting.LightValueCalculator
 import com.sletmoe.korogue.algorithms.los.SymmetricShadowCaster
 import com.sletmoe.korogue.algorithms.zonegen.ZoneGenerator
 import com.sletmoe.korogue.components.Behavior
+import com.sletmoe.korogue.components.Collision
 import com.sletmoe.korogue.components.Health
 import com.sletmoe.korogue.components.Inventory
 import com.sletmoe.korogue.components.Item
 import com.sletmoe.korogue.components.LightEmitter
+import com.sletmoe.korogue.components.Locomotion
 import com.sletmoe.korogue.components.Named
 import com.sletmoe.korogue.components.Player
 import com.sletmoe.korogue.components.Portal
@@ -176,6 +178,8 @@ class GameModule private constructor(
                 .component<Behavior>()
                 .component<Portal>()
                 .component<Item>()
+                .component<Collision>()
+                .component<Locomotion>()
                 .component<Inventory>()
                 .component<Sight>()
                 .component<Darkvision>()

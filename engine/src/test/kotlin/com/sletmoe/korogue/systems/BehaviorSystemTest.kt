@@ -1,6 +1,7 @@
 package com.sletmoe.korogue.systems
 
 import com.sletmoe.korogue.components.Behavior
+import com.sletmoe.korogue.components.Collision
 import com.sletmoe.korogue.components.MoveIntent
 import com.sletmoe.korogue.components.Player
 import com.sletmoe.korogue.components.Portal
@@ -170,8 +171,8 @@ class BehaviorSystemTest : FunSpec({
             }
         gw.simulatedZonePolicy = CurrentPlusAdjacent(PortalZoneAdjacency(gw))
         // a->b portal makes b adjacent to a (so b is simulated); b->a portal is the monster's exit.
-        gw.ecs.spawn(Portal("b", 1, 1), Position(9, 9), ZoneMember("a"))
-        gw.ecs.spawn(Portal("a", 7, 7), Position(3, 1), ZoneMember("b"))
+        gw.ecs.spawn(Portal("b", 1, 1), Position(9, 9), ZoneMember("a"), Collision.PASSABLE)
+        gw.ecs.spawn(Portal("a", 7, 7), Position(3, 1), ZoneMember("b"), Collision.PASSABLE)
         gw.ecs.spawn(Player, Position(5, 5), ZoneMember("a"))
 
         val module =

@@ -10,6 +10,7 @@ import com.sletmoe.korogue.algorithms.los.OmnicientLineOfSightCalculator
 import com.sletmoe.korogue.algorithms.los.SymmetricShadowCaster
 import com.sletmoe.korogue.algorithms.zonegen.randomWalkCave
 import com.sletmoe.korogue.components.Behavior
+import com.sletmoe.korogue.components.Collision
 import com.sletmoe.korogue.components.Health
 import com.sletmoe.korogue.components.Inventory
 import com.sletmoe.korogue.components.Item
@@ -500,6 +501,8 @@ class MyGame(
             ZoneMember(zoneId),
             Renderable(glyph, Color.CYAN.toNormalizedRgb(), RenderLayer.CREATURE),
             Portal(target, startPoint.x, startPoint.y),
+            // step onto the portal, don't bump into it
+            Collision.PASSABLE,
         )
     }
 
@@ -581,6 +584,8 @@ class MyGame(
                 ZoneMember(zone.zoneId),
                 Renderable(glyph, Color.GOLD.toNormalizedRgb(), RenderLayer.CREATURE),
                 Item(name),
+                // step onto the item to pick it up
+                Collision.PASSABLE,
             )
         }
     }
