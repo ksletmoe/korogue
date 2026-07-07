@@ -164,4 +164,42 @@ class MapPanelTest : FunSpec({
         fog[4, 4] shouldBe true // now remembered
         fog[0, 0] shouldBe false // never perceived
     }
+
+    test("the default remembered look is unchanged (dim + blue-boost on black)") {
+        val surface = RecordingSurface(6, 6)
+        val fog = Grid(6, 6, false).apply { this[1, 1] = true }
+
+        panel(world().first, fog).draw(surface) // default rememberedRenderer
+
+        val expected = MapPanel.dimmedRememberedRenderer()(floor) // the built-in look, applied to floor
+        val drawn = surface.top(1, 1).shouldNotBeNull()
+        drawn.fg shouldBe expected.fg
+        drawn.bg shouldBe expected.bg
+    }
+
+    test("a custom rememberedRenderer controls remembered-cell glyph and colors") {
+        val surface = RecordingSurface(6, 6)
+        val fog = Grid(6, 6, false).apply { this[1, 1] = true }
+        val map =
+            MapPanel(IntRect(0, 0, 6, 6), world().first, { fog }, rememberedRenderer = {
+                MapPanel.RenderedCell('?', Color.RED, Color.BLUE)
+            })
+
+        map.draw(surface)
+
+        val drawn = surface.top(1, 1).shouldNotBeNull()
+        drawn.glyph shouldBe '?'
+        drawn.fg shouldBe Color.RED
+        drawn.bg shouldBe Color.BLUE
+    }
+
+    test("a rememberedRenderer returning null leaves the remembered cell undrawn") {
+        val surface = RecordingSurface(6, 6)
+        val fog = Grid(6, 6, false).apply { this[1, 1] = true }
+        val map = MapPanel(IntRect(0, 0, 6, 6), world().first, { fog }, rememberedRenderer = { null })
+
+        map.draw(surface)
+
+        surface.top(1, 1).shouldBeNull() // suppressed -> left black, like a never-seen cell
+    }
 })

@@ -11,6 +11,7 @@ import com.sletmoe.korogue.perception.Perceived
 import com.sletmoe.korogue.utilities.Grid
 import com.sletmoe.korogue.utilities.IntRect
 import com.sletmoe.korogue.world.GameWorld
+import com.sletmoe.korogue.world.Tile
 import com.sletmoe.korogue.world.Zone
 import kotlin.math.max
 import kotlin.math.min
@@ -49,6 +50,11 @@ class MapPanel(
     // Whose eyes to draw (ADR-0015): the observer whose `Perceived` is rendered and on whom the
     // camera centres. Defaults to the player; point it at a companion or charmed monster to spectate.
     private val observer: (GameWorld) -> Entity? = { it.ecs.entitiesWith<Player, Position>().firstOrNull() },
+    // How a remembered (previously-seen, not-currently-perceived) terrain cell is drawn. Defaults to
+    // the engine's dim-to-dark-blue look; a game can dim differently via [dimmedRememberedRenderer]
+    // or recolour remembered terrain arbitrarily (different glyph/hue), or return null to leave a
+    // remembered tile undrawn. Currently-perceived (lit) cells are unaffected by this seam.
+    private val rememberedRenderer: (Tile) -> RenderedCell? = DEFAULT_REMEMBERED_RENDERER,
 ) : Widget {
     override fun draw(surface: TileSurface) {
         val zone = gameWorld.currentZone
@@ -126,7 +132,11 @@ class MapPanel(
         }
     }
 
-    private class Rendered(
+    /**
+     * A drawn terrain cell: the glyph and colors written to the surface. Public because it is the
+     * return type of the [rememberedRenderer] seam, so a game can build its own remembered-cell look.
+     */
+    class RenderedCell(
         val glyph: Char,
         val fg: Color,
         val bg: Color,
@@ -139,30 +149,24 @@ class MapPanel(
         y: Int,
         perceived: Perceived,
         fog: Grid<Boolean>,
-    ): Rendered? {
+    ): RenderedCell? {
         val tile = zone.tiles[x, y]
         return when {
             perceived.sees(x, y) -> {
                 val lightVal = zone.lightMap[x, y]
                 if (lightVal != null) {
                     val tint = lightVal.normalizedColor * lightVal.intensity
-                    Rendered(
+                    RenderedCell(
                         tile.glyph,
                         (tile.color.toNormalizedRgb() * tint).toColor(),
                         (tile.backgroundColor.toNormalizedRgb() * tint).toColor(),
                     )
                 } else {
-                    Rendered(tile.glyph, tile.color, tile.backgroundColor)
+                    RenderedCell(tile.glyph, tile.color, tile.backgroundColor)
                 }
             }
-            fog[x, y] -> {
-                // Previously seen but not currently perceived: dim to a dark-blue tint.
-                val dimFg =
-                    (tile.color.toNormalizedRgb() * PREVIOUSLY_VIEWED_DIM_FACTOR)
-                        .toColor()
-                        .also { it.b = (it.b + PREVIOUSLY_VIEWED_BLUE_BOOST).coerceAtMost(1f) }
-                Rendered(tile.glyph, dimFg, Color.BLACK)
-            }
+            // Previously seen but not currently perceived: hand off to the pluggable remembered look.
+            fog[x, y] -> rememberedRenderer(tile)
             else -> null
         }
     }
@@ -183,7 +187,29 @@ class MapPanel(
 
     companion object {
         private const val TERRAIN_Z = 0
-        private const val PREVIOUSLY_VIEWED_DIM_FACTOR = 0.25
+        private const val PREVIOUSLY_VIEWED_DIM_FACTOR = 0.35
         private const val PREVIOUSLY_VIEWED_BLUE_BOOST = 0.10f
+
+        /**
+         * A [rememberedRenderer] that dims a remembered tile's foreground to a dark tint on
+         * [background], the engine's default look. [dimFactor] scales the lit foreground (lower =
+         * darker) and [blueBoost] adds a cool cast; a game that only wants remembered terrain
+         * brighter/warmer can pass its own values without writing the tint math itself.
+         */
+        fun dimmedRememberedRenderer(
+            dimFactor: Double = PREVIOUSLY_VIEWED_DIM_FACTOR,
+            blueBoost: Float = PREVIOUSLY_VIEWED_BLUE_BOOST,
+            background: Color = Color.BLACK,
+        ): (Tile) -> RenderedCell =
+            { tile ->
+                val fg =
+                    (tile.color.toNormalizedRgb() * dimFactor)
+                        .toColor()
+                        .also { it.b = (it.b + blueBoost).coerceAtMost(1f) }
+                RenderedCell(tile.glyph, fg, background)
+            }
+
+        /** The engine default remembered look: [dimmedRememberedRenderer] with the built-in values. */
+        val DEFAULT_REMEMBERED_RENDERER: (Tile) -> RenderedCell? = dimmedRememberedRenderer()
     }
 }
