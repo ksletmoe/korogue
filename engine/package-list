@@ -599,8 +599,15 @@ $dokka.location:com.sletmoe.korogue.ui/LogPanel/bounds/#/PointingToDeclaration/
 $dokka.location:com.sletmoe.korogue.ui/LogPanel/draw/#com.sletmoe.korogue.ui.TileSurface/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-log-panel/draw.html
 $dokka.location:com.sletmoe.korogue.ui/LogPanel/handleKey/#kotlin.Int/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-log-panel/handle-key.html
 $dokka.location:com.sletmoe.korogue.ui/MapPanel.Companion///PointingToDeclaration/engine/com.sletmoe.korogue.ui/-map-panel/-companion/index.html
+$dokka.location:com.sletmoe.korogue.ui/MapPanel.Companion/DEFAULT_REMEMBERED_RENDERER/#/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-map-panel/-companion/-d-e-f-a-u-l-t_-r-e-m-e-m-b-e-r-e-d_-r-e-n-d-e-r-e-r.html
+$dokka.location:com.sletmoe.korogue.ui/MapPanel.Companion/dimmedRememberedRenderer/#kotlin.Double#kotlin.Float#com.badlogic.gdx.graphics.Color/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-map-panel/-companion/dimmed-remembered-renderer.html
+$dokka.location:com.sletmoe.korogue.ui/MapPanel.RenderedCell///PointingToDeclaration/engine/com.sletmoe.korogue.ui/-map-panel/-rendered-cell/index.html
+$dokka.location:com.sletmoe.korogue.ui/MapPanel.RenderedCell/RenderedCell/#kotlin.Char#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-map-panel/-rendered-cell/-rendered-cell.html
+$dokka.location:com.sletmoe.korogue.ui/MapPanel.RenderedCell/bg/#/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-map-panel/-rendered-cell/bg.html
+$dokka.location:com.sletmoe.korogue.ui/MapPanel.RenderedCell/fg/#/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-map-panel/-rendered-cell/fg.html
+$dokka.location:com.sletmoe.korogue.ui/MapPanel.RenderedCell/glyph/#/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-map-panel/-rendered-cell/glyph.html
 $dokka.location:com.sletmoe.korogue.ui/MapPanel///PointingToDeclaration/engine/com.sletmoe.korogue.ui/-map-panel/index.html
-$dokka.location:com.sletmoe.korogue.ui/MapPanel/MapPanel/#com.sletmoe.korogue.utilities.IntRect#com.sletmoe.korogue.world.GameWorld#kotlin.Function1[com.sletmoe.korogue.world.Zone,com.sletmoe.korogue.utilities.Grid[kotlin.Boolean]]#kotlin.Function1[com.sletmoe.korogue.world.GameWorld,com.sletmoe.korogue.ecs.Entity?]/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-map-panel/-map-panel.html
+$dokka.location:com.sletmoe.korogue.ui/MapPanel/MapPanel/#com.sletmoe.korogue.utilities.IntRect#com.sletmoe.korogue.world.GameWorld#kotlin.Function1[com.sletmoe.korogue.world.Zone,com.sletmoe.korogue.utilities.Grid[kotlin.Boolean]]#kotlin.Function1[com.sletmoe.korogue.world.GameWorld,com.sletmoe.korogue.ecs.Entity?]#kotlin.Function1[com.sletmoe.korogue.world.Tile,com.sletmoe.korogue.ui.MapPanel.RenderedCell?]/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-map-panel/-map-panel.html
 $dokka.location:com.sletmoe.korogue.ui/MapPanel/bounds/#/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-map-panel/bounds.html
 $dokka.location:com.sletmoe.korogue.ui/MapPanel/draw/#com.sletmoe.korogue.ui.TileSurface/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-map-panel/draw.html
 $dokka.location:com.sletmoe.korogue.ui/Menu///PointingToDeclaration/engine/com.sletmoe.korogue.ui/-menu/index.html
