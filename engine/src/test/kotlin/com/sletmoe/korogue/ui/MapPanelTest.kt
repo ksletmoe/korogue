@@ -202,4 +202,71 @@ class MapPanelTest : FunSpec({
 
         surface.top(1, 1).shouldBeNull() // suppressed -> left black, like a never-seen cell
     }
+
+    test("a custom occupantRenderer remaps a perceived occupant's glyph and foreground") {
+        val surface = RecordingSurface(6, 6)
+        val cells = setOf(cell(4, 4))
+        val (gw, player) = world(perceives = cells, lit = cells)
+        val monster = gw.spawnMonster(4, 4)
+        gw.ecs.set(player, Perceived("z", cells, setOf(monster)))
+        val map =
+            MapPanel(IntRect(0, 0, 6, 6), gw, { Grid(6, 6, false) }, occupantRenderer = {
+                MapPanel.RenderedGlyph('X', Color.GREEN)
+            })
+
+        map.draw(surface)
+
+        val drawn = surface.top(4, 4).shouldNotBeNull()
+        drawn.glyph shouldBe 'X'
+        drawn.fg shouldBe Color.GREEN
+        drawn.bg shouldBe Color.BLACK // background stays engine-computed (the seam carries no bg)
+    }
+
+    test("the occupantRenderer is told the entity, its renderable, the tile, and that it is perceived") {
+        val surface = RecordingSurface(6, 6)
+        val cells = setOf(cell(4, 4))
+        val (gw, player) = world(perceives = cells, lit = cells)
+        val monster = gw.spawnMonster(4, 4)
+        gw.ecs.set(player, Perceived("z", cells, setOf(monster)))
+        var seen: MapPanel.OccupantRender? = null
+        val map =
+            MapPanel(IntRect(0, 0, 6, 6), gw, { Grid(6, 6, false) }, occupantRenderer = { ctx ->
+                if (ctx.entity.id == monster) seen = ctx
+                MapPanel.RenderedGlyph(ctx.renderable.glyph, ctx.renderable.color.toColor())
+            })
+
+        map.draw(surface)
+
+        val ctx = seen.shouldNotBeNull()
+        ctx.renderable.glyph shouldBe 'm'
+        ctx.tile shouldBe floor
+        ctx.perceived shouldBe true
+    }
+
+    test("an occupantRenderer returning null suppresses the occupant, leaving terrain showing") {
+        val surface = RecordingSurface(6, 6)
+        val cells = setOf(cell(4, 4))
+        val (gw, player) = world(perceives = cells, lit = cells)
+        val monster = gw.spawnMonster(4, 4)
+        gw.ecs.set(player, Perceived("z", cells, setOf(monster)))
+        val map = MapPanel(IntRect(0, 0, 6, 6), gw, { Grid(6, 6, false) }, occupantRenderer = { null })
+
+        map.draw(surface)
+
+        surface.top(4, 4).shouldNotBeNull().glyph shouldBe '.' // occupant suppressed -> perceived terrain shows
+    }
+
+    test("the default occupant look draws the occupant's own renderable unchanged") {
+        val surface = RecordingSurface(6, 6)
+        val cells = setOf(cell(4, 4))
+        val (gw, player) = world(perceives = cells, lit = cells)
+        val monster = gw.spawnMonster(4, 4)
+        gw.ecs.set(player, Perceived("z", cells, setOf(monster)))
+
+        panel(gw).draw(surface) // default occupantRenderer
+
+        val drawn = surface.top(4, 4).shouldNotBeNull()
+        drawn.glyph shouldBe 'm'
+        drawn.fg shouldBe Color.RED // the monster's Renderable color
+    }
 })

@@ -13,8 +13,6 @@ import com.sletmoe.korogue.utilities.IntRect
 import com.sletmoe.korogue.world.GameWorld
 import com.sletmoe.korogue.world.Tile
 import com.sletmoe.korogue.world.Zone
-import kotlin.math.max
-import kotlin.math.min
 
 /**
  * The map as a [Widget] (ADR-0011): draws [GameWorld]'s current zone — terrain (with lighting
@@ -55,6 +53,11 @@ class MapPanel(
     // or recolour remembered terrain arbitrarily (different glyph/hue), or return null to leave a
     // remembered tile undrawn. Currently-perceived (lit) cells are unaffected by this seam.
     private val rememberedRenderer: (Tile) -> RenderedCell? = DEFAULT_REMEMBERED_RENDERER,
+    // How a currently-perceived occupant is drawn: remap its glyph/foreground at render time, or
+    // return null to suppress it. Defaults to drawing the occupant's own [Renderable] unchanged. The
+    // background stays engine-computed (see [backgroundAt]) so a remapped occupant can't desync from
+    // the terrain tint beneath it. (krogue-7tx will extend this to remembered/unperceived occupants.)
+    private val occupantRenderer: (OccupantRender) -> RenderedGlyph? = DEFAULT_OCCUPANT_RENDERER,
 ) : Widget {
     override fun draw(surface: TileSurface) {
         val zone = gameWorld.currentZone
@@ -65,13 +68,12 @@ class MapPanel(
         val perceived = observer.get<Perceived>()?.takeIf { it.zoneId == zone.zoneId } ?: Perceived()
         val fog = fogFor(zone)
 
-        val originX = max(0, min(focus.x - surface.width / 2, zone.width - surface.width))
-        val originY = max(0, min(focus.y - surface.height / 2, zone.height - surface.height))
+        val camera = MapCamera.centeredOn(focus.x, focus.y, surface.width, surface.height, zone.width, zone.height)
 
         accumulateFog(perceived, fog)
 
-        drawTerrain(surface, zone, fog, perceived, originX, originY)
-        drawOccupants(surface, zone, observer, perceived, originX, originY)
+        drawTerrain(surface, zone, fog, perceived, camera)
+        drawOccupants(surface, zone, observer, perceived, camera)
     }
 
     /** Mark every currently-perceived cell as remembered, so it stays drawn (dimmed) once out of view. */
@@ -89,14 +91,13 @@ class MapPanel(
         zone: Zone,
         fog: Grid<Boolean>,
         perceived: Perceived,
-        originX: Int,
-        originY: Int,
+        camera: MapCamera,
     ) {
         for (screenY in 0 until surface.height) {
-            val zy = originY + screenY
+            val zy = camera.zoneY(screenY)
             if (zy < 0 || zy >= zone.height) continue
             for (screenX in 0 until surface.width) {
-                val zx = originX + screenX
+                val zx = camera.zoneX(screenX)
                 if (zx < 0 || zx >= zone.width) continue
                 val cell = terrainCell(zone, zx, zy, perceived, fog) ?: continue // hidden -> leave black
                 surface.put(screenX, screenY, TERRAIN_Z, cell.glyph, cell.fg, cell.bg)
@@ -109,24 +110,27 @@ class MapPanel(
         zone: Zone,
         observer: Entity,
         perceived: Perceived,
-        originX: Int,
-        originY: Int,
+        camera: MapCamera,
     ) {
         for (entity in gameWorld.ecs.entitiesWith<Position, Renderable, ZoneMember>()) {
             if (entity.require<ZoneMember>().zoneId != zone.zoneId) continue
             // The observer is the camera target and always drawn; everyone else only when perceived.
             if (entity.id != observer.id && !perceived.sees(entity.id)) continue
             val pos = entity.require<Position>()
-            val screenX = pos.x - originX
-            val screenY = pos.y - originY
-            if (screenX < 0 || screenX >= surface.width || screenY < 0 || screenY >= surface.height) continue
+            val screenX = camera.screenX(pos.x)
+            val screenY = camera.screenY(pos.y)
+            if (!camera.containsScreen(screenX, screenY)) continue
             val renderable = entity.require<Renderable>()
+            // Hand the occupant's look to the game seam; null -> don't draw. Background stays
+            // engine-computed so a remapped glyph keeps the terrain tint beneath it.
+            val context = OccupantRender(entity, renderable, zone.tiles[pos.x, pos.y], perceived = true)
+            val rendered = occupantRenderer(context) ?: continue
             surface.put(
                 screenX,
                 screenY,
                 renderable.layer.zIndex,
-                renderable.glyph,
-                renderable.color.toColor(),
+                rendered.glyph,
+                rendered.fg,
                 backgroundAt(zone, pos.x, pos.y, perceived),
             )
         }
@@ -140,6 +144,28 @@ class MapPanel(
         val glyph: Char,
         val fg: Color,
         val bg: Color,
+    )
+
+    /**
+     * How an occupant is drawn: the [glyph] and foreground [fg] written to the surface. Unlike
+     * [RenderedCell] it carries no background — the engine computes an occupant's background from the
+     * terrain beneath it ([backgroundAt]), so the [occupantRenderer] seam can only remap the glyph/fg.
+     */
+    class RenderedGlyph(
+        val glyph: Char,
+        val fg: Color,
+    )
+
+    /**
+     * What the [occupantRenderer] seam is told about an occupant it may draw: the [entity], its
+     * [renderable], the [tile] beneath it, and whether the observer currently [perceived] it (always
+     * true today; krogue-7tx will also invoke the seam for remembered/unperceived occupants).
+     */
+    class OccupantRender(
+        val entity: Entity,
+        val renderable: Renderable,
+        val tile: Tile,
+        val perceived: Boolean,
     )
 
     /** The terrain cell at ([x], [y]), with lighting/dimming applied, or null if currently hidden. */
@@ -211,5 +237,9 @@ class MapPanel(
 
         /** The engine default remembered look: [dimmedRememberedRenderer] with the built-in values. */
         val DEFAULT_REMEMBERED_RENDERER: (Tile) -> RenderedCell? = dimmedRememberedRenderer()
+
+        /** The engine default occupant look: draw the occupant's own [Renderable] glyph/color unchanged. */
+        val DEFAULT_OCCUPANT_RENDERER: (OccupantRender) -> RenderedGlyph? =
+            { RenderedGlyph(it.renderable.glyph, it.renderable.color.toColor()) }
     }
 }
