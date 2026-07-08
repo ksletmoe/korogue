@@ -50,3 +50,6 @@ bin/
 
 # Demo save files (MyGame F5/F9)
 krogue-save.cbor
+
+# Beads / Dolt files (added by bd init)
+*.db
