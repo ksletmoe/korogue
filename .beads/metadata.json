@@ -2,6 +2,5 @@
   "database": "dolt",
   "backend": "dolt",
   "dolt_mode": "embedded",
-  "dolt_database": "krogue",
-  "project_id": "e41176c4-7bbc-4eb9-b887-91176f7c7075"
+  "dolt_database": "krogue"
 }
