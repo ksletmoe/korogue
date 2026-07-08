@@ -199,6 +199,16 @@ then given a tested ECS foundation:
   `:demo:renderHarness` / `:demo:spriteHarness` PNG-dump tasks diagnose on macOS, and
   `NpotTileSheetTest` now guards the regression on CI (asserts the uploaded texture is
   power-of-two and that slicing is unchanged). Done — `krogue-kotile-npot-citest`.
+- **Mipmapped minification (krogue-4ni).** `TileSheet` now uploads with a mipmap
+  chain and a trilinear (`MipMapLinearLinear`) *min*-filter by default, so drawing
+  a tile below its native size (fixed-grid `FitScale` < 1x, or a big sprite sheet
+  in a small window) averages source pixels instead of dropping them — the
+  downscale shimmer is gone. The *mag*-filter stays `Nearest`, so 1x and every
+  upscale are pixel-crisp exactly as before. Opt out per-sheet/font with
+  `useMipMaps = false`. Safe because the sheet is already POT-padded (the macOS
+  NPOT fix). The 1×1 ascii background texture is always magnified, so it is left
+  on the default filter. Verified on Linux by eye via `:kotile:demo:fixedGridHarness`
+  (downscale before/after) and guarded by `TileSheetFilterTest` (GL-gated).
 - Deferred: bundle a 12×12 CP437 font asset (needs a license/provenance decision);
   Dokka V1→V2.
 

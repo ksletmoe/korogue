@@ -10,9 +10,31 @@ import com.badlogic.gdx.utils.Disposable
 import java.nio.ByteBuffer
 
 /**
- * Slices an image into a grid of equally sized tiles, uploaded to the GPU with
- * nearest-neighbour filtering so pixel art stays crisp when scaled. Owns the
- * backing texture and must be [dispose]d.
+ * Slices an image into a grid of equally sized tiles, uploaded to the GPU.
+ *
+ * ## Filtering
+ *
+ * The **magnification** filter is always nearest-neighbour, so pixel art stays
+ * crisp when the on-screen tile is drawn at or above its native size (1x and
+ * every integer/fractional upscale are unchanged).
+ *
+ * The **minification** filter depends on [useMipMaps]. When `true` (the
+ * default) a full mipmap chain is generated and the texture is sampled with a
+ * trilinear (mip + linear) min-filter, so drawing a tile *smaller* than its
+ * native size — a big sheet in a small window, or a `FitScale`/reflow factor
+ * below 1x — averages the source pixels instead of dropping them, removing the
+ * aliasing shimmer nearest-neighbour minification produces. When `false` the
+ * min-filter is nearest-neighbour (the original behaviour) and no mipmaps are
+ * allocated. Mipmapping only affects the downscale direction; upscaling is
+ * governed by the nearest mag-filter either way.
+ *
+ * Mipmaps are safe here because the sheet is uploaded as a power-of-two texture
+ * (see below) with `ClampToEdge` wrapping; GL requires POT for a complete mip
+ * chain. Adjacent glyphs/tiles can bleed into one another at very coarse mip
+ * levels (extreme downscales) if the tile pitch does not divide evenly; keep
+ * [spacing] non-zero for sheets that will be shrunk aggressively.
+ *
+ * Owns the backing texture and must be [dispose]d.
  *
  * @param file the image to load (e.g. `Gdx.files.classpath("sheet.png")`)
  * @param keyColor if non-null, every pixel of exactly this color is made fully
@@ -20,6 +42,9 @@ import java.nio.ByteBuffer
  *   magenta or black) can be alpha-blended. Pass `null` to keep the image as-is.
  * @param margin empty border, in pixels, around the whole sheet (Tiled-style)
  * @param spacing gap, in pixels, between adjacent tiles (Tiled-style)
+ * @param useMipMaps generate a mipmap chain and use a trilinear min-filter for
+ *   clean downscaling. Defaults to `true`. Pass `false` to keep the legacy
+ *   nearest-neighbour minification and skip the ~33% mipmap VRAM cost.
  * @property tileWidthPx width of a single tile, in pixels
  * @property tileHeightPx height of a single tile, in pixels
  */
@@ -30,6 +55,7 @@ class TileSheet(
     keyColor: Color? = null,
     private val margin: Int = 0,
     private val spacing: Int = 0,
+    useMipMaps: Boolean = true,
 ) : Disposable {
     private val texture: Texture
 
@@ -70,8 +96,11 @@ class TileSheet(
                 }
             }
 
-        texture = Texture(upload)
-        texture.setFilter(TextureFilter.Nearest, TextureFilter.Nearest)
+        texture = Texture(upload, useMipMaps)
+        // Mag stays nearest (crisp upscaling / 1x). Min uses the mip chain when
+        // requested so downscaling averages instead of dropping pixels.
+        val minFilter = if (useMipMaps) TextureFilter.MipMapLinearLinear else TextureFilter.Nearest
+        texture.setFilter(minFilter, TextureFilter.Nearest)
         texture.setWrap(Texture.TextureWrap.ClampToEdge, Texture.TextureWrap.ClampToEdge)
 
         if (upload !== source) upload.dispose()

@@ -54,14 +54,19 @@ import com.sletmoe.kotile.tiles.TileSheet
  * @param keyColor a solid color in the sheet that will be made fully transparent
  *   so glyphs composite cleanly over a cell's background color. Defaults to
  *   [Color.BLACK]. Pass `null` if the sheet already carries an alpha channel.
+ * @param useMipMaps generate mipmaps and use a trilinear min-filter so glyphs
+ *   stay clean when the font is drawn below its native size (see [TileSheet]).
+ *   Defaults to `true`; magnification is nearest-neighbour regardless, so
+ *   upscaling stays crisp.
  */
 class Font(
     fontFileName: String,
     val charWidthPx: Int,
     val charHeightPx: Int,
     keyColor: Color? = Color.BLACK,
+    useMipMaps: Boolean = true,
 ) : Disposable {
-    private val tileSheet = TileSheet(Gdx.files.classpath(fontFileName), charWidthPx, charHeightPx, keyColor)
+    private val tileSheet = TileSheet(Gdx.files.classpath(fontFileName), charWidthPx, charHeightPx, keyColor, useMipMaps = useMipMaps)
 
     private val glyphs: List<TextureRegion> = (0 until GLYPH_COUNT).map { index ->
         tileSheet.region(index % COLUMNS, index / COLUMNS)

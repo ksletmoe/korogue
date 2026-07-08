@@ -141,6 +141,9 @@ class AsciiTileWindow private constructor(
     private val backgroundRegion: TextureRegion
 
     init {
+        // A 1x1 white texture, tinted per cell and stretched to the tile size —
+        // so it is always magnified and never minified. It therefore needs no
+        // mipmaps or min-filter tuning (krogue-4ni); the default filter is fine.
         val pixmap = Pixmap(1, 1, Pixmap.Format.RGBA8888)
         pixmap.setColor(Color.WHITE)
         pixmap.fill()
