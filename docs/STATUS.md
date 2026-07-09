@@ -217,6 +217,19 @@ then given a tested ECS foundation:
   NPOT fix). The 1×1 ascii background texture is always magnified, so it is left
   on the default filter. Verified on Linux by eye via `:kotile:demo:fixedGridHarness`
   (downscale before/after) and guarded by `TileSheetFilterTest` (GL-gated).
+- **Sharp-bilinear fractional filtering (krogue-m2x).** At a *non-integer* fixed-grid
+  scale (`FitScale`), nearest-neighbour makes glyph strokes shimmer/change width.
+  `KotileCanvas` now detects a fractional scale and switches its batch to a
+  sharp-bilinear shader (`SharpBilinear`) with `Linear` sampling for that frame,
+  restoring `Nearest` after — texel interiors stay crisp, only a ~1px edge band
+  blends. Because every `drawTile` (glyph **and** sprite tile) flows through the one
+  batch, this covers **both** layers, unlike the glyph-only alternatives
+  (krogue-19k SDF, krogue-yfs multi-size). Integer/reflow scales are untouched
+  (default shader + nearest, pixel-perfect). The heavier FBO supersample
+  (krogue-1zo) stays a separate, deferred option. Guarded by GL-gated pixel tests
+  in `RenderingIntegrationTest` (sprite blend ≈0.50 fractional vs 0.0 integer; glyph
+  smoke); eyeball via `:kotile:demo:fixedGridHarness -Ppolicy=fit` at a fractional
+  window size.
 - Deferred: bundle a 12×12 CP437 font asset (needs a license/provenance decision);
   Dokka V1→V2.
 
