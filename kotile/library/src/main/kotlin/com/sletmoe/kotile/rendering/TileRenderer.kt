@@ -20,9 +20,13 @@ import com.sletmoe.kotile.utilities.Vector3Int
  *   can return the current animation frame.
  *
  * Tiles are mutated with [drawTile]/[clearTile] and drawn by [render], which
- * redraws the whole grid (top-most tile per cell) every frame. Subclasses
- * implement [regionFor] to map a [StaticTile] to the texture region
- * representing it; [Tile] instances resolve their own regions.
+ * redraws the whole grid every frame. Cells are **composited bottom-up**: every
+ * populated z-layer is drawn from the lowest z to the highest, so a foreground
+ * tile placed on a higher layer is alpha-blended over the terrain beneath it and
+ * its transparent pixels reveal the lower layers (a background terrain tile plus
+ * a foreground entity sprite in the same cell). Subclasses implement [regionFor]
+ * to map a [StaticTile] to the texture region representing it; [Tile] instances
+ * resolve their own regions.
  *
  * Call [onResize] from the application's resize callback so the internal
  * tilemap is rebuilt to match the new canvas dimensions. Tiles outside the new
@@ -91,8 +95,8 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) {
     fun clearTile(x: Int, y: Int, z: Int) = tilemap.removeCell(x, y, z)
 
     /**
-     * Draws the top-most tile of every cell of the internal tilemap to the
-     * canvas for this frame.
+     * Composites every populated layer of the internal tilemap (bottom-up) to
+     * the canvas for this frame.
      *
      * @param elapsedMs monotonically increasing wall-clock time in milliseconds
      *   used to determine the current frame of any [Tile] (animated) entries.
@@ -137,15 +141,21 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) {
         viewport: TileViewport,
         elapsedMs: Long,
     ) {
-        for (screenY in 0 until windowHeight) {
-            val logicalY = viewport.originY + screenY
-            if (logicalY < 0 || logicalY >= source.height) continue
-            for (screenX in 0 until windowWidth) {
-                val logicalX = viewport.originX + screenX
-                if (logicalX < 0 || logicalX >= source.width) continue
-                when (val entry = source.topCellAt(logicalX, logicalY) ?: continue) {
-                    is StaticTile -> canvas.drawTile(screenX, screenY, regionFor(entry), entry.tint)
-                    is Tile -> canvas.drawTile(screenX, screenY, entry.regionFor(elapsedMs), entry.tint)
+        // Composite bottom-up: draw each populated layer from the lowest z to
+        // the highest so a foreground tile is alpha-blended over the layers
+        // beneath it (its transparent pixels reveal the terrain below).
+        for (layer in source.layersBottomUp) {
+            for (screenY in 0 until windowHeight) {
+                val logicalY = viewport.originY + screenY
+                if (logicalY < 0 || logicalY >= source.height) continue
+                for (screenX in 0 until windowWidth) {
+                    val logicalX = viewport.originX + screenX
+                    if (logicalX < 0 || logicalX >= source.width) continue
+                    when (val entry = layer[logicalX, logicalY]) {
+                        is StaticTile -> canvas.drawTile(screenX, screenY, regionFor(entry), entry.tint)
+                        is Tile -> canvas.drawTile(screenX, screenY, entry.regionFor(elapsedMs), entry.tint)
+                        null -> {}
+                    }
                 }
             }
         }

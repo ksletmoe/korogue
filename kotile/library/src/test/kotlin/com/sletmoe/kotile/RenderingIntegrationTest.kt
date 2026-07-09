@@ -132,6 +132,25 @@ class RenderingIntegrationTest : FunSpec({
         pixels.dispose()
     }
 
+    test("sprite layers composite bottom-up: a transparent foreground reveals the background").config(enabled = HeadlessGl.available) {
+        // Background terrain (blue, z=0) under a fully transparent foreground
+        // sprite (z=1). Bottom-up compositing draws the background beneath the
+        // foreground, so the blue shows through; the old top-cell-only path
+        // would have drawn only the (invisible) foreground, leaving the black
+        // clear color.
+        val avg = renderLayered(background = Color.BLUE, foreground = Color(1f, 0f, 0f, 0f))
+        avg.b.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        avg.r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+    }
+
+    test("sprite layers composite bottom-up: an opaque foreground occludes the background").config(enabled = HeadlessGl.available) {
+        // An opaque foreground (red, z=1) fully covers the background (blue,
+        // z=0): compositing must not let occluded terrain bleed through.
+        val avg = renderLayered(background = Color.BLUE, foreground = Color.RED)
+        avg.r.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        avg.b.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+    }
+
     test("AsciiTileWindow.drawText renders glyphs and clips to the window").config(enabled = HeadlessGl.available) {
         val pixels = HeadlessGl.render(80, 40, Color.BLACK) {
             val window = AsciiTileWindow.create {
@@ -169,6 +188,42 @@ private fun renderSpriteTile(tileColor: Color, tint: Color): Color {
         for (y in 0 until 8) {
             for (x in 0 until 8) {
                 renderer.drawTile(x, y, z = 0, staticTile = StaticTile(sheetX = 0, sheetY = 0, tint = tint))
+            }
+        }
+        renderer.render()
+        canvas.dispose()
+        sheet.dispose()
+    }
+    val avg = pixels.averageColor(0, 0, 64, 64)
+    pixels.dispose()
+    return avg
+}
+
+/**
+ * Renders a [background] tile on z=0 with a [foreground] tile on z=1 covering
+ * the whole grid through a single [SpriteTileRenderer], and returns the average
+ * resulting color. The two tiles are sliced from a synthetic 8x16 two-cell
+ * sheet: cell (0,0) is [background], cell (0,1) is [foreground].
+ */
+private fun renderLayered(background: Color, foreground: Color): Color {
+    val pixels = HeadlessGl.render(64, 64, Color.BLACK) {
+        val sheetPixmap = Pixmap(8, 16, Pixmap.Format.RGBA8888)
+        sheetPixmap.blending = Pixmap.Blending.None
+        sheetPixmap.setColor(background)
+        sheetPixmap.fillRectangle(0, 0, 8, 8) // tile (0,0): background terrain
+        sheetPixmap.setColor(foreground)
+        sheetPixmap.fillRectangle(0, 8, 8, 8) // tile (0,1): foreground entity
+        val file = File.createTempFile("kotile-layered", ".png").apply { deleteOnExit() }
+        PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), sheetPixmap)
+        sheetPixmap.dispose()
+
+        val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
+        val canvas = KotileCanvas(8, 8)
+        val renderer = SpriteTileRenderer(canvas, sheet)
+        for (y in 0 until 8) {
+            for (x in 0 until 8) {
+                renderer.drawTile(x, y, z = 0, staticTile = StaticTile(sheetX = 0, sheetY = 0))
+                renderer.drawTile(x, y, z = 1, staticTile = StaticTile(sheetX = 0, sheetY = 1))
             }
         }
         renderer.render()

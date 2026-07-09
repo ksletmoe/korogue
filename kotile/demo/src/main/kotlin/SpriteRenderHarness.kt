@@ -13,6 +13,7 @@ import com.sletmoe.kotile.tiles.AnimationFrame
 import com.sletmoe.kotile.tiles.PlaybackMode
 import com.sletmoe.kotile.tiles.StaticTile
 import com.sletmoe.kotile.tiles.TileSheet
+import java.io.File
 import java.util.zip.Deflater
 
 /**
@@ -44,16 +45,32 @@ private const val TILE_PX = 20
 /** Fixed wall-clock time used to resolve animated tiles in the single captured frame. */
 private const val FIXED_ELAPSED_MS = 250L
 
+/**
+ * Source tile size of the synthetic alpha-layering sheet. Larger than [TILE_PX]
+ * so drawing it into a 20px cell is a *downscale* — exercising the mipmap path
+ * and surfacing any alpha-edge halo/bleed (the krogue-ejd / krogue-4ni watch-out)
+ * for eyeball verification.
+ */
+private const val LAYER_SRC_PX = 32
+
 private class SpriteRenderHarness(private val outPath: String) : ApplicationAdapter() {
     private lateinit var sheet: TileSheet
     private lateinit var canvas: KotileCanvas
     private lateinit var sprites: SpriteTileRenderer
+    private lateinit var layeredSheet: TileSheet
+    private lateinit var layered: SpriteTileRenderer
     private var frame = 0
 
     override fun create() {
         sheet = TileSheet(Gdx.files.classpath("vaarn-8x8.png"), 8, 8)
         canvas = KotileCanvas(TILE_PX, TILE_PX)
         sprites = SpriteTileRenderer(canvas, sheet)
+        // A synthetic two-tile sheet for the alpha-layering demonstration:
+        // tile (0,0) is an opaque green "terrain" tile, tile (1,0) is a red
+        // diamond on a transparent surround (a "creature" sprite). Shares the
+        // one canvas via a second renderer.
+        layeredSheet = TileSheet(Gdx.files.absolute(buildLayeredSheet()), LAYER_SRC_PX, LAYER_SRC_PX)
+        layered = SpriteTileRenderer(canvas, layeredSheet)
         buildScene()
     }
 
@@ -102,6 +119,45 @@ private class SpriteRenderHarness(private val outPath: String) : ApplicationAdap
 
         // z=1 over z=0: layering check — a tinted tile on top of the art block.
         sprites.drawTile(3, 2, z = 1, staticTile = StaticTile(sheetX = 0, sheetY = 0, tint = Color.RED))
+
+        // Row 12: alpha layering — a red diamond sprite (transparent surround)
+        // on z=1 over a green terrain tile on z=0, both from the synthetic sheet.
+        // The terrain must show through the sprite's transparent corners; drawn
+        // downscaled (32px source -> 20px cell) so any mip halo is visible.
+        for (x in 1..10) {
+            layered.drawTile(x, 12, z = 0, staticTile = StaticTile(sheetX = 0, sheetY = 0)) // terrain
+            layered.drawTile(x, 12, z = 1, staticTile = StaticTile(sheetX = 1, sheetY = 0)) // creature
+        }
+    }
+
+    /**
+     * Writes the synthetic alpha-layering sheet to a temp PNG and returns its
+     * absolute path: a 2x1 grid of [LAYER_SRC_PX] tiles — an opaque green
+     * terrain tile at (0,0) and a red diamond on a fully transparent surround
+     * at (1,0).
+     */
+    private fun buildLayeredSheet(): String {
+        val pixmap = Pixmap(LAYER_SRC_PX * 2, LAYER_SRC_PX, Pixmap.Format.RGBA8888)
+        pixmap.blending = Pixmap.Blending.None
+        pixmap.setColor(Color.CLEAR)
+        pixmap.fill()
+
+        // tile (0,0): solid green terrain.
+        pixmap.setColor(0.15f, 0.55f, 0.2f, 1f)
+        pixmap.fillRectangle(0, 0, LAYER_SRC_PX, LAYER_SRC_PX)
+
+        // tile (1,0): a filled red diamond centered on a transparent surround.
+        pixmap.setColor(Color.RED)
+        val half = LAYER_SRC_PX / 2
+        for (dy in 0 until LAYER_SRC_PX) {
+            val spread = half - Math.abs(dy - half + 1)
+            if (spread > 0) pixmap.drawLine(LAYER_SRC_PX + half - spread, dy, LAYER_SRC_PX + half + spread, dy)
+        }
+
+        val file = File.createTempFile("kotile-layered-demo", ".png").apply { deleteOnExit() }
+        PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), pixmap)
+        pixmap.dispose()
+        return file.absolutePath
     }
 
     override fun render() {
@@ -110,6 +166,7 @@ private class SpriteRenderHarness(private val outPath: String) : ApplicationAdap
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
 
         sprites.render(elapsedMs = FIXED_ELAPSED_MS)
+        layered.render(elapsedMs = FIXED_ELAPSED_MS)
 
         if (++frame >= 2) {
             println(
@@ -126,12 +183,14 @@ private class SpriteRenderHarness(private val outPath: String) : ApplicationAdap
 
     override fun resize(width: Int, height: Int) {
         sprites.onResize(width, height) // rebuilds the internal tilemap
-        buildScene() // ...so repopulate it
+        layered.onResize(width, height) // both renderers track the canvas size
+        buildScene() // ...so repopulate them
     }
 
     override fun dispose() {
         canvas.dispose()
         sheet.dispose()
+        layeredSheet.dispose()
     }
 }
 

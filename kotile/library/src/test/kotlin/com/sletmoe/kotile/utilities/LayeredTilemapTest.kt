@@ -90,4 +90,18 @@ class LayeredTilemapTest : FunSpec({
         map.setCell(0, 0, 3, StaticTile(0, 0))
         map.layerKeys shouldBe setOf(0, 3)
     }
+
+    test("layersBottomUp yields layers from lowest z to highest for composited rendering") {
+        val map = LayeredTilemap<StaticTile>(4, 4)
+        val low = StaticTile(0, 0)
+        val mid = StaticTile(1, 1)
+        val high = StaticTile(2, 2)
+        // Insert out of order to prove ordering is by z, not insertion order.
+        map.setCell(1, 1, 5, high)
+        map.setCell(1, 1, 0, low)
+        map.setCell(1, 1, 2, mid)
+
+        val stacked = map.layersBottomUp.map { it[1, 1] }
+        stacked shouldBe listOf(low, mid, high)
+    }
 })
