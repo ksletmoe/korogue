@@ -191,6 +191,14 @@ then given a tested ECS foundation:
 - API: generic `LayeredTilemap<T>` z-layers; `AsciiTileWindow` (z-layered, fitToWindow,
   viewport render, animation); sprite `TileRenderer`; `TileViewport`; animation framework;
   `com.sletmoe.kotile.input` (pixel→tile).
+- **Sprite alpha layering (krogue-ejd).** The sprite `TileRenderer` composites a cell's
+  z-layers **bottom-up** (`LayeredTilemap.layersBottomUp`) instead of drawing only the top
+  cell, so a foreground entity sprite alpha-blends over a background terrain tile and its
+  transparent pixels reveal the terrain beneath (`TileSheet` `keyColor`/alpha supply the
+  transparency; `SpriteBatch` blends). The ASCII path stays winner-takes-all per cell by
+  design. Watch: alpha-keyed tiles packed adjacently and downscaled hard can halo/bleed at
+  coarse mip levels — use `TileSheet` `spacing`/padding or `useMipMaps=false` for such sheets
+  (see `:demo:spriteHarness` bottom row for the downscaled layering check).
 - **macOS NPOT glyph gotcha (fixed, but watch for regressions):** `TileSheet` uploaded the
   font atlas as a non-power-of-two texture; Apple's GL driver mishandles sampling
   *sub-regions* of NPOT textures → garbled glyphs on **macOS only**. Fixed by padding the

@@ -1,6 +1,6 @@
 package com.sletmoe.kotile.utilities
 
-import java.util.SortedMap
+import java.util.TreeMap
 
 /**
  * Stores nullable cell values on stacked z-layers, each a [width] x [height]
@@ -28,7 +28,7 @@ import java.util.SortedMap
  */
 class LayeredTilemap<T : Any>(val width: Int, val height: Int) {
     // Layers sorted descending so topCellAt iteration returns highest z first.
-    private val layers: SortedMap<Int, Grid<T?>> = sortedMapOf(compareByDescending { it })
+    private val layers: TreeMap<Int, Grid<T?>> = TreeMap(compareByDescending { it })
 
     // -------------------------------------------------------------------------
     // Mutation
@@ -143,4 +143,16 @@ class LayeredTilemap<T : Any>(val width: Int, val height: Int) {
      * The set is unordered; use [topCellAt] for composited rendering.
      */
     val layerKeys: Set<Int> get() = layers.keys.toSet()
+
+    /**
+     * The populated layers ordered from the lowest z (drawn first) to the
+     * highest z (drawn last), as a live view over the internal layer map.
+     *
+     * Intended for **bottom-up composited rendering**: draw each layer's cell in
+     * turn so that a higher layer is alpha-blended over the layers beneath it,
+     * letting a foreground tile's transparent pixels reveal the tile(s) below.
+     * Contrast with [topCellAt], which collapses a cell's stack to only the
+     * winning (highest-z) layer.
+     */
+    val layersBottomUp: Collection<Grid<T?>> get() = layers.descendingMap().values
 }
