@@ -7,6 +7,9 @@ import com.badlogic.gdx.graphics.PixmapIO
 import com.sletmoe.kotile.display.KotileCanvas
 import com.sletmoe.kotile.display.ascii.AsciiTileDescriptor
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
+import com.sletmoe.kotile.rendering.FitScale
+import com.sletmoe.kotile.rendering.IntegerScale
+import com.sletmoe.kotile.rendering.ScalePolicy
 import com.sletmoe.kotile.rendering.SpriteTileRenderer
 import com.sletmoe.kotile.tiles.StaticTile
 import com.sletmoe.kotile.tiles.TileSheet
@@ -151,6 +154,42 @@ class RenderingIntegrationTest : FunSpec({
         avg.b.toDouble() shouldBe (0.0 plusOrMinus 0.1)
     }
 
+    test("sprite tiles smooth at a fractional scale but stay crisp at an integer scale").config(enabled = HeadlessGl.available) {
+        // A sprite with a hard internal red|blue edge. At a fractional scale the
+        // sharp-bilinear filter must blend across that edge (some pixel is
+        // purple: both channels high); at an integer scale nearest-neighbour
+        // keeps it crisp (every pixel is pure red or pure blue). This exercises
+        // the shader on the SPRITE path (krogue-m2x "cover sprites").
+        val fractional = maxEdgeBlend(FitScale, windowPx = 22) // 22/8 = 2.75x
+        val integer = maxEdgeBlend(IntegerScale, windowPx = 22) // floor -> 2x
+
+        fractional.toDouble() shouldBeGreaterThan 0.2 // a blended (purple) pixel exists
+        integer.toDouble() shouldBe (0.0 plusOrMinus 0.06) // no blend: crisp edge
+    }
+
+    test("a fractional-scaled glyph grid still renders through the sharp-bilinear path").config(enabled = HeadlessGl.available) {
+        // Smoke test for the glyph layer on the same shader path: a full-block
+        // glyph on a FitScale fixed grid at a non-integer scale must still fill
+        // its cell (the shader must not blank or corrupt the glyph).
+        val pixels = HeadlessGl.render(20, 20, Color.BLACK) {
+            val window = AsciiTileWindow.create {
+                widthInTiles = 1
+                heightInTiles = 1
+                fitToWindow = false
+                scalePolicy = FitScale
+            }
+            window.drawTile(0, 0, AsciiTileDescriptor('Û', Color.WHITE, Color.CLEAR))
+            window.render()
+            window.dispose()
+        }
+        // Center of the (scaled, centered) cell is solid white.
+        val center = pixels.averageColor(8, 8, 12, 12)
+        center.r.toDouble() shouldBeGreaterThan 0.8
+        center.g.toDouble() shouldBeGreaterThan 0.8
+        center.b.toDouble() shouldBeGreaterThan 0.8
+        pixels.dispose()
+    }
+
     test("AsciiTileWindow.drawText renders glyphs and clips to the window").config(enabled = HeadlessGl.available) {
         val pixels = HeadlessGl.render(80, 40, Color.BLACK) {
             val window = AsciiTileWindow.create {
@@ -172,6 +211,52 @@ class RenderingIntegrationTest : FunSpec({
 })
 
 private val SHEET_BLUE = Color(0.3f, 0.3f, 0.9f, 1f)
+
+/**
+ * Renders a single 8x8 red/blue **checkerboard** sprite tile (a hard color edge
+ * at every texel boundary) on a 1x1 fixed grid scaled to a [windowPx] window by
+ * [policy], and returns the maximum "edge blend" found: `max over pixels of
+ * min(r, b)`. A crisp (nearest) render yields ~0 (each pixel is pure red or pure
+ * blue); a smoothed (sharp-bilinear) render yields a positive value where
+ * adjacent texels blend to purple. The dense edges make the result robust to the
+ * exact scale (a single centered edge can alias against the ~1px blend band).
+ */
+private fun maxEdgeBlend(policy: ScalePolicy, windowPx: Int): Float {
+    val pixels = HeadlessGl.render(windowPx, windowPx, Color.BLACK) {
+        val tilePixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
+        tilePixmap.blending = Pixmap.Blending.None
+        for (ty in 0 until 8) {
+            for (tx in 0 until 8) {
+                tilePixmap.setColor(if ((tx + ty) % 2 == 0) Color.RED else Color.BLUE)
+                tilePixmap.fillRectangle(tx, ty, 1, 1)
+            }
+        }
+        val file = File.createTempFile("kotile-edge", ".png").apply { deleteOnExit() }
+        PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), tilePixmap)
+        tilePixmap.dispose()
+
+        val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
+        val canvas = KotileCanvas(8, 8)
+        canvas.useFixedGrid(1, 1, policy)
+        val renderer = SpriteTileRenderer(canvas, sheet)
+        renderer.drawTile(0, 0, z = 0, staticTile = StaticTile(0, 0))
+        renderer.render()
+        canvas.dispose()
+        sheet.dispose()
+    }
+
+    var maxBlend = 0f
+    for (y in 0 until windowPx) {
+        for (x in 0 until windowPx) {
+            val p = pixels.getPixel(x, y)
+            val r = ((p ushr 24) and 0xff) / 255f
+            val b = ((p ushr 8) and 0xff) / 255f
+            maxBlend = maxOf(maxBlend, minOf(r, b))
+        }
+    }
+    pixels.dispose()
+    return maxBlend
+}
 
 private fun renderSpriteTile(tileColor: Color, tint: Color): Color {
     val pixels = HeadlessGl.render(64, 64, Color.BLACK) {
