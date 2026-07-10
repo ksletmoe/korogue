@@ -234,19 +234,64 @@ open class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposabl
      * scaled to the current on-screen tile size and offset by the layout's
      * centering margin, then multiplied by [tint] (white = unchanged). Must be
      * called between [begin] and [end].
+     *
+     * This is grid sugar over [drawSprite]: it maps the cell's top-left corner
+     * to content pixels via the current [layout] and draws at the on-screen tile
+     * size. Free-layer content (effects, pixel-space UI) uses [drawSprite]
+     * directly. See ADR-0018.
      */
     fun drawTile(x: Int, y: Int, region: TextureRegion, tint: Color = Color.WHITE) {
+        val l = layout
+        drawSprite(
+            pxX = x * l.tileWidthPx,
+            pxY = y * l.tileHeightPx,
+            region = region,
+            w = l.tileWidthPx,
+            h = l.tileHeightPx,
+            tint = tint,
+        )
+    }
+
+    /**
+     * Draws [region] at content pixel position ([pxX], [pxY]) — the sprite's
+     * **top-left** corner — sized [w] x [h], multiplied by [tint] (white =
+     * unchanged). Must be called between [begin] and [end].
+     *
+     * This is the real drawing primitive; [drawTile] is grid-snapped sugar over
+     * it (ADR-0018). It lets free layers (projectiles, particles, pixel-space
+     * UI) place content at sub-tile resolution that interpolates smoothly
+     * between cells.
+     *
+     * ## Coordinate space
+     *
+     * ([pxX], [pxY]) are **content pixels** in the current [layout]: `(0, 0)` is
+     * the top-left of the grid content rectangle, x increases rightward, y
+     * increases downward — the same origin as tile and mouse coordinates. The
+     * space is the *scaled* on-screen layout, so free content stays locked to
+     * the same scale and letterbox as the grid; e.g. the center of cell
+     * `(c, r)` is `((c + 0.5f) * layout.tileWidthPx, (r + 0.5f) * layout.tileHeightPx)`.
+     * The GL y-flip and centering offset are applied here, not by the caller.
+     *
+     * Fractional-scale smoothing (sharp-bilinear) applies to free sprites too:
+     * every draw funnels through the same batch and per-texture shader setup.
+     */
+    fun drawSprite(
+        pxX: Float,
+        pxY: Float,
+        region: TextureRegion,
+        w: Float,
+        h: Float,
+        tint: Color = Color.WHITE,
+    ) {
         if (sharpActive) configureSharpFor(region.texture)
         batch.color = tint
-        val tileW = layout.tileWidthPx
-        val tileH = layout.tileHeightPx
         // Coordinates are content-relative: the GridViewport places the content
         // rectangle within the window (the centering offset is the GL viewport's
-        // position, not baked in here). Flip to the viewport's y-up world: row 0
-        // sits at the top, so its bottom edge is contentHeight - tileH.
-        val px = x * tileW
-        val screenY = layout.contentHeightPx - (y + 1) * tileH
-        batch.draw(region, px, screenY, tileW, tileH)
+        // position, not baked in here). Flip the top-left-origin pxY to the
+        // viewport's y-up world: the sprite's bottom edge sits at
+        // contentHeightPx - pxY - h.
+        val glY = layout.contentHeightPx - pxY - h
+        batch.draw(region, pxX, glY, w, h)
     }
 
     /**

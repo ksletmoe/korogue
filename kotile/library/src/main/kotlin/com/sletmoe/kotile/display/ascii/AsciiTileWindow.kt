@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.utils.Disposable
 import com.sletmoe.kotile.display.KotileCanvas
 import com.sletmoe.kotile.rendering.IntegerScale
+import com.sletmoe.kotile.rendering.Layer
 import com.sletmoe.kotile.rendering.ScalePolicy
 import com.sletmoe.kotile.rendering.TileViewport
 import com.sletmoe.kotile.utilities.LayeredTilemap
@@ -349,6 +350,29 @@ class AsciiTileWindow private constructor(
         canvas.begin()
         renderGrid(layeredTiles, TileViewport(), elapsedMs)
         canvas.end()
+    }
+
+    /**
+     * Adapts this window's grid to a composited [Layer] (ADR-0018) so it can be
+     * stacked with free layers (effects, pixel-space UI) in a
+     * [com.sletmoe.kotile.rendering.LayerStack]. The layer draws every populated
+     * cell **without** its own `begin`/`end` — the stack owns the single batch
+     * for the frame.
+     *
+     * The window's grid/text UI stays cell-aligned as before; this only lets the
+     * grid participate in a stack alongside pixel-space layers.
+     *
+     * @param elapsedMs supplies the wall-clock time used to resolve animated
+     *   [AnimatedAsciiTile] cells, sampled once per [Layer.render]; defaults to a
+     *   constant 0 (first frame) for static grids.
+     */
+    fun asLayer(elapsedMs: () -> Long = { 0L }): Layer = object : Layer {
+        override fun render(canvas: KotileCanvas) {
+            check(canvas === this@AsciiTileWindow.canvas) {
+                "AsciiTileWindow.asLayer must be composited on the canvas it was built with"
+            }
+            renderGrid(layeredTiles, TileViewport(), elapsedMs())
+        }
     }
 
     /**

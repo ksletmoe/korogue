@@ -110,6 +110,25 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) {
     }
 
     /**
+     * Adapts this renderer's internal tilemap to a composited [Layer] (ADR-0018)
+     * so it can be stacked under free layers (effects, pixel-space UI) in a
+     * [LayerStack]. The layer draws the whole grid **without** its own
+     * `begin`/`end` — the stack owns the single batch for the frame.
+     *
+     * @param elapsedMs supplies the wall-clock time used to resolve animated
+     *   [Tile] frames, sampled once per [Layer.render]; defaults to a constant 0
+     *   (first frame) for static grids.
+     */
+    fun asLayer(elapsedMs: () -> Long = { 0L }): Layer = object : Layer {
+        override fun render(canvas: KotileCanvas) {
+            check(canvas === this@TileRenderer.canvas) {
+                "TileRenderer.asLayer must be composited on the canvas it was built with"
+            }
+            renderGrid(tilemap, TileViewport(), elapsedMs())
+        }
+    }
+
+    /**
      * Draws a windowed slice of [source] to the canvas for this frame.
      *
      * For each screen cell `(screenX, screenY)` the logical cell sampled is

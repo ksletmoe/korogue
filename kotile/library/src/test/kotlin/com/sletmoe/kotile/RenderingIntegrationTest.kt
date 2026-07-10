@@ -4,11 +4,16 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.PixmapIO
+import com.badlogic.gdx.graphics.Texture
+import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.sletmoe.kotile.display.KotileCanvas
 import com.sletmoe.kotile.display.ascii.AsciiTileDescriptor
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
+import com.sletmoe.kotile.display.ascii.Fonts
 import com.sletmoe.kotile.rendering.FitScale
 import com.sletmoe.kotile.rendering.IntegerScale
+import com.sletmoe.kotile.rendering.Layer
+import com.sletmoe.kotile.rendering.LayerStack
 import com.sletmoe.kotile.rendering.ScalePolicy
 import com.sletmoe.kotile.rendering.SpriteTileRenderer
 import com.sletmoe.kotile.tiles.StaticTile
@@ -135,6 +140,133 @@ class RenderingIntegrationTest : FunSpec({
         pixels.dispose()
     }
 
+    test("drawSprite places a sprite at a sub-tile pixel offset (free layer)").config(enabled = HeadlessGl.available) {
+        // The free-layer primitive (ADR-0018): draw a 4x4 sprite at content
+        // pixel (2, 2) — a HALF-tile offset on a 4px grid, i.e. straddling four
+        // cells rather than snapping to one. It must land at top-left-origin
+        // pixels [2,6) x [2,6): proves both sub-tile placement and the y-flip.
+        val pixels = HeadlessGl.render(12, 12, Color.BLACK) {
+            val texPixmap = Pixmap(4, 4, Pixmap.Format.RGBA8888)
+            texPixmap.setColor(Color.RED)
+            texPixmap.fill()
+            val texture = Texture(texPixmap)
+            texPixmap.dispose()
+            val region = TextureRegion(texture)
+
+            val canvas = KotileCanvas(4, 4) // reflow: 3x3 grid of 4px cells at 1x
+            canvas.begin()
+            canvas.drawSprite(pxX = 2f, pxY = 2f, region = region, w = 4f, h = 4f)
+            canvas.end()
+            canvas.dispose()
+            texture.dispose()
+        }
+
+        // The sprite occupies the offset rectangle...
+        val onSprite = pixels.averageColor(2, 2, 6, 6)
+        onSprite.r.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        onSprite.g.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+        onSprite.b.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+
+        // ...and NOT the cell-(0,0) corner it would fill if it were grid-snapped.
+        val corner = pixels.averageColor(0, 0, 2, 2)
+        corner.r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+
+        pixels.dispose()
+    }
+
+    test("drawTile and drawSprite agree for a cell-aligned draw").config(enabled = HeadlessGl.available) {
+        // drawTile is sugar over drawSprite: drawing cell (1, 1) via each path
+        // must produce identical pixels. Guards the sugar's cell→pixel mapping
+        // (including the y-flip) against the primitive.
+        fun renderVia(useSprite: Boolean): Pixmap = HeadlessGl.render(12, 12, Color.BLACK) {
+            val texPixmap = Pixmap(4, 4, Pixmap.Format.RGBA8888)
+            texPixmap.setColor(Color.GREEN)
+            texPixmap.fill()
+            val texture = Texture(texPixmap)
+            texPixmap.dispose()
+            val region = TextureRegion(texture)
+
+            val canvas = KotileCanvas(4, 4)
+            canvas.begin()
+            if (useSprite) {
+                canvas.drawSprite(pxX = 4f, pxY = 4f, region = region, w = 4f, h = 4f)
+            } else {
+                canvas.drawTile(1, 1, region)
+            }
+            canvas.end()
+            canvas.dispose()
+            texture.dispose()
+        }
+
+        val viaTile = renderVia(useSprite = false)
+        val viaSprite = renderVia(useSprite = true)
+        // Cell (1,1) is content pixels [4,8) x [4,8) under the 4px reflow grid.
+        viaTile.averageColor(4, 4, 8, 8).r.toDouble() shouldBe
+            (viaSprite.averageColor(4, 4, 8, 8).r.toDouble() plusOrMinus 0.02)
+        viaTile.averageColor(4, 4, 8, 8).g.toDouble() shouldBe
+            (viaSprite.averageColor(4, 4, 8, 8).g.toDouble() plusOrMinus 0.02)
+        viaTile.averageColor(4, 4, 8, 8).g.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        viaTile.dispose()
+        viaSprite.dispose()
+    }
+
+    test("LayerStack composites free layers back-to-front (painter's order)").config(enabled = HeadlessGl.available) {
+        // Bottom layer fills the whole content blue; top layer paints a red
+        // sprite over the top-left quadrant. The stack's draw order must let the
+        // later layer win where they overlap, and the earlier show through
+        // elsewhere.
+        val pixels = HeadlessGl.render(8, 8, Color.BLACK) {
+            val blue = solidTexture(Color.BLUE)
+            val red = solidTexture(Color.RED)
+            val canvas = KotileCanvas(8, 8) // reflow: one 8px cell; content is 8x8 px
+
+            val stack = LayerStack(canvas)
+            stack.add(Layer { c -> c.drawSprite(0f, 0f, TextureRegion(blue), w = 8f, h = 8f) })
+            stack.add(Layer { c -> c.drawSprite(0f, 0f, TextureRegion(red), w = 4f, h = 4f) })
+            stack.render()
+
+            canvas.dispose()
+            blue.dispose()
+            red.dispose()
+        }
+
+        pixels.averageColor(0, 0, 4, 4).r.toDouble() shouldBe (1.0 plusOrMinus 0.1) // top-left: red wins
+        pixels.averageColor(4, 4, 8, 8).b.toDouble() shouldBe (1.0 plusOrMinus 0.1) // elsewhere: blue shows
+        pixels.averageColor(4, 4, 8, 8).r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+        pixels.dispose()
+    }
+
+    test("a grid renderer's asLayer composites under a free layer in one stack").config(enabled = HeadlessGl.available) {
+        // AsciiTileWindow.asLayer draws the (blue-background) grid; a free red
+        // sprite is stacked on top over the top-left cell. Proves a grid layer
+        // and a free layer share one begin/end pass and overlay by draw order.
+        val pixels = HeadlessGl.render(20, 20, Color.BLACK) {
+            val font = Fonts.cp437_10x10()
+            val canvas = KotileCanvas(font.charWidthPx, font.charHeightPx) // 10x10
+            val window = AsciiTileWindow.createWithCanvas(canvas, font) {
+                widthInTiles = 2
+                heightInTiles = 2
+                fitToWindow = false // fixed 2x2 grid -> 20x20 px at integer 1x
+            }
+            window.fill(AsciiTileDescriptor(' ', Color.WHITE, Color.BLUE)) // bg quads blue
+            val red = solidTexture(Color.RED)
+
+            val stack = LayerStack(canvas)
+            stack.add(window.asLayer())
+            stack.add(Layer { c -> c.drawSprite(0f, 0f, TextureRegion(red), w = 10f, h = 10f) })
+            stack.render()
+
+            window.dispose() // shared canvas + font are NOT disposed by the window
+            red.dispose()
+            canvas.dispose()
+            font.dispose()
+        }
+
+        pixels.averageColor(0, 0, 10, 10).r.toDouble() shouldBe (1.0 plusOrMinus 0.1) // top-left cell: red sprite
+        pixels.averageColor(10, 10, 20, 20).b.toDouble() shouldBe (1.0 plusOrMinus 0.1) // other cell: blue grid
+        pixels.dispose()
+    }
+
     test("sprite layers composite bottom-up: a transparent foreground reveals the background").config(enabled = HeadlessGl.available) {
         // Background terrain (blue, z=0) under a fully transparent foreground
         // sprite (z=1). Bottom-up compositing draws the background beneath the
@@ -209,6 +341,18 @@ class RenderingIntegrationTest : FunSpec({
         pixels.dispose()
     }
 })
+
+/**
+ * A 1x1 [color]-filled [Texture], stretched by [KotileCanvas.drawSprite] to any
+ * size. Caller disposes. Must be created with a live GL context (inside
+ * [HeadlessGl.render]).
+ */
+private fun solidTexture(color: Color): Texture {
+    val pixmap = Pixmap(1, 1, Pixmap.Format.RGBA8888)
+    pixmap.setColor(color)
+    pixmap.fill()
+    return Texture(pixmap).also { pixmap.dispose() }
+}
 
 private val SHEET_BLUE = Color(0.3f, 0.3f, 0.9f, 1f)
 
