@@ -92,3 +92,22 @@ tasks.register<JavaExec>("fixedGridHarness") {
     (project.findProperty("policy") as String?)?.let { systemProperty("kotile.harness.policy", it) }
     doFirst { logger.lifecycle("Rendering fixed-grid harness scene to: $outFile") }
 }
+
+// Free-layer counterpart (krogue-tk9, ADR-0018): draws an EffectsLayer of bolts
+// at sub-tile pixel positions composited over an ASCII grid, and dumps a PNG.
+//
+//   ./gradlew :kotile:demo:effectsHarness                     # -> demo/build/effects-harness.png
+//   ./gradlew :kotile:demo:effectsHarness -PoutFile=/tmp/e.png
+tasks.register<JavaExec>("effectsHarness") {
+    group = "verification"
+    description = "Renders the free effects layer (sub-tile bolts over a grid) to a PNG."
+    mainClass.set("EffectsHarnessKt")
+    classpath = sourceSets["main"].runtimeClasspath
+    if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
+        jvmArgs("-XstartOnFirstThread")
+    }
+    val outFile = (project.findProperty("outFile") as String?)
+        ?: layout.buildDirectory.file("effects-harness.png").get().asFile.absolutePath
+    systemProperty("kotile.harness.out", outFile)
+    doFirst { logger.lifecycle("Rendering effects harness scene to: $outFile") }
+}

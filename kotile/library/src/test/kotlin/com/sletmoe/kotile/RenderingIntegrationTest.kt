@@ -10,6 +10,8 @@ import com.sletmoe.kotile.display.KotileCanvas
 import com.sletmoe.kotile.display.ascii.AsciiTileDescriptor
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
 import com.sletmoe.kotile.display.ascii.Fonts
+import com.sletmoe.kotile.rendering.Effect
+import com.sletmoe.kotile.rendering.EffectsLayer
 import com.sletmoe.kotile.rendering.FitScale
 import com.sletmoe.kotile.rendering.IntegerScale
 import com.sletmoe.kotile.rendering.Layer
@@ -264,6 +266,34 @@ class RenderingIntegrationTest : FunSpec({
 
         pixels.averageColor(0, 0, 10, 10).r.toDouble() shouldBe (1.0 plusOrMinus 0.1) // top-left cell: red sprite
         pixels.averageColor(10, 10, 20, 20).b.toDouble() shouldBe (1.0 plusOrMinus 0.1) // other cell: blue grid
+        pixels.dispose()
+    }
+
+    test("EffectsLayer draws a spawned effect at its updated position").config(enabled = HeadlessGl.available) {
+        // Spawn a 4x4 red effect at (0,0) moving right at 0.04 px/ms; a 100ms
+        // update advances it +4px, so after update+render it must sit at
+        // content pixels [4,8) x [0,4) — not its spawn cell. Drives the whole
+        // stack.update -> stack.render pipeline through GL.
+        val pixels = HeadlessGl.render(8, 8, Color.BLACK) {
+            val red = solidTexture(Color.RED)
+            val canvas = KotileCanvas(8, 8)
+            val effects = EffectsLayer()
+            val stack = LayerStack(canvas)
+            stack.add(effects)
+
+            effects.spawn(
+                Effect(pxX = 0f, pxY = 0f, w = 4f, h = 4f, region = TextureRegion(red), velXPerMs = 0.04f),
+            )
+            stack.update(100)
+            stack.render()
+
+            effects.activeCount shouldBe 1 // no lifetime -> still active
+            canvas.dispose()
+            red.dispose()
+        }
+
+        pixels.averageColor(4, 0, 8, 4).r.toDouble() shouldBe (1.0 plusOrMinus 0.1) // moved here
+        pixels.averageColor(0, 0, 4, 4).r.toDouble() shouldBe (0.0 plusOrMinus 0.1) // vacated spawn spot
         pixels.dispose()
     }
 
