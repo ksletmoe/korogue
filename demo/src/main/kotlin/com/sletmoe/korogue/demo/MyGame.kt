@@ -363,19 +363,28 @@ class MyGame(
      * Subscribes [animationQueue] to the current world's event bus (krogue-wuq), the same seam
      * [wireLog] uses: a hit flashes at the target's (snapshotted) position, a death fades the
      * deceased's own glyph/color out. Re-subscribed per [buildUi] like [wireLog].
+     *
+     * Only enqueues when the player currently perceives the cell (krogue-c0j): combat off-screen
+     * or on an unperceived cell would otherwise still gate input on a sequence the player can't
+     * see, and — separately — would reveal hidden combat by drawing a flash they shouldn't see.
      */
     private fun wireAnimations() {
         world.ecs.events.subscribe<EntityDamaged> { event ->
             val at = event.position ?: return@subscribe
-            animationQueue.enqueue(VisualEvent.HitFlash(at))
+            if (playerPerceives(at)) animationQueue.enqueue(VisualEvent.HitFlash(at))
         }
         world.ecs.events.subscribe<EntityDied> { event ->
             val at = event.position ?: return@subscribe
-            animationQueue.enqueue(
-                VisualEvent.DeathFade(at, event.glyph ?: '%', event.color?.toColor() ?: Color.GRAY),
-            )
+            if (playerPerceives(at)) {
+                animationQueue.enqueue(
+                    VisualEvent.DeathFade(at, event.glyph ?: '%', event.color?.toColor() ?: Color.GRAY),
+                )
+            }
         }
     }
+
+    private fun playerPerceives(at: Vector2Int): Boolean =
+        world.ecs.get(playerId)?.get<Perceived>()?.sees(at.x, at.y) == true
 
     override fun onKeyDown(keycode: Int) {
         if (ui.handleKey(keycode)) return // a modal/widget consumed it; don't treat as gameplay
