@@ -190,7 +190,8 @@ then given a tested ECS foundation:
   yet on Sonatype** (needs credentials).
 - API: generic `LayeredTilemap<T>` z-layers; `AsciiTileWindow` (z-layered, fitToWindow,
   viewport render, animation); sprite `TileRenderer`; `TileViewport`; animation framework;
-  `com.sletmoe.kotile.input` (pixel→tile).
+  `Layer`/`LayerStack` + free (pixel-space) `EffectsLayer`/`UiLayer` (ADR-0018);
+  `com.sletmoe.kotile.input` (pixel→tile **and** pixel→content-pixel).
 - **Sprite alpha layering (krogue-ejd).** The sprite `TileRenderer` composites a cell's
   z-layers **bottom-up** (`LayeredTilemap.layersBottomUp`) instead of drawing only the top
   cell, so a foreground entity sprite alpha-blends over a background terrain tile and its
@@ -230,6 +231,25 @@ then given a tested ECS foundation:
   in `RenderingIntegrationTest` (sprite blend ≈0.50 fractional vs 0.0 integer; glyph
   smoke); eyeball via `:kotile:demo:fixedGridHarness -Ppolicy=fit` at a fractional
   window size.
+- **Layer model — grid + free (pixel-space) layers (ADR-0018).** `KotileCanvas.drawSprite(pxX,
+  pxY, region, w, h, tint)` is the real drawing primitive (`drawTile` is grid-snapped sugar
+  over it); a frame is an ordered list of `Layer`s composited back-to-front by a `LayerStack`
+  in one `begin`/`end` — no per-layer buffers, overlay is just draw order. Two free-layer
+  consumers ride this, differing only in lifetime + input, not in how they render:
+  - **Effects (krogue-tk9)** — `EffectsLayer` of transient `Effect`s (sprite/glyph at a float
+    pixel pos, linear velocity, optional lifetime) for projectiles/particles that move at
+    sub-tile resolution. Eyeball via `:kotile:demo:effectsHarness`.
+  - **Free UI (krogue-tvm)** — `UiLayer` of persistent, input-aware `Widget`s (`PixelRect`
+    bounds + `render`/`update` + pointer callbacks) for *graphical* tile games: panels, bars
+    between rows, tooltips at the cursor. Draws above the grid at arbitrary pixel positions;
+    topmost-first pixel hit-testing via `UiLayer.widgetAt`/`onPointer*`. The **input half** of
+    ADR-0018: `GridLayout.contentPixelAt` maps a window pixel → content pixel (letterbox
+    offset subtracted), and `KotileInputProcessor` now fires `onPointerDown/Up/Moved/Dragged`
+    (content-pixel, default no-op) alongside the tile events — grid/text UI is untouched. The
+    grid/text toolkit (`Menu`, `Dialog`, …) stays the right choice for ASCII/text UI; `UiLayer`
+    does **not** replace it. Eyeball via `:kotile:demo:uiHarness` (a hovered button lights up
+    through pixel-space hit-testing). GL-gated pixel tests in `RenderingIntegrationTest`; pure
+    logic in `UiLayerTest` / `GridLayoutTest` / `KotileInputProcessorTest`.
 - Deferred: bundle a 12×12 CP437 font asset (needs a license/provenance decision);
   Dokka V1→V2.
 

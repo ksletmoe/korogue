@@ -103,4 +103,55 @@ interface KotileInputListener {
      * @param amountY vertical scroll delta (positive = up in libGDX convention)
      */
     fun onScrolled(amountX: Float, amountY: Float)
+
+    // ── Free (pixel-space) pointer events ─────────────────────────────────
+
+    /**
+     * Called when a mouse button is pressed, in **content-pixel** coordinates —
+     * the free/pixel-space hit-testing space for graphical UI and effects
+     * (ADR-0018), matching [com.sletmoe.kotile.rendering.GridLayout.contentPixelAt]
+     * and [com.sletmoe.kotile.display.KotileCanvas.drawSprite]. Fires *alongside*
+     * [onTileClicked] on the same press; grid/text UI uses the tile events, free-
+     * positioned widgets use these. Events outside the grid content rectangle are
+     * dropped, as with the tile events.
+     *
+     * Defaults to a no-op so grid/text-only consumers are unaffected; override it
+     * (or forward to a [com.sletmoe.kotile.rendering.UiLayer]) only for pixel-
+     * space UI.
+     *
+     * @param px content-pixel x (0 = content left edge, increases right)
+     * @param py content-pixel y (0 = content top edge, increases down)
+     * @param button a libGDX button constant from [com.badlogic.gdx.Input.Buttons]
+     */
+    fun onPointerDown(px: Float, py: Float, button: Int) {}
+
+    /**
+     * Called when a mouse button is released, in **content-pixel** coordinates.
+     * Unlike [onTileClicked]/[onPointerDown] (delivered on press), there is no
+     * tile-coordinate equivalent — release completes a free-UI click. Events
+     * outside the grid content rectangle are dropped. Defaults to a no-op.
+     *
+     * @param px content-pixel x; @param py content-pixel y
+     * @param button a libGDX button constant from [com.badlogic.gdx.Input.Buttons]
+     */
+    fun onPointerUp(px: Float, py: Float, button: Int) {}
+
+    /**
+     * Called when the mouse cursor moves (no button held), in **content-pixel**
+     * coordinates — the free-UI counterpart to [onTileHovered]. Events outside the
+     * grid content rectangle are dropped. Defaults to a no-op.
+     *
+     * @param px content-pixel x; @param py content-pixel y
+     */
+    fun onPointerMoved(px: Float, py: Float) {}
+
+    /**
+     * Called when the mouse is dragged (moved with a button held), in
+     * **content-pixel** coordinates — the free-UI counterpart to [onTileDragged].
+     * As with that event, libGDX does not report which button is held. Events
+     * outside the grid content rectangle are dropped. Defaults to a no-op.
+     *
+     * @param px content-pixel x; @param py content-pixel y
+     */
+    fun onPointerDragged(px: Float, py: Float) {}
 }

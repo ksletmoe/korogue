@@ -16,8 +16,11 @@ import com.sletmoe.kotile.rendering.FitScale
 import com.sletmoe.kotile.rendering.IntegerScale
 import com.sletmoe.kotile.rendering.Layer
 import com.sletmoe.kotile.rendering.LayerStack
+import com.sletmoe.kotile.rendering.PixelRect
 import com.sletmoe.kotile.rendering.ScalePolicy
 import com.sletmoe.kotile.rendering.SpriteTileRenderer
+import com.sletmoe.kotile.rendering.UiLayer
+import com.sletmoe.kotile.rendering.Widget
 import com.sletmoe.kotile.tiles.StaticTile
 import com.sletmoe.kotile.tiles.TileSheet
 import io.kotest.core.spec.style.FunSpec
@@ -297,6 +300,45 @@ class RenderingIntegrationTest : FunSpec({
         pixels.dispose()
     }
 
+    test("UiLayer draws a widget above the grid at its pixel bounds; hidden widgets don't draw").config(enabled = HeadlessGl.available) {
+        // A blue-background 2x2 grid (20x20px) with a UiLayer on top. A visible
+        // red widget occupies content pixels [2,8) x [2,8) — a free, sub-cell
+        // rectangle straddling into cell (0,0). A second, hidden widget covers the
+        // bottom-right cell; it must leave that cell showing the blue grid.
+        val pixels = HeadlessGl.render(20, 20, Color.BLACK) {
+            val font = Fonts.cp437_10x10()
+            val canvas = KotileCanvas(font.charWidthPx, font.charHeightPx) // 10x10
+            val window = AsciiTileWindow.createWithCanvas(canvas, font) {
+                widthInTiles = 2
+                heightInTiles = 2
+                fitToWindow = false // fixed 2x2 grid -> 20x20 px at integer 1x
+            }
+            window.fill(AsciiTileDescriptor(' ', Color.WHITE, Color.BLUE))
+            val red = solidTexture(Color.RED)
+
+            val ui = UiLayer()
+            ui.add(SolidWidget(PixelRect(2f, 2f, 6f, 6f), red))          // visible, on top
+            ui.add(SolidWidget(PixelRect(10f, 10f, 10f, 10f), red, visible = false)) // hidden
+
+            val stack = LayerStack(canvas)
+            stack.add(window.asLayer()) // grid, below
+            stack.add(ui)               // UI, on top
+            stack.render()
+
+            ui.widgetCount shouldBe 2
+            window.dispose()
+            red.dispose()
+            canvas.dispose()
+            font.dispose()
+        }
+
+        pixels.averageColor(2, 2, 8, 8).r.toDouble() shouldBe (1.0 plusOrMinus 0.1)  // visible widget: red, over the grid
+        pixels.averageColor(0, 0, 2, 2).b.toDouble() shouldBe (1.0 plusOrMinus 0.1)  // outside its bounds: blue grid shows
+        pixels.averageColor(12, 12, 20, 20).b.toDouble() shouldBe (1.0 plusOrMinus 0.1) // hidden widget: blue grid, not red
+        pixels.averageColor(12, 12, 20, 20).r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+        pixels.dispose()
+    }
+
     test("sprite layers composite bottom-up: a transparent foreground reveals the background").config(enabled = HeadlessGl.available) {
         // Background terrain (blue, z=0) under a fully transparent foreground
         // sprite (z=1). Bottom-up compositing draws the background beneath the
@@ -382,6 +424,17 @@ private fun solidTexture(color: Color): Texture {
     pixmap.setColor(color)
     pixmap.fill()
     return Texture(pixmap).also { pixmap.dispose() }
+}
+
+/** A [Widget] that fills its content-pixel [bounds] with [texture] — enough to prove free-UI rendering. */
+private class SolidWidget(
+    override val bounds: PixelRect,
+    private val texture: Texture,
+    override var visible: Boolean = true,
+) : Widget {
+    override fun render(canvas: KotileCanvas) {
+        canvas.drawSprite(bounds.x, bounds.y, TextureRegion(texture), bounds.width, bounds.height)
+    }
 }
 
 private val SHEET_BLUE = Color(0.3f, 0.3f, 0.9f, 1f)
