@@ -38,6 +38,12 @@ sealed interface VisualEvent {
      *   [lineOfCellsStoppingAtBlocker][com.sletmoe.korogue.algorithms.geometry.lineOfCellsStoppingAtBlocker]
      *   so the bolt stops at the first blocker instead of passing through it; [from]/[to] should
      *   still be set to the path's actual endpoints (used only as a fallback if [path] is empty).
+     *
+     * @property backgroundAt supplies the background color for whatever cell the glyph currently
+     *   occupies, given that cell and elapsedMs since this sequence started — lets a caller match
+     *   its own terrain's lighting instead of the flat black [ProjectileSequence] otherwise draws
+     *   (there's no read-back API on [com.sletmoe.korogue.ui.TileSurface] to sample it directly).
+     *   `null` (default) keeps the flat-black background.
      */
     data class Projectile(
         val from: Vector2Int,
@@ -46,6 +52,7 @@ sealed interface VisualEvent {
         val color: Color = Color.WHITE,
         val durationMs: Long = DEFAULT_PROJECTILE_MS,
         val path: List<Vector2Int>? = null,
+        val backgroundAt: ((at: Vector2Int, elapsedMs: Long) -> Color)? = null,
     ) : VisualEvent
 
     /**
@@ -55,6 +62,10 @@ sealed interface VisualEvent {
      * what [Projectile] with a glyph is for). [nativeBearingDeg] is [region]'s own drawn facing
      * (`0` = pointing along `+X`/east); the renderer subtracts it from the computed travel bearing
      * so art that isn't drawn east-facing still ends up pointing the right way once rotated.
+     *
+     * @property stopShortPx how many content pixels short of [to]'s cell center the sprite stops,
+     *   so a shot visibly lands just outside its target's cell instead of drawing on top of (or
+     *   passing through) whatever occupies it. `0` (default) travels the full distance.
      */
     data class SpriteProjectile(
         val from: Vector2Int,
@@ -63,6 +74,7 @@ sealed interface VisualEvent {
         val tint: Color = Color.WHITE,
         val durationMs: Long = DEFAULT_PROJECTILE_MS,
         val nativeBearingDeg: Float = 0f,
+        val stopShortPx: Float = 0f,
     ) : VisualEvent
 
     companion object {
