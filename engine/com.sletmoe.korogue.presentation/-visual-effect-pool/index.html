@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>VisualEffectPool</title>
+    <link href="../../../images/logo-icon.svg" rel="icon" type="image/svg">
+        <script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async="async"></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer="defer"></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async="async"></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer="defer"></script>
+</head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+            <a class="library-name--link" href="../../../index.html" tabindex="1">
+                    engine
+            </a>
+        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle"
+                type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+1.0.0.51-SNAPSHOT        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true"
+                        data-filter=":engine/main">jvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox"
+                        data-role="dropdown-toggle"
+                        aria-controls="platform-tags-listbox"
+                        aria-haspopup="listbox"
+                        aria-expanded="false"
+                        aria-label="Toggle source sets"
+                ></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":engine/main"
+                                       data-filter=":engine/main"/>
+                                <span class="checkbox--icon"></span>
+                                jvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button"
+                    type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config='{"defaultSize": 280, "minSize": 200, "maxSize": 400}'>
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list"
+                    data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    engine
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageIds="engine::com.sletmoe.korogue.presentation/VisualEffectPool///PointingToDeclaration//-56654334">
+  <div class="breadcrumbs"><a href="../../../index.html">engine</a><span class="delimiter">/</span><a href="../index.html">com.sletmoe.korogue.presentation</a><span class="delimiter">/</span><span class="current">VisualEffectPool</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Visual</span><wbr></wbr><span>Effect</span><wbr></wbr><span><span>Pool</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">VisualEffectPool</a></div><p class="paragraph">A pool of independently-timed <a href="../-visual-event/index.html">VisualEvent</a>s that all play at once, with no input-gating concept at all — the companion to <a href="../-event-animation-queue/index.html">EventAnimationQueue</a> for the <i>other</i> common shape of visual effect: cosmetic, fire-and-forget, and never something a game should pause turns for (multiple simultaneous hit-flashes, a floating damage number stacking with the flash it accompanies, …). <a href="../-event-animation-queue/index.html">EventAnimationQueue</a> deliberately plays one sequence at a time — right for &quot;gate input on a bolt in flight&quot; — but that means a caller wanting N simultaneous non-gating effects previously had to hand-manage N separate <code class="lang-kotlin">EventAnimationQueue</code> instances, one per concurrent effect, with no engine support for it. This mirrors kotile's own <span data-unresolved-link="com.sletmoe.kotile.rendering/EffectsLayer///PointingToDeclaration/">com.sletmoe.kotile.rendering.EffectsLayer</span> primitive, which already models &quot;many independent transient items&quot; as a plain list — this is that same shape one layer up, for presentation-side game events instead of raw sprites.</p><p class="paragraph">Never serialized, never reads or writes game state — same presentation-only contract as <a href="../-event-animation-queue/index.html">EventAnimationQueue</a> (ADR-0023's third, event-animation time axis).</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="CONSTRUCTOR">
+        <h2 class="tableheader">Constructors</h2>
+        <div class="table"><a data-name="425482699%2FConstructors%2F-56654334" anchor-label="VisualEffectPool" id="425482699%2FConstructors%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-togglable="CONSTRUCTOR" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-visual-effect-pool.html"><span>Visual</span><wbr></wbr><span>Effect</span><wbr></wbr><span><span>Pool</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="425482699%2FConstructors%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="tableheader">Properties</h2>
+        <div class="table"><a data-name="-92782439%2FProperties%2F-56654334" anchor-label="activeEvents" id="-92782439%2FProperties%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="active-events.html"><span>active</span><wbr></wbr><span><span>Events</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-92782439%2FProperties%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="active-events.html">activeEvents</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="../-visual-event/index.html">VisualEvent</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Every <a href="../-visual-event/index.html">VisualEvent</a> currently playing, in spawn order — e.g. to find one at a particular cell.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="386668222%2FProperties%2F-56654334" anchor-label="isPlaying" id="386668222%2FProperties%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="is-playing.html"><span>is</span><wbr></wbr><span><span>Playing</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="386668222%2FProperties%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="is-playing.html">isPlaying</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">True while at least one effect is playing. Informational only — nothing gates on this.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="-809569611%2FFunctions%2F-56654334" anchor-label="clear" id="-809569611%2FFunctions%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="clear.html"><span><span>clear</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-809569611%2FFunctions%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="clear.html"><span class="token function">clear</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Drops every active effect immediately. Call when the world it was animating is replaced (e.g. a load).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1271154667%2FFunctions%2F-56654334" anchor-label="render" id="-1271154667%2FFunctions%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="render.html"><span><span>render</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1271154667%2FFunctions%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="render.html"><span class="token function">render</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">surface<span class="token operator">: </span><a href="../../com.sletmoe.korogue.ui/-tile-surface/index.html">TileSurface</a><span class="token punctuation">, </span></span><span class="parameter ">camera<span class="token operator">: </span><a href="../../com.sletmoe.korogue.ui/-map-camera/index.html">MapCamera</a><span class="token punctuation">, </span></span><span class="parameter ">nowMs<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Draws every active effect onto <a href="render.html">surface</a> via <a href="render.html">camera</a>, in spawn order. No-op if none are active.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-422368089%2FFunctions%2F-56654334" anchor-label="renderSprite" id="-422368089%2FFunctions%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="render-sprite.html"><span>render</span><wbr></wbr><span><span>Sprite</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-422368089%2FFunctions%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="render-sprite.html"><span class="token function">renderSprite</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">canvas<span class="token operator">: </span><span data-unresolved-link="com.sletmoe.kotile.display/KotileCanvas///PointingToDeclaration/">KotileCanvas</span><span class="token punctuation">, </span></span><span class="parameter ">camera<span class="token operator">: </span><a href="../../com.sletmoe.korogue.ui/-map-camera/index.html">MapCamera</a><span class="token punctuation">, </span></span><span class="parameter ">nowMs<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">The pixel-space counterpart to <a href="render.html">render</a> (krogue-2ua): draws every active effect onto <a href="render-sprite.html">canvas</a> via <a href="render-sprite.html">camera</a>, self-contained (<span data-unresolved-link="com.sletmoe.kotile.display/KotileCanvas/begin/#/PointingToDeclaration/">KotileCanvas.begin</span>/<span data-unresolved-link="com.sletmoe.kotile.display/KotileCanvas/end/#/PointingToDeclaration/">KotileCanvas.end</span> once around all of them, matching <a href="../-event-animation-queue/render-sprite.html">EventAnimationQueue.renderSprite</a>). No-op (no batch opened) if none are active.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-573285885%2FFunctions%2F-56654334" anchor-label="spawn" id="-573285885%2FFunctions%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="spawn.html"><span><span>spawn</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-573285885%2FFunctions%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="spawn.html"><span class="token function">spawn</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">event<span class="token operator">: </span><a href="../-visual-event/index.html">VisualEvent</a><span class="token punctuation">, </span></span><span class="parameter ">nowMs<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Starts playing <a href="spawn.html">event</a> immediately, alongside whatever else is already active.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1359762230%2FFunctions%2F-56654334" anchor-label="update" id="-1359762230%2FFunctions%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="update.html"><span><span>update</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1359762230%2FFunctions%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="update.html"><span class="token function">update</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">nowMs<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Drops every effect whose duration has elapsed as of <a href="update.html">nowMs</a>. Call once per frame, before rendering.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

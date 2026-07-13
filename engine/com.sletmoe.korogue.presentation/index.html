@@ -43,7 +43,7 @@
         </button>
         <div class="navigation-controls--break ui-kit_mobile-only"></div>
         <div class="library-version" id="library-version">
-1.0.0.50-SNAPSHOT        </div>
+1.0.0.51-SNAPSHOT        </div>
         <div class="navigation-controls">
         <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
                 <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true"
@@ -109,7 +109,7 @@
     <h1 class="cover"><span><span>Package-level</span></span> <span><span>declarations</span></span></h1>
   </div>
   <div class="tabbedcontent">
-    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="TYPE">Types</button><button class="section-tab" data-togglable="FUNCTION,EXTENSION_FUNCTION">Functions</button></div>
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="TYPE">Types</button></div>
     <div class="tabs-section-body">
       <div data-togglable="TYPE">
         <h2 class="tableheader">Types</h2>
@@ -128,6 +128,21 @@
               </div>
             </div>
           </div>
+<a data-name="-1305995417%2FClasslikes%2F-56654334" anchor-label="VisualEffectPool" id="-1305995417%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-visual-effect-pool/index.html"><span>Visual</span><wbr></wbr><span>Effect</span><wbr></wbr><span><span>Pool</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1305995417%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-visual-effect-pool/index.html">VisualEffectPool</a></div><div class="brief "><p class="paragraph">A pool of independently-timed <a href="-visual-event/index.html">VisualEvent</a>s that all play at once, with no input-gating concept at all — the companion to <a href="-event-animation-queue/index.html">EventAnimationQueue</a> for the <i>other</i> common shape of visual effect: cosmetic, fire-and-forget, and never something a game should pause turns for (multiple simultaneous hit-flashes, a floating damage number stacking with the flash it accompanies, …). <a href="-event-animation-queue/index.html">EventAnimationQueue</a> deliberately plays one sequence at a time — right for &quot;gate input on a bolt in flight&quot; — but that means a caller wanting N simultaneous non-gating effects previously had to hand-manage N separate <code class="lang-kotlin">EventAnimationQueue</code> instances, one per concurrent effect, with no engine support for it. This mirrors kotile's own <span data-unresolved-link="com.sletmoe.kotile.rendering/EffectsLayer///PointingToDeclaration/">com.sletmoe.kotile.rendering.EffectsLayer</span> primitive, which already models &quot;many independent transient items&quot; as a plain list — this is that same shape one layer up, for presentation-side game events instead of raw sprites.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
 <a data-name="963317012%2FClasslikes%2F-56654334" anchor-label="VisualEvent" id="963317012%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
           <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
             <div class="main-subrow keyValue ">
@@ -138,7 +153,7 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">sealed </span><span class="token keyword">interface </span><a href="-visual-event/index.html">VisualEvent</a></div><div class="brief "><p class="paragraph">A transient, presentation-only visual triggered by a game event (ADR-0023's third, event-animation time axis — krogue-wuq): a thrown potion's arc, a bolt's flight, a hit-flash, a death fade. Unlike ambient animation these have a definite start/end; unlike game time they never read or write game state and are never serialized. Positions are world (zone) cells — <a href="-event-animation-queue/index.html">EventAnimationQueue</a> resolves them to screen cells via the map's <a href="../com.sletmoe.korogue.ui/-map-camera/index.html">com.sletmoe.korogue.ui.MapCamera</a> at render time, so a sequence stays correct even if the camera re-centres while it plays.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-visual-event/index.html">VisualEvent</a></div><div class="brief "><p class="paragraph">A transient, presentation-only visual triggered by a game event (ADR-0023's third, event-animation time axis — krogue-wuq): a thrown potion's arc, a bolt's flight, a hit-flash, a death fade. Unlike ambient animation these have a definite start/end; unlike game time they never read or write game state and are never serialized. Positions are world (zone) cells — <a href="-event-animation-queue/index.html">EventAnimationQueue</a> resolves them to screen cells via the map's <a href="../com.sletmoe.korogue.ui/-map-camera/index.html">com.sletmoe.korogue.ui.MapCamera</a> at render time, so a sequence stays correct even if the camera re-centres while it plays.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -154,25 +169,6 @@
               <div>
                 <div class="title">
                   <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-visual-sequence/index.html">VisualSequence</a></div><div class="brief "><p class="paragraph">One running <a href="-visual-event/index.html">VisualEvent</a> translated into wall-clock draw calls. Stateless like <span data-unresolved-link="com.sletmoe.kotile.display.ascii/AnimatedAsciiTile///PointingToDeclaration/">com.sletmoe.kotile.display.ascii.AnimatedAsciiTile</span>: <a href="-visual-sequence/render.html">render</a>/<a href="-visual-sequence/render-sprite.html">renderSprite</a> compute the frame purely from elapsedMs since the sequence started, so nothing here needs its own timers. Draws on <a href="../com.sletmoe.korogue.components/-render-layer/-o-v-e-r-l-a-y/index.html">RenderLayer.OVERLAY</a>'s z-band — above creatures/player, cleared for free every frame since the whole map redraws from scratch (no explicit residue cleanup needed).</p></div></div></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div data-togglable="EXTENSION_FUNCTION">
-        <h2 class="tableheader">Functions</h2>
-        <div class="table"><a data-name="519059693%2FFunctions%2F-56654334" anchor-label="toSequence" id="519059693%2FFunctions%2F-56654334" data-filterable-set=":engine/main"></a>
-          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
-            <div class="main-subrow keyValue ">
-              <div class=""><span class="inline-flex">
-                  <div><a href="to-sequence.html"><span>to</span><wbr></wbr><span><span>Sequence</span></span></a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="519059693%2FFunctions%2F-56654334"></span>
-                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
-                  </span></span></div>
-              <div>
-                <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="-visual-event/index.html">VisualEvent</a><span class="token punctuation">.</span><a href="to-sequence.html"><span class="token function">toSequence</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-visual-sequence/index.html">VisualSequence</a></div><div class="brief "><p class="paragraph">Converts a <a href="-visual-event/index.html">VisualEvent</a> into the <a href="-visual-sequence/index.html">VisualSequence</a> that plays it.</p></div></div></div>
                 </div>
               </div>
             </div>
