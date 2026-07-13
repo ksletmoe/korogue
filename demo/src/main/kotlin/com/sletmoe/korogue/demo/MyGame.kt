@@ -312,6 +312,7 @@ class MyGame(
                 gameWorld = world,
                 fogFor = { zone -> zoneFog.forZone(zone.zoneId, zone.width, zone.height) },
                 decorate = { surface, camera -> animationQueue.render(surface, camera, animationClockMs) },
+                elapsedMsProvider = { animationClockMs },
             ),
         )
 
