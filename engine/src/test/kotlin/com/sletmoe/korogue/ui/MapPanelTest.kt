@@ -293,7 +293,25 @@ class MapPanelTest : FunSpec({
 
         val drawn = surface.top(4, 4).shouldNotBeNull()
         drawn.glyph shouldBe 'm'
+        // world(lit=...)'s light is WHITE at full intensity 1.0 -- tintedByLight is then an
+        // identity multiply, so this doesn't yet prove fg is tinted at all (see the dim-light
+        // test below for that); it only proves full-intensity white light doesn't discolor it.
         drawn.fg shouldBe Color.RED // the monster's Renderable color
+    }
+
+    test("an occupant's foreground is tinted by the lit cell's light, not its full Renderable color (krogue-0w3)") {
+        val surface = RecordingSurface(6, 6)
+        val cells = setOf(cell(4, 4))
+        val (gw, player) = world(perceives = cells) // no light yet -- set a dim one below
+        gw.currentZone.lightMap[4, 4] = LightValue(Color.WHITE.toNormalizedRgb(), 0.3) // dim: intensity < 1.0
+        val monster = gw.spawnMonster(4, 4)
+        gw.ecs.set(player, Perceived("z", cells, setOf(monster)))
+
+        panel(gw).draw(surface)
+
+        val drawn = surface.top(4, 4).shouldNotBeNull()
+        drawn.fg shouldNotBe Color.RED // dimmed, not the monster's full undimmed Renderable color
+        (drawn.fg.r < Color.RED.r) shouldBe true
     }
 
     // -------------------------------------------------------------------------
@@ -387,5 +405,24 @@ class MapPanelTest : FunSpec({
         val steadyBg = steady.top(4, 4).shouldNotBeNull().bg
         val dimmedBg = dimmed.top(4, 4).shouldNotBeNull().bg
         dimmedBg shouldNotBe steadyBg
+    }
+
+    test("an occupant's foreground flickers along with its background (krogue-0w3)") {
+        val cells = setOf(cell(4, 4))
+        val (gw, player) = world(perceives = cells, lit = cells)
+        val monster = gw.spawnMonster(4, 4)
+        gw.ecs.set(player, Perceived("z", cells, setOf(monster)))
+        gw.spawnFlickeringLight(4, 4, LightFlicker(amplitude = 0.5, periodMs = 1000))
+
+        val steady = RecordingSurface(6, 6)
+        panel(gw, elapsedMsProvider = { 0L }).draw(steady)
+
+        val dimmed = RecordingSurface(6, 6)
+        panel(gw, elapsedMsProvider = { 750L }).draw(dimmed)
+
+        val steadyFg = steady.top(4, 4).shouldNotBeNull().fg
+        val dimmedFg = dimmed.top(4, 4).shouldNotBeNull().fg
+        dimmedFg shouldNotBe steadyFg
+        (dimmedFg.r < steadyFg.r) shouldBe true
     }
 })

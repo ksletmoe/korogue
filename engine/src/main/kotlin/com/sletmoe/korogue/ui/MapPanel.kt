@@ -193,17 +193,29 @@ class MapPanel(
             val screenY = camera.screenY(pos.y)
             if (!camera.containsScreen(screenX, screenY)) continue
             val renderable = entity.require<Renderable>()
-            // Hand the occupant's look to the game seam; null -> don't draw. Background stays
-            // engine-computed so a remapped glyph keeps the terrain tint beneath it.
+            // Hand the occupant's look to the game seam; null -> don't draw. Both fg and bg are
+            // then engine-computed on top (krogue-0w3: fg used to skip this, so a creature kept
+            // its full undimmed color while the floor around it darkened/flickered), so a remapped
+            // glyph's color still tracks the terrain tint beneath it either way.
             val context = OccupantRender(entity, renderable, zone.tiles[pos.x, pos.y], perceived = true)
             val rendered = occupantRenderer(context) ?: continue
             val flicker = flickerFactorAt(pos.x, pos.y, flickerSources, elapsedMs)
+            val fg =
+                if (perceived.sees(
+                        pos.x,
+                        pos.y,
+                    )
+                ) {
+                    litColor(rendered.fg, zone, pos.x, pos.y, flicker)
+                } else {
+                    rendered.fg
+                }
             surface.put(
                 screenX,
                 screenY,
                 renderable.layer.zIndex,
                 rendered.glyph,
-                rendered.fg,
+                fg,
                 backgroundAt(zone, pos.x, pos.y, perceived, flicker),
             )
         }
@@ -255,19 +267,12 @@ class MapPanel(
     ): RenderedCell? {
         val tile = zone.tiles[x, y]
         return when {
-            perceived.sees(x, y) -> {
-                val lightVal = zone.lightMap[x, y]
-                if (lightVal != null) {
-                    val intensity = (lightVal.intensity * flicker).coerceIn(0.0, 1.0)
-                    RenderedCell(
-                        tile.glyph,
-                        tile.color.tintedByLight(lightVal.normalizedColor, intensity),
-                        tile.backgroundColor.tintedByLight(lightVal.normalizedColor, intensity),
-                    )
-                } else {
-                    RenderedCell(tile.glyph, tile.color, tile.backgroundColor)
-                }
-            }
+            perceived.sees(x, y) ->
+                RenderedCell(
+                    tile.glyph,
+                    litColor(tile.color, zone, x, y, flicker),
+                    litColor(tile.backgroundColor, zone, x, y, flicker),
+                )
             // Previously seen but not currently perceived: hand off to the pluggable remembered look.
             fog[x, y] -> rememberedRenderer(tile)
             else -> null
@@ -288,10 +293,26 @@ class MapPanel(
         flicker: Double,
     ): Color {
         if (!perceived.sees(x, y)) return Color.BLACK
-        val tile = zone.tiles[x, y]
-        val lightVal = zone.lightMap[x, y] ?: return tile.backgroundColor
+        return litColor(zone.tiles[x, y].backgroundColor, zone, x, y, flicker)
+    }
+
+    /**
+     * [base] tinted by the light at world cell ([x], [y]) in [zone], scaled by [flicker] (krogue-ncl)
+     * — [base] unchanged if that cell has no light value at all (an unlit zone/tile). Shared by
+     * [terrainCell] (fg and bg), [backgroundAt], and [drawOccupants]' foreground tinting
+     * (krogue-0w3) so all three compute a lit color identically instead of three separate inline
+     * copies of the same three lines.
+     */
+    private fun litColor(
+        base: Color,
+        zone: Zone,
+        x: Int,
+        y: Int,
+        flicker: Double,
+    ): Color {
+        val lightVal = zone.lightMap[x, y] ?: return base
         val intensity = (lightVal.intensity * flicker).coerceIn(0.0, 1.0)
-        return tile.backgroundColor.tintedByLight(lightVal.normalizedColor, intensity)
+        return base.tintedByLight(lightVal.normalizedColor, intensity)
     }
 
     companion object {
