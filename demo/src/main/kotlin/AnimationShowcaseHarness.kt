@@ -6,8 +6,8 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.PixmapIO
-import com.badlogic.gdx.math.Vector2
 import com.sletmoe.korogue.algorithms.color.toNormalizedRgb
+import com.sletmoe.korogue.algorithms.geometry.lineOfCellsStoppingAtBlocker
 import com.sletmoe.korogue.algorithms.lighting.DiminishingLightValueCalculator
 import com.sletmoe.korogue.algorithms.lighting.LightFlicker
 import com.sletmoe.korogue.demo.animation.DawnLikeAmmoTiles
@@ -15,6 +15,10 @@ import com.sletmoe.korogue.demo.animation.DawnLikeCreatureTiles
 import com.sletmoe.korogue.demo.animation.DawnLikeFloorTiles
 import com.sletmoe.korogue.demo.animation.DawnLikeTorchTile
 import com.sletmoe.korogue.demo.animation.DawnLikeWallTiles
+import com.sletmoe.korogue.presentation.EventAnimationQueue
+import com.sletmoe.korogue.presentation.VisualEvent
+import com.sletmoe.korogue.ui.MapCamera
+import com.sletmoe.korogue.ui.WindowSurface
 import com.sletmoe.kotile.display.KotileCanvas
 import com.sletmoe.kotile.display.ascii.AsciiTileDescriptor
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
@@ -22,7 +26,6 @@ import com.sletmoe.kotile.display.ascii.Font
 import com.sletmoe.kotile.display.ascii.Fonts
 import com.sletmoe.kotile.rendering.IntegerScale
 import com.sletmoe.kotile.rendering.SpriteTileRenderer
-import com.sletmoe.kotile.rendering.rotationTowards
 import com.sletmoe.kotile.tiles.AnimatedSpriteTile
 import com.sletmoe.kotile.tiles.AnimationFrame
 import com.sletmoe.kotile.tiles.PlaybackMode
@@ -37,8 +40,11 @@ import kotlin.math.sqrt
  * Standalone showcase for the animation work (krogue-aqo): a single room split down the middle —
  * sprite tiles (DawnLike, CC-BY 4.0, see `demo/assets/dawnlike/ATTRIBUTION.md`) on the left,
  * glyph (ASCII) tiles on the right — so both render paths sit side by side, and krogue-wuq's
- * presentation-side sequences (hit-flash today; grid-snapped/rotated projectiles once
- * krogue-tnf/krogue-m05 land) can be proven out on both at once.
+ * presentation-side sequences can be proven out on both at once. The two combatants' shot is a
+ * real [EventAnimationQueue] on each half (krogue-tnf's grid-snapped glyph mode, krogue-2ua's
+ * pixel-space sprite mode) — a scripted timer fires both queues' events at once (there's no real
+ * ranged-combat trigger yet, krogue-4tn), which is what keeps them in lockstep: same start time,
+ * same [PROJECTILE_FLIGHT_MS] duration.
  *
  * Both halves share one [KotileCanvas] (the multi-pane pattern `AsciiTileWindow.createWithCanvas`
  * documents): sprite content is drawn via a [SpriteTileRenderer] per DawnLike sheet at grid
@@ -158,7 +164,20 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
     // that same torch's own flame frame is the bright one.
     private val flicker = LightFlicker(amplitude = 0.05, periodMs = ANIMATION_FRAME_MS * 2)
 
+    // Real wuq queues (krogue-wuq), one per half so each plays its own render-mode sequence
+    // (renderSprite vs render) independently -- see the class doc comment for how firing both
+    // from maybeFireProjectiles keeps them synchronized despite being two separate queues.
+    private val spriteProjectileQueue = EventAnimationQueue()
+    private val glyphProjectileQueue = EventAnimationQueue()
+
+    // Identity mapping (origin at 0,0): this demo's grid columns are already absolute, so a
+    // camera with no offset resolves EventAnimationQueue's "zone" positions straight through to
+    // WindowSurface's/canvas's real columns -- no translation needed for either half.
+    private val demoCamera = MapCamera(originX = 0, originY = 0, width = TOTAL_COLS, height = ROWS)
+    private lateinit var glyphSurface: WindowSurface
+
     private var elapsedMs = 0L
+    private var firedCycle = -1L
     private var frame = 0
 
     override fun create() {
@@ -187,6 +206,8 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
         overlayRenderer = SpriteTileRenderer(canvas, ammoSheet)
         // Room content (tint included) is (re)built every frame in render() now that lighting
         // flickers — see buildSpriteRoom/buildGlyphRoom's doc comments.
+
+        glyphSurface = WindowSurface(asciiWindow)
     }
 
     private fun sheet(relativePath: String): TileSheet =
@@ -206,45 +227,6 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
         torch: Vector2Int,
         elapsedMs: Long,
     ): Int = ((elapsedMs + torchSeed(torch)) / ANIMATION_FRAME_MS % 2).toInt()
-
-    /** The on-screen pixel center of grid cell ([col], [row]), per [KotileCanvas.drawSprite]'s coordinate space. */
-    private fun cellCenterPx(
-        col: Int,
-        row: Int,
-    ): Vector2 {
-        val l = canvas.layout
-        return Vector2((col + 0.5f) * l.tileWidthPx, (row + 0.5f) * l.tileHeightPx)
-    }
-
-    /** Linear pixel-space interpolation between two cells' centers at [t] (0..1). */
-    private fun lerpPx(
-        fromCol: Int,
-        fromRow: Int,
-        toCol: Int,
-        toRow: Int,
-        t: Float,
-    ): Vector2 {
-        val from = cellCenterPx(fromCol, fromRow)
-        val to = cellCenterPx(toCol, toRow)
-        return Vector2(from.x + (to.x - from.x) * t, from.y + (to.y - from.y) * t)
-    }
-
-    /** The grid cell containing pixel position [px] -- the graphical-side pixel position "snapped to the appropriate tile" for the glyph side. */
-    private fun snapToTile(px: Vector2): Vector2Int {
-        val l = canvas.layout
-        return Vector2Int((px.x / l.tileWidthPx).toInt(), (px.y / l.tileHeightPx).toInt())
-    }
-
-    /**
-     * Progress (0..1) through the current shot at [elapsedMs], or `null` during the pause between
-     * shots. Both halves call this with the same [elapsedMs], so they launch, travel, and land in
-     * lockstep -- the single source of truth for "is a projectile in flight right now."
-     */
-    private fun projectileFlightT(elapsedMs: Long): Float? {
-        val phase = elapsedMs % PROJECTILE_CYCLE_MS
-        if (phase >= PROJECTILE_FLIGHT_MS) return null
-        return phase.toFloat() / PROJECTILE_FLIGHT_MS
-    }
 
     /**
      * Light intensity at cell ([x], [y]) at wall-clock [elapsedMs] from the brightest of [torches]
@@ -367,31 +349,42 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
     }
 
     /**
-     * The in-flight arrow at [elapsedMs] (nothing drawn between shots): true sub-pixel motion via
-     * [KotileCanvas.drawSprite], not [overlayRenderer]'s grid-locked `drawTile` -- unlike every
-     * other sprite in this scene, a flying projectile needs to be *between* cells most of the
-     * time, not snapped to one. [buildGlyphRoom]'s dash reads the exact same [lerpPx] position
-     * (then snaps it, since glyphs are grid-only) so both halves' shots move at the same speed and
-     * land at the same instant, per [projectileFlightT].
+     * Fires a shot on both halves' queues at once, once per [PROJECTILE_CYCLE_MS] wall-clock
+     * window (`elapsedMs / PROJECTILE_CYCLE_MS` ticking over to a new value marks a fresh window,
+     * so this fires exactly once per window regardless of frame-timing jitter). Enqueuing both
+     * [VisualEvent.SpriteProjectile] and [VisualEvent.Projectile] at the same [elapsedMs] with the
+     * same [PROJECTILE_FLIGHT_MS] duration is what keeps the two independent queues in lockstep —
+     * not anything about how each renders.
      */
-    private fun drawSpriteArrow(elapsedMs: Long) {
-        val t = projectileFlightT(elapsedMs) ?: return
-        val pos = lerpPx(SPRITE_RANGER_COL, MID_ROW, SPRITE_SCORPION_COL, MID_ROW, t)
-        val l = canvas.layout
-        val col = (pos.x / l.tileWidthPx).toInt().coerceIn(0, SPRITE_COLS - 1)
-        val tint = litTint(col, MID_ROW, SPRITE_TORCH_POSITIONS, elapsedMs)
-        val region = ammoSheet.region(DawnLikeAmmoTiles.ARROW.sheetX, DawnLikeAmmoTiles.ARROW.sheetY)
-        canvas.begin()
-        canvas.drawSprite(
-            pxX = pos.x - l.tileWidthPx / 2f,
-            pxY = pos.y - l.tileHeightPx / 2f,
-            region = region,
-            w = l.tileWidthPx,
-            h = l.tileHeightPx,
-            tint = tint,
-            rotationDeg = rotationTowards(1f, 0f) - ARROW_NATIVE_BEARING_DEG,
+    private fun maybeFireProjectiles(elapsedMs: Long) {
+        val cycle = elapsedMs / PROJECTILE_CYCLE_MS
+        if (cycle == firedCycle) return
+        firedCycle = cycle
+
+        val arrowRegion = ammoSheet.region(DawnLikeAmmoTiles.ARROW.sheetX, DawnLikeAmmoTiles.ARROW.sheetY)
+        spriteProjectileQueue.enqueue(
+            VisualEvent.SpriteProjectile(
+                from = Vector2Int(SPRITE_RANGER_COL, MID_ROW),
+                to = Vector2Int(SPRITE_SCORPION_COL, MID_ROW),
+                region = arrowRegion,
+                durationMs = PROJECTILE_FLIGHT_MS,
+                nativeBearingDeg = ARROW_NATIVE_BEARING_DEG,
+            ),
         )
-        canvas.end()
+
+        val glyphFrom = Vector2Int(GLYPH_PLAYER_COL, MID_ROW)
+        val glyphTo = Vector2Int(GLYPH_MONSTER_COL, MID_ROW)
+        glyphProjectileQueue.enqueue(
+            VisualEvent.Projectile(
+                from = glyphFrom,
+                to = glyphTo,
+                glyph = '-',
+                durationMs = PROJECTILE_FLIGHT_MS,
+                // No real Zone/blockers in this scripted demo, so nothing ever stops the bolt
+                // early -- but it still exercises the real stopping-capable line-walk utility.
+                path = lineOfCellsStoppingAtBlocker(glyphFrom, glyphTo) { false },
+            ),
+        )
     }
 
     /**
@@ -498,24 +491,8 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
                 litColor(floorGlowBase, GLYPH_MONSTER_COL, MID_ROW, GLYPH_TORCH_POSITIONS, elapsedMs),
             ),
         )
-
-        // The dash's cell is the sprite-side arrow's exact same pixel-space position (lerpPx),
-        // snapped to whichever tile it currently falls inside (snapToTile) -- not a separate,
-        // independently-timed cell walk. That's what keeps the two halves' shots at the same
-        // speed: both derive from one pixel-space model, this side just quantizes the result.
-        projectileFlightT(elapsedMs)?.let { t ->
-            val pos = lerpPx(GLYPH_PLAYER_COL, MID_ROW, GLYPH_MONSTER_COL, MID_ROW, t)
-            val cell = snapToTile(pos)
-            asciiWindow.drawTile(
-                cell.x,
-                cell.y,
-                AsciiTileDescriptor(
-                    '-',
-                    litColor(Color.WHITE, cell.x, cell.y, GLYPH_TORCH_POSITIONS, elapsedMs),
-                    litColor(floorGlowBase, cell.x, cell.y, GLYPH_TORCH_POSITIONS, elapsedMs),
-                ),
-            )
-        }
+        // The dash itself is drawn by glyphProjectileQueue.render (called from render()) --
+        // krogue-tnf's real grid-snapped VisualSequence, not hand-rolled here.
     }
 
     // -------------------------------------------------------------------------
@@ -530,12 +507,22 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
         // deterministically lands mid-cycle; live mode uses real wall-clock time so the
         // flicker/bounce animate at their actual configured speed (Game.render's convention).
         elapsedMs += if (outPath != null) STEP_MS else (Gdx.graphics.deltaTime * 1000).toLong()
+        maybeFireProjectiles(elapsedMs)
+        spriteProjectileQueue.update(elapsedMs)
+        glyphProjectileQueue.update(elapsedMs)
+
+        // glyphProjectileQueue draws on RenderLayer.OVERLAY's z-band (3), separate from
+        // buildGlyphRoom's z=0 floor/wall/combatants -- without this, a shot's previous cells
+        // never get overwritten as it moves (the real game avoids this the same way, clearing the
+        // whole window once per frame in MyGame.drawFrame before redrawing).
+        asciiWindow.clear()
         buildSpriteRoom(elapsedMs)
         buildGlyphRoom(elapsedMs)
+        glyphProjectileQueue.render(glyphSurface, demoCamera, elapsedMs) // queues the dash, composited below
         floorRenderer.render(elapsedMs)
         wallRenderer.render(elapsedMs)
         overlayRenderer.render(elapsedMs)
-        drawSpriteArrow(elapsedMs) // free pixel-space motion, so drawn via canvas directly (see its doc comment)
+        spriteProjectileQueue.renderSprite(canvas, demoCamera, elapsedMs) // immediate draw, on top of creatures
         asciiWindow.render(elapsedMs)
 
         val snapshotPath = outPath
