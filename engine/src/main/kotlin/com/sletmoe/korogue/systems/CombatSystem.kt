@@ -4,6 +4,8 @@ import com.sletmoe.korogue.components.AttackIntent
 import com.sletmoe.korogue.components.Health
 import com.sletmoe.korogue.components.Named
 import com.sletmoe.korogue.components.Player
+import com.sletmoe.korogue.components.Position
+import com.sletmoe.korogue.components.Renderable
 import com.sletmoe.korogue.ecs.System
 import com.sletmoe.korogue.ecs.TickContext
 import com.sletmoe.korogue.ecs.World
@@ -31,7 +33,8 @@ class CombatSystem(
             val updated =
                 world.update<Health>(targetId) { it.copy(current = (it.current - damage).coerceAtLeast(0)) }
                     ?: continue
-            world.events.publish(EntityDamaged(targetId, attacker.id, damage, updated.current))
+            val position = world.get(targetId)?.get<Position>()?.point
+            world.events.publish(EntityDamaged(targetId, attacker.id, damage, updated.current, position))
         }
 
         world
@@ -39,7 +42,16 @@ class CombatSystem(
             .filter { it.require<Health>().dead && !it.has<Player>() }
             .toList()
             .forEach {
-                world.events.publish(EntityDied(it.id, it.get<Named>()?.name))
+                val renderable = it.get<Renderable>()
+                world.events.publish(
+                    EntityDied(
+                        it.id,
+                        it.get<Named>()?.name,
+                        position = it.get<Position>()?.point,
+                        glyph = renderable?.glyph,
+                        color = renderable?.color,
+                    ),
+                )
                 world.despawn(it.id)
             }
     }
