@@ -37,6 +37,8 @@ import com.sletmoe.korogue.perception.Perceived
 import com.sletmoe.korogue.perception.Sight
 import com.sletmoe.korogue.perception.SightSense
 import com.sletmoe.korogue.perception.StandardPerception
+import com.sletmoe.korogue.presentation.EventAnimationQueue
+import com.sletmoe.korogue.presentation.VisualEvent
 import com.sletmoe.korogue.random.GameRandom
 import com.sletmoe.korogue.registry.GameModule
 import com.sletmoe.korogue.save.SaveCodec
@@ -165,6 +167,14 @@ class MyGame(
     private lateinit var lightingSystem: LightingSystem
     private lateinit var perceptionSystem: PerceptionSystem
 
+    // Presentation-side, wall-clock visual sequences triggered by game events (krogue-wuq):
+    // hit-flash/death-fade today, driven from [wireAnimations]. Never touches game state or saves.
+    private val animationQueue = EventAnimationQueue()
+
+    // The elapsedMs [drawFrame] is running with this frame; [MapPanel]'s decorate hook reads it to
+    // draw [animationQueue] at the right point in its sequence (set once at the top of drawFrame).
+    private var animationClockMs: Long = 0L
+
     /** The open modal dialog (system menu / game over), or null. Tracked so it can be closed. */
     private var modalDialog: Dialog? = null
     private var gameOverShown = false
@@ -252,6 +262,10 @@ class MyGame(
 
     override fun onTick(deltaMs: Long) {
         if (ui.hasModal) return // a dialog (menu / game over) is up: pause the world
+        // A visual sequence (hit-flash/death-fade) is playing: pause the world so the player sees
+        // it land before acting again (krogue-wuq). Mirrors the modal-dialog pause above; presentation
+        // time (animationQueue.update, in drawFrame) keeps advancing regardless.
+        if (animationQueue.isPlaying) return
         // The loop decides whether this frame advances the world: turn-based ticks once per player
         // move (requestTurn from intendMove); real-time ticks at a fixed timestep, accumulating
         // deltaMs so speed is FPS-independent (krogue-k7q). A tick runs all systems (BehaviorSystem
@@ -264,6 +278,8 @@ class MyGame(
     }
 
     override fun drawFrame(elapsedMs: Long) {
+        animationClockMs = elapsedMs
+        animationQueue.update(elapsedMs)
         window.clear()
         ui.render()
         window.render(elapsedMs)
@@ -295,6 +311,7 @@ class MyGame(
                 bounds = mapRect,
                 gameWorld = world,
                 fogFor = { zone -> zoneFog.forZone(zone.zoneId, zone.width, zone.height) },
+                decorate = { surface, camera -> animationQueue.render(surface, camera, animationClockMs) },
             ),
         )
 
@@ -302,6 +319,7 @@ class MyGame(
         ui.add(logPanel)
         ui.add(InventoryPanel(inventoryRect) { playerItems() })
         wireLog()
+        wireAnimations()
 
         // A bottom status strip: a bordered frame with the player's HP bar inside it.
         ui.add(Frame(statusRect, title = "Status"))
@@ -341,8 +359,32 @@ class MyGame(
 
     private fun nameOf(id: EntityId): String = world.ecs.get(id)?.get<Named>()?.name ?: "something"
 
+    /**
+     * Subscribes [animationQueue] to the current world's event bus (krogue-wuq), the same seam
+     * [wireLog] uses: a hit flashes at the target's (snapshotted) position, a death fades the
+     * deceased's own glyph/color out. Re-subscribed per [buildUi] like [wireLog].
+     */
+    private fun wireAnimations() {
+        world.ecs.events.subscribe<EntityDamaged> { event ->
+            val at = event.position ?: return@subscribe
+            animationQueue.enqueue(VisualEvent.HitFlash(at))
+        }
+        world.ecs.events.subscribe<EntityDied> { event ->
+            val at = event.position ?: return@subscribe
+            animationQueue.enqueue(
+                VisualEvent.DeathFade(at, event.glyph ?: '%', event.color?.toColor() ?: Color.GRAY),
+            )
+        }
+    }
+
     override fun onKeyDown(keycode: Int) {
         if (ui.handleKey(keycode)) return // a modal/widget consumed it; don't treat as gameplay
+        // A visual sequence is playing: any key fast-forwards past it rather than acting as gameplay
+        // (krogue-wuq's skip/fast-forward requirement).
+        if (animationQueue.isPlaying) {
+            animationQueue.skip()
+            return
+        }
         when (keycode) {
             Input.Keys.LEFT -> intendMove(-1, 0)
             Input.Keys.RIGHT -> intendMove(1, 0)
@@ -448,6 +490,9 @@ class MyGame(
         zoneFog.restore(loaded.fog)
         scheduler.restore(loaded.schedule)
         playerId = world.ecs.entitiesWith<Player>().first().id
+        // A sequence mid-play (krogue-wuq) is animating positions in the world being replaced;
+        // its coordinates would otherwise resolve against the loaded zone's camera next frame.
+        animationQueue.clear()
         registerSystems()
         buildUi()
         primeLighting()

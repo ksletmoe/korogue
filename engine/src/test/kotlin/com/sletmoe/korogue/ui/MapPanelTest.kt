@@ -73,7 +73,8 @@ class MapPanelTest : FunSpec({
     fun panel(
         gw: GameWorld,
         fog: Grid<Boolean> = Grid(6, 6, false),
-    ) = MapPanel(IntRect(0, 0, 6, 6), gw, { fog })
+        decorate: (TileSurface, MapCamera) -> Unit = { _, _ -> },
+    ) = MapPanel(IntRect(0, 0, 6, 6), gw, { fog }, decorate = decorate)
 
     test("the observer is always drawn at its camera-centred cell, even perceiving nothing") {
         val surface = RecordingSurface(6, 6)
@@ -83,6 +84,27 @@ class MapPanelTest : FunSpec({
         val drawn = surface.top(2, 2).shouldNotBeNull()
         drawn.glyph shouldBe '@'
         drawn.z shouldBe RenderLayer.PLAYER.zIndex
+    }
+
+    test("decorate runs after terrain/occupants, with the same camera the panel just drew") {
+        val surface = RecordingSurface(6, 6)
+        var capturedCamera: MapCamera? = null
+        var puttsAtDecorateTime = -1
+
+        panel(
+            world().first,
+            decorate = { s, camera ->
+                capturedCamera = camera
+                puttsAtDecorateTime = (s as RecordingSurface).puts.size
+            },
+        ).draw(surface)
+
+        capturedCamera.shouldNotBeNull()
+        // The observer is at (2, 2), centred in a 6x6 viewport on a 6x6 zone -> origin (0, 0).
+        capturedCamera!!.screenX(2) shouldBe 2
+        capturedCamera!!.screenY(2) shouldBe 2
+        // decorate saw the writes terrain/occupants already made this frame (ran after them).
+        (puttsAtDecorateTime > 0) shouldBe true
     }
 
     test("terrain is drawn only where the observer perceives it") {

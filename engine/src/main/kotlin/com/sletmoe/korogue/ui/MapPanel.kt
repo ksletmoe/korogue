@@ -58,6 +58,11 @@ class MapPanel(
     // background stays engine-computed (see [backgroundAt]) so a remapped occupant can't desync from
     // the terrain tint beneath it. (krogue-7tx will extend this to remembered/unperceived occupants.)
     private val occupantRenderer: (OccupantRender) -> RenderedGlyph? = DEFAULT_OCCUPANT_RENDERER,
+    // Presentation-only extra draw pass after terrain/occupants, given this frame's [MapCamera] so
+    // it shares the exact viewport the map just drew (krogue-wuq's event-animation queue is the
+    // first consumer: it renders its current sequence, world position -> screen, through here).
+    // No-op by default.
+    private val decorate: (TileSurface, MapCamera) -> Unit = { _, _ -> },
 ) : Widget {
     override fun draw(surface: TileSurface) {
         val zone = gameWorld.currentZone
@@ -74,6 +79,7 @@ class MapPanel(
 
         drawTerrain(surface, zone, fog, perceived, camera)
         drawOccupants(surface, zone, observer, perceived, camera)
+        decorate(surface, camera)
     }
 
     /** Mark every currently-perceived cell as remembered, so it stays drawn (dimmed) once out of view. */
