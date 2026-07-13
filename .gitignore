@@ -53,3 +53,8 @@ krogue-save.cbor
 
 # Beads / Dolt files (added by bd init)
 *.db
+
+# DawnLike tileset (CC-BY 4.0, not vendored) — fetched by demo/scripts/fetch-dawnlike.sh
+demo/assets/dawnlike/*
+!demo/assets/dawnlike/.gitkeep
+!demo/assets/dawnlike/ATTRIBUTION.md
