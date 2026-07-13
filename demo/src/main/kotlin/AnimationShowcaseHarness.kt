@@ -181,6 +181,15 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
     private val spriteProjectileQueue = EventAnimationQueue()
     private val glyphProjectileQueue = EventAnimationQueue()
 
+    // Separate queues (not sharing spriteProjectileQueue/glyphProjectileQueue) because a single
+    // EventAnimationQueue only ever plays one sequence at a time -- the hit-flash and the
+    // projectile's own flight need to render on the SAME frames as each other on impact, and the
+    // floating damage number and flash need to render simultaneously too, so each gets its own
+    // independent lane (maybeFireImpactEffects fires all of them at once).
+    private val spriteFlashQueue = EventAnimationQueue()
+    private val glyphFlashQueue = EventAnimationQueue()
+    private val spriteDamageTextQueue = EventAnimationQueue()
+
     // Identity mapping (origin at 0,0): this demo's grid columns are already absolute, so a
     // camera with no offset resolves EventAnimationQueue's "zone" positions straight through to
     // WindowSurface's/canvas's real columns -- no translation needed for either half.
@@ -189,6 +198,8 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
 
     private var elapsedMs = 0L
     private var firedCycle = -1L
+    private var impactAtMs = -1L
+    private var impactFired = false
     private var frame = 0
 
     override fun create() {
@@ -348,7 +359,13 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
         )
 
         val (scorpionSheet, scorpionCell) = DawnLikeCreatureTiles.SCORPION
-        val scorpionTint = litTint(SPRITE_SCORPION_COL, MID_ROW, SPRITE_TORCH_POSITIONS, elapsedMs)
+        // While spriteFlashQueue is playing (it only ever holds a HitFlash on the scorpion's own
+        // cell, see maybeFireImpactEffects), replace the scorpion's usual ambient-lit tint with
+        // the flash's color so the creature itself visibly flashes -- rather than drawing a
+        // separate opaque quad over it via HitFlashSequence's own generic renderSprite (which
+        // would hide the sprite instead of flashing it).
+        val flashColor = (spriteFlashQueue.currentEvent as? VisualEvent.HitFlash)?.color
+        val scorpionTint = flashColor ?: litTint(SPRITE_SCORPION_COL, MID_ROW, SPRITE_TORCH_POSITIONS, elapsedMs)
         overlayRenderer.drawTile(
             SPRITE_SCORPION_COL,
             MID_ROW,
@@ -371,6 +388,8 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
         val cycle = fireElapsedMs / PROJECTILE_CYCLE_MS
         if (cycle == firedCycle) return
         firedCycle = cycle
+        impactAtMs = fireElapsedMs + PROJECTILE_FLIGHT_MS
+        impactFired = false
 
         val arrowRegion = ammoSheet.region(DawnLikeAmmoTiles.ARROW.sheetX, DawnLikeAmmoTiles.ARROW.sheetY)
         spriteProjectileQueue.enqueue(
@@ -414,6 +433,32 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
                 },
             ),
         )
+    }
+
+    /**
+     * Fires the impact effects (hit-flash both sides, plus a floating damage number on the
+     * sprite side) once [impactAtMs] (set by [maybeFireProjectiles] to the shot's landing moment)
+     * has passed -- not at fire time, since the projectile takes [PROJECTILE_FLIGHT_MS] to arrive.
+     * [impactFired] guards against re-firing on every subsequent frame once it's past.
+     */
+    private fun maybeFireImpactEffects(nowMs: Long) {
+        if (impactFired || impactAtMs < 0 || nowMs < impactAtMs) return
+        impactFired = true
+
+        val scorpionCell = Vector2Int(SPRITE_SCORPION_COL, MID_ROW)
+        spriteFlashQueue.enqueue(VisualEvent.HitFlash(at = scorpionCell))
+        spriteDamageTextQueue.enqueue(
+            VisualEvent.FloatingText(
+                at = scorpionCell,
+                text = "-4",
+                font = font,
+                charWidthPx = canvas.layout.tileWidthPx * 0.6f,
+                charHeightPx = canvas.layout.tileHeightPx * 0.6f,
+            ),
+        )
+
+        val monsterCell = Vector2Int(GLYPH_MONSTER_COL, MID_ROW)
+        glyphFlashQueue.enqueue(VisualEvent.HitFlash(at = monsterCell))
     }
 
     /**
@@ -533,21 +578,30 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
         // flicker/bounce animate at their actual configured speed (Game.render's convention).
         elapsedMs += if (outPath != null) STEP_MS else (Gdx.graphics.deltaTime * 1000).toLong()
         maybeFireProjectiles(elapsedMs)
+        maybeFireImpactEffects(elapsedMs)
         spriteProjectileQueue.update(elapsedMs)
         glyphProjectileQueue.update(elapsedMs)
+        spriteFlashQueue.update(elapsedMs)
+        glyphFlashQueue.update(elapsedMs)
+        spriteDamageTextQueue.update(elapsedMs)
 
-        // glyphProjectileQueue draws on RenderLayer.OVERLAY's z-band (3), separate from
-        // buildGlyphRoom's z=0 floor/wall/combatants -- without this, a shot's previous cells
+        // glyphProjectileQueue/glyphFlashQueue draw on RenderLayer.OVERLAY's z-band (3), separate
+        // from buildGlyphRoom's z=0 floor/wall/combatants -- without this, a shot's previous cells
         // never get overwritten as it moves (the real game avoids this the same way, clearing the
         // whole window once per frame in MyGame.drawFrame before redrawing).
         asciiWindow.clear()
         buildSpriteRoom(elapsedMs)
         buildGlyphRoom(elapsedMs)
         glyphProjectileQueue.render(glyphSurface, demoCamera, elapsedMs) // queues the dash, composited below
+        glyphFlashQueue.render(glyphSurface, demoCamera, elapsedMs) // queues the monster's hit-flash
         floorRenderer.render(elapsedMs)
         wallRenderer.render(elapsedMs)
         overlayRenderer.render(elapsedMs)
-        spriteProjectileQueue.renderSprite(canvas, demoCamera, elapsedMs) // immediate draw, on top of creatures
+        // Immediate draws, in painter's order on top of the creatures. spriteFlashQueue itself is
+        // not drawn here — buildSpriteRoom already read its currentEvent to re-tint the scorpion's
+        // own sprite instead, which is why it's still update()d above but never renderSprite()d.
+        spriteProjectileQueue.renderSprite(canvas, demoCamera, elapsedMs)
+        spriteDamageTextQueue.renderSprite(canvas, demoCamera, elapsedMs)
         asciiWindow.render(elapsedMs)
 
         val snapshotPath = outPath

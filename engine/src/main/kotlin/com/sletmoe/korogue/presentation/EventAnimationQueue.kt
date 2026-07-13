@@ -24,17 +24,28 @@ import com.sletmoe.kotile.display.KotileCanvas
  * 4. Offer [skip] on a keypress so a sequence can be fast-forwarded past.
  */
 class EventAnimationQueue {
-    private val pending = ArrayDeque<VisualSequence>()
-    private var current: VisualSequence? = null
+    private data class Entry(val event: VisualEvent, val sequence: VisualSequence)
+
+    private val pending = ArrayDeque<Entry>()
+    private var current: Entry? = null
     private var currentStartMs: Long = 0L
 
     /** True while a sequence is playing or queued — callers gate turn-advancing input on this. */
     val isPlaying: Boolean
         get() = current != null || pending.isNotEmpty()
 
+    /**
+     * The [VisualEvent] currently playing, or `null` if nothing is. Lets a caller inspect what's
+     * actually happening beyond just [isPlaying] — e.g. re-tinting a creature's own sprite to a
+     * [VisualEvent.HitFlash]'s color while it plays, rather than relying on [renderSprite]'s
+     * generic (whole-cell) rendering of it.
+     */
+    val currentEvent: VisualEvent?
+        get() = current?.event
+
     /** Queues [event]'s sequence to play once any already-queued sequences finish. */
     fun enqueue(event: VisualEvent) {
-        pending.addLast(event.toSequence())
+        pending.addLast(Entry(event, event.toSequence()))
     }
 
     /**
@@ -43,7 +54,7 @@ class EventAnimationQueue {
      */
     fun update(nowMs: Long) {
         val head = current
-        if (head != null && nowMs - currentStartMs >= head.durationMs) current = null
+        if (head != null && nowMs - currentStartMs >= head.sequence.durationMs) current = null
         if (current == null && pending.isNotEmpty()) {
             current = pending.removeFirst()
             currentStartMs = nowMs
@@ -57,7 +68,7 @@ class EventAnimationQueue {
         nowMs: Long,
     ) {
         val head = current ?: return
-        head.render(surface, camera, nowMs - currentStartMs)
+        head.sequence.render(surface, camera, nowMs - currentStartMs)
     }
 
     /**
@@ -74,7 +85,7 @@ class EventAnimationQueue {
     ) {
         val head = current ?: return
         canvas.begin()
-        head.renderSprite(canvas, camera, nowMs - currentStartMs)
+        head.sequence.renderSprite(canvas, camera, nowMs - currentStartMs)
         canvas.end()
     }
 

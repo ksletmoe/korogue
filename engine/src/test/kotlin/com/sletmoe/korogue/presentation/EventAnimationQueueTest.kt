@@ -28,6 +28,21 @@ class EventAnimationQueueTest : FunSpec({
         surface.puts shouldBe emptyList()
     }
 
+    test("currentEvent is null when idle, the playing event once promoted, and null again once it expires") {
+        val queue = EventAnimationQueue()
+        queue.currentEvent.shouldBeNull()
+
+        val event = VisualEvent.HitFlash(Vector2Int(1, 1), Color.RED, durationMs = 50L)
+        queue.enqueue(event)
+        queue.currentEvent.shouldBeNull() // not promoted until the first update
+
+        queue.update(0L)
+        queue.currentEvent shouldBe event
+
+        queue.update(50L) // duration elapsed, nothing queued behind it
+        queue.currentEvent.shouldBeNull()
+    }
+
     test("an enqueued sequence starts playing on the next update and draws at its cell") {
         val queue = EventAnimationQueue()
         queue.enqueue(VisualEvent.HitFlash(Vector2Int(3, 4), Color.RED, durationMs = 100L))
@@ -128,5 +143,44 @@ class EventAnimationQueueTest : FunSpec({
         val end = RecordingSurface(10, 10)
         sequence.render(end, camera, 100L)
         end.top(4, 0).shouldNotBeNull()
+    }
+
+    test("a projectile with a path steps through the path's cells instead of interpolating directly") {
+        val path = listOf(Vector2Int(0, 0), Vector2Int(1, 0), Vector2Int(1, 1), Vector2Int(2, 1))
+        val event = VisualEvent.Projectile(Vector2Int(0, 0), Vector2Int(2, 1), '/', durationMs = 100L, path = path)
+        val sequence = event.toSequence()
+
+        val secondCell = RecordingSurface(10, 10)
+        sequence.render(secondCell, camera, 26L) // just past 1/4 of the way -> path index 1
+        secondCell.top(1, 0).shouldNotBeNull()
+
+        val end = RecordingSurface(10, 10)
+        sequence.render(end, camera, 100L)
+        end.top(2, 1).shouldNotBeNull()
+    }
+
+    test("a projectile's backgroundAt callback supplies the background color, not flat black") {
+        val event =
+            VisualEvent.Projectile(
+                Vector2Int(0, 0),
+                Vector2Int(4, 0),
+                '/',
+                durationMs = 100L,
+                backgroundAt = { _, _ -> Color.BLUE },
+            )
+        val sequence = event.toSequence()
+
+        val surface = RecordingSurface(10, 10)
+        sequence.render(surface, camera, 0L)
+        surface.top(0, 0)!!.bg shouldBe Color.BLUE
+    }
+
+    test("a projectile with no backgroundAt callback keeps the flat-black background") {
+        val event = VisualEvent.Projectile(Vector2Int(0, 0), Vector2Int(4, 0), '/', durationMs = 100L)
+        val sequence = event.toSequence()
+
+        val surface = RecordingSurface(10, 10)
+        sequence.render(surface, camera, 0L)
+        surface.top(0, 0)!!.bg shouldBe Color.BLACK
     }
 })

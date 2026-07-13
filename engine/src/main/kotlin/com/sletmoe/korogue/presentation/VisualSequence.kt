@@ -1,6 +1,9 @@
 package com.sletmoe.korogue.presentation
 
 import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.Pixmap
+import com.badlogic.gdx.graphics.Texture
+import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.sletmoe.korogue.components.RenderLayer
 import com.sletmoe.korogue.ui.MapCamera
 import com.sletmoe.korogue.ui.TileSurface
@@ -49,9 +52,10 @@ fun VisualEvent.toSequence(): VisualSequence =
         is VisualEvent.DeathFade -> DeathFadeSequence(this)
         is VisualEvent.Projectile -> ProjectileSequence(this)
         is VisualEvent.SpriteProjectile -> SpriteProjectileSequence(this)
+        is VisualEvent.FloatingText -> FloatingTextSequence(this)
     }
 
-/** [VisualEvent.HitFlash] draws solid for its whole (short) duration. */
+/** [VisualEvent.HitFlash] draws solid for its whole (short) duration, on both render seams. */
 private class HitFlashSequence(private val event: VisualEvent.HitFlash) : VisualSequence {
     override val durationMs: Long get() = event.durationMs
 
@@ -63,8 +67,44 @@ private class HitFlashSequence(private val event: VisualEvent.HitFlash) : Visual
         putAt(surface, camera, event.at, HIT_GLYPH, event.color)
     }
 
+    /** A solid [event.color]-tinted quad over the cell — there's no specific "flash" art, just a flat wash. */
+    override fun renderSprite(
+        canvas: KotileCanvas,
+        camera: MapCamera,
+        elapsedMs: Long,
+    ) {
+        val screenX = camera.screenX(event.at.x)
+        val screenY = camera.screenY(event.at.y)
+        if (!camera.containsScreen(screenX, screenY)) return
+        val l = canvas.layout
+        canvas.drawSprite(
+            pxX = screenX * l.tileWidthPx,
+            pxY = screenY * l.tileHeightPx,
+            region = solidWhiteRegion(),
+            w = l.tileWidthPx,
+            h = l.tileHeightPx,
+            tint = event.color,
+        )
+    }
+
     private companion object {
         const val HIT_GLYPH = '*'
+
+        // Lazily created on first sprite-mode hit-flash and reused forever after: a flash is a
+        // solid tint, not specific art, so one shared 1x1 white texture (tinted per-draw via
+        // Color) covers every use instead of allocating GPU resources per event. Never disposed
+        // — process-lifetime, like the shared batch/shaders KotileCanvas itself keeps.
+        private var whiteRegion: TextureRegion? = null
+
+        fun solidWhiteRegion(): TextureRegion {
+            whiteRegion?.let { return it }
+            val pixmap = Pixmap(1, 1, Pixmap.Format.RGBA8888)
+            pixmap.setColor(Color.WHITE)
+            pixmap.fill()
+            val texture = Texture(pixmap)
+            pixmap.dispose()
+            return TextureRegion(texture).also { whiteRegion = it }
+        }
     }
 }
 
@@ -165,6 +205,46 @@ private class SpriteProjectileSequence(private val event: VisualEvent.SpriteProj
             tint = event.tint,
             rotationDeg = rotationDeg,
         )
+    }
+}
+
+/**
+ * [VisualEvent.FloatingText] rising and fading above [event]'s cell over [durationMs] — sprite-
+ * space only (see the event's own doc comment for why there's no glyph counterpart).
+ */
+private class FloatingTextSequence(private val event: VisualEvent.FloatingText) : VisualSequence {
+    override val durationMs: Long get() = event.durationMs
+
+    override fun renderSprite(
+        canvas: KotileCanvas,
+        camera: MapCamera,
+        elapsedMs: Long,
+    ) {
+        val screenX = camera.screenX(event.at.x)
+        val screenY = camera.screenY(event.at.y)
+        if (!camera.containsScreen(screenX, screenY)) return
+
+        val l = canvas.layout
+        val t = (elapsedMs.toFloat() / event.durationMs).coerceIn(0f, 1f)
+        val riseOffsetPx = event.riseDistancePx * t
+        val tint = event.color.cpy().also { it.a *= 1f - t }
+
+        val totalWidthPx = event.charWidthPx * event.text.length
+        var pxX = (screenX + 0.5f) * l.tileWidthPx - totalWidthPx / 2f
+        val pxY = screenY * l.tileHeightPx - event.charHeightPx - riseOffsetPx
+
+        for (character in event.text) {
+            val region = event.font.glyph(character) ?: continue
+            canvas.drawSprite(
+                pxX = pxX,
+                pxY = pxY,
+                region = region,
+                w = event.charWidthPx,
+                h = event.charHeightPx,
+                tint = tint,
+            )
+            pxX += event.charWidthPx
+        }
     }
 }
 
