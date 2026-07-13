@@ -116,6 +116,9 @@ private const val PROJECTILE_CYCLE_MS = 1800L // flight + pause before the next 
 // (see KotileCanvas.drawSprite's own doc note and kotile:demo's RotationHarness).
 private const val ARROW_NATIVE_BEARING_DEG = 135f
 
+/** The glyph-side arrow's own (unlit) foreground color -- a light tan, matching a wooden shaft. */
+private val ARROW_GLYPH_COLOR = Color(0.82f, 0.71f, 0.55f, 1f)
+
 // Torches are now 12 cols apart (was 6). Radius bumped ~10% from the previous 7.0.
 private const val LIGHT_RADIUS = 7.7
 
@@ -155,6 +158,13 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
 
     private val lightCalculator = DiminishingLightValueCalculator()
     private val torchLightColor = Color(1f, 0.92f, 0.72f, 1f).toNormalizedRgb()
+
+    // A thin '.' glyph covers little of its cell, so tinting only the foreground barely reads as
+    // a glow (unlike the sprite side's fully-opaque stone). A lit background wash -- dim
+    // everywhere, brighter near a torch -- makes the same falloff visible here too. Class-level
+    // (not local to buildGlyphRoom) so maybeFireProjectiles can give the glyph arrow's own
+    // background the same treatment via VisualEvent.Projectile.backgroundAt.
+    private val floorGlowBase = Color(0.16f, 0.13f, 0.08f, 1f)
 
     // krogue-ncl's real presentation-side flicker (engine/algorithms/lighting), reused as-is —
     // one shape shared by every torch, but each torch reads it at its own offset (via
@@ -351,14 +361,14 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
 
     /**
      * Fires a shot on both halves' queues at once, once per [PROJECTILE_CYCLE_MS] wall-clock
-     * window (`elapsedMs / PROJECTILE_CYCLE_MS` ticking over to a new value marks a fresh window,
-     * so this fires exactly once per window regardless of frame-timing jitter). Enqueuing both
-     * [VisualEvent.SpriteProjectile] and [VisualEvent.Projectile] at the same [elapsedMs] with the
-     * same [PROJECTILE_FLIGHT_MS] duration is what keeps the two independent queues in lockstep —
-     * not anything about how each renders.
+     * window (`fireElapsedMs / PROJECTILE_CYCLE_MS` ticking over to a new value marks a fresh
+     * window, so this fires exactly once per window regardless of frame-timing jitter). Enqueuing
+     * both [VisualEvent.SpriteProjectile] and [VisualEvent.Projectile] at the same
+     * [fireElapsedMs] with the same [PROJECTILE_FLIGHT_MS] duration is what keeps the two
+     * independent queues in lockstep — not anything about how each renders.
      */
-    private fun maybeFireProjectiles(elapsedMs: Long) {
-        val cycle = elapsedMs / PROJECTILE_CYCLE_MS
+    private fun maybeFireProjectiles(fireElapsedMs: Long) {
+        val cycle = fireElapsedMs / PROJECTILE_CYCLE_MS
         if (cycle == firedCycle) return
         firedCycle = cycle
 
@@ -370,20 +380,38 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
                 region = arrowRegion,
                 durationMs = PROJECTILE_FLIGHT_MS,
                 nativeBearingDeg = ARROW_NATIVE_BEARING_DEG,
+                // A full tile, not half: the arrow sprite itself spans a full tile centered on
+                // its position, so stopping its *center* half a tile short only brings its
+                // leading *edge* to the scorpion's center -- still overlapping. A full tile short
+                // brings the arrow's edge to roughly the scorpion's own leading edge instead.
+                stopShortPx = canvas.layout.tileWidthPx,
             ),
         )
 
         val glyphFrom = Vector2Int(GLYPH_PLAYER_COL, MID_ROW)
         val glyphTo = Vector2Int(GLYPH_MONSTER_COL, MID_ROW)
+        // No real Zone/blockers in this scripted demo, so lineOfCellsStoppingAtBlocker never
+        // stops the bolt early -- but it still exercises the real stopping-capable line-walk
+        // utility. dropLast(1) is a separate, demo-specific rule on top: the monster occupies
+        // glyphTo itself, so the bolt should stop one cell short of it (the sprite side's
+        // stopShortPx equivalent), not step onto its tile.
+        val fullGlyphPath = lineOfCellsStoppingAtBlocker(glyphFrom, glyphTo) { false }
+        val glyphPath = if (fullGlyphPath.size > 1) fullGlyphPath.dropLast(1) else fullGlyphPath
         glyphProjectileQueue.enqueue(
             VisualEvent.Projectile(
                 from = glyphFrom,
                 to = glyphTo,
                 glyph = '-',
+                color = ARROW_GLYPH_COLOR,
                 durationMs = PROJECTILE_FLIGHT_MS,
-                // No real Zone/blockers in this scripted demo, so nothing ever stops the bolt
-                // early -- but it still exercises the real stopping-capable line-walk utility.
-                path = lineOfCellsStoppingAtBlocker(glyphFrom, glyphTo) { false },
+                path = glyphPath,
+                // Matches the floor's own lit-background wash instead of ProjectileSequence's
+                // default flat black. `fireElapsedMs + sequenceElapsedMs` reconstructs the
+                // absolute clock buildGlyphRoom's own litColor calls use, since the sequence only
+                // ever sees time relative to its own start.
+                backgroundAt = { cell, sequenceElapsedMs ->
+                    litColor(floorGlowBase, cell.x, cell.y, GLYPH_TORCH_POSITIONS, fireElapsedMs + sequenceElapsedMs)
+                },
             ),
         )
     }
@@ -437,10 +465,6 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
     private fun buildGlyphRoom(elapsedMs: Long) {
         val wallColor = Color(0.55f, 0.55f, 0.6f, 1f)
         val floorColor = Color(0.35f, 0.32f, 0.3f, 1f)
-        // A thin '.' glyph covers little of its cell, so tinting only the foreground barely reads
-        // as a glow (unlike the sprite side's fully-opaque stone). A lit background wash — dim
-        // everywhere, brighter near a torch — makes the same falloff visible here too.
-        val floorGlowBase = Color(0.16f, 0.13f, 0.08f, 1f)
         for (x in SPRITE_COLS until TOTAL_COLS) {
             for (y in 0 until ROWS) {
                 val lit = litColor(floorColor, x, y, GLYPH_TORCH_POSITIONS, elapsedMs)

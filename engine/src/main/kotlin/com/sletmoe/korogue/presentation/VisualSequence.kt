@@ -8,6 +8,7 @@ import com.sletmoe.kotile.display.KotileCanvas
 import com.sletmoe.kotile.rendering.rotationTowards
 import com.sletmoe.kotile.utilities.Vector2Int
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 /**
  * One running [VisualEvent] translated into wall-clock draw calls. Stateless like
@@ -105,7 +106,8 @@ private class ProjectileSequence(private val event: VisualEvent.Projectile) : Vi
             } else {
                 path[(t * path.size).toInt().coerceIn(0, path.size - 1)]
             }
-        putAt(surface, camera, at, event.glyph, event.color)
+        val bg = event.backgroundAt?.invoke(at, elapsedMs) ?: Color.BLACK
+        putAt(surface, camera, at, event.glyph, event.color, bg)
     }
 }
 
@@ -114,6 +116,10 @@ private class ProjectileSequence(private val event: VisualEvent.Projectile) : Vi
  * [KotileCanvas.drawSprite] (krogue-2ua), the pixel-space counterpart to [ProjectileSequence]'s
  * free-form mode. [VisualEvent.SpriteProjectile.nativeBearingDeg] compensates for source art that
  * isn't drawn pointing along `+X`, so the final rotation still faces the true travel direction.
+ * [VisualEvent.SpriteProjectile.stopShortPx], if set, shrinks the travelled distance (not the
+ * duration) so the sprite reaches [event]'s full travel bearing but stops short of [to]'s cell
+ * center — the shot still lands at the same wall-clock moment, just visibly outside its target's
+ * cell rather than on top of it.
  */
 private class SpriteProjectileSequence(private val event: VisualEvent.SpriteProjectile) : VisualSequence {
     override val durationMs: Long get() = event.durationMs
@@ -130,16 +136,26 @@ private class SpriteProjectileSequence(private val event: VisualEvent.SpriteProj
         val fromPxY = (fromScreen.y + 0.5f) * l.tileHeightPx
         val toPxX = (toScreen.x + 0.5f) * l.tileWidthPx
         val toPxY = (toScreen.y + 0.5f) * l.tileHeightPx
+        val fullDx = toPxX - fromPxX
+        val fullDy = toPxY - fromPxY
 
-        val t = (elapsedMs.toFloat() / event.durationMs).coerceIn(0f, 1f)
-        val pxX = fromPxX + (toPxX - fromPxX) * t
-        val pxY = fromPxY + (toPxY - fromPxY) * t
+        val fullDist = sqrt(fullDx * fullDx + fullDy * fullDy)
+        val travelFraction =
+            if (event.stopShortPx > 0f && fullDist > event.stopShortPx) {
+                (fullDist - event.stopShortPx) / fullDist
+            } else {
+                1f
+            }
+
+        val t = (elapsedMs.toFloat() / event.durationMs).coerceIn(0f, 1f) * travelFraction
+        val pxX = fromPxX + fullDx * t
+        val pxY = fromPxY + fullDy * t
 
         val screenX = (pxX / l.tileWidthPx).toInt()
         val screenY = (pxY / l.tileHeightPx).toInt()
         if (!camera.containsScreen(screenX, screenY)) return
 
-        val rotationDeg = rotationTowards(toPxX - fromPxX, toPxY - fromPxY) - event.nativeBearingDeg
+        val rotationDeg = rotationTowards(fullDx, fullDy) - event.nativeBearingDeg
         canvas.drawSprite(
             pxX = pxX - l.tileWidthPx / 2f,
             pxY = pxY - l.tileHeightPx / 2f,
@@ -153,11 +169,11 @@ private class SpriteProjectileSequence(private val event: VisualEvent.SpriteProj
 }
 
 /**
- * Writes [glyph]/[color] at world cell [at] via [camera], on [RenderLayer.OVERLAY]'s z-band.
- * The overlay layer fully replaces (not blends) whatever the terrain/occupant layers drew at
- * that cell (top-cell-wins compositing), so the background is set to black rather than sampled
- * from beneath — a deliberate MVP simplification (no read-back API on [TileSurface]); acceptable
- * for a sub-second flash/fade/bolt, revisit if it looks wrong once ranged combat lands.
+ * Writes [glyph]/[color] at world cell [at] via [camera], on [RenderLayer.OVERLAY]'s z-band, with
+ * background [bg]. The overlay layer fully replaces (not blends) whatever the terrain/occupant
+ * layers drew at that cell (top-cell-wins compositing) — [bg] defaults to solid black rather than
+ * sampling from beneath (no read-back API on [TileSurface]); a caller that wants the background to
+ * match its terrain supplies one instead, e.g. via [VisualEvent.Projectile.backgroundAt].
  */
 private fun putAt(
     surface: TileSurface,
@@ -165,9 +181,10 @@ private fun putAt(
     at: Vector2Int,
     glyph: Char,
     color: Color,
+    bg: Color = Color.BLACK,
 ) {
     val screenX = camera.screenX(at.x)
     val screenY = camera.screenY(at.y)
     if (!camera.containsScreen(screenX, screenY)) return
-    surface.put(screenX, screenY, RenderLayer.OVERLAY.zIndex, glyph, color, Color.BLACK)
+    surface.put(screenX, screenY, RenderLayer.OVERLAY.zIndex, glyph, color, bg)
 }
