@@ -20,6 +20,7 @@ import com.sletmoe.korogue.presentation.VisualEffectPool
 import com.sletmoe.korogue.presentation.VisualEvent
 import com.sletmoe.korogue.ui.MapCamera
 import com.sletmoe.korogue.ui.WindowSurface
+import com.sletmoe.kotile.display.BlendMode
 import com.sletmoe.kotile.display.KotileCanvas
 import com.sletmoe.kotile.display.ascii.AsciiTileDescriptor
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
@@ -187,6 +188,15 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
     // EventAnimationQueue's own doc comment says it isn't for (one sequence at a time, for
     // input-gating). VisualEffectPool (krogue-mhh) is the non-gating counterpart: one pool per
     // half holds every currently-active cosmetic effect independently.
+    //
+    // spriteFlashPool is query-only: buildSpriteRoom reads its activeEvents to re-tint the
+    // scorpion's own sprite and .renderSprite() is deliberately never called on it. The sprite's
+    // own transparent tile margins (padding around the DawnLike creature's silhouette) mean the
+    // opaque creature drawn afterward does NOT fully cover HitFlashSequence's generic quad -- an
+    // earlier version of this relied on that coverage and the quad showed through as a white
+    // border. spriteEffectPool remains for effects meant to be drawn generically (the floating
+    // damage number).
+    private val spriteFlashPool = VisualEffectPool()
     private val spriteEffectPool = VisualEffectPool()
     private val glyphEffectPool = VisualEffectPool()
 
@@ -359,25 +369,16 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
         )
 
         val (scorpionSheet, scorpionCell) = DawnLikeCreatureTiles.SCORPION
-        val scorpionCellPos = Vector2Int(SPRITE_SCORPION_COL, MID_ROW)
-        // While a HitFlash on the scorpion's own cell is active in spriteEffectPool (see
-        // maybeFireImpactEffects), replace its usual ambient-lit tint with the flash's color so
-        // the creature itself visibly flashes -- rather than drawing a separate opaque quad over
-        // it via HitFlashSequence's own generic renderSprite (which would hide the sprite instead
-        // of flashing it). filterIsInstance/firstOrNull since the pool also holds the floating
-        // damage number at the same time, unlike the single-slot queue this replaced.
-        val flashColor =
-            spriteEffectPool.activeEvents
-                .filterIsInstance<VisualEvent.HitFlash>()
-                .firstOrNull { it.at == scorpionCellPos }
-                ?.color
-        val scorpionTint = flashColor ?: litTint(SPRITE_SCORPION_COL, MID_ROW, SPRITE_TORCH_POSITIONS, elapsedMs)
+        val scorpionTint = litTint(SPRITE_SCORPION_COL, MID_ROW, SPRITE_TORCH_POSITIONS, elapsedMs)
         overlayRenderer.drawTile(
             SPRITE_SCORPION_COL,
             MID_ROW,
             z = 1,
             tile = creatureTile(scorpionSheet, scorpionCell, scorpionTint),
         )
+        // If a HitFlash is active on the scorpion's cell, drawScorpionFlashOverlay (called from
+        // render(), after this tile is actually composited) draws its sprite again with additive
+        // blending on top -- see that function's doc comment for why a tint alone can't do this.
         // The arrow itself is drawn separately by drawSpriteArrow, via canvas.drawSprite directly
         // rather than through this grid-locked renderer -- see its doc comment for why.
     }
@@ -452,7 +453,7 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
         impactFired = true
 
         val scorpionCell = Vector2Int(SPRITE_SCORPION_COL, MID_ROW)
-        spriteEffectPool.spawn(VisualEvent.HitFlash(at = scorpionCell), nowMs)
+        spriteFlashPool.spawn(VisualEvent.HitFlash(at = scorpionCell), nowMs)
         spriteEffectPool.spawn(
             VisualEvent.FloatingText(
                 at = scorpionCell,
@@ -507,6 +508,45 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
             mode = PlaybackMode.LOOP,
             tint = tint,
         )
+    }
+
+    /**
+     * If a [VisualEvent.HitFlash] is active on the scorpion's cell (in [spriteFlashPool], never
+     * itself `renderSprite()`'d -- see that field's doc comment), draws the scorpion's own sprite
+     * a second time on top, additively blended. A multiply [Color] tint can only ever reproduce a
+     * sprite's native colors (at best, `tint = WHITE`) or darken them -- GDX's `Color` also clamps
+     * every component to `[0, 1]`, so an over-bright tint isn't even representable -- so tinting
+     * the *first* draw can never brighten a dark pixel toward white. Additive blending
+     * ([BlendMode.ADDITIVE]) genuinely adds light instead, which is the only way to make a flash
+     * actually read as a flash rather than "the same creature, unchanged."
+     */
+    private fun drawScorpionFlashOverlay(elapsedMs: Long) {
+        val scorpionCellPos = Vector2Int(SPRITE_SCORPION_COL, MID_ROW)
+        spriteFlashPool.activeEvents
+            .filterIsInstance<VisualEvent.HitFlash>()
+            .firstOrNull { it.at == scorpionCellPos }
+            ?: return
+
+        val (sheetKind, cell) = DawnLikeCreatureTiles.SCORPION
+        val frameIndex = ((elapsedMs / ANIMATION_FRAME_MS) % 2).toInt()
+        val sheet =
+            when (sheetKind) {
+                DawnLikeCreatureTiles.Sheet.PLAYER -> if (frameIndex == 0) player0Sheet else player1Sheet
+                DawnLikeCreatureTiles.Sheet.PEST -> if (frameIndex == 0) pest0Sheet else pest1Sheet
+            }
+        val region = sheet.region(cell.x, cell.y)
+
+        val l = canvas.layout
+        canvas.begin()
+        canvas.drawSprite(
+            pxX = SPRITE_SCORPION_COL * l.tileWidthPx,
+            pxY = MID_ROW * l.tileHeightPx,
+            region = region,
+            w = l.tileWidthPx,
+            h = l.tileHeightPx,
+            blend = BlendMode.ADDITIVE,
+        )
+        canvas.end()
     }
 
     // -------------------------------------------------------------------------
@@ -588,6 +628,7 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
         maybeFireImpactEffects(elapsedMs)
         spriteProjectileQueue.update(elapsedMs)
         glyphProjectileQueue.update(elapsedMs)
+        spriteFlashPool.update(elapsedMs)
         spriteEffectPool.update(elapsedMs)
         glyphEffectPool.update(elapsedMs)
 
@@ -602,14 +643,15 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
         glyphEffectPool.render(glyphSurface, demoCamera, elapsedMs) // queues the monster's hit-flash
         floorRenderer.render(elapsedMs)
         wallRenderer.render(elapsedMs)
-        // spriteEffectPool draws before the creatures, not after: it holds both the scorpion's
-        // HitFlash (already read via activeEvents above, in buildSpriteRoom, to re-tint the
-        // scorpion's own sprite -- so its generic renderSprite here would be a redundant opaque
-        // quad, which the opaque creature drawn next fully covers) and the floating damage number
-        // (positioned in the row *above* the creature, so draw order never affects it either way).
-        spriteEffectPool.renderSprite(canvas, demoCamera, elapsedMs)
+        // spriteFlashPool is deliberately never generically renderSprite()'d here -- see its
+        // field doc comment and drawScorpionFlashOverlay's own doc comment for why it needs its
+        // own additive-blended draw instead, issued once the scorpion's normal tile is actually
+        // on screen. spriteEffectPool (the floating damage number, positioned in the row *above*
+        // the creature) is drawn on top of everything, same as the arrow.
         overlayRenderer.render(elapsedMs)
+        drawScorpionFlashOverlay(elapsedMs)
         spriteProjectileQueue.renderSprite(canvas, demoCamera, elapsedMs)
+        spriteEffectPool.renderSprite(canvas, demoCamera, elapsedMs)
         asciiWindow.render(elapsedMs)
 
         val snapshotPath = outPath
