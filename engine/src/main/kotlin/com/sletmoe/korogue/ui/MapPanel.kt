@@ -128,12 +128,19 @@ class MapPanel(
     ): Double {
         if (flickerSources.isEmpty()) return 1.0
         val coord = Vector2Int(x, y)
-        val nearest =
-            flickerSources
-                .filter { (origin, emitter) -> origin.distance(coord) <= emitter.radius }
-                .minByOrNull { (origin, _) -> origin.distance(coord) }
-                ?: return 1.0
-        return nearest.second.flicker!!.factorAt(elapsedMs)
+        // Manual loop, not filter{}.minByOrNull{} -- this runs once per visible cell and once per
+        // visible occupant, every frame, so an intermediate List per call here is real per-frame
+        // GC churn for a linear scan that doesn't need one (krogue-ojn).
+        var nearest: LightEmitter? = null
+        var nearestDist = Double.MAX_VALUE
+        for ((origin, emitter) in flickerSources) {
+            val dist = origin.distance(coord)
+            if (dist <= emitter.radius && dist < nearestDist) {
+                nearest = emitter
+                nearestDist = dist
+            }
+        }
+        return nearest?.flicker?.factorAt(elapsedMs) ?: 1.0
     }
 
     private fun drawTerrain(
