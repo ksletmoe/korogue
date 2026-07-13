@@ -14,8 +14,10 @@ import com.sletmoe.kotile.utilities.Vector2Int
  * `Objects/Decor1.png` loaded as separate `TileSheet`s, each contributing one
  * `AnimationFrame` region from [CELL].
  *
- * Frame 1 (`Decor0.png`) is the brighter, bigger flame; frame 2 (`Decor1.png`) is the smaller
- * one — cycling between the two on a short interval is the flicker.
+ * Despite the file order, `Decor1.png` holds the brighter, bigger flame (taller, more of the
+ * pale cream highlight) and `Decor0.png` the smaller, dimmer one — confirmed by inspecting the
+ * actual pixels at [CELL] in both files, not by file-name convention. Cycling between the two on
+ * a short interval is the flicker.
  */
 object DawnLikeTorchTile {
     /** (sheetX, sheetY) of the torch cell — identical in both Decor0.png and Decor1.png. */
