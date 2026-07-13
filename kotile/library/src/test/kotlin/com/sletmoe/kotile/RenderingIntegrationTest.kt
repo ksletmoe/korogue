@@ -21,6 +21,8 @@ import com.sletmoe.kotile.rendering.ScalePolicy
 import com.sletmoe.kotile.rendering.SpriteTileRenderer
 import com.sletmoe.kotile.rendering.UiLayer
 import com.sletmoe.kotile.rendering.Widget
+import com.sletmoe.kotile.tiles.AnimatedSpriteTile
+import com.sletmoe.kotile.tiles.AnimationFrame
 import com.sletmoe.kotile.tiles.StaticTile
 import com.sletmoe.kotile.tiles.TileSheet
 import io.kotest.core.spec.style.FunSpec
@@ -104,6 +106,73 @@ class RenderingIntegrationTest : FunSpec({
         avg.r.toDouble() shouldBe (0.3 plusOrMinus 0.1)
         avg.g.toDouble() shouldBe (0.0 plusOrMinus 0.1)
         avg.b.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+    }
+
+    test("TileRenderer applies an AnimatedSpriteTile's per-frame tint, not just its constant tint").config(
+        enabled = HeadlessGl.available,
+    ) {
+        // krogue-2ur: frame 0 has no override (renders at the tile's WHITE constant tint, i.e.
+        // the sheet's own blue); frame 1 overrides to green. Proves TileRenderer.renderGrid calls
+        // entry.tintFor(elapsedMs) — not the old constant entry.tint — for the Tile branch.
+        val pixels = HeadlessGl.render(8, 8, Color.BLACK) {
+            val tilePixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
+            tilePixmap.setColor(SHEET_BLUE)
+            tilePixmap.fill()
+            val file = File.createTempFile("kotile-shimmer", ".png").apply { deleteOnExit() }
+            PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), tilePixmap)
+            tilePixmap.dispose()
+
+            val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
+            val canvas = KotileCanvas(8, 8)
+            val renderer = SpriteTileRenderer(canvas, sheet)
+            val region = sheet.region(0, 0)
+            val shimmering = AnimatedSpriteTile(
+                frames = listOf(
+                    AnimationFrame(region, durationMs = 100),
+                    AnimationFrame(region, durationMs = 100, tint = Color.GREEN),
+                ),
+            )
+            renderer.drawTile(0, 0, z = 0, tile = shimmering)
+            renderer.render(elapsedMs = 0)
+            canvas.dispose()
+            sheet.dispose()
+        }
+
+        // Frame 0 (elapsedMs=0): no override -> the sheet's own blue shows through.
+        val frame0 = pixels.averageColor(0, 0, 8, 8)
+        frame0.b.toDouble() shouldBe (0.9 plusOrMinus 0.1)
+        frame0.g.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+
+        val pixelsFrame1 = HeadlessGl.render(8, 8, Color.BLACK) {
+            val tilePixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
+            tilePixmap.setColor(SHEET_BLUE)
+            tilePixmap.fill()
+            val file = File.createTempFile("kotile-shimmer2", ".png").apply { deleteOnExit() }
+            PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), tilePixmap)
+            tilePixmap.dispose()
+
+            val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
+            val canvas = KotileCanvas(8, 8)
+            val renderer = SpriteTileRenderer(canvas, sheet)
+            val region = sheet.region(0, 0)
+            val shimmering = AnimatedSpriteTile(
+                frames = listOf(
+                    AnimationFrame(region, durationMs = 100),
+                    AnimationFrame(region, durationMs = 100, tint = Color.GREEN),
+                ),
+            )
+            renderer.drawTile(0, 0, z = 0, tile = shimmering)
+            renderer.render(elapsedMs = 150) // into frame 1: green override
+            canvas.dispose()
+            sheet.dispose()
+        }
+
+        val frame1 = pixelsFrame1.averageColor(0, 0, 8, 8)
+        frame1.g.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        frame1.b.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+
+        pixels.dispose()
+        pixelsFrame1.dispose()
     }
 
     test("TileSheet honors margin and spacing").config(enabled = HeadlessGl.available) {

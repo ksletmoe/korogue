@@ -1,5 +1,7 @@
 package com.sletmoe.kotile.tiles
 
+import com.badlogic.gdx.graphics.Color
+
 /**
  * A single frame in an animation sequence.
  *
@@ -10,8 +12,13 @@ package com.sletmoe.kotile.tiles
  * @property durationMs how long this frame is displayed, in milliseconds. Must
  *   be positive; zero-duration frames are illegal and cause an
  *   [IllegalArgumentException] at animation construction time.
+ * @property tint per-frame tint override (krogue-2ur), meaningful only for
+ *   [AnimatedSpriteTile] frames (an [com.sletmoe.kotile.display.ascii.AsciiTileDescriptor]
+ *   already carries its own per-frame color, so ASCII frames leave this `null`). `null`
+ *   (the default) means "use the tile's constant [Tile.tint]" — see [AnimatedSpriteTile.tintFor].
  */
 public data class AnimationFrame<T>(
     val content: T,
     val durationMs: Long,
+    val tint: Color? = null,
 )

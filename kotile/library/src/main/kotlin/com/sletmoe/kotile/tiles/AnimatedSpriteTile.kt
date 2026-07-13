@@ -29,7 +29,8 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion
  * @property mode how the animation behaves once it reaches the end of the
  *   sequence; defaults to [PlaybackMode.LOOP].
  * @property tint color multiplied with the drawn pixels at render time.
- *   [Color.WHITE] (the default) leaves the sprite unchanged.
+ *   [Color.WHITE] (the default) leaves the sprite unchanged. Composes with any
+ *   per-frame [AnimationFrame.tint] — see [tintFor].
  * @throws IllegalArgumentException if [frames] is empty or any frame has a
  *   non-positive [AnimationFrame.durationMs].
  */
@@ -57,4 +58,16 @@ public class AnimatedSpriteTile(
      */
     override fun regionFor(elapsedMs: Long): TextureRegion =
         frames[frameIndexAt(frames, mode, elapsedMs)].content
+
+    /**
+     * [tint] multiplied by the active frame's [AnimationFrame.tint] (krogue-2ur), letting a
+     * sprite shimmer by cycling per-frame color — e.g. a crystal wall's glow, the ASCII path's
+     * native [com.sletmoe.kotile.display.ascii.AnimatedAsciiTile] equivalent. A frame with no
+     * override (`tint == null`) contributes no change, so it renders at plain [tint] — existing
+     * constant-tint animations (no frame ever sets [AnimationFrame.tint]) are unaffected.
+     */
+    override fun tintFor(elapsedMs: Long): Color {
+        val frameTint = frames[frameIndexAt(frames, mode, elapsedMs)].tint ?: return tint
+        return tint.cpy().mul(frameTint)
+    }
 }
