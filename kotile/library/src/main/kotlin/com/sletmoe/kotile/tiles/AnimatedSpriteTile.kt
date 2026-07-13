@@ -31,6 +31,8 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion
  * @property tint color multiplied with the drawn pixels at render time.
  *   [Color.WHITE] (the default) leaves the sprite unchanged. Composes with any
  *   per-frame [AnimationFrame.tint] — see [tintFor].
+ * @property flipX mirror the tile horizontally when drawn (krogue-csc)
+ * @property flipY mirror the tile vertically when drawn (krogue-csc)
  * @throws IllegalArgumentException if [frames] is empty or any frame has a
  *   non-positive [AnimationFrame.durationMs].
  */
@@ -38,6 +40,8 @@ public class AnimatedSpriteTile(
     public val frames: List<AnimationFrame<TextureRegion>>,
     public val mode: PlaybackMode = PlaybackMode.LOOP,
     override val tint: Color = Color.WHITE,
+    override val flipX: Boolean = false,
+    override val flipY: Boolean = false,
 ) : Tile {
     init {
         require(frames.isNotEmpty()) { "AnimatedSpriteTile requires at least one frame" }

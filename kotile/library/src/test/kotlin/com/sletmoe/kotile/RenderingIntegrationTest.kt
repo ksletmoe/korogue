@@ -287,6 +287,121 @@ class RenderingIntegrationTest : FunSpec({
         pixels.dispose()
     }
 
+    test("drawSprite flipX mirrors the sprite horizontally (krogue-csc)").config(enabled = HeadlessGl.available) {
+        // Same left(RED)/right(BLUE) split as the rotation test. Unflipped, RED is on the left;
+        // flipX=true must swap them without a rotation.
+        val pixels = HeadlessGl.render(8, 8, Color.BLACK) {
+            val sheetPixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
+            sheetPixmap.blending = Pixmap.Blending.None
+            sheetPixmap.setColor(Color.RED)
+            sheetPixmap.fillRectangle(0, 0, 4, 8) // left half
+            sheetPixmap.setColor(Color.BLUE)
+            sheetPixmap.fillRectangle(4, 0, 4, 8) // right half
+            val texture = Texture(sheetPixmap)
+            sheetPixmap.dispose()
+            val region = TextureRegion(texture)
+
+            val canvas = KotileCanvas(8, 8)
+            canvas.begin()
+            canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = 8f, h = 8f, flipX = true)
+            canvas.end()
+            // Drawn again, unflipped this time: proves the first flipped draw didn't
+            // permanently mutate the shared region instance.
+            canvas.begin()
+            canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = 8f, h = 8f)
+            canvas.end()
+            canvas.dispose()
+            texture.dispose()
+        }
+
+        // The second (unflipped) draw wins on screen: RED back on the left.
+        pixels.averageColor(0, 0, 4, 8).r.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        pixels.averageColor(4, 0, 8, 8).b.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        pixels.dispose()
+    }
+
+    test("drawSprite flipX actually swaps sides while flipped (krogue-csc)").config(enabled = HeadlessGl.available) {
+        val pixels = HeadlessGl.render(8, 8, Color.BLACK) {
+            val sheetPixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
+            sheetPixmap.blending = Pixmap.Blending.None
+            sheetPixmap.setColor(Color.RED)
+            sheetPixmap.fillRectangle(0, 0, 4, 8) // left half
+            sheetPixmap.setColor(Color.BLUE)
+            sheetPixmap.fillRectangle(4, 0, 4, 8) // right half
+            val texture = Texture(sheetPixmap)
+            sheetPixmap.dispose()
+            val region = TextureRegion(texture)
+
+            val canvas = KotileCanvas(8, 8)
+            canvas.begin()
+            canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = 8f, h = 8f, flipX = true)
+            canvas.end()
+            canvas.dispose()
+            texture.dispose()
+        }
+
+        // flipX swaps sides: BLUE (was on the right) now shows on the left, RED on the right.
+        pixels.averageColor(0, 0, 4, 8).b.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        pixels.averageColor(4, 0, 8, 8).r.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        pixels.dispose()
+    }
+
+    test("TileRenderer honors a StaticTile's flipX (krogue-csc)").config(enabled = HeadlessGl.available) {
+        val pixels = HeadlessGl.render(8, 8, Color.BLACK) {
+            val sheetPixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
+            sheetPixmap.blending = Pixmap.Blending.None
+            sheetPixmap.setColor(Color.RED)
+            sheetPixmap.fillRectangle(0, 0, 4, 8)
+            sheetPixmap.setColor(Color.BLUE)
+            sheetPixmap.fillRectangle(4, 0, 4, 8)
+            val file = File.createTempFile("kotile-flip", ".png").apply { deleteOnExit() }
+            PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), sheetPixmap)
+            sheetPixmap.dispose()
+
+            val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
+            val canvas = KotileCanvas(8, 8)
+            val renderer = SpriteTileRenderer(canvas, sheet)
+            renderer.drawTile(0, 0, z = 0, staticTile = StaticTile(0, 0, flipX = true))
+            renderer.render()
+            canvas.dispose()
+            sheet.dispose()
+        }
+
+        pixels.averageColor(0, 0, 4, 8).b.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        pixels.averageColor(4, 0, 8, 8).r.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        pixels.dispose()
+    }
+
+    test("TileRenderer honors an AnimatedSpriteTile's flipX (krogue-csc)").config(enabled = HeadlessGl.available) {
+        val pixels = HeadlessGl.render(8, 8, Color.BLACK) {
+            val sheetPixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
+            sheetPixmap.blending = Pixmap.Blending.None
+            sheetPixmap.setColor(Color.RED)
+            sheetPixmap.fillRectangle(0, 0, 4, 8)
+            sheetPixmap.setColor(Color.BLUE)
+            sheetPixmap.fillRectangle(4, 0, 4, 8)
+            val file = File.createTempFile("kotile-flip2", ".png").apply { deleteOnExit() }
+            PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), sheetPixmap)
+            sheetPixmap.dispose()
+
+            val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
+            val canvas = KotileCanvas(8, 8)
+            val renderer = SpriteTileRenderer(canvas, sheet)
+            val tile = AnimatedSpriteTile(
+                frames = listOf(AnimationFrame(sheet.region(0, 0), durationMs = 100)),
+                flipX = true,
+            )
+            renderer.drawTile(0, 0, z = 0, tile = tile)
+            renderer.render()
+            canvas.dispose()
+            sheet.dispose()
+        }
+
+        pixels.averageColor(0, 0, 4, 8).b.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        pixels.averageColor(4, 0, 8, 8).r.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        pixels.dispose()
+    }
+
     test("drawTile and drawSprite agree for a cell-aligned draw").config(enabled = HeadlessGl.available) {
         // drawTile is sugar over drawSprite: drawing cell (1, 1) via each path
         // must produce identical pixels. Guards the sugar's cell→pixel mapping

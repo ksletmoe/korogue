@@ -239,8 +239,17 @@ open class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposabl
      * to content pixels via the current [layout] and draws at the on-screen tile
      * size. Free-layer content (effects, pixel-space UI) uses [drawSprite]
      * directly. See ADR-0018.
+     *
+     * [flipX]/[flipY] mirror the tile in place (krogue-csc) — see [drawSprite] for how.
      */
-    fun drawTile(x: Int, y: Int, region: TextureRegion, tint: Color = Color.WHITE) {
+    fun drawTile(
+        x: Int,
+        y: Int,
+        region: TextureRegion,
+        tint: Color = Color.WHITE,
+        flipX: Boolean = false,
+        flipY: Boolean = false,
+    ) {
         val l = layout
         drawSprite(
             pxX = x * l.tileWidthPx,
@@ -249,6 +258,8 @@ open class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposabl
             w = l.tileWidthPx,
             h = l.tileHeightPx,
             tint = tint,
+            flipX = flipX,
+            flipY = flipY,
         )
     }
 
@@ -295,6 +306,12 @@ open class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposabl
      * the tint is — GDX's `Color` also clamps every component to `[0, 1]` regardless, so an
      * intentionally over-bright tint isn't even representable. Additive blending genuinely adds
      * light instead of just recoloring, which is the only way a multiply tint can't fake.
+     *
+     * [flipX]/[flipY] mirror the drawn region horizontally/vertically (e.g. a creature sprite
+     * facing the direction it last moved, krogue-csc) without mutating [region] itself: the
+     * region's UVs are flipped for this one draw call and restored immediately after, since
+     * [region] may be a long-lived instance shared across many draws (e.g. an animation frame
+     * reused every tick) rather than a fresh one safe to mutate permanently.
      */
     fun drawSprite(
         pxX: Float,
@@ -305,10 +322,13 @@ open class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposabl
         tint: Color = Color.WHITE,
         rotationDeg: Float = 0f,
         blend: BlendMode = BlendMode.NORMAL,
+        flipX: Boolean = false,
+        flipY: Boolean = false,
     ) {
         if (sharpActive) configureSharpFor(region.texture)
         blend.apply(batch)
         batch.color = tint
+        if (flipX || flipY) region.flip(flipX, flipY)
         // Coordinates are content-relative: the GridViewport places the content
         // rectangle within the window (the centering offset is the GL viewport's
         // position, not baked in here). Flip the top-left-origin pxY to the
@@ -320,6 +340,7 @@ open class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposabl
         } else {
             batch.draw(region, pxX, glY, w / 2f, h / 2f, w, h, 1f, 1f, -rotationDeg)
         }
+        if (flipX || flipY) region.flip(flipX, flipY) // flip() toggles, so flipping twice restores the original
         BlendMode.NORMAL.apply(batch) // never leak a non-default blend function into the next draw call
     }
 

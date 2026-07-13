@@ -15,9 +15,13 @@ import com.badlogic.gdx.graphics.Color
  * @property sheetY row of the tile within the sheet
  * @property tint color multiplied with the sprite's pixels at draw time; the
  *   default [Color.WHITE] leaves the sprite unchanged (no color manipulation)
+ * @property flipX mirror the tile horizontally when drawn (krogue-csc)
+ * @property flipY mirror the tile vertically when drawn (krogue-csc)
  */
 public data class StaticTile(
     val sheetX: Int,
     val sheetY: Int,
     val tint: Color = Color.WHITE,
+    val flipX: Boolean = false,
+    val flipY: Boolean = false,
 ) : SpriteTileEntry

@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.Color
 import com.sletmoe.korogue.components.AttackIntent
 import com.sletmoe.korogue.components.BumpResponse
 import com.sletmoe.korogue.components.Collision
+import com.sletmoe.korogue.components.Facing
 import com.sletmoe.korogue.components.Locomotion
 import com.sletmoe.korogue.components.MoveIntent
 import com.sletmoe.korogue.components.MovementTags
@@ -145,5 +146,58 @@ class MovementSystemTest : FunSpec({
         walkWorld.tick()
         walkWorld.get(walker)!!.require<Position>() shouldBe Position(2, 2)
         walkWorld.get(walker)!!.get<AttackIntent>().shouldBeNull()
+    }
+
+    test("a horizontal MoveIntent sets Facing to match its direction (krogue-csc)") {
+        val zone = Zone("z", Grid(5, 5, BLANK_TILE))
+        val world = worldFor(zone)
+        val right = world.spawn(Position(2, 2), ZoneMember("z"), MoveIntent(1, 0)).id
+        val left = world.spawn(Position(2, 3), ZoneMember("z"), MoveIntent(-1, 0)).id
+
+        world.tick()
+
+        world.get(right)!!.require<Facing>() shouldBe Facing.RIGHT
+        world.get(left)!!.require<Facing>() shouldBe Facing.LEFT
+    }
+
+    test("Facing persists across a tick where the entity has no MoveIntent (krogue-csc)") {
+        val zone = Zone("z", Grid(5, 5, BLANK_TILE))
+        val world = worldFor(zone)
+        val id = world.spawn(Position(2, 2), ZoneMember("z"), MoveIntent(1, 0)).id
+        world.tick()
+        world.get(id)!!.require<Facing>() shouldBe Facing.RIGHT
+
+        world.tick() // no MoveIntent this tick
+
+        world.get(id)!!.require<Facing>() shouldBe Facing.RIGHT
+    }
+
+    test("a purely vertical MoveIntent leaves Facing unchanged (krogue-csc)") {
+        val zone = Zone("z", Grid(5, 5, BLANK_TILE))
+        val world = worldFor(zone)
+        val id = world.spawn(Position(2, 2), ZoneMember("z"), MoveIntent(-1, 0)).id
+        world.tick()
+        world.get(id)!!.require<Facing>() shouldBe Facing.LEFT
+
+        world.set(id, MoveIntent(0, 1))
+        world.tick()
+
+        world.get(id)!!.require<Facing>() shouldBe Facing.LEFT
+    }
+
+    test("a blocked or attacking MoveIntent still sets Facing from its attempted direction") {
+        val zone = Zone("z", Grid(5, 5, BLANK_TILE))
+        val world = worldFor(zone)
+        world.spawn(Position(3, 2), ZoneMember("z"), Collision(bump = BumpResponse.BLOCK))
+        val blocked = world.spawn(Position(2, 2), ZoneMember("z"), MoveIntent(1, 0)).id
+
+        val target = world.spawn(Position(3, 3), ZoneMember("z")).id
+        val attacker = world.spawn(Position(2, 3), ZoneMember("z"), MoveIntent(1, 0)).id
+
+        world.tick()
+
+        world.get(blocked)!!.require<Facing>() shouldBe Facing.RIGHT
+        world.get(attacker)!!.require<Facing>() shouldBe Facing.RIGHT
+        world.get(attacker)!!.require<AttackIntent>().targetId shouldBe target
     }
 })

@@ -3,6 +3,7 @@ package com.sletmoe.korogue.systems
 import com.sletmoe.korogue.components.AttackIntent
 import com.sletmoe.korogue.components.BumpResponse
 import com.sletmoe.korogue.components.Collision
+import com.sletmoe.korogue.components.Facing
 import com.sletmoe.korogue.components.Locomotion
 import com.sletmoe.korogue.components.MoveIntent
 import com.sletmoe.korogue.components.MovementTags
@@ -31,6 +32,10 @@ import com.sletmoe.korogue.world.Zone
  *
  * Resolution is sequential over a snapshot, so earlier movers' new positions are seen
  * by later movers within the same tick.
+ *
+ * Every intent with a nonzero horizontal component also updates [Facing] (krogue-csc),
+ * regardless of whether the move itself succeeds — so a mover's sprite can face the way
+ * it last moved or attacked, even while standing still.
  */
 class MovementSystem(
     private val zones: Map<String, Zone>,
@@ -44,6 +49,13 @@ class MovementSystem(
             val pos = entity.require<Position>()
             val zoneId = entity.require<ZoneMember>().zoneId
             if (intent.dx == 0 && intent.dy == 0) continue
+
+            // Facing tracks the attempted move's horizontal component regardless of whether the
+            // move actually succeeds (attack, blocked, or a step) — a pure vertical move leaves
+            // the current Facing unchanged rather than picking a side arbitrarily (krogue-csc).
+            if (intent.dx != 0) {
+                world.set(entity.id, if (intent.dx > 0) Facing.RIGHT else Facing.LEFT)
+            }
 
             val destX = pos.x + intent.dx
             val destY = pos.y + intent.dy

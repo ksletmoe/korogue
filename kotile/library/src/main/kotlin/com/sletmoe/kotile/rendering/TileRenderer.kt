@@ -171,8 +171,17 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) {
                     val logicalX = viewport.originX + screenX
                     if (logicalX < 0 || logicalX >= source.width) continue
                     when (val entry = layer[logicalX, logicalY]) {
-                        is StaticTile -> canvas.drawTile(screenX, screenY, regionFor(entry), entry.tint)
-                        is Tile -> canvas.drawTile(screenX, screenY, entry.regionFor(elapsedMs), entry.tintFor(elapsedMs))
+                        is StaticTile ->
+                            canvas.drawTile(screenX, screenY, regionFor(entry), entry.tint, entry.flipX, entry.flipY)
+                        is Tile ->
+                            canvas.drawTile(
+                                screenX,
+                                screenY,
+                                entry.regionFor(elapsedMs),
+                                entry.tintFor(elapsedMs),
+                                entry.flipX,
+                                entry.flipY,
+                            )
                         null -> {}
                     }
                 }

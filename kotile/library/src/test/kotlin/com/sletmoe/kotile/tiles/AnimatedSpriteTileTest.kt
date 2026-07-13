@@ -282,4 +282,24 @@ class AnimatedSpriteTileTest : FunSpec({
         tile.tint shouldBe tileTint
         tile.frames[0].tint shouldBe frameTint
     }
+
+    // -----------------------------------------------------------------------
+    // flipX / flipY (krogue-csc)
+    // -----------------------------------------------------------------------
+
+    test("flipX and flipY default to false") {
+        val tile = AnimatedSpriteTile(listOf(AnimationFrame(TextureRegion(), durationMs = 100)))
+        tile.flipX shouldBe false
+        tile.flipY shouldBe false
+    }
+
+    test("an explicit flipX/flipY is retained") {
+        val tile = AnimatedSpriteTile(
+            listOf(AnimationFrame(TextureRegion(), durationMs = 100)),
+            flipX = true,
+            flipY = true,
+        )
+        tile.flipX shouldBe true
+        tile.flipY shouldBe true
+    }
 })
