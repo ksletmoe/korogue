@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.PixmapIO
+import com.badlogic.gdx.math.Vector2
 import com.sletmoe.korogue.algorithms.color.toNormalizedRgb
 import com.sletmoe.korogue.algorithms.lighting.DiminishingLightValueCalculator
 import com.sletmoe.korogue.algorithms.lighting.LightFlicker
@@ -21,6 +22,7 @@ import com.sletmoe.kotile.display.ascii.Font
 import com.sletmoe.kotile.display.ascii.Fonts
 import com.sletmoe.kotile.rendering.IntegerScale
 import com.sletmoe.kotile.rendering.SpriteTileRenderer
+import com.sletmoe.kotile.rendering.rotationTowards
 import com.sletmoe.kotile.tiles.AnimatedSpriteTile
 import com.sletmoe.kotile.tiles.AnimationFrame
 import com.sletmoe.kotile.tiles.PlaybackMode
@@ -85,6 +87,27 @@ private val SPRITE_TORCH_POSITIONS = SPRITE_WALL_TORCH_COLS.map { Vector2Int(it,
 
 private val GLYPH_WALL_TORCH_COLS = listOf(31, 43)
 private val GLYPH_TORCH_POSITIONS = GLYPH_WALL_TORCH_COLS.map { Vector2Int(it, 0) }
+
+// The two combatants each half's projectile flies between — same columns as that half's
+// torches, so the shot crosses the deepest part of the lighting valley.
+private const val SPRITE_RANGER_COL = 6
+private const val SPRITE_SCORPION_COL = 18
+private const val GLYPH_PLAYER_COL = SPRITE_COLS + 6
+private const val GLYPH_MONSTER_COL = TOTAL_COLS - 7
+
+// Both halves' projectiles read this same clock, so they launch simultaneously; since the two
+// combatants sit the same tile-distance apart on both sides (12 cols) and both halves share one
+// canvas's tile size, using one flight duration for both automatically gives them the same
+// on-screen speed too -- no separate per-half tuning needed.
+private const val PROJECTILE_FLIGHT_MS = 700L
+private const val PROJECTILE_CYCLE_MS = 1800L // flight + pause before the next shot
+
+// DawnLikeAmmoTiles.ARROW's source art is drawn at a fixed northeast-pointing diagonal (its
+// rotationDeg=0 bearing), not pointing along +X -- so rotating it to face due-east (this scene's
+// only travel direction, left-to-right) needs this fixed offset on top of rotationTowards' 0deg.
+// Verified empirically via a snapshot (rotation direction is easy to get backwards -- see
+// KotileCanvas.drawSprite's own doc note and kotile:demo's RotationHarness).
+private const val ARROW_NATIVE_BEARING_DEG = -45f
 
 // Torches are now 12 cols apart (was 6). Radius bumped ~10% from the previous 7.0.
 private const val LIGHT_RADIUS = 7.7
@@ -183,6 +206,45 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
         torch: Vector2Int,
         elapsedMs: Long,
     ): Int = ((elapsedMs + torchSeed(torch)) / ANIMATION_FRAME_MS % 2).toInt()
+
+    /** The on-screen pixel center of grid cell ([col], [row]), per [KotileCanvas.drawSprite]'s coordinate space. */
+    private fun cellCenterPx(
+        col: Int,
+        row: Int,
+    ): Vector2 {
+        val l = canvas.layout
+        return Vector2((col + 0.5f) * l.tileWidthPx, (row + 0.5f) * l.tileHeightPx)
+    }
+
+    /** Linear pixel-space interpolation between two cells' centers at [t] (0..1). */
+    private fun lerpPx(
+        fromCol: Int,
+        fromRow: Int,
+        toCol: Int,
+        toRow: Int,
+        t: Float,
+    ): Vector2 {
+        val from = cellCenterPx(fromCol, fromRow)
+        val to = cellCenterPx(toCol, toRow)
+        return Vector2(from.x + (to.x - from.x) * t, from.y + (to.y - from.y) * t)
+    }
+
+    /** The grid cell containing pixel position [px] -- the graphical-side pixel position "snapped to the appropriate tile" for the glyph side. */
+    private fun snapToTile(px: Vector2): Vector2Int {
+        val l = canvas.layout
+        return Vector2Int((px.x / l.tileWidthPx).toInt(), (px.y / l.tileHeightPx).toInt())
+    }
+
+    /**
+     * Progress (0..1) through the current shot at [elapsedMs], or `null` during the pause between
+     * shots. Both halves call this with the same [elapsedMs], so they launch, travel, and land in
+     * lockstep -- the single source of truth for "is a projectile in flight right now."
+     */
+    private fun projectileFlightT(elapsedMs: Long): Float? {
+        val phase = elapsedMs % PROJECTILE_CYCLE_MS
+        if (phase >= PROJECTILE_FLIGHT_MS) return null
+        return phase.toFloat() / PROJECTILE_FLIGHT_MS
+    }
 
     /**
      * Light intensity at cell ([x], [y]) at wall-clock [elapsedMs] from the brightest of [torches]
@@ -284,17 +346,52 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
         }
 
         val (rangerSheet, rangerCell) = DawnLikeCreatureTiles.RANGER
-        val rangerTint = litTint(6, MID_ROW, SPRITE_TORCH_POSITIONS, elapsedMs)
-        overlayRenderer.drawTile(6, MID_ROW, z = 1, tile = creatureTile(rangerSheet, rangerCell, rangerTint))
+        val rangerTint = litTint(SPRITE_RANGER_COL, MID_ROW, SPRITE_TORCH_POSITIONS, elapsedMs)
+        overlayRenderer.drawTile(
+            SPRITE_RANGER_COL,
+            MID_ROW,
+            z = 1,
+            tile = creatureTile(rangerSheet, rangerCell, rangerTint),
+        )
 
         val (scorpionSheet, scorpionCell) = DawnLikeCreatureTiles.SCORPION
-        val scorpionTint = litTint(18, MID_ROW, SPRITE_TORCH_POSITIONS, elapsedMs)
-        overlayRenderer.drawTile(18, MID_ROW, z = 1, tile = creatureTile(scorpionSheet, scorpionCell, scorpionTint))
+        val scorpionTint = litTint(SPRITE_SCORPION_COL, MID_ROW, SPRITE_TORCH_POSITIONS, elapsedMs)
+        overlayRenderer.drawTile(
+            SPRITE_SCORPION_COL,
+            MID_ROW,
+            z = 1,
+            tile = creatureTile(scorpionSheet, scorpionCell, scorpionTint),
+        )
+        // The arrow itself is drawn separately by drawSpriteArrow, via canvas.drawSprite directly
+        // rather than through this grid-locked renderer -- see its doc comment for why.
+    }
 
-        // Placeholder mid-flight arrow: fixed native diagonal until krogue-m05 (kotile rotation
-        // support) lands, and not yet animated/moving (that's krogue-wuq's event queue wiring).
-        val arrowTint = litTint(12, MID_ROW, SPRITE_TORCH_POSITIONS, elapsedMs)
-        overlayRenderer.drawTile(12, MID_ROW, z = 2, staticTile = DawnLikeAmmoTiles.ARROW.copy(tint = arrowTint))
+    /**
+     * The in-flight arrow at [elapsedMs] (nothing drawn between shots): true sub-pixel motion via
+     * [KotileCanvas.drawSprite], not [overlayRenderer]'s grid-locked `drawTile` -- unlike every
+     * other sprite in this scene, a flying projectile needs to be *between* cells most of the
+     * time, not snapped to one. [buildGlyphRoom]'s dash reads the exact same [lerpPx] position
+     * (then snaps it, since glyphs are grid-only) so both halves' shots move at the same speed and
+     * land at the same instant, per [projectileFlightT].
+     */
+    private fun drawSpriteArrow(elapsedMs: Long) {
+        val t = projectileFlightT(elapsedMs) ?: return
+        val pos = lerpPx(SPRITE_RANGER_COL, MID_ROW, SPRITE_SCORPION_COL, MID_ROW, t)
+        val l = canvas.layout
+        val col = (pos.x / l.tileWidthPx).toInt().coerceIn(0, SPRITE_COLS - 1)
+        val tint = litTint(col, MID_ROW, SPRITE_TORCH_POSITIONS, elapsedMs)
+        val region = ammoSheet.region(DawnLikeAmmoTiles.ARROW.sheetX, DawnLikeAmmoTiles.ARROW.sheetY)
+        canvas.begin()
+        canvas.drawSprite(
+            pxX = pos.x - l.tileWidthPx / 2f,
+            pxY = pos.y - l.tileHeightPx / 2f,
+            region = region,
+            w = l.tileWidthPx,
+            h = l.tileHeightPx,
+            tint = tint,
+            rotationDeg = rotationTowards(1f, 0f) - ARROW_NATIVE_BEARING_DEG,
+        )
+        canvas.end()
     }
 
     /**
@@ -381,35 +478,44 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
             asciiWindow.drawTile(torch.x, torch.y, AsciiTileDescriptor('!', fg, bg))
         }
 
-        // Placeholder combatants/projectile — specific glyph/color choices are provisional until
+        // Placeholder combatants — specific glyph/color choices are provisional until
         // krogue-tnf's grid-snapped mode lands.
         asciiWindow.drawTile(
-            SPRITE_COLS + 6,
+            GLYPH_PLAYER_COL,
             MID_ROW,
             AsciiTileDescriptor(
                 '@',
-                litColor(Color.CYAN, SPRITE_COLS + 6, MID_ROW, GLYPH_TORCH_POSITIONS, elapsedMs),
-                litColor(floorGlowBase, SPRITE_COLS + 6, MID_ROW, GLYPH_TORCH_POSITIONS, elapsedMs),
+                litColor(Color.CYAN, GLYPH_PLAYER_COL, MID_ROW, GLYPH_TORCH_POSITIONS, elapsedMs),
+                litColor(floorGlowBase, GLYPH_PLAYER_COL, MID_ROW, GLYPH_TORCH_POSITIONS, elapsedMs),
             ),
         )
         asciiWindow.drawTile(
-            TOTAL_COLS - 7,
+            GLYPH_MONSTER_COL,
             MID_ROW,
             AsciiTileDescriptor(
                 's',
-                litColor(Color.GREEN, TOTAL_COLS - 7, MID_ROW, GLYPH_TORCH_POSITIONS, elapsedMs),
-                litColor(floorGlowBase, TOTAL_COLS - 7, MID_ROW, GLYPH_TORCH_POSITIONS, elapsedMs),
+                litColor(Color.GREEN, GLYPH_MONSTER_COL, MID_ROW, GLYPH_TORCH_POSITIONS, elapsedMs),
+                litColor(floorGlowBase, GLYPH_MONSTER_COL, MID_ROW, GLYPH_TORCH_POSITIONS, elapsedMs),
             ),
         )
-        asciiWindow.drawTile(
-            SPRITE_COLS + 12,
-            MID_ROW,
-            AsciiTileDescriptor(
-                '-',
-                litColor(Color.WHITE, SPRITE_COLS + 12, MID_ROW, GLYPH_TORCH_POSITIONS, elapsedMs),
-                litColor(floorGlowBase, SPRITE_COLS + 12, MID_ROW, GLYPH_TORCH_POSITIONS, elapsedMs),
-            ),
-        )
+
+        // The dash's cell is the sprite-side arrow's exact same pixel-space position (lerpPx),
+        // snapped to whichever tile it currently falls inside (snapToTile) -- not a separate,
+        // independently-timed cell walk. That's what keeps the two halves' shots at the same
+        // speed: both derive from one pixel-space model, this side just quantizes the result.
+        projectileFlightT(elapsedMs)?.let { t ->
+            val pos = lerpPx(GLYPH_PLAYER_COL, MID_ROW, GLYPH_MONSTER_COL, MID_ROW, t)
+            val cell = snapToTile(pos)
+            asciiWindow.drawTile(
+                cell.x,
+                cell.y,
+                AsciiTileDescriptor(
+                    '-',
+                    litColor(Color.WHITE, cell.x, cell.y, GLYPH_TORCH_POSITIONS, elapsedMs),
+                    litColor(floorGlowBase, cell.x, cell.y, GLYPH_TORCH_POSITIONS, elapsedMs),
+                ),
+            )
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -429,6 +535,7 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
         floorRenderer.render(elapsedMs)
         wallRenderer.render(elapsedMs)
         overlayRenderer.render(elapsedMs)
+        drawSpriteArrow(elapsedMs) // free pixel-space motion, so drawn via canvas directly (see its doc comment)
         asciiWindow.render(elapsedMs)
 
         val snapshotPath = outPath
