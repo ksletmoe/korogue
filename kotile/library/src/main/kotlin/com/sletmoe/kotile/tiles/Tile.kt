@@ -47,4 +47,12 @@ public interface Tile : SpriteTileEntry {
      *   Passing `0` always returns the first (or only) frame.
      */
     public fun regionFor(elapsedMs: Long): TextureRegion
+
+    /**
+     * The color the renderer should actually multiply this tile's pixels by at
+     * [elapsedMs] (krogue-2ur) — [tint] by default, so existing implementations
+     * that don't override this keep their prior (constant-tint) behavior
+     * unchanged. [AnimatedSpriteTile] overrides it to fold in a per-frame tint.
+     */
+    public fun tintFor(elapsedMs: Long): Color = tint
 }

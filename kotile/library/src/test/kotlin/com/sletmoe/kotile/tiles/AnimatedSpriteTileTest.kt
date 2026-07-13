@@ -1,5 +1,6 @@
 package com.sletmoe.kotile.tiles
 
+import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
@@ -209,6 +210,76 @@ class AnimatedSpriteTileTest : FunSpec({
 
     test("tint defaults to Color.WHITE") {
         val tile = AnimatedSpriteTile(listOf(AnimationFrame(TextureRegion(), durationMs = 100)))
-        tile.tint shouldBe com.badlogic.gdx.graphics.Color.WHITE
+        tile.tint shouldBe Color.WHITE
+    }
+
+    // -----------------------------------------------------------------------
+    // Per-frame tint (krogue-2ur)
+    // -----------------------------------------------------------------------
+
+    test("tintFor defaults to the tile's constant tint when no frame overrides it") {
+        val tile = AnimatedSpriteTile(
+            listOf(
+                AnimationFrame(TextureRegion(), durationMs = 100),
+                AnimationFrame(TextureRegion(), durationMs = 100),
+            ),
+            tint = Color.RED,
+        )
+        tile.tintFor(0) shouldBe Color.RED
+        tile.tintFor(150) shouldBe Color.RED
+    }
+
+    test("a frame's tint overrides the constant tint when the tile tint is WHITE") {
+        val shimmer = Color(0.5f, 0.5f, 1f, 1f)
+        val tile = AnimatedSpriteTile(
+            listOf(
+                AnimationFrame(TextureRegion(), durationMs = 100, tint = Color.WHITE),
+                AnimationFrame(TextureRegion(), durationMs = 100, tint = shimmer),
+            ),
+        )
+        tile.tintFor(0) shouldBe Color.WHITE
+        tile.tintFor(150) shouldBe shimmer
+    }
+
+    test("a frame's tint multiplies with a non-white constant tint") {
+        val tile = AnimatedSpriteTile(
+            listOf(
+                AnimationFrame(TextureRegion(), durationMs = 100, tint = Color(0.5f, 1f, 1f, 1f)),
+            ),
+            tint = Color(1f, 0.5f, 1f, 1f),
+        )
+        // (0.5, 1, 1, 1) * (1, 0.5, 1, 1) = (0.5, 0.5, 1, 1)
+        val effective = tile.tintFor(0)
+        effective.r shouldBe 0.5f
+        effective.g shouldBe 0.5f
+        effective.b shouldBe 1f
+        effective.a shouldBe 1f
+    }
+
+    test("mixed frames: only the overriding frame changes color, others still show constant tint") {
+        val shimmer = Color(0.2f, 0.9f, 0.9f, 1f)
+        val tile = AnimatedSpriteTile(
+            listOf(
+                AnimationFrame(TextureRegion(), durationMs = 100),
+                AnimationFrame(TextureRegion(), durationMs = 100, tint = shimmer),
+                AnimationFrame(TextureRegion(), durationMs = 100),
+            ),
+            tint = Color.WHITE,
+        )
+        tile.tintFor(0) shouldBe Color.WHITE
+        tile.tintFor(150) shouldBe shimmer
+        tile.tintFor(250) shouldBe Color.WHITE
+    }
+
+    test("tintFor does not mutate the tile's own tint or the frame's tint") {
+        val frameTint = Color(0.3f, 0.4f, 0.5f, 1f)
+        val tileTint = Color(0.6f, 0.7f, 0.8f, 1f)
+        val tile = AnimatedSpriteTile(
+            listOf(AnimationFrame(TextureRegion(), durationMs = 100, tint = frameTint)),
+            tint = tileTint,
+        )
+        tile.tintFor(0)
+        tile.tint shouldBe tileTint
+        tile.frames[0].tint shouldBe frameTint
     }
 })
