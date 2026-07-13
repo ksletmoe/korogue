@@ -16,6 +16,7 @@ import com.sletmoe.korogue.demo.animation.DawnLikeFloorTiles
 import com.sletmoe.korogue.demo.animation.DawnLikeTorchTile
 import com.sletmoe.korogue.demo.animation.DawnLikeWallTiles
 import com.sletmoe.korogue.presentation.EventAnimationQueue
+import com.sletmoe.korogue.presentation.VisualEffectPool
 import com.sletmoe.korogue.presentation.VisualEvent
 import com.sletmoe.korogue.ui.MapCamera
 import com.sletmoe.korogue.ui.WindowSurface
@@ -181,14 +182,13 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
     private val spriteProjectileQueue = EventAnimationQueue()
     private val glyphProjectileQueue = EventAnimationQueue()
 
-    // Separate queues (not sharing spriteProjectileQueue/glyphProjectileQueue) because a single
-    // EventAnimationQueue only ever plays one sequence at a time -- the hit-flash and the
-    // projectile's own flight need to render on the SAME frames as each other on impact, and the
-    // floating damage number and flash need to render simultaneously too, so each gets its own
-    // independent lane (maybeFireImpactEffects fires all of them at once).
-    private val spriteFlashQueue = EventAnimationQueue()
-    private val glyphFlashQueue = EventAnimationQueue()
-    private val spriteDamageTextQueue = EventAnimationQueue()
+    // Impact effects (hit-flash, floating damage number) are cosmetic and must render
+    // simultaneously with each other and with the projectile-in-flight -- exactly what
+    // EventAnimationQueue's own doc comment says it isn't for (one sequence at a time, for
+    // input-gating). VisualEffectPool (krogue-mhh) is the non-gating counterpart: one pool per
+    // half holds every currently-active cosmetic effect independently.
+    private val spriteEffectPool = VisualEffectPool()
+    private val glyphEffectPool = VisualEffectPool()
 
     // Identity mapping (origin at 0,0): this demo's grid columns are already absolute, so a
     // camera with no offset resolves EventAnimationQueue's "zone" positions straight through to
@@ -359,12 +359,18 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
         )
 
         val (scorpionSheet, scorpionCell) = DawnLikeCreatureTiles.SCORPION
-        // While spriteFlashQueue is playing (it only ever holds a HitFlash on the scorpion's own
-        // cell, see maybeFireImpactEffects), replace the scorpion's usual ambient-lit tint with
-        // the flash's color so the creature itself visibly flashes -- rather than drawing a
-        // separate opaque quad over it via HitFlashSequence's own generic renderSprite (which
-        // would hide the sprite instead of flashing it).
-        val flashColor = (spriteFlashQueue.currentEvent as? VisualEvent.HitFlash)?.color
+        val scorpionCellPos = Vector2Int(SPRITE_SCORPION_COL, MID_ROW)
+        // While a HitFlash on the scorpion's own cell is active in spriteEffectPool (see
+        // maybeFireImpactEffects), replace its usual ambient-lit tint with the flash's color so
+        // the creature itself visibly flashes -- rather than drawing a separate opaque quad over
+        // it via HitFlashSequence's own generic renderSprite (which would hide the sprite instead
+        // of flashing it). filterIsInstance/firstOrNull since the pool also holds the floating
+        // damage number at the same time, unlike the single-slot queue this replaced.
+        val flashColor =
+            spriteEffectPool.activeEvents
+                .filterIsInstance<VisualEvent.HitFlash>()
+                .firstOrNull { it.at == scorpionCellPos }
+                ?.color
         val scorpionTint = flashColor ?: litTint(SPRITE_SCORPION_COL, MID_ROW, SPRITE_TORCH_POSITIONS, elapsedMs)
         overlayRenderer.drawTile(
             SPRITE_SCORPION_COL,
@@ -446,8 +452,8 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
         impactFired = true
 
         val scorpionCell = Vector2Int(SPRITE_SCORPION_COL, MID_ROW)
-        spriteFlashQueue.enqueue(VisualEvent.HitFlash(at = scorpionCell))
-        spriteDamageTextQueue.enqueue(
+        spriteEffectPool.spawn(VisualEvent.HitFlash(at = scorpionCell), nowMs)
+        spriteEffectPool.spawn(
             VisualEvent.FloatingText(
                 at = scorpionCell,
                 text = "-4",
@@ -455,10 +461,11 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
                 charWidthPx = canvas.layout.tileWidthPx * 0.6f,
                 charHeightPx = canvas.layout.tileHeightPx * 0.6f,
             ),
+            nowMs,
         )
 
         val monsterCell = Vector2Int(GLYPH_MONSTER_COL, MID_ROW)
-        glyphFlashQueue.enqueue(VisualEvent.HitFlash(at = monsterCell))
+        glyphEffectPool.spawn(VisualEvent.HitFlash(at = monsterCell), nowMs)
     }
 
     /**
@@ -581,11 +588,10 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
         maybeFireImpactEffects(elapsedMs)
         spriteProjectileQueue.update(elapsedMs)
         glyphProjectileQueue.update(elapsedMs)
-        spriteFlashQueue.update(elapsedMs)
-        glyphFlashQueue.update(elapsedMs)
-        spriteDamageTextQueue.update(elapsedMs)
+        spriteEffectPool.update(elapsedMs)
+        glyphEffectPool.update(elapsedMs)
 
-        // glyphProjectileQueue/glyphFlashQueue draw on RenderLayer.OVERLAY's z-band (3), separate
+        // glyphProjectileQueue/glyphEffectPool draw on RenderLayer.OVERLAY's z-band (3), separate
         // from buildGlyphRoom's z=0 floor/wall/combatants -- without this, a shot's previous cells
         // never get overwritten as it moves (the real game avoids this the same way, clearing the
         // whole window once per frame in MyGame.drawFrame before redrawing).
@@ -593,15 +599,17 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
         buildSpriteRoom(elapsedMs)
         buildGlyphRoom(elapsedMs)
         glyphProjectileQueue.render(glyphSurface, demoCamera, elapsedMs) // queues the dash, composited below
-        glyphFlashQueue.render(glyphSurface, demoCamera, elapsedMs) // queues the monster's hit-flash
+        glyphEffectPool.render(glyphSurface, demoCamera, elapsedMs) // queues the monster's hit-flash
         floorRenderer.render(elapsedMs)
         wallRenderer.render(elapsedMs)
+        // spriteEffectPool draws before the creatures, not after: it holds both the scorpion's
+        // HitFlash (already read via activeEvents above, in buildSpriteRoom, to re-tint the
+        // scorpion's own sprite -- so its generic renderSprite here would be a redundant opaque
+        // quad, which the opaque creature drawn next fully covers) and the floating damage number
+        // (positioned in the row *above* the creature, so draw order never affects it either way).
+        spriteEffectPool.renderSprite(canvas, demoCamera, elapsedMs)
         overlayRenderer.render(elapsedMs)
-        // Immediate draws, in painter's order on top of the creatures. spriteFlashQueue itself is
-        // not drawn here — buildSpriteRoom already read its currentEvent to re-tint the scorpion's
-        // own sprite instead, which is why it's still update()d above but never renderSprite()d.
         spriteProjectileQueue.renderSprite(canvas, demoCamera, elapsedMs)
-        spriteDamageTextQueue.renderSprite(canvas, demoCamera, elapsedMs)
         asciiWindow.render(elapsedMs)
 
         val snapshotPath = outPath
