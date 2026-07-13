@@ -179,6 +179,45 @@ class RenderingIntegrationTest : FunSpec({
         pixels.dispose()
     }
 
+    test("drawSprite rotates 90 degrees clockwise about the sprite's center (krogue-m05)").config(
+        enabled = HeadlessGl.available,
+    ) {
+        // A left(RED)/right(BLUE) split sprite, unrotated, has RED on the left. A positive
+        // rotationDeg turns it clockwise on screen (per drawSprite's doc): rotating 90 degrees
+        // moves what was on the LEFT edge to the TOP edge, so RED should end up on top and BLUE
+        // on the bottom. Empirically confirmed direction via kotile:demo's rotationHarness before
+        // writing this assertion, since the Y-up GL / Y-down content-space flip makes the sign
+        // easy to get backwards by pure reasoning alone.
+        val pixels = HeadlessGl.render(8, 8, Color.BLACK) {
+            val sheetPixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
+            sheetPixmap.blending = Pixmap.Blending.None
+            sheetPixmap.setColor(Color.RED)
+            sheetPixmap.fillRectangle(0, 0, 4, 8) // left half
+            sheetPixmap.setColor(Color.BLUE)
+            sheetPixmap.fillRectangle(4, 0, 4, 8) // right half
+            val texture = Texture(sheetPixmap)
+            sheetPixmap.dispose()
+            val region = TextureRegion(texture)
+
+            val canvas = KotileCanvas(8, 8)
+            canvas.begin()
+            canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = 8f, h = 8f, rotationDeg = 90f)
+            canvas.end()
+            canvas.dispose()
+            texture.dispose()
+        }
+
+        val top = pixels.averageColor(0, 0, 8, 4)
+        top.r.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        top.b.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+
+        val bottom = pixels.averageColor(0, 4, 8, 8)
+        bottom.b.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        bottom.r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+
+        pixels.dispose()
+    }
+
     test("drawTile and drawSprite agree for a cell-aligned draw").config(enabled = HeadlessGl.available) {
         // drawTile is sugar over drawSprite: drawing cell (1, 1) via each path
         // must produce identical pixels. Guards the sugar's cell→pixel mapping
@@ -297,6 +336,41 @@ class RenderingIntegrationTest : FunSpec({
 
         pixels.averageColor(4, 0, 8, 4).r.toDouble() shouldBe (1.0 plusOrMinus 0.1) // moved here
         pixels.averageColor(0, 0, 4, 4).r.toDouble() shouldBe (0.0 plusOrMinus 0.1) // vacated spawn spot
+        pixels.dispose()
+    }
+
+    test("EffectsLayer threads an effect's rotationDeg through to drawSprite (krogue-m05)").config(
+        enabled = HeadlessGl.available,
+    ) {
+        // Same left(RED)/right(BLUE) split as drawSprite's own rotation test, but spawned as an
+        // Effect with rotationDeg = 90 instead of calling drawSprite directly — proves
+        // EffectsLayer.render actually passes the field through rather than dropping it.
+        val pixels = HeadlessGl.render(8, 8, Color.BLACK) {
+            val sheetPixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
+            sheetPixmap.blending = Pixmap.Blending.None
+            sheetPixmap.setColor(Color.RED)
+            sheetPixmap.fillRectangle(0, 0, 4, 8)
+            sheetPixmap.setColor(Color.BLUE)
+            sheetPixmap.fillRectangle(4, 0, 4, 8)
+            val texture = Texture(sheetPixmap)
+            sheetPixmap.dispose()
+
+            val canvas = KotileCanvas(8, 8)
+            val effects = EffectsLayer()
+            val stack = LayerStack(canvas)
+            stack.add(effects)
+
+            effects.spawn(
+                Effect(pxX = 0f, pxY = 0f, w = 8f, h = 8f, region = TextureRegion(texture), rotationDeg = 90f),
+            )
+            stack.render()
+
+            canvas.dispose()
+            texture.dispose()
+        }
+
+        pixels.averageColor(0, 0, 8, 4).r.toDouble() shouldBe (1.0 plusOrMinus 0.1) // RED now on top
+        pixels.averageColor(0, 4, 8, 8).b.toDouble() shouldBe (1.0 plusOrMinus 0.1) // BLUE now on bottom
         pixels.dispose()
     }
 

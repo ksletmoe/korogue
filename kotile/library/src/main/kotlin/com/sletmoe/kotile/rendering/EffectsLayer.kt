@@ -3,6 +3,17 @@ package com.sletmoe.kotile.rendering
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.sletmoe.kotile.display.KotileCanvas
+import kotlin.math.atan2
+
+/**
+ * The [KotileCanvas.drawSprite]/[Effect.rotationDeg] angle, in degrees, pointing along
+ * ([velX], [velY]) — content-pixel-space (top-left-origin, Y-down) velocity components, e.g.
+ * an [Effect]'s own [Effect.velXPerMs]/[Effect.velYPerMs]. `0` points along `+X` (right);
+ * positive angles rotate clockwise as drawn on screen, matching [KotileCanvas.drawSprite]'s
+ * own convention. A zero vector yields `0`.
+ */
+fun rotationTowards(velX: Float, velY: Float): Float =
+    if (velX == 0f && velY == 0f) 0f else Math.toDegrees(atan2(velY.toDouble(), velX.toDouble())).toFloat()
 
 /**
  * A single transient item drawn by an [EffectsLayer]: a sprite/glyph at a float
@@ -19,6 +30,12 @@ import com.sletmoe.kotile.display.KotileCanvas
  * presentation-side concern layered on top (the event-animation queue,
  * krogue-wuq), not this primitive.
  *
+ * [rotationDeg] is a plain, static field like [tint] — [EffectsLayer] never
+ * derives it from [velXPerMs]/[velYPerMs] itself (an effect need not be an
+ * arrow that points where it's going). A caller wanting a projectile to face
+ * its direction of travel sets it once at spawn via [rotationTowards], since
+ * motion here is linear (constant velocity, so the facing angle never changes).
+ *
  * @property pxX current top-left x in content pixels (advances with velocity)
  * @property pxY current top-left y in content pixels (advances with velocity)
  * @property w on-screen width in content pixels
@@ -27,6 +44,8 @@ import com.sletmoe.kotile.display.KotileCanvas
  * @property tint color multiplier (white = unchanged)
  * @property velXPerMs horizontal velocity, content pixels per millisecond
  * @property velYPerMs vertical velocity, content pixels per millisecond
+ * @property rotationDeg rotation passed to [KotileCanvas.drawSprite] (see its
+ *   doc for the angle convention); `0` (default) draws unrotated
  * @property lifetimeMs how long the effect stays active before it expires and is
  *   dropped; `null` means it never expires on its own (remove it explicitly)
  */
@@ -39,6 +58,7 @@ class Effect(
     var tint: Color = Color.WHITE,
     var velXPerMs: Float = 0f,
     var velYPerMs: Float = 0f,
+    var rotationDeg: Float = 0f,
     val lifetimeMs: Long? = null,
 ) {
     /** Milliseconds this effect has been active (accumulated across updates). */
@@ -109,7 +129,7 @@ class EffectsLayer : Layer {
     /** Draws every active effect via [KotileCanvas.drawSprite], in spawn order. */
     override fun render(canvas: KotileCanvas) {
         for (effect in effects) {
-            canvas.drawSprite(effect.pxX, effect.pxY, effect.region, effect.w, effect.h, effect.tint)
+            canvas.drawSprite(effect.pxX, effect.pxY, effect.region, effect.w, effect.h, effect.tint, effect.rotationDeg)
         }
     }
 }
