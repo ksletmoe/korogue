@@ -2,6 +2,7 @@ package com.sletmoe.korogue.presentation
 
 import com.sletmoe.korogue.ui.MapCamera
 import com.sletmoe.korogue.ui.TileSurface
+import com.sletmoe.kotile.display.KotileCanvas
 
 /**
  * Presentation-side queue of [VisualEvent]s (ADR-0023's third, event-animation time axis —
@@ -57,6 +58,24 @@ class EventAnimationQueue {
     ) {
         val head = current ?: return
         head.render(surface, camera, nowMs - currentStartMs)
+    }
+
+    /**
+     * The pixel-space counterpart to [render] (krogue-2ua): draws the currently-playing sequence
+     * (if any) onto [canvas] via [camera], self-contained ([KotileCanvas.begin]/[KotileCanvas.end]
+     * around the draw, matching e.g. [com.sletmoe.kotile.rendering.TileRenderer.render]). No-op
+     * (no batch opened) if nothing is playing, or if the playing sequence has no sprite
+     * representation (its [VisualSequence.renderSprite] defaults to doing nothing).
+     */
+    fun renderSprite(
+        canvas: KotileCanvas,
+        camera: MapCamera,
+        nowMs: Long,
+    ) {
+        val head = current ?: return
+        canvas.begin()
+        head.renderSprite(canvas, camera, nowMs - currentStartMs)
+        canvas.end()
     }
 
     /** Force-completes the head sequence immediately (a keypress fast-forwarding past it). */
