@@ -287,6 +287,14 @@ open class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposabl
      *
      * Fractional-scale smoothing (sharp-bilinear) applies to free sprites too:
      * every draw funnels through the same batch and per-texture shader setup.
+     *
+     * [blend] controls how the drawn pixels combine with what's already on screen — [BlendMode.NORMAL]
+     * (the default) composites over it; [BlendMode.ADDITIVE] adds to it instead, the standard way
+     * to brighten a sprite (e.g. a hit-flash) toward white. [tint] alone cannot do this: it
+     * multiplies the texture's own pixel values, so a dark pixel stays dark no matter how bright
+     * the tint is — GDX's `Color` also clamps every component to `[0, 1]` regardless, so an
+     * intentionally over-bright tint isn't even representable. Additive blending genuinely adds
+     * light instead of just recoloring, which is the only way a multiply tint can't fake.
      */
     fun drawSprite(
         pxX: Float,
@@ -296,8 +304,10 @@ open class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposabl
         h: Float,
         tint: Color = Color.WHITE,
         rotationDeg: Float = 0f,
+        blend: BlendMode = BlendMode.NORMAL,
     ) {
         if (sharpActive) configureSharpFor(region.texture)
+        blend.apply(batch)
         batch.color = tint
         // Coordinates are content-relative: the GridViewport places the content
         // rectangle within the window (the centering offset is the GL viewport's
@@ -310,6 +320,7 @@ open class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposabl
         } else {
             batch.draw(region, pxX, glY, w / 2f, h / 2f, w, h, 1f, 1f, -rotationDeg)
         }
+        BlendMode.NORMAL.apply(batch) // never leak a non-default blend function into the next draw call
     }
 
     /**
