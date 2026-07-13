@@ -254,8 +254,9 @@ open class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposabl
 
     /**
      * Draws [region] at content pixel position ([pxX], [pxY]) — the sprite's
-     * **top-left** corner — sized [w] x [h], multiplied by [tint] (white =
-     * unchanged). Must be called between [begin] and [end].
+     * **top-left** corner (pre-rotation) — sized [w] x [h], multiplied by [tint]
+     * (white = unchanged) and rotated by [rotationDeg] about its own center.
+     * Must be called between [begin] and [end].
      *
      * This is the real drawing primitive; [drawTile] is grid-snapped sugar over
      * it (ADR-0018). It lets free layers (projectiles, particles, pixel-space
@@ -272,6 +273,18 @@ open class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposabl
      * `(c, r)` is `((c + 0.5f) * layout.tileWidthPx, (r + 0.5f) * layout.tileHeightPx)`.
      * The GL y-flip and centering offset are applied here, not by the caller.
      *
+     * ## Rotation
+     *
+     * [rotationDeg] uses this same top-left-origin/Y-down (screen) convention:
+     * `0` is unrotated, and a positive angle turns the sprite **clockwise** as
+     * drawn on screen (e.g. `90` points what was "up" in the source art toward
+     * the right) — matching `atan2(dy, dx)` on a velocity in this same content-
+     * pixel space, so a projectile can face `atan2(velYPerMs, velXPerMs)` in
+     * degrees directly. Internally this is negated before reaching libGDX's
+     * `SpriteBatch`, whose rotation is counter-clockwise in its Y-up GL world —
+     * the same axis flip [pxY] already gets, just for an angle instead of a
+     * coordinate. Rotation pivots on the sprite's center (`w/2, h/2`).
+     *
      * Fractional-scale smoothing (sharp-bilinear) applies to free sprites too:
      * every draw funnels through the same batch and per-texture shader setup.
      */
@@ -282,6 +295,7 @@ open class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposabl
         w: Float,
         h: Float,
         tint: Color = Color.WHITE,
+        rotationDeg: Float = 0f,
     ) {
         if (sharpActive) configureSharpFor(region.texture)
         batch.color = tint
@@ -291,7 +305,11 @@ open class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposabl
         // viewport's y-up world: the sprite's bottom edge sits at
         // contentHeightPx - pxY - h.
         val glY = layout.contentHeightPx - pxY - h
-        batch.draw(region, pxX, glY, w, h)
+        if (rotationDeg == 0f) {
+            batch.draw(region, pxX, glY, w, h)
+        } else {
+            batch.draw(region, pxX, glY, w / 2f, h / 2f, w, h, 1f, 1f, -rotationDeg)
+        }
     }
 
     /**

@@ -131,3 +131,23 @@ tasks.register<JavaExec>("uiHarness") {
     systemProperty("kotile.harness.out", outFile)
     doFirst { logger.lifecycle("Rendering UI harness scene to: $outFile") }
 }
+
+// Empirical check for krogue-m05 (drawSprite rotation): four quadrant-colored copies at
+// 0/90/180/270 degrees, to eyeball the rotation direction/sign convention (this machine has no
+// DISPLAY, so the headless-GL integration tests that assert on this are skipped locally).
+//
+//   ./gradlew :kotile:demo:rotationHarness                     # -> demo/build/rotation-harness.png
+//   ./gradlew :kotile:demo:rotationHarness -PoutFile=/tmp/r.png
+tasks.register<JavaExec>("rotationHarness") {
+    group = "verification"
+    description = "Renders a sprite at 0/90/180/270 degrees to a PNG, to check the rotation direction by eye."
+    mainClass.set("RotationHarnessKt")
+    classpath = sourceSets["main"].runtimeClasspath
+    if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
+        jvmArgs("-XstartOnFirstThread")
+    }
+    val outFile = (project.findProperty("outFile") as String?)
+        ?: layout.buildDirectory.file("rotation-harness.png").get().asFile.absolutePath
+    systemProperty("kotile.harness.out", outFile)
+    doFirst { logger.lifecycle("Rendering rotation harness scene to: $outFile") }
+}
