@@ -35,6 +35,16 @@ import com.sletmoe.kotile.rendering.GridLayout
  * accounts for the centering offset and the on-screen (possibly scaled,
  * possibly fractional) tile size.
  *
+ * ## Free (pixel-space) pointer events
+ *
+ * Each mouse event *also* fires a content-pixel event — [KotileInputListener.onPointerDown]
+ * / [onPointerUp][KotileInputListener.onPointerUp] / [onPointerMoved][KotileInputListener.onPointerMoved]
+ * / [onPointerDragged][KotileInputListener.onPointerDragged] — mapped via
+ * [GridLayout.contentPixelAt], for free (pixel-space) UI and effects (ADR-0018).
+ * These fire alongside the tile events and default to no-ops, so grid/text-only
+ * consumers are unaffected. Forward them to a
+ * [com.sletmoe.kotile.rendering.UiLayer] for pixel-space widget hit-testing.
+ *
  * ## Out-of-bounds policy
  *
  * Mouse events that translate to coordinates outside the tile grid (e.g.
@@ -94,16 +104,27 @@ class KotileInputProcessor(
      * @param button a libGDX button constant from [com.badlogic.gdx.Input.Buttons]
      */
     override fun touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
-        val (tx, ty) = translate(screenX, screenY) ?: return false
+        val layout = layout()
+        layout.contentPixelAt(screenX.toFloat(), screenY.toFloat())?.let { (px, py) ->
+            listeners.forEach { it.onPointerDown(px, py, button) }
+        }
+        val (tx, ty) = layout.tileAt(screenX.toFloat(), screenY.toFloat()) ?: return false
         listeners.forEach { it.onTileClicked(tx, ty, button) }
         return false
     }
 
     /**
-     * Part of the [InputProcessor] contract; tile-click semantics are
-     * delivered by [touchDown]. Always returns `false`.
+     * Translates [screenX]/[screenY] to a content-pixel position and notifies
+     * [KotileInputListener.onPointerUp] on each registered listener (the release
+     * half of a free-UI click; there is no tile-coordinate equivalent), or drops
+     * the event if the pixel position is outside the grid content rectangle.
      */
-    override fun touchUp(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean = false
+    override fun touchUp(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
+        layout().contentPixelAt(screenX.toFloat(), screenY.toFloat())?.let { (px, py) ->
+            listeners.forEach { it.onPointerUp(px, py, button) }
+        }
+        return false
+    }
 
     /**
      * Translates [screenX]/[screenY] to a tile coordinate and notifies
@@ -116,7 +137,11 @@ class KotileInputProcessor(
      * @param button a libGDX button constant from [com.badlogic.gdx.Input.Buttons]
      */
     override fun touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean {
-        val (tx, ty) = translate(screenX, screenY) ?: return false
+        val layout = layout()
+        layout.contentPixelAt(screenX.toFloat(), screenY.toFloat())?.let { (px, py) ->
+            listeners.forEach { it.onPointerDragged(px, py) }
+        }
+        val (tx, ty) = layout.tileAt(screenX.toFloat(), screenY.toFloat()) ?: return false
         // libGDX does not pass the button to touchDragged; use -1 as sentinel.
         listeners.forEach { it.onTileDragged(tx, ty, -1) }
         return false
@@ -131,7 +156,11 @@ class KotileInputProcessor(
      * @param screenY screen pixel Y (0 = top, increases down; libGDX Desktop convention)
      */
     override fun mouseMoved(screenX: Int, screenY: Int): Boolean {
-        val (tx, ty) = translate(screenX, screenY) ?: return false
+        val layout = layout()
+        layout.contentPixelAt(screenX.toFloat(), screenY.toFloat())?.let { (px, py) ->
+            listeners.forEach { it.onPointerMoved(px, py) }
+        }
+        val (tx, ty) = layout.tileAt(screenX.toFloat(), screenY.toFloat()) ?: return false
         listeners.forEach { it.onTileHovered(tx, ty) }
         return false
     }
@@ -182,9 +211,4 @@ class KotileInputProcessor(
      * [KotileInputListener]. Always returns `false`.
      */
     override fun touchCancelled(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean = false
-
-    // ── Helpers ───────────────────────────────────────────────────────────
-
-    private fun translate(screenX: Int, screenY: Int): Pair<Int, Int>? =
-        layout().tileAt(screenX.toFloat(), screenY.toFloat())
 }

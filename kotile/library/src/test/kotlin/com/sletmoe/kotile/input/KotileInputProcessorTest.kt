@@ -272,4 +272,93 @@ class KotileInputProcessorTest : FunSpec({
         proc.touchDragged(200, 200, 0) // far outside grid
         drags.shouldBeEmpty()
     }
+
+    // ── Free (pixel-space) pointer events ─────────────────────────────────
+
+    // A processor over a fixed grid with a non-zero letterbox offset, so pixel
+    // events must subtract the centering offset (not just be raw window pixels).
+    // 80×24 grid, 10px native, 2x scale, centered at (50, 20): window pixel
+    // (px, py) maps to content pixel (px - 50, py - 20).
+    fun offsetProcessor() = KotileInputProcessor(
+        layout = { GridLayout.forFixedGrid(1700, 520, 80, 24, 10, 10, IntegerScale) },
+    )
+
+    test("touchDown fires onPointerDown in content-pixel space alongside onTileClicked") {
+        val downs = mutableListOf<Triple<Float, Float, Int>>()
+        val tiles = mutableListOf<Pair<Int, Int>>()
+        val proc = offsetProcessor()
+        proc.addListener(object : KotileInputAdapter() {
+            override fun onPointerDown(px: Float, py: Float, button: Int) {
+                downs.add(Triple(px, py, button))
+            }
+            override fun onTileClicked(tileX: Int, tileY: Int, button: Int) {
+                tiles.add(tileX to tileY)
+            }
+        })
+        proc.touchDown(95, 85, 0, 1) // window (95,85) → content (45,65), tile (2,3)
+        downs shouldBe listOf(Triple(45f, 65f, 1))
+        tiles shouldBe listOf(2 to 3) // tile event still fires unchanged
+    }
+
+    test("touchUp fires onPointerUp in content-pixel space") {
+        val ups = mutableListOf<Triple<Float, Float, Int>>()
+        val proc = offsetProcessor()
+        proc.addListener(object : KotileInputAdapter() {
+            override fun onPointerUp(px: Float, py: Float, button: Int) {
+                ups.add(Triple(px, py, button))
+            }
+        })
+        proc.touchUp(50, 20, 0, 0) // content (0,0)
+        ups shouldBe listOf(Triple(0f, 0f, 0))
+    }
+
+    test("mouseMoved fires onPointerMoved in content-pixel space") {
+        val moves = mutableListOf<Pair<Float, Float>>()
+        val proc = offsetProcessor()
+        proc.addListener(object : KotileInputAdapter() {
+            override fun onPointerMoved(px: Float, py: Float) {
+                moves.add(px to py)
+            }
+        })
+        proc.mouseMoved(70, 40) // content (20,20)
+        moves shouldBe listOf(20f to 20f)
+    }
+
+    test("touchDragged fires onPointerDragged in content-pixel space") {
+        val drags = mutableListOf<Pair<Float, Float>>()
+        val proc = offsetProcessor()
+        proc.addListener(object : KotileInputAdapter() {
+            override fun onPointerDragged(px: Float, py: Float) {
+                drags.add(px to py)
+            }
+        })
+        proc.touchDragged(60, 30, 0) // content (10,10)
+        drags shouldBe listOf(10f to 10f)
+    }
+
+    test("pointer events in the letterbox margin are dropped") {
+        val downs = mutableListOf<Pair<Float, Float>>()
+        val moves = mutableListOf<Pair<Float, Float>>()
+        val proc = offsetProcessor()
+        proc.addListener(object : KotileInputAdapter() {
+            override fun onPointerDown(px: Float, py: Float, button: Int) { downs.add(px to py) }
+            override fun onPointerMoved(px: Float, py: Float) { moves.add(px to py) }
+        })
+        proc.touchDown(10, 10, 0, 0)  // top-left letterbox bar
+        proc.mouseMoved(10, 10)
+        downs.shouldBeEmpty()
+        moves.shouldBeEmpty()
+    }
+
+    test("pointer events default to no-ops for grid/text-only listeners") {
+        // A listener that overrides none of the pointer methods must not throw
+        // when the processor delivers them.
+        val proc = offsetProcessor()
+        proc.addListener(object : KotileInputAdapter() {})
+        proc.touchDown(60, 30, 0, 0)
+        proc.touchUp(60, 30, 0, 0)
+        proc.mouseMoved(60, 30)
+        proc.touchDragged(60, 30, 0)
+        // No assertion needed: reaching here without an exception is the check.
+    }
 })

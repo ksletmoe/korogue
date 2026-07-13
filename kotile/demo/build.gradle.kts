@@ -111,3 +111,23 @@ tasks.register<JavaExec>("effectsHarness") {
     systemProperty("kotile.harness.out", outFile)
     doFirst { logger.lifecycle("Rendering effects harness scene to: $outFile") }
 }
+
+// Free (pixel-space) UI counterpart (krogue-tvm, ADR-0018): draws a UiLayer of
+// pixel-positioned widgets over an ASCII grid, drives a synthetic hover through
+// pixel-space hit-testing (the hovered button lights up), and dumps a PNG.
+//
+//   ./gradlew :kotile:demo:uiHarness                     # -> demo/build/ui-harness.png
+//   ./gradlew :kotile:demo:uiHarness -PoutFile=/tmp/ui.png
+tasks.register<JavaExec>("uiHarness") {
+    group = "verification"
+    description = "Renders the free UI layer (pixel-space widgets + hover hit-testing over a grid) to a PNG."
+    mainClass.set("UiHarnessKt")
+    classpath = sourceSets["main"].runtimeClasspath
+    if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
+        jvmArgs("-XstartOnFirstThread")
+    }
+    val outFile = (project.findProperty("outFile") as String?)
+        ?: layout.buildDirectory.file("ui-harness.png").get().asFile.absolutePath
+    systemProperty("kotile.harness.out", outFile)
+    doFirst { logger.lifecycle("Rendering UI harness scene to: $outFile") }
+}

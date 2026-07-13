@@ -65,6 +65,33 @@ data class GridLayout(
         return column to row
     }
 
+    /**
+     * Maps a window pixel position to a **content-pixel** position — the
+     * coordinate space of [com.sletmoe.kotile.display.KotileCanvas.drawSprite]
+     * and the free (pixel-space) layers built on it — or `null` if the position
+     * falls in a letterbox margin or outside the grid content rectangle.
+     *
+     * This is the free-layer counterpart to [tileAt] (ADR-0018): grid layers map
+     * a pixel to a *cell*; free layers (pixel-space UI, effects) hit-test against
+     * the *content-pixel* point returned here. The mapping only subtracts the
+     * centering offset — content pixels share the grid's on-screen scale and
+     * letterbox, so `(0, 0)` is the content top-left and the returned point can be
+     * compared directly against a widget's [PixelRect]. Use it for pointer
+     * hit-testing of free-positioned widgets.
+     *
+     * @param pixelX window pixel x (0 = left edge, increases right)
+     * @param pixelY window pixel y (0 = top edge, increases down)
+     * @return content-pixel `(x, y)` with a top-left origin, or `null` if out of bounds
+     */
+    fun contentPixelAt(pixelX: Float, pixelY: Float): Pair<Float, Float>? {
+        if (tileWidthPx <= 0f || tileHeightPx <= 0f) return null
+        val localX = pixelX - offsetXPx
+        val localY = pixelY - offsetYPx
+        if (localX < 0f || localY < 0f) return null
+        if (localX >= contentWidthPx || localY >= contentHeightPx) return null
+        return localX to localY
+    }
+
     companion object {
         /**
          * Reflow layout: as many whole native-size tiles as fit the window, with
