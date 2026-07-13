@@ -2,6 +2,7 @@ package com.sletmoe.korogue.presentation
 
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.sletmoe.kotile.display.ascii.Font
 import com.sletmoe.kotile.utilities.Vector2Int
 
 /**
@@ -77,9 +78,34 @@ sealed interface VisualEvent {
         val stopShortPx: Float = 0f,
     ) : VisualEvent
 
+    /**
+     * [text] rising and fading above [at] over [durationMs] (e.g. a floating damage number) —
+     * sprite-space only, drawn character-by-character via [font]'s glyph regions through
+     * [com.sletmoe.kotile.display.KotileCanvas.drawSprite]. No glyph/[com.sletmoe.korogue.ui.TileSurface]
+     * counterpart: a TileSurface cell already *is* one character, so text drifting freely above one
+     * would need an overlapping-text seam TileSurface doesn't have.
+     *
+     * @property font glyph source (caller-owned; this event borrows it, never disposes it)
+     * @property charWidthPx/[charHeightPx] on-screen size (content pixels — the same space as
+     *   [com.sletmoe.kotile.rendering.GridLayout.tileWidthPx]) to draw each character at
+     * @property riseDistancePx how far up (content pixels) the text drifts over the full
+     *   [durationMs], fading out linearly as it rises
+     */
+    data class FloatingText(
+        val at: Vector2Int,
+        val text: String,
+        val font: Font,
+        val charWidthPx: Float,
+        val charHeightPx: Float,
+        val color: Color = Color.RED,
+        val durationMs: Long = DEFAULT_FLOATING_TEXT_MS,
+        val riseDistancePx: Float = charHeightPx * 1.5f,
+    ) : VisualEvent
+
     companion object {
         const val DEFAULT_FLASH_MS = 150L
         const val DEFAULT_FADE_MS = 300L
         const val DEFAULT_PROJECTILE_MS = 200L
+        const val DEFAULT_FLOATING_TEXT_MS = 900L
     }
 }
