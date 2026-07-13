@@ -55,4 +55,12 @@ public interface Tile : SpriteTileEntry {
      * unchanged. [AnimatedSpriteTile] overrides it to fold in a per-frame tint.
      */
     public fun tintFor(elapsedMs: Long): Color = tint
+
+    /**
+     * Mirror this tile horizontally/vertically when drawn (krogue-csc — e.g. a creature
+     * sprite facing the direction it last moved). Defaulted so existing implementations
+     * outside this module don't need to declare them.
+     */
+    public val flipX: Boolean get() = false
+    public val flipY: Boolean get() = false
 }

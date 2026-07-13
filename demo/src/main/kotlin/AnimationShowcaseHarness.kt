@@ -510,11 +510,8 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
 
     /**
      * A creature's idle two-frame bounce, tinted by the ambient light at its cell. [flipX] mirrors
-     * both frames horizontally (krogue-csc tracks proper facing-direction mirroring as a real
-     * engine feature; this is a one-off demo fix for the ranger, whose source art faces the wrong
-     * way for where it stands). [TileSheet.region] returns a fresh `TextureRegion` per call, so
-     * flipping it here is safe -- it's not a shared/cached instance another caller could see
-     * mutated.
+     * the tile horizontally via kotile's own primitive (krogue-csc) — the ranger's source art
+     * faces the wrong way for where it stands, so it's drawn with `flipX = true`.
      */
     private fun creatureTile(
         sheet: DawnLikeCreatureTiles.Sheet,
@@ -527,16 +524,15 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
                 DawnLikeCreatureTiles.Sheet.PLAYER -> player0Sheet to player1Sheet
                 DawnLikeCreatureTiles.Sheet.PEST -> pest0Sheet to pest1Sheet
             }
-        val frame0Region = frame0Sheet.region(cell.x, cell.y).also { if (flipX) it.flip(true, false) }
-        val frame1Region = frame1Sheet.region(cell.x, cell.y).also { if (flipX) it.flip(true, false) }
         return AnimatedSpriteTile(
             frames =
                 listOf(
-                    AnimationFrame(frame0Region, durationMs = ANIMATION_FRAME_MS),
-                    AnimationFrame(frame1Region, durationMs = ANIMATION_FRAME_MS),
+                    AnimationFrame(frame0Sheet.region(cell.x, cell.y), durationMs = ANIMATION_FRAME_MS),
+                    AnimationFrame(frame1Sheet.region(cell.x, cell.y), durationMs = ANIMATION_FRAME_MS),
                 ),
             mode = PlaybackMode.LOOP,
             tint = tint,
+            flipX = flipX,
         )
     }
 
