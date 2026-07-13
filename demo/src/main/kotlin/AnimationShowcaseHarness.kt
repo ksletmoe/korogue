@@ -108,12 +108,13 @@ private const val GLYPH_MONSTER_COL = TOTAL_COLS - 7
 private const val PROJECTILE_FLIGHT_MS = 700L
 private const val PROJECTILE_CYCLE_MS = 1800L // flight + pause before the next shot
 
-// DawnLikeAmmoTiles.ARROW's source art is drawn at a fixed northeast-pointing diagonal (its
-// rotationDeg=0 bearing), not pointing along +X -- so rotating it to face due-east (this scene's
-// only travel direction, left-to-right) needs this fixed offset on top of rotationTowards' 0deg.
-// Verified empirically via a snapshot (rotation direction is easy to get backwards -- see
-// KotileCanvas.drawSprite's own doc note and kotile:demo's RotationHarness).
-private const val ARROW_NATIVE_BEARING_DEG = -45f
+// DawnLikeAmmoTiles.ARROW's head (the pale cream/gray end -- not the blue end, which is the
+// fletching, see that object's doc comment) is drawn facing southwest at rotationDeg=0, not along
+// +X -- so rotating it to face due-east (this scene's only travel direction, left-to-right) needs
+// this fixed offset on top of rotationTowards' 0deg. Confirmed via a clean-build snapshot after an
+// initial mixup over which end is the head -- easy to get backwards, don't trust it un-verified
+// (see KotileCanvas.drawSprite's own doc note and kotile:demo's RotationHarness).
+private const val ARROW_NATIVE_BEARING_DEG = 135f
 
 // Torches are now 12 cols apart (was 6). Radius bumped ~10% from the previous 7.0.
 private const val LIGHT_RADIUS = 7.7
