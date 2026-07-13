@@ -365,7 +365,9 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
             SPRITE_RANGER_COL,
             MID_ROW,
             z = 1,
-            tile = creatureTile(rangerSheet, rangerCell, rangerTint),
+            // The source art faces left; the ranger stands on the left shooting right, so it needs
+            // mirroring to actually face its target instead of shooting backward over its shoulder.
+            tile = creatureTile(rangerSheet, rangerCell, rangerTint, flipX = true),
         )
 
         val (scorpionSheet, scorpionCell) = DawnLikeCreatureTiles.SCORPION
@@ -493,17 +495,23 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
         sheet: DawnLikeCreatureTiles.Sheet,
         cell: Vector2Int,
         tint: Color = Color.WHITE,
+        flipX: Boolean = false,
     ): AnimatedSpriteTile {
         val (frame0Sheet, frame1Sheet) =
             when (sheet) {
                 DawnLikeCreatureTiles.Sheet.PLAYER -> player0Sheet to player1Sheet
                 DawnLikeCreatureTiles.Sheet.PEST -> pest0Sheet to pest1Sheet
             }
+        // TileSheet.region() returns a fresh TextureRegion per call, so flipping it here is safe --
+        // it's not a shared/cached instance other callers could see mutated (krogue-csc tracks
+        // proper facing-direction mirroring as a real engine feature; this is a one-off demo fix).
+        val frame0Region = frame0Sheet.region(cell.x, cell.y).also { if (flipX) it.flip(true, false) }
+        val frame1Region = frame1Sheet.region(cell.x, cell.y).also { if (flipX) it.flip(true, false) }
         return AnimatedSpriteTile(
             frames =
                 listOf(
-                    AnimationFrame(frame0Sheet.region(cell.x, cell.y), durationMs = ANIMATION_FRAME_MS),
-                    AnimationFrame(frame1Sheet.region(cell.x, cell.y), durationMs = ANIMATION_FRAME_MS),
+                    AnimationFrame(frame0Region, durationMs = ANIMATION_FRAME_MS),
+                    AnimationFrame(frame1Region, durationMs = ANIMATION_FRAME_MS),
                 ),
             mode = PlaybackMode.LOOP,
             tint = tint,
