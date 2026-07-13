@@ -4,11 +4,33 @@ import com.badlogic.gdx.graphics.Color
 import com.sletmoe.korogue.components.RenderLayer
 import com.sletmoe.korogue.ui.MapCamera
 import com.sletmoe.korogue.ui.RecordingSurface
+import com.sletmoe.korogue.ui.TileSurface
 import com.sletmoe.kotile.utilities.Vector2Int
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+
+// A game-defined VisualEvent (krogue-jzs): neither type is part of the engine's own hierarchy
+// (VisualEvent is a plain interface, not sealed), demonstrating a game can add its own visual
+// effect and enqueue it into EventAnimationQueue with zero engine source changes.
+private class MarkerSequence(override val durationMs: Long) : VisualSequence {
+    var lastRenderElapsedMs: Long? = null
+
+    override fun render(
+        surface: TileSurface,
+        camera: MapCamera,
+        elapsedMs: Long,
+    ) {
+        lastRenderElapsedMs = elapsedMs
+    }
+}
+
+private data class MarkerEvent(val eventDurationMs: Long) : VisualEvent {
+    val sequence = MarkerSequence(eventDurationMs)
+
+    override fun toSequence(): VisualSequence = sequence
+}
 
 /**
  * [EventAnimationQueue] is the presentation-only sequencer (krogue-wuq, ADR-0023's third time
@@ -182,5 +204,20 @@ class EventAnimationQueueTest : FunSpec({
         val surface = RecordingSurface(10, 10)
         sequence.render(surface, camera, 0L)
         surface.top(0, 0)!!.bg shouldBe Color.BLACK
+    }
+
+    test("a game-defined VisualEvent outside the built-in hierarchy plays through the queue unmodified") {
+        val queue = EventAnimationQueue()
+        val event = MarkerEvent(eventDurationMs = 40L)
+        queue.enqueue(event)
+        queue.isPlaying shouldBe true
+
+        queue.update(0L)
+        queue.currentEvent shouldBe event
+        queue.render(RecordingSurface(10, 10), camera, 25L)
+        event.sequence.lastRenderElapsedMs shouldBe 25L
+
+        queue.update(40L)
+        queue.isPlaying shouldBe false
     }
 })

@@ -45,18 +45,14 @@ interface VisualSequence {
     ) {}
 }
 
-/** Converts a [VisualEvent] into the [VisualSequence] that plays it. */
-fun VisualEvent.toSequence(): VisualSequence =
-    when (this) {
-        is VisualEvent.HitFlash -> HitFlashSequence(this)
-        is VisualEvent.DeathFade -> DeathFadeSequence(this)
-        is VisualEvent.Projectile -> ProjectileSequence(this)
-        is VisualEvent.SpriteProjectile -> SpriteProjectileSequence(this)
-        is VisualEvent.FloatingText -> FloatingTextSequence(this)
-    }
-
-/** [VisualEvent.HitFlash] draws solid for its whole (short) duration, on both render seams. */
-private class HitFlashSequence(private val event: VisualEvent.HitFlash) : VisualSequence {
+/**
+ * [VisualEvent.HitFlash] draws solid for its whole (short) duration, on both render seams. Each
+ * built-in [VisualEvent] variant's own `toSequence()` override constructs its matching *Sequence
+ * class directly — `internal`, not `private`, so [VisualEvent.kt][VisualEvent] (a different file,
+ * same module) can reference them; there is no longer a central dispatch function to edit for a
+ * new event type (krogue-jzs — [VisualEvent] is open, mirroring [com.sletmoe.korogue.ecs.Event]).
+ */
+internal class HitFlashSequence(private val event: VisualEvent.HitFlash) : VisualSequence {
     override val durationMs: Long get() = event.durationMs
 
     override fun render(
@@ -109,7 +105,7 @@ private class HitFlashSequence(private val event: VisualEvent.HitFlash) : Visual
 }
 
 /** [VisualEvent.DeathFade] darkens [VisualEvent.DeathFade.color] linearly to black over [durationMs]. */
-private class DeathFadeSequence(private val event: VisualEvent.DeathFade) : VisualSequence {
+internal class DeathFadeSequence(private val event: VisualEvent.DeathFade) : VisualSequence {
     override val durationMs: Long get() = event.durationMs
 
     override fun render(
@@ -128,7 +124,7 @@ private class DeathFadeSequence(private val event: VisualEvent.DeathFade) : Visu
  * from -> to, rounded to the nearest cell; grid-snapped (krogue-tnf, [VisualEvent.Projectile.path]
  * set) steps through the path's cells in order instead.
  */
-private class ProjectileSequence(private val event: VisualEvent.Projectile) : VisualSequence {
+internal class ProjectileSequence(private val event: VisualEvent.Projectile) : VisualSequence {
     override val durationMs: Long get() = event.durationMs
 
     override fun render(
@@ -161,7 +157,7 @@ private class ProjectileSequence(private val event: VisualEvent.Projectile) : Vi
  * center — the shot still lands at the same wall-clock moment, just visibly outside its target's
  * cell rather than on top of it.
  */
-private class SpriteProjectileSequence(private val event: VisualEvent.SpriteProjectile) : VisualSequence {
+internal class SpriteProjectileSequence(private val event: VisualEvent.SpriteProjectile) : VisualSequence {
     override val durationMs: Long get() = event.durationMs
 
     override fun renderSprite(
@@ -212,7 +208,7 @@ private class SpriteProjectileSequence(private val event: VisualEvent.SpriteProj
  * [VisualEvent.FloatingText] rising and fading above [event]'s cell over [durationMs] — sprite-
  * space only (see the event's own doc comment for why there's no glyph counterpart).
  */
-private class FloatingTextSequence(private val event: VisualEvent.FloatingText) : VisualSequence {
+internal class FloatingTextSequence(private val event: VisualEvent.FloatingText) : VisualSequence {
     override val durationMs: Long get() = event.durationMs
 
     override fun renderSprite(

@@ -12,14 +12,27 @@ import com.sletmoe.kotile.utilities.Vector2Int
  * never read or write game state and are never serialized. Positions are world (zone) cells —
  * [EventAnimationQueue] resolves them to screen cells via the map's [com.sletmoe.korogue.ui.MapCamera]
  * at render time, so a sequence stays correct even if the camera re-centres while it plays.
+ *
+ * Open, not sealed — mirroring [com.sletmoe.korogue.ecs.Event] (ADR-0010), the engine's existing
+ * precedent for this exact shape: an open marker interface implemented by concrete game/engine
+ * types, dispatched by (in `Event`'s case) concrete class, rather than a closed hierarchy matched
+ * in a central `when`. A game defines its own `VisualEvent` (a screen shake, an area burst) with
+ * its own [toSequence] and enqueues it into [EventAnimationQueue] exactly like a built-in one — no
+ * engine change needed, unlike a sealed hierarchy would require (the "closed struct" ADR-0014/
+ * ADR-0015 call out as the anti-pattern pluggable-policy concerns should avoid).
  */
-sealed interface VisualEvent {
+interface VisualEvent {
+    /** The [VisualSequence] that plays this event, built once when it's [EventAnimationQueue.enqueue]d. */
+    fun toSequence(): VisualSequence
+
     /** A brief flash at [at] (e.g. a hit landing). */
     data class HitFlash(
         val at: Vector2Int,
         val color: Color = Color.WHITE,
         val durationMs: Long = DEFAULT_FLASH_MS,
-    ) : VisualEvent
+    ) : VisualEvent {
+        override fun toSequence(): VisualSequence = HitFlashSequence(this)
+    }
 
     /** [glyph]/[color] fading out at [at] (e.g. a death). */
     data class DeathFade(
@@ -27,7 +40,9 @@ sealed interface VisualEvent {
         val glyph: Char,
         val color: Color,
         val durationMs: Long = DEFAULT_FADE_MS,
-    ) : VisualEvent
+    ) : VisualEvent {
+        override fun toSequence(): VisualSequence = DeathFadeSequence(this)
+    }
 
     /**
      * [glyph] travelling from [from] to [to] over [durationMs]. Two render modes, chosen by
@@ -54,7 +69,9 @@ sealed interface VisualEvent {
         val durationMs: Long = DEFAULT_PROJECTILE_MS,
         val path: List<Vector2Int>? = null,
         val backgroundAt: ((at: Vector2Int, elapsedMs: Long) -> Color)? = null,
-    ) : VisualEvent
+    ) : VisualEvent {
+        override fun toSequence(): VisualSequence = ProjectileSequence(this)
+    }
 
     /**
      * [region] travelling from [from] to [to] over [durationMs], true sub-pixel motion drawn via
@@ -76,7 +93,9 @@ sealed interface VisualEvent {
         val durationMs: Long = DEFAULT_PROJECTILE_MS,
         val nativeBearingDeg: Float = 0f,
         val stopShortPx: Float = 0f,
-    ) : VisualEvent
+    ) : VisualEvent {
+        override fun toSequence(): VisualSequence = SpriteProjectileSequence(this)
+    }
 
     /**
      * [text] rising and fading above [at] over [durationMs] (e.g. a floating damage number) —
@@ -100,7 +119,9 @@ sealed interface VisualEvent {
         val color: Color = Color.RED,
         val durationMs: Long = DEFAULT_FLOATING_TEXT_MS,
         val riseDistancePx: Float = charHeightPx * 1.5f,
-    ) : VisualEvent
+    ) : VisualEvent {
+        override fun toSequence(): VisualSequence = FloatingTextSequence(this)
+    }
 
     companion object {
         const val DEFAULT_FLASH_MS = 150L
