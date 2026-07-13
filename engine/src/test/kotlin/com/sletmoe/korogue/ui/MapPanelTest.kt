@@ -2,7 +2,9 @@ package com.sletmoe.korogue.ui
 
 import com.badlogic.gdx.graphics.Color
 import com.sletmoe.korogue.algorithms.color.toNormalizedRgb
+import com.sletmoe.korogue.algorithms.lighting.LightFlicker
 import com.sletmoe.korogue.algorithms.lighting.LightValue
+import com.sletmoe.korogue.components.LightEmitter
 import com.sletmoe.korogue.components.Player
 import com.sletmoe.korogue.components.Position
 import com.sletmoe.korogue.components.RenderLayer
@@ -19,6 +21,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 
 /**
  * MapPanel renders a chosen observer's [Perceived] (ADR-0015): a cell is drawn when the observer
@@ -74,7 +77,8 @@ class MapPanelTest : FunSpec({
         gw: GameWorld,
         fog: Grid<Boolean> = Grid(6, 6, false),
         decorate: (TileSurface, MapCamera) -> Unit = { _, _ -> },
-    ) = MapPanel(IntRect(0, 0, 6, 6), gw, { fog }, decorate = decorate)
+        elapsedMsProvider: () -> Long = { 0L },
+    ) = MapPanel(IntRect(0, 0, 6, 6), gw, { fog }, decorate = decorate, elapsedMsProvider = elapsedMsProvider)
 
     test("the observer is always drawn at its camera-centred cell, even perceiving nothing") {
         val surface = RecordingSurface(6, 6)
@@ -290,5 +294,98 @@ class MapPanelTest : FunSpec({
         val drawn = surface.top(4, 4).shouldNotBeNull()
         drawn.glyph shouldBe 'm'
         drawn.fg shouldBe Color.RED // the monster's Renderable color
+    }
+
+    // -------------------------------------------------------------------------
+    // Light flicker (krogue-ncl)
+    // -------------------------------------------------------------------------
+
+    /** Spawns a [LightEmitter] with [flicker] at ([x], [y]) in zone "z"; returns its id. */
+    fun GameWorld.spawnFlickeringLight(
+        x: Int,
+        y: Int,
+        flicker: LightFlicker,
+        radius: Double = 5.0,
+    ): EntityId =
+        ecs
+            .spawn(
+                Position(x, y),
+                ZoneMember("z"),
+                LightEmitter(Color.WHITE.toNormalizedRgb(), radius, "diminishing", flicker),
+            ).id
+
+    test("a flickering emitter modulates the lit cell's intensity over wall-clock time") {
+        val cells = setOf(cell(4, 4))
+        val (gw, _) = world(perceives = cells, lit = cells)
+        gw.spawnFlickeringLight(4, 4, LightFlicker(amplitude = 0.5, periodMs = 1000, seed = 0))
+
+        val steady = RecordingSurface(6, 6)
+        panel(gw, elapsedMsProvider = { 0L }).draw(steady) // factor = 1.0 (unmodulated)
+
+        val dimmed = RecordingSurface(6, 6)
+        panel(gw, elapsedMsProvider = { 750L }).draw(dimmed) // 3/4 period -> trough, factor = 0.5
+
+        val steadyFg = steady.top(4, 4).shouldNotBeNull().fg
+        val dimmedFg = dimmed.top(4, 4).shouldNotBeNull().fg
+        dimmedFg shouldNotBe steadyFg
+        (dimmedFg.r < steadyFg.r) shouldBe true
+    }
+
+    test("with no flicker-configured emitter, intensity is unaffected by elapsedMs (unchanged behavior)") {
+        val cells = setOf(cell(4, 4))
+        val (gw, _) = world(perceives = cells, lit = cells) // lit directly, no LightEmitter at all
+
+        val atZero = RecordingSurface(6, 6)
+        panel(gw, elapsedMsProvider = { 0L }).draw(atZero)
+
+        val atLater = RecordingSurface(6, 6)
+        panel(gw, elapsedMsProvider = { 999_999L }).draw(atLater)
+
+        atZero.top(4, 4).shouldNotBeNull().fg shouldBe atLater.top(4, 4).shouldNotBeNull().fg
+    }
+
+    test("flicker only reaches cells within the emitter's own radius") {
+        val cells = setOf(cell(0, 0), cell(4, 4))
+        val (gw, _) = world(perceives = cells, lit = cells)
+        // A small-radius flickering torch at (0,0) cannot reach (4,4) (distance ~5.66).
+        gw.spawnFlickeringLight(0, 0, LightFlicker(amplitude = 0.9, periodMs = 1000), radius = 1.0)
+
+        val atZero = RecordingSurface(6, 6)
+        panel(gw, elapsedMsProvider = { 0L }).draw(atZero)
+
+        val atTrough = RecordingSurface(6, 6)
+        panel(gw, elapsedMsProvider = { 750L }).draw(atTrough)
+
+        // (4,4) is lit independently of the far-away torch, so it stays steady regardless of time.
+        atZero.top(4, 4).shouldNotBeNull().fg shouldBe atTrough.top(4, 4).shouldNotBeNull().fg
+    }
+
+    test("an occupant's background flickers along with the terrain beneath it") {
+        // A non-black background: BLACK * anything is still BLACK, which would hide the effect.
+        val litFloor = Tile("lit-floor", '.', Color.GRAY, Color.NAVY, isWalkable = true, blocksLineOfSight = false)
+        val gw = GameWorld.create { zone("z", 6, 6, isCurrentZone = true) { fill(litFloor) } }
+        val player =
+            gw.ecs
+                .spawn(
+                    Position(2, 2),
+                    ZoneMember("z"),
+                    Renderable('@', Color.YELLOW.toNormalizedRgb(), RenderLayer.PLAYER),
+                    Player,
+                    Perceived("z", setOf(cell(4, 4)), emptySet()),
+                ).id
+        gw.currentZone.lightMap[4, 4] = LightValue(Color.WHITE.toNormalizedRgb(), 1.0)
+        val monster = gw.spawnMonster(4, 4)
+        gw.ecs.set(player, Perceived("z", setOf(cell(4, 4)), setOf(monster)))
+        gw.spawnFlickeringLight(4, 4, LightFlicker(amplitude = 0.5, periodMs = 1000))
+
+        val steady = RecordingSurface(6, 6)
+        panel(gw, elapsedMsProvider = { 0L }).draw(steady)
+
+        val dimmed = RecordingSurface(6, 6)
+        panel(gw, elapsedMsProvider = { 750L }).draw(dimmed)
+
+        val steadyBg = steady.top(4, 4).shouldNotBeNull().bg
+        val dimmedBg = dimmed.top(4, 4).shouldNotBeNull().bg
+        dimmedBg shouldNotBe steadyBg
     }
 })

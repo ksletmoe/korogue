@@ -2,6 +2,7 @@ package com.sletmoe.korogue.ui
 
 import com.badlogic.gdx.graphics.Color
 import com.sletmoe.korogue.algorithms.color.toNormalizedRgb
+import com.sletmoe.korogue.components.LightEmitter
 import com.sletmoe.korogue.components.Player
 import com.sletmoe.korogue.components.Position
 import com.sletmoe.korogue.components.Renderable
@@ -10,9 +11,11 @@ import com.sletmoe.korogue.ecs.Entity
 import com.sletmoe.korogue.perception.Perceived
 import com.sletmoe.korogue.utilities.Grid
 import com.sletmoe.korogue.utilities.IntRect
+import com.sletmoe.korogue.utilities.distance
 import com.sletmoe.korogue.world.GameWorld
 import com.sletmoe.korogue.world.Tile
 import com.sletmoe.korogue.world.Zone
+import com.sletmoe.kotile.utilities.Vector2Int
 
 /**
  * The map as a [Widget] (ADR-0011): draws [GameWorld]'s current zone — terrain (with lighting
@@ -63,6 +66,11 @@ class MapPanel(
     // first consumer: it renders its current sequence, world position -> screen, through here).
     // No-op by default.
     private val decorate: (TileSurface, MapCamera) -> Unit = { _, _ -> },
+    // Wall-clock time for [LightEmitter.flicker] (krogue-ncl, ADR-0023's presentation axis) — the
+    // game's running elapsedMs, e.g. `{ animationClockMs }` updated once per drawFrame. Defaults to
+    // a constant 0, which is harmless: flicker only ever engages for an emitter that opts in via
+    // a non-null [LightEmitter.flicker], so a game that never sets one is unaffected either way.
+    private val elapsedMsProvider: () -> Long = { 0L },
 ) : Widget {
     override fun draw(surface: TileSurface) {
         val zone = gameWorld.currentZone
@@ -77,8 +85,11 @@ class MapPanel(
 
         accumulateFog(perceived, fog)
 
-        drawTerrain(surface, zone, fog, perceived, camera)
-        drawOccupants(surface, zone, observer, perceived, camera)
+        val flickerSources = flickerSourcesIn(zone)
+        val elapsedMs = elapsedMsProvider()
+
+        drawTerrain(surface, zone, fog, perceived, camera, flickerSources, elapsedMs)
+        drawOccupants(surface, zone, observer, perceived, camera, flickerSources, elapsedMs)
         decorate(surface, camera)
     }
 
@@ -92,12 +103,47 @@ class MapPanel(
         }
     }
 
+    /** Every [LightEmitter] with [LightEmitter.flicker] set, in [zone] — usually a small handful. */
+    private fun flickerSourcesIn(zone: Zone): List<Pair<Vector2Int, LightEmitter>> =
+        gameWorld.ecs
+            .entitiesWith<LightEmitter, Position, ZoneMember>()
+            .filter { it.require<ZoneMember>().zoneId == zone.zoneId && it.require<LightEmitter>().flicker != null }
+            .map { it.require<Position>().point to it.require<LightEmitter>() }
+            .toList()
+
+    /**
+     * The wall-clock flicker multiplier at world cell ([x], [y]) — `1.0` (no change) when
+     * [flickerSources] is empty or none reach this cell. Approximates "independent per source" by
+     * picking the *nearest* flickering emitter that actually lights this cell (within its own
+     * [LightEmitter.radius]) rather than recomputing the full per-emitter blend every frame (the
+     * cost `Zone.lightMap`'s own tick-computed blend is there specifically to avoid) — a cell only
+     * ever lit by one source in practice is unaffected by the approximation; deep overlap regions
+     * flicker with whichever source is closest rather than a true blend of both phases.
+     */
+    private fun flickerFactorAt(
+        x: Int,
+        y: Int,
+        flickerSources: List<Pair<Vector2Int, LightEmitter>>,
+        elapsedMs: Long,
+    ): Double {
+        if (flickerSources.isEmpty()) return 1.0
+        val coord = Vector2Int(x, y)
+        val nearest =
+            flickerSources
+                .filter { (origin, emitter) -> origin.distance(coord) <= emitter.radius }
+                .minByOrNull { (origin, _) -> origin.distance(coord) }
+                ?: return 1.0
+        return nearest.second.flicker!!.factorAt(elapsedMs)
+    }
+
     private fun drawTerrain(
         surface: TileSurface,
         zone: Zone,
         fog: Grid<Boolean>,
         perceived: Perceived,
         camera: MapCamera,
+        flickerSources: List<Pair<Vector2Int, LightEmitter>>,
+        elapsedMs: Long,
     ) {
         for (screenY in 0 until surface.height) {
             val zy = camera.zoneY(screenY)
@@ -105,7 +151,8 @@ class MapPanel(
             for (screenX in 0 until surface.width) {
                 val zx = camera.zoneX(screenX)
                 if (zx < 0 || zx >= zone.width) continue
-                val cell = terrainCell(zone, zx, zy, perceived, fog) ?: continue // hidden -> leave black
+                val flicker = flickerFactorAt(zx, zy, flickerSources, elapsedMs)
+                val cell = terrainCell(zone, zx, zy, perceived, fog, flicker) ?: continue // hidden -> leave black
                 surface.put(screenX, screenY, TERRAIN_Z, cell.glyph, cell.fg, cell.bg)
             }
         }
@@ -117,6 +164,8 @@ class MapPanel(
         observer: Entity,
         perceived: Perceived,
         camera: MapCamera,
+        flickerSources: List<Pair<Vector2Int, LightEmitter>>,
+        elapsedMs: Long,
     ) {
         for (entity in gameWorld.ecs.entitiesWith<Position, Renderable, ZoneMember>()) {
             if (entity.require<ZoneMember>().zoneId != zone.zoneId) continue
@@ -131,13 +180,14 @@ class MapPanel(
             // engine-computed so a remapped glyph keeps the terrain tint beneath it.
             val context = OccupantRender(entity, renderable, zone.tiles[pos.x, pos.y], perceived = true)
             val rendered = occupantRenderer(context) ?: continue
+            val flicker = flickerFactorAt(pos.x, pos.y, flickerSources, elapsedMs)
             surface.put(
                 screenX,
                 screenY,
                 renderable.layer.zIndex,
                 rendered.glyph,
                 rendered.fg,
-                backgroundAt(zone, pos.x, pos.y, perceived),
+                backgroundAt(zone, pos.x, pos.y, perceived, flicker),
             )
         }
     }
@@ -174,20 +224,25 @@ class MapPanel(
         val perceived: Boolean,
     )
 
-    /** The terrain cell at ([x], [y]), with lighting/dimming applied, or null if currently hidden. */
+    /**
+     * The terrain cell at ([x], [y]), with lighting/dimming applied, or null if currently hidden.
+     * [flicker] (krogue-ncl) scales the lit intensity, `1.0` reproducing the pre-flicker behavior.
+     */
     private fun terrainCell(
         zone: Zone,
         x: Int,
         y: Int,
         perceived: Perceived,
         fog: Grid<Boolean>,
+        flicker: Double,
     ): RenderedCell? {
         val tile = zone.tiles[x, y]
         return when {
             perceived.sees(x, y) -> {
                 val lightVal = zone.lightMap[x, y]
                 if (lightVal != null) {
-                    val tint = lightVal.normalizedColor * lightVal.intensity
+                    val intensity = (lightVal.intensity * flicker).coerceIn(0.0, 1.0)
+                    val tint = lightVal.normalizedColor * intensity
                     RenderedCell(
                         tile.glyph,
                         (tile.color.toNormalizedRgb() * tint).toColor(),
@@ -203,17 +258,24 @@ class MapPanel(
         }
     }
 
-    /** Background color under an occupant at ([x], [y]), matching [terrainCell]'s perceived/unlit logic. */
+    /**
+     * Background color under an occupant at ([x], [y]), matching [terrainCell]'s perceived/unlit/
+     * flicker logic — the occupant sits on the same lit terrain, so its background tint must track
+     * the same wall-clock flicker or the floor beneath it would visibly desync from the floor
+     * around it.
+     */
     private fun backgroundAt(
         zone: Zone,
         x: Int,
         y: Int,
         perceived: Perceived,
+        flicker: Double,
     ): Color {
         if (!perceived.sees(x, y)) return Color.BLACK
         val tile = zone.tiles[x, y]
         val lightVal = zone.lightMap[x, y] ?: return tile.backgroundColor
-        val tint = lightVal.normalizedColor * lightVal.intensity
+        val intensity = (lightVal.intensity * flicker).coerceIn(0.0, 1.0)
+        val tint = lightVal.normalizedColor * intensity
         return (tile.backgroundColor.toNormalizedRgb() * tint).toColor()
     }
 
