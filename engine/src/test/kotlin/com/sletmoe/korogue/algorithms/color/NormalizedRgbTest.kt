@@ -150,4 +150,44 @@ class NormalizedRgbTest : DescribeSpec({
             result.b shouldBe (0.8 plusOrMinus 1e-9)
         }
     }
+
+    describe("Color.tintedByLight()") {
+        it("matches the (toNormalizedRgb() * (lightColor * intensity)).toColor() chain it replaces") {
+            val base = Color(0.6f, 0.5f, 0.4f, 1f)
+            val lightColor = NormalizedRgb(0.9, 0.8, 0.7)
+            val intensity = 0.65
+
+            val fused = base.tintedByLight(lightColor, intensity)
+            val chained = (base.toNormalizedRgb() * (lightColor * intensity)).toColor()
+
+            fused.r shouldBe (chained.r plusOrMinus eps)
+            fused.g shouldBe (chained.g plusOrMinus eps)
+            fused.b shouldBe (chained.b plusOrMinus eps)
+            fused.a shouldBe (1.0f plusOrMinus eps)
+        }
+
+        it("is identity at intensity 1.0 with a white lightColor") {
+            val base = Color(0.3f, 0.6f, 0.9f, 1f)
+            val tinted = base.tintedByLight(NormalizedRgb(1.0, 1.0, 1.0), 1.0)
+            tinted.r shouldBe (0.3f plusOrMinus eps)
+            tinted.g shouldBe (0.6f plusOrMinus eps)
+            tinted.b shouldBe (0.9f plusOrMinus eps)
+        }
+
+        it("is black at intensity 0.0") {
+            val base = Color(0.8f, 0.8f, 0.8f, 1f)
+            val tinted = base.tintedByLight(NormalizedRgb(1.0, 1.0, 1.0), 0.0)
+            tinted.r shouldBe (0.0f plusOrMinus eps)
+            tinted.g shouldBe (0.0f plusOrMinus eps)
+            tinted.b shouldBe (0.0f plusOrMinus eps)
+        }
+
+        it("clamps a result above 1.0 down to 1.0") {
+            val base = Color(1f, 1f, 1f, 1f)
+            val tinted = base.tintedByLight(NormalizedRgb(1.0, 1.0, 1.0), 2.0)
+            tinted.r shouldBe (1.0f plusOrMinus eps)
+            tinted.g shouldBe (1.0f plusOrMinus eps)
+            tinted.b shouldBe (1.0f plusOrMinus eps)
+        }
+    }
 })

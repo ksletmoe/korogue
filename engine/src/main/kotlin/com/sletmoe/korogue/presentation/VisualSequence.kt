@@ -120,11 +120,11 @@ internal class DeathFadeSequence(private val event: VisualEvent.DeathFade) : Vis
 }
 
 /**
- * [VisualEvent.Projectile] — free-form (no [VisualEvent.Projectile.path]) linearly interpolates
- * from -> to, rounded to the nearest cell; grid-snapped (krogue-tnf, [VisualEvent.Projectile.path]
- * set) steps through the path's cells in order instead.
+ * [VisualEvent.GlyphProjectile] — free-form (no [VisualEvent.GlyphProjectile.path]) linearly
+ * interpolates from -> to, rounded to the nearest cell; grid-snapped (krogue-tnf,
+ * [VisualEvent.GlyphProjectile.path] set) steps through the path's cells in order instead.
  */
-internal class ProjectileSequence(private val event: VisualEvent.Projectile) : VisualSequence {
+internal class GlyphProjectileSequence(private val event: VisualEvent.GlyphProjectile) : VisualSequence {
     override val durationMs: Long get() = event.durationMs
 
     override fun render(
@@ -149,7 +149,7 @@ internal class ProjectileSequence(private val event: VisualEvent.Projectile) : V
 
 /**
  * [VisualEvent.SpriteProjectile] — true sub-pixel linear interpolation from -> to via
- * [KotileCanvas.drawSprite] (krogue-2ua), the pixel-space counterpart to [ProjectileSequence]'s
+ * [KotileCanvas.drawSprite] (krogue-2ua), the pixel-space counterpart to [GlyphProjectileSequence]'s
  * free-form mode. [VisualEvent.SpriteProjectile.nativeBearingDeg] compensates for source art that
  * isn't drawn pointing along `+X`, so the final rotation still faces the true travel direction.
  * [VisualEvent.SpriteProjectile.stopShortPx], if set, shrinks the travelled distance (not the
@@ -249,7 +249,7 @@ internal class FloatingTextSequence(private val event: VisualEvent.FloatingText)
  * background [bg]. The overlay layer fully replaces (not blends) whatever the terrain/occupant
  * layers drew at that cell (top-cell-wins compositing) — [bg] defaults to solid black rather than
  * sampling from beneath (no read-back API on [TileSurface]); a caller that wants the background to
- * match its terrain supplies one instead, e.g. via [VisualEvent.Projectile.backgroundAt].
+ * match its terrain supplies one instead, e.g. via [VisualEvent.GlyphProjectile.backgroundAt].
  */
 private fun putAt(
     surface: TileSurface,

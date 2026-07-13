@@ -164,7 +164,7 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
     // a glow (unlike the sprite side's fully-opaque stone). A lit background wash -- dim
     // everywhere, brighter near a torch -- makes the same falloff visible here too. Class-level
     // (not local to buildGlyphRoom) so maybeFireProjectiles can give the glyph arrow's own
-    // background the same treatment via VisualEvent.Projectile.backgroundAt.
+    // background the same treatment via VisualEvent.GlyphProjectile.backgroundAt.
     private val floorGlowBase = Color(0.16f, 0.13f, 0.08f, 1f)
 
     // krogue-ncl's real presentation-side flicker (engine/algorithms/lighting), reused as-is —
@@ -386,7 +386,7 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
      * Fires a shot on both halves' queues at once, once per [PROJECTILE_CYCLE_MS] wall-clock
      * window (`fireElapsedMs / PROJECTILE_CYCLE_MS` ticking over to a new value marks a fresh
      * window, so this fires exactly once per window regardless of frame-timing jitter). Enqueuing
-     * both [VisualEvent.SpriteProjectile] and [VisualEvent.Projectile] at the same
+     * both [VisualEvent.SpriteProjectile] and [VisualEvent.GlyphProjectile] at the same
      * [fireElapsedMs] with the same [PROJECTILE_FLIGHT_MS] duration is what keeps the two
      * independent queues in lockstep — not anything about how each renders.
      */
@@ -423,14 +423,14 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
         val fullGlyphPath = lineOfCellsStoppingAtBlocker(glyphFrom, glyphTo) { false }
         val glyphPath = if (fullGlyphPath.size > 1) fullGlyphPath.dropLast(1) else fullGlyphPath
         glyphProjectileQueue.enqueue(
-            VisualEvent.Projectile(
+            VisualEvent.GlyphProjectile(
                 from = glyphFrom,
                 to = glyphTo,
                 glyph = '-',
                 color = ARROW_GLYPH_COLOR,
                 durationMs = PROJECTILE_FLIGHT_MS,
                 path = glyphPath,
-                // Matches the floor's own lit-background wash instead of ProjectileSequence's
+                // Matches the floor's own lit-background wash instead of GlyphProjectileSequence's
                 // default flat black. `fireElapsedMs + sequenceElapsedMs` reconstructs the
                 // absolute clock buildGlyphRoom's own litColor calls use, since the sequence only
                 // ever sees time relative to its own start.

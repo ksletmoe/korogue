@@ -1,6 +1,7 @@
 package com.sletmoe.korogue.ui
 
 import com.badlogic.gdx.graphics.Color
+import com.sletmoe.korogue.algorithms.color.tintedByLight
 import com.sletmoe.korogue.algorithms.color.toNormalizedRgb
 import com.sletmoe.korogue.components.LightEmitter
 import com.sletmoe.korogue.components.Player
@@ -103,13 +104,22 @@ class MapPanel(
         }
     }
 
-    /** Every [LightEmitter] with [LightEmitter.flicker] set, in [zone] — usually a small handful. */
-    private fun flickerSourcesIn(zone: Zone): List<Pair<Vector2Int, LightEmitter>> =
-        gameWorld.ecs
-            .entitiesWith<LightEmitter, Position, ZoneMember>()
-            .filter { it.require<ZoneMember>().zoneId == zone.zoneId && it.require<LightEmitter>().flicker != null }
-            .map { it.require<Position>().point to it.require<LightEmitter>() }
-            .toList()
+    /**
+     * Every [LightEmitter] with [LightEmitter.flicker] set, in [zone] — usually a small handful.
+     * A single pass building straight into the result, not filter{}.map{} (which would look up
+     * each entity's [LightEmitter] twice — once to test [LightEmitter.flicker], once to return it
+     * — and allocate an intermediate filtered sequence before the final list).
+     */
+    private fun flickerSourcesIn(zone: Zone): List<Pair<Vector2Int, LightEmitter>> {
+        val sources = mutableListOf<Pair<Vector2Int, LightEmitter>>()
+        for (entity in gameWorld.ecs.entitiesWith<LightEmitter, Position, ZoneMember>()) {
+            if (entity.require<ZoneMember>().zoneId != zone.zoneId) continue
+            val emitter = entity.require<LightEmitter>()
+            if (emitter.flicker == null) continue
+            sources.add(entity.require<Position>().point to emitter)
+        }
+        return sources
+    }
 
     /**
      * The wall-clock flicker multiplier at world cell ([x], [y]) — `1.0` (no change) when
@@ -249,11 +259,10 @@ class MapPanel(
                 val lightVal = zone.lightMap[x, y]
                 if (lightVal != null) {
                     val intensity = (lightVal.intensity * flicker).coerceIn(0.0, 1.0)
-                    val tint = lightVal.normalizedColor * intensity
                     RenderedCell(
                         tile.glyph,
-                        (tile.color.toNormalizedRgb() * tint).toColor(),
-                        (tile.backgroundColor.toNormalizedRgb() * tint).toColor(),
+                        tile.color.tintedByLight(lightVal.normalizedColor, intensity),
+                        tile.backgroundColor.tintedByLight(lightVal.normalizedColor, intensity),
                     )
                 } else {
                     RenderedCell(tile.glyph, tile.color, tile.backgroundColor)
@@ -282,8 +291,7 @@ class MapPanel(
         val tile = zone.tiles[x, y]
         val lightVal = zone.lightMap[x, y] ?: return tile.backgroundColor
         val intensity = (lightVal.intensity * flicker).coerceIn(0.0, 1.0)
-        val tint = lightVal.normalizedColor * intensity
-        return (tile.backgroundColor.toNormalizedRgb() * tint).toColor()
+        return tile.backgroundColor.tintedByLight(lightVal.normalizedColor, intensity)
     }
 
     companion object {
