@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>com.sletmoe.korogue.presentation</title>
+    <link href="../../images/logo-icon.svg" rel="icon" type="image/svg">
+        <script>var pathToRoot = "../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../scripts/sourceset_dependencies.js" async="async"></script>
+<link href="../../styles/style.css" rel="Stylesheet">
+<link href="../../styles/main.css" rel="Stylesheet">
+<link href="../../styles/prism.css" rel="Stylesheet">
+<link href="../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../scripts/navigation-loader.js" async="async"></script>
+<script type="text/javascript" src="../../scripts/platform-content-handler.js" async="async"></script>
+<script type="text/javascript" src="../../scripts/main.js" defer="defer"></script>
+<script type="text/javascript" src="../../scripts/prism.js" async="async"></script>
+<script type="text/javascript" src="../../ui-kit/ui-kit.min.js" defer="defer"></script>
+</head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+            <a class="library-name--link" href="../../index.html" tabindex="1">
+                    engine
+            </a>
+        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle"
+                type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+1.0.0.49-SNAPSHOT        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true"
+                        data-filter=":engine/main">jvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox"
+                        data-role="dropdown-toggle"
+                        aria-controls="platform-tags-listbox"
+                        aria-haspopup="listbox"
+                        aria-expanded="false"
+                        aria-label="Toggle source sets"
+                ></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":engine/main"
+                                       data-filter=":engine/main"/>
+                                <span class="checkbox--icon"></span>
+                                jvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button"
+                    type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config='{"defaultSize": 280, "minSize": 200, "maxSize": 400}'>
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list"
+                    data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    engine
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="package" id="content" pageIds="engine::com.sletmoe.korogue.presentation////PointingToDeclaration//-56654334">
+  <div class="breadcrumbs"><a href="../../index.html">engine</a><span class="delimiter">/</span><span class="current">com.sletmoe.korogue.presentation</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>Package-level</span></span> <span><span>declarations</span></span></h1>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="TYPE">Types</button><button class="section-tab" data-togglable="FUNCTION,EXTENSION_FUNCTION">Functions</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="TYPE">
+        <h2 class="tableheader">Types</h2>
+        <div class="table"><a data-name="-1387548985%2FClasslikes%2F-56654334" anchor-label="EventAnimationQueue" id="-1387548985%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-event-animation-queue/index.html"><span>Event</span><wbr></wbr><span>Animation</span><wbr></wbr><span><span>Queue</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1387548985%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-event-animation-queue/index.html">EventAnimationQueue</a></div><div class="brief "><p class="paragraph">Presentation-side queue of <a href="-visual-event/index.html">VisualEvent</a>s (ADR-0023's third, event-animation time axis — krogue-wuq): game systems publish an <a href="../com.sletmoe.korogue.events/-entity-damaged/index.html">EntityDamaged</a>- style event, an observer translates it into a <a href="-visual-event/index.html">VisualEvent</a> and <a href="-event-animation-queue/enqueue.html">enqueue</a>s it, and this queue plays them one at a time on the wall-clock. Never reads or writes game state and is never serialized — a save/load taken mid-animation is identical to one taken without it. Ambient animation (torch flicker, etc.) is untouched: it lives on the renderer's own wall-clock and needs no awareness of this queue.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="963317012%2FClasslikes%2F-56654334" anchor-label="VisualEvent" id="963317012%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-visual-event/index.html"><span>Visual</span><wbr></wbr><span><span>Event</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="963317012%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">sealed </span><span class="token keyword">interface </span><a href="-visual-event/index.html">VisualEvent</a></div><div class="brief "><p class="paragraph">A transient, presentation-only visual triggered by a game event (ADR-0023's third, event-animation time axis — krogue-wuq): a thrown potion's arc, a bolt's flight, a hit-flash, a death fade. Unlike ambient animation these have a definite start/end; unlike game time they never read or write game state and are never serialized. Positions are world (zone) cells — <a href="-event-animation-queue/index.html">EventAnimationQueue</a> resolves them to screen cells via the map's <a href="../com.sletmoe.korogue.ui/-map-camera/index.html">com.sletmoe.korogue.ui.MapCamera</a> at render time, so a sequence stays correct even if the camera re-centres while it plays.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="385956915%2FClasslikes%2F-56654334" anchor-label="VisualSequence" id="385956915%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-visual-sequence/index.html"><span>Visual</span><wbr></wbr><span><span>Sequence</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="385956915%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-visual-sequence/index.html">VisualSequence</a></div><div class="brief "><p class="paragraph">One running <a href="-visual-event/index.html">VisualEvent</a> translated into wall-clock draw calls. Stateless like <span data-unresolved-link="com.sletmoe.kotile.display.ascii/AnimatedAsciiTile///PointingToDeclaration/">com.sletmoe.kotile.display.ascii.AnimatedAsciiTile</span>: <a href="-visual-sequence/render.html">render</a>/<a href="-visual-sequence/render-sprite.html">renderSprite</a> compute the frame purely from elapsedMs since the sequence started, so nothing here needs its own timers. Draws on <a href="../com.sletmoe.korogue.components/-render-layer/-o-v-e-r-l-a-y/index.html">RenderLayer.OVERLAY</a>'s z-band — above creatures/player, cleared for free every frame since the whole map redraws from scratch (no explicit residue cleanup needed).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="EXTENSION_FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="519059693%2FFunctions%2F-56654334" anchor-label="toSequence" id="519059693%2FFunctions%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="to-sequence.html"><span>to</span><wbr></wbr><span><span>Sequence</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="519059693%2FFunctions%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="-visual-event/index.html">VisualEvent</a><span class="token punctuation">.</span><a href="to-sequence.html"><span class="token function">toSequence</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-visual-sequence/index.html">VisualSequence</a></div><div class="brief "><p class="paragraph">Converts a <a href="-visual-event/index.html">VisualEvent</a> into the <a href="-visual-sequence/index.html">VisualSequence</a> that plays it.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

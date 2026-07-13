@@ -43,7 +43,7 @@
         </button>
         <div class="navigation-controls--break ui-kit_mobile-only"></div>
         <div class="library-version" id="library-version">
-1.0.0.48-SNAPSHOT        </div>
+1.0.0.49-SNAPSHOT        </div>
         <div class="navigation-controls">
         <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
                 <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true"
@@ -107,24 +107,24 @@
   <div class="breadcrumbs"><a href="../../../index.html">engine</a><span class="delimiter">/</span><a href="../index.html">com.sletmoe.korogue.events</a><span class="delimiter">/</span><span class="current">EntityDied</span></div>
   <div class="cover ">
     <h1 class="cover"><span>Entity</span><wbr></wbr><span><span>Died</span></span></h1>
-    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="index.html">EntityDied</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>entity<span class="token operator">: </span><a href="../../com.sletmoe.korogue.ecs/-entity-id/index.html">EntityId</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span></span></span><span class="token punctuation">)</span> : <a href="../../com.sletmoe.korogue.ecs/-event/index.html">Event</a></div><p class="paragraph">An <span data-unresolved-link="com.sletmoe.korogue.events/EntityDied//#com.sletmoe.korogue.ecs.EntityId#kotlin.String?/PointingToCallableParameters(0)/">entity</span> reached 0 HP and was removed. Carries <span data-unresolved-link="com.sletmoe.korogue.events/EntityDied//#com.sletmoe.korogue.ecs.EntityId#kotlin.String?/PointingToCallableParameters(1)/">name</span> (snapshotted before despawn) so a log can name the deceased without resolving the now-gone entity.</p></div></div>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">data </span><span class="token keyword">class </span><a href="index.html">EntityDied</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>entity<span class="token operator">: </span><a href="../../com.sletmoe.korogue.ecs/-entity-id/index.html">EntityId</a><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span><span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>position<span class="token operator">: </span><span data-unresolved-link="com.sletmoe.kotile.utilities/Vector2Int///PointingToDeclaration/">Vector2Int</span><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>glyph<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-char/index.html">Char</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter "><span class="token keyword">val </span>color<span class="token operator">: </span><a href="../../com.sletmoe.korogue.algorithms.color/-normalized-rgb/index.html">NormalizedRgb</a><span class="token operator">?</span><span class="token operator"> = </span>null</span></span><span class="token punctuation">)</span> : <a href="../../com.sletmoe.korogue.ecs/-event/index.html">Event</a></div><p class="paragraph">An <span data-unresolved-link="com.sletmoe.korogue.events/EntityDied//#com.sletmoe.korogue.ecs.EntityId#kotlin.String?#com.sletmoe.kotile.utilities.Vector2Int?#kotlin.Char?#com.sletmoe.korogue.algorithms.color.NormalizedRgb?/PointingToCallableParameters(0)/">entity</span> reached 0 HP and was removed. Carries <span data-unresolved-link="com.sletmoe.korogue.events/EntityDied//#com.sletmoe.korogue.ecs.EntityId#kotlin.String?#com.sletmoe.kotile.utilities.Vector2Int?#kotlin.Char?#com.sletmoe.korogue.algorithms.color.NormalizedRgb?/PointingToCallableParameters(1)/">name</span>, <span data-unresolved-link="com.sletmoe.korogue.events/EntityDied//#com.sletmoe.korogue.ecs.EntityId#kotlin.String?#com.sletmoe.kotile.utilities.Vector2Int?#kotlin.Char?#com.sletmoe.korogue.algorithms.color.NormalizedRgb?/PointingToCallableParameters(3)/">glyph</span>, and <span data-unresolved-link="com.sletmoe.korogue.events/EntityDied//#com.sletmoe.korogue.ecs.EntityId#kotlin.String?#com.sletmoe.kotile.utilities.Vector2Int?#kotlin.Char?#com.sletmoe.korogue.algorithms.color.NormalizedRgb?/PointingToCallableParameters(4)/">color</span> (all snapshotted before despawn) so a log can name the deceased, and a presentation observer (krogue-wuq) can play a death animation at <span data-unresolved-link="com.sletmoe.korogue.events/EntityDied//#com.sletmoe.korogue.ecs.EntityId#kotlin.String?#com.sletmoe.kotile.utilities.Vector2Int?#kotlin.Char?#com.sletmoe.korogue.algorithms.color.NormalizedRgb?/PointingToCallableParameters(2)/">position</span>, without resolving the now-gone entity.</p></div></div>
   </div>
   <div class="tabbedcontent">
     <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
     <div class="tabs-section-body">
       <div data-togglable="CONSTRUCTOR">
         <h2 class="tableheader">Constructors</h2>
-        <div class="table"><a data-name="-585473407%2FConstructors%2F-56654334" anchor-label="EntityDied" id="-585473407%2FConstructors%2F-56654334" data-filterable-set=":engine/main"></a>
+        <div class="table"><a data-name="-676198687%2FConstructors%2F-56654334" anchor-label="EntityDied" id="-676198687%2FConstructors%2F-56654334" data-filterable-set=":engine/main"></a>
           <div class="table-row table-row_content" data-togglable="CONSTRUCTOR" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
             <div class="main-subrow keyValue ">
               <div class=""><span class="inline-flex">
                   <div><a href="-entity-died.html"><span>Entity</span><wbr></wbr><span><span>Died</span></span></a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-585473407%2FConstructors%2F-56654334"></span>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-676198687%2FConstructors%2F-56654334"></span>
                     <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">entity<span class="token operator">: </span><a href="../../com.sletmoe.korogue.ecs/-entity-id/index.html">EntityId</a><span class="token punctuation">, </span></span><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span></span></span><span class="token punctuation">)</span></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">entity<span class="token operator">: </span><a href="../../com.sletmoe.korogue.ecs/-entity-id/index.html">EntityId</a><span class="token punctuation">, </span></span><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span><span class="token punctuation">, </span></span><span class="parameter ">position<span class="token operator">: </span><span data-unresolved-link="com.sletmoe.kotile.utilities/Vector2Int///PointingToDeclaration/">Vector2Int</span><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter ">glyph<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-char/index.html">Char</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter ">color<span class="token operator">: </span><a href="../../com.sletmoe.korogue.algorithms.color/-normalized-rgb/index.html">NormalizedRgb</a><span class="token operator">?</span><span class="token operator"> = </span>null</span></span><span class="token punctuation">)</span></div></div></div>
                 </div>
               </div>
             </div>
@@ -133,7 +133,22 @@
       </div>
       <div data-togglable="PROPERTY">
         <h2 class="tableheader">Properties</h2>
-        <div class="table"><a data-name="-1884136624%2FProperties%2F-56654334" anchor-label="entity" id="-1884136624%2FProperties%2F-56654334" data-filterable-set=":engine/main"></a>
+        <div class="table"><a data-name="-845424412%2FProperties%2F-56654334" anchor-label="color" id="-845424412%2FProperties%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="color.html"><span><span>color</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-845424412%2FProperties%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="color.html">color</a><span class="token operator">: </span><a href="../../com.sletmoe.korogue.algorithms.color/-normalized-rgb/index.html">NormalizedRgb</a><span class="token operator">?</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1884136624%2FProperties%2F-56654334" anchor-label="entity" id="-1884136624%2FProperties%2F-56654334" data-filterable-set=":engine/main"></a>
           <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
             <div class="main-subrow keyValue ">
               <div class=""><span class="inline-flex">
@@ -144,6 +159,21 @@
               <div>
                 <div class="title">
                   <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="entity.html">entity</a><span class="token operator">: </span><a href="../../com.sletmoe.korogue.ecs/-entity-id/index.html">EntityId</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1244656837%2FProperties%2F-56654334" anchor-label="glyph" id="-1244656837%2FProperties%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="glyph.html"><span><span>glyph</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1244656837%2FProperties%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="glyph.html">glyph</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-char/index.html">Char</a><span class="token operator">?</span></div></div></div>
                 </div>
               </div>
             </div>
@@ -159,6 +189,21 @@
               <div>
                 <div class="title">
                   <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="name.html">name</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-135867574%2FProperties%2F-56654334" anchor-label="position" id="-135867574%2FProperties%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="position.html"><span><span>position</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-135867574%2FProperties%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="position.html">position</a><span class="token operator">: </span><span data-unresolved-link="com.sletmoe.kotile.utilities/Vector2Int///PointingToDeclaration/">Vector2Int</span><span class="token operator">?</span></div></div></div>
                 </div>
               </div>
             </div>

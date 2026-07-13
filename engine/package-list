@@ -21,6 +21,9 @@ $dokka.location:com.sletmoe.korogue.algorithms.color/NormalizedRgb/r/#/PointingT
 $dokka.location:com.sletmoe.korogue.algorithms.color/NormalizedRgb/times/#com.sletmoe.korogue.algorithms.color.NormalizedRgb/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.color/-normalized-rgb/times.html
 $dokka.location:com.sletmoe.korogue.algorithms.color/NormalizedRgb/times/#kotlin.Double/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.color/-normalized-rgb/times.html
 $dokka.location:com.sletmoe.korogue.algorithms.color/NormalizedRgb/toColor/#/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.color/-normalized-rgb/to-color.html
+$dokka.location:com.sletmoe.korogue.algorithms.geometry////PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.geometry/index.html
+$dokka.location:com.sletmoe.korogue.algorithms.geometry//bresenhamLine/#com.sletmoe.kotile.utilities.Vector2Int#com.sletmoe.kotile.utilities.Vector2Int/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.geometry/bresenham-line.html
+$dokka.location:com.sletmoe.korogue.algorithms.geometry//lineOfCellsStoppingAtBlocker/#com.sletmoe.kotile.utilities.Vector2Int#com.sletmoe.kotile.utilities.Vector2Int#kotlin.Function1[com.sletmoe.kotile.utilities.Vector2Int,kotlin.Boolean]/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.geometry/line-of-cells-stopping-at-blocker.html
 $dokka.location:com.sletmoe.korogue.algorithms.lighting////PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.lighting/index.html
 $dokka.location:com.sletmoe.korogue.algorithms.lighting/DiminishingLightValueCalculator.Companion///PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.lighting/-diminishing-light-value-calculator/-companion/index.html
 $dokka.location:com.sletmoe.korogue.algorithms.lighting/DiminishingLightValueCalculator.Companion/ID/#/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.lighting/-diminishing-light-value-calculator/-companion/-i-d.html
@@ -32,6 +35,12 @@ $dokka.location:com.sletmoe.korogue.algorithms.lighting/GlobalLightValueCalculat
 $dokka.location:com.sletmoe.korogue.algorithms.lighting/GlobalLightValueCalculator///PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.lighting/-global-light-value-calculator/index.html
 $dokka.location:com.sletmoe.korogue.algorithms.lighting/GlobalLightValueCalculator/GlobalLightValueCalculator/#/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.lighting/-global-light-value-calculator/-global-light-value-calculator.html
 $dokka.location:com.sletmoe.korogue.algorithms.lighting/GlobalLightValueCalculator/calculateLightValue/#com.sletmoe.korogue.algorithms.color.NormalizedRgb#kotlin.Double#kotlin.Double/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.lighting/-global-light-value-calculator/calculate-light-value.html
+$dokka.location:com.sletmoe.korogue.algorithms.lighting/LightFlicker///PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.lighting/-light-flicker/index.html
+$dokka.location:com.sletmoe.korogue.algorithms.lighting/LightFlicker/LightFlicker/#kotlin.Double#kotlin.Long#kotlin.Long/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.lighting/-light-flicker/-light-flicker.html
+$dokka.location:com.sletmoe.korogue.algorithms.lighting/LightFlicker/amplitude/#/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.lighting/-light-flicker/amplitude.html
+$dokka.location:com.sletmoe.korogue.algorithms.lighting/LightFlicker/factorAt/#kotlin.Long/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.lighting/-light-flicker/factor-at.html
+$dokka.location:com.sletmoe.korogue.algorithms.lighting/LightFlicker/periodMs/#/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.lighting/-light-flicker/period-ms.html
+$dokka.location:com.sletmoe.korogue.algorithms.lighting/LightFlicker/seed/#/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.lighting/-light-flicker/seed.html
 $dokka.location:com.sletmoe.korogue.algorithms.lighting/LightValue.Companion///PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.lighting/-light-value/-companion/index.html
 $dokka.location:com.sletmoe.korogue.algorithms.lighting/LightValue.Companion/FULLBRIGHT/#/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.lighting/-light-value/-companion/-f-u-l-l-b-r-i-g-h-t.html
 $dokka.location:com.sletmoe.korogue.algorithms.lighting/LightValue///PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.lighting/-light-value/index.html
@@ -133,9 +142,10 @@ $dokka.location:com.sletmoe.korogue.components/Item///PointingToDeclaration/eng
 $dokka.location:com.sletmoe.korogue.components/Item/Item/#kotlin.String/PointingToDeclaration/engine/com.sletmoe.korogue.components/-item/-item.html
 $dokka.location:com.sletmoe.korogue.components/Item/name/#/PointingToDeclaration/engine/com.sletmoe.korogue.components/-item/name.html
 $dokka.location:com.sletmoe.korogue.components/LightEmitter///PointingToDeclaration/engine/com.sletmoe.korogue.components/-light-emitter/index.html
-$dokka.location:com.sletmoe.korogue.components/LightEmitter/LightEmitter/#com.sletmoe.korogue.algorithms.color.NormalizedRgb#kotlin.Double#kotlin.String/PointingToDeclaration/engine/com.sletmoe.korogue.components/-light-emitter/-light-emitter.html
+$dokka.location:com.sletmoe.korogue.components/LightEmitter/LightEmitter/#com.sletmoe.korogue.algorithms.color.NormalizedRgb#kotlin.Double#kotlin.String#com.sletmoe.korogue.algorithms.lighting.LightFlicker?/PointingToDeclaration/engine/com.sletmoe.korogue.components/-light-emitter/-light-emitter.html
 $dokka.location:com.sletmoe.korogue.components/LightEmitter/calculatorId/#/PointingToDeclaration/engine/com.sletmoe.korogue.components/-light-emitter/calculator-id.html
 $dokka.location:com.sletmoe.korogue.components/LightEmitter/color/#/PointingToDeclaration/engine/com.sletmoe.korogue.components/-light-emitter/color.html
+$dokka.location:com.sletmoe.korogue.components/LightEmitter/flicker/#/PointingToDeclaration/engine/com.sletmoe.korogue.components/-light-emitter/flicker.html
 $dokka.location:com.sletmoe.korogue.components/LightEmitter/radius/#/PointingToDeclaration/engine/com.sletmoe.korogue.components/-light-emitter/radius.html
 $dokka.location:com.sletmoe.korogue.components/Locomotion///PointingToDeclaration/engine/com.sletmoe.korogue.components/-locomotion/index.html
 $dokka.location:com.sletmoe.korogue.components/Locomotion/Locomotion/#kotlin.collections.Set[kotlin.String]/PointingToDeclaration/engine/com.sletmoe.korogue.components/-locomotion/-locomotion.html
@@ -231,15 +241,19 @@ $dokka.location:com.sletmoe.korogue.ecs/World/tick/#kotlin.Long#kotlin.random.Ra
 $dokka.location:com.sletmoe.korogue.ecs/World/update/#com.sletmoe.korogue.ecs.EntityId#kotlin.Function1[TypeParam(bounds=[com.sletmoe.korogue.ecs.Component]),TypeParam(bounds=[com.sletmoe.korogue.ecs.Component])]/PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-world/update.html
 $dokka.location:com.sletmoe.korogue.events////PointingToDeclaration/engine/com.sletmoe.korogue.events/index.html
 $dokka.location:com.sletmoe.korogue.events/EntityDamaged///PointingToDeclaration/engine/com.sletmoe.korogue.events/-entity-damaged/index.html
-$dokka.location:com.sletmoe.korogue.events/EntityDamaged/EntityDamaged/#com.sletmoe.korogue.ecs.EntityId#com.sletmoe.korogue.ecs.EntityId#kotlin.Int#kotlin.Int/PointingToDeclaration/engine/com.sletmoe.korogue.events/-entity-damaged/-entity-damaged.html
+$dokka.location:com.sletmoe.korogue.events/EntityDamaged/EntityDamaged/#com.sletmoe.korogue.ecs.EntityId#com.sletmoe.korogue.ecs.EntityId#kotlin.Int#kotlin.Int#com.sletmoe.kotile.utilities.Vector2Int?/PointingToDeclaration/engine/com.sletmoe.korogue.events/-entity-damaged/-entity-damaged.html
 $dokka.location:com.sletmoe.korogue.events/EntityDamaged/amount/#/PointingToDeclaration/engine/com.sletmoe.korogue.events/-entity-damaged/amount.html
 $dokka.location:com.sletmoe.korogue.events/EntityDamaged/attacker/#/PointingToDeclaration/engine/com.sletmoe.korogue.events/-entity-damaged/attacker.html
+$dokka.location:com.sletmoe.korogue.events/EntityDamaged/position/#/PointingToDeclaration/engine/com.sletmoe.korogue.events/-entity-damaged/position.html
 $dokka.location:com.sletmoe.korogue.events/EntityDamaged/remainingHealth/#/PointingToDeclaration/engine/com.sletmoe.korogue.events/-entity-damaged/remaining-health.html
 $dokka.location:com.sletmoe.korogue.events/EntityDamaged/target/#/PointingToDeclaration/engine/com.sletmoe.korogue.events/-entity-damaged/target.html
 $dokka.location:com.sletmoe.korogue.events/EntityDied///PointingToDeclaration/engine/com.sletmoe.korogue.events/-entity-died/index.html
-$dokka.location:com.sletmoe.korogue.events/EntityDied/EntityDied/#com.sletmoe.korogue.ecs.EntityId#kotlin.String?/PointingToDeclaration/engine/com.sletmoe.korogue.events/-entity-died/-entity-died.html
+$dokka.location:com.sletmoe.korogue.events/EntityDied/EntityDied/#com.sletmoe.korogue.ecs.EntityId#kotlin.String?#com.sletmoe.kotile.utilities.Vector2Int?#kotlin.Char?#com.sletmoe.korogue.algorithms.color.NormalizedRgb?/PointingToDeclaration/engine/com.sletmoe.korogue.events/-entity-died/-entity-died.html
+$dokka.location:com.sletmoe.korogue.events/EntityDied/color/#/PointingToDeclaration/engine/com.sletmoe.korogue.events/-entity-died/color.html
 $dokka.location:com.sletmoe.korogue.events/EntityDied/entity/#/PointingToDeclaration/engine/com.sletmoe.korogue.events/-entity-died/entity.html
+$dokka.location:com.sletmoe.korogue.events/EntityDied/glyph/#/PointingToDeclaration/engine/com.sletmoe.korogue.events/-entity-died/glyph.html
 $dokka.location:com.sletmoe.korogue.events/EntityDied/name/#/PointingToDeclaration/engine/com.sletmoe.korogue.events/-entity-died/name.html
+$dokka.location:com.sletmoe.korogue.events/EntityDied/position/#/PointingToDeclaration/engine/com.sletmoe.korogue.events/-entity-died/position.html
 $dokka.location:com.sletmoe.korogue.events/ItemPickedUp///PointingToDeclaration/engine/com.sletmoe.korogue.events/-item-picked-up/index.html
 $dokka.location:com.sletmoe.korogue.events/ItemPickedUp/ItemPickedUp/#kotlin.String/PointingToDeclaration/engine/com.sletmoe.korogue.events/-item-picked-up/-item-picked-up.html
 $dokka.location:com.sletmoe.korogue.events/ItemPickedUp/name/#/PointingToDeclaration/engine/com.sletmoe.korogue.events/-item-picked-up/name.html
@@ -366,6 +380,55 @@ $dokka.location:com.sletmoe.korogue.perception/TrueSightSense/TrueSightSense/#co
 $dokka.location:com.sletmoe.korogue.perception/TrueSightSense/pierces/#/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-true-sight-sense/pierces.html
 $dokka.location:com.sletmoe.korogue.perception/TrueSightSense/reveal/#com.sletmoe.korogue.ecs.Entity#com.sletmoe.korogue.perception.SenseComponent#com.sletmoe.korogue.world.GameWorld/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-true-sight-sense/reveal.html
 $dokka.location:com.sletmoe.korogue.perception/TrueSightSense/tags/#/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-true-sight-sense/tags.html
+$dokka.location:com.sletmoe.korogue.presentation////PointingToDeclaration/engine/com.sletmoe.korogue.presentation/index.html
+$dokka.location:com.sletmoe.korogue.presentation//toSequence/com.sletmoe.korogue.presentation.VisualEvent#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/to-sequence.html
+$dokka.location:com.sletmoe.korogue.presentation/EventAnimationQueue///PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-event-animation-queue/index.html
+$dokka.location:com.sletmoe.korogue.presentation/EventAnimationQueue/EventAnimationQueue/#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-event-animation-queue/-event-animation-queue.html
+$dokka.location:com.sletmoe.korogue.presentation/EventAnimationQueue/clear/#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-event-animation-queue/clear.html
+$dokka.location:com.sletmoe.korogue.presentation/EventAnimationQueue/enqueue/#com.sletmoe.korogue.presentation.VisualEvent/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-event-animation-queue/enqueue.html
+$dokka.location:com.sletmoe.korogue.presentation/EventAnimationQueue/isPlaying/#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-event-animation-queue/is-playing.html
+$dokka.location:com.sletmoe.korogue.presentation/EventAnimationQueue/render/#com.sletmoe.korogue.ui.TileSurface#com.sletmoe.korogue.ui.MapCamera#kotlin.Long/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-event-animation-queue/render.html
+$dokka.location:com.sletmoe.korogue.presentation/EventAnimationQueue/renderSprite/#com.sletmoe.kotile.display.KotileCanvas#com.sletmoe.korogue.ui.MapCamera#kotlin.Long/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-event-animation-queue/render-sprite.html
+$dokka.location:com.sletmoe.korogue.presentation/EventAnimationQueue/skip/#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-event-animation-queue/skip.html
+$dokka.location:com.sletmoe.korogue.presentation/EventAnimationQueue/update/#kotlin.Long/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-event-animation-queue/update.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.Companion///PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-companion/index.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.Companion/DEFAULT_FADE_MS/#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-companion/-d-e-f-a-u-l-t_-f-a-d-e_-m-s.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.Companion/DEFAULT_FLASH_MS/#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-companion/-d-e-f-a-u-l-t_-f-l-a-s-h_-m-s.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.Companion/DEFAULT_PROJECTILE_MS/#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-companion/-d-e-f-a-u-l-t_-p-r-o-j-e-c-t-i-l-e_-m-s.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.DeathFade///PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-death-fade/index.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.DeathFade/DeathFade/#com.sletmoe.kotile.utilities.Vector2Int#kotlin.Char#com.badlogic.gdx.graphics.Color#kotlin.Long/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-death-fade/-death-fade.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.DeathFade/at/#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-death-fade/at.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.DeathFade/color/#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-death-fade/color.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.DeathFade/durationMs/#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-death-fade/duration-ms.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.DeathFade/glyph/#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-death-fade/glyph.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.HitFlash///PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-hit-flash/index.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.HitFlash/HitFlash/#com.sletmoe.kotile.utilities.Vector2Int#com.badlogic.gdx.graphics.Color#kotlin.Long/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-hit-flash/-hit-flash.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.HitFlash/at/#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-hit-flash/at.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.HitFlash/color/#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-hit-flash/color.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.HitFlash/durationMs/#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-hit-flash/duration-ms.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.Projectile///PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-projectile/index.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.Projectile/Projectile/#com.sletmoe.kotile.utilities.Vector2Int#com.sletmoe.kotile.utilities.Vector2Int#kotlin.Char#com.badlogic.gdx.graphics.Color#kotlin.Long#kotlin.collections.List[com.sletmoe.kotile.utilities.Vector2Int]?#kotlin.Function2[com.sletmoe.kotile.utilities.Vector2Int,kotlin.Long,com.badlogic.gdx.graphics.Color]?/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-projectile/-projectile.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.Projectile/backgroundAt/#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-projectile/background-at.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.Projectile/color/#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-projectile/color.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.Projectile/durationMs/#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-projectile/duration-ms.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.Projectile/from/#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-projectile/from.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.Projectile/glyph/#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-projectile/glyph.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.Projectile/path/#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-projectile/path.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.Projectile/to/#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-projectile/to.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.SpriteProjectile///PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-sprite-projectile/index.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.SpriteProjectile/SpriteProjectile/#com.sletmoe.kotile.utilities.Vector2Int#com.sletmoe.kotile.utilities.Vector2Int#com.badlogic.gdx.graphics.g2d.TextureRegion#com.badlogic.gdx.graphics.Color#kotlin.Long#kotlin.Float#kotlin.Float/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-sprite-projectile/-sprite-projectile.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.SpriteProjectile/durationMs/#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-sprite-projectile/duration-ms.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.SpriteProjectile/from/#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-sprite-projectile/from.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.SpriteProjectile/nativeBearingDeg/#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-sprite-projectile/native-bearing-deg.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.SpriteProjectile/region/#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-sprite-projectile/region.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.SpriteProjectile/stopShortPx/#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-sprite-projectile/stop-short-px.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.SpriteProjectile/tint/#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-sprite-projectile/tint.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent.SpriteProjectile/to/#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/-sprite-projectile/to.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualEvent///PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-event/index.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualSequence///PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-sequence/index.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualSequence/durationMs/#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-sequence/duration-ms.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualSequence/render/#com.sletmoe.korogue.ui.TileSurface#com.sletmoe.korogue.ui.MapCamera#kotlin.Long/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-sequence/render.html
+$dokka.location:com.sletmoe.korogue.presentation/VisualSequence/renderSprite/#com.sletmoe.kotile.display.KotileCanvas#com.sletmoe.korogue.ui.MapCamera#kotlin.Long/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-visual-sequence/render-sprite.html
 $dokka.location:com.sletmoe.korogue.random////PointingToDeclaration/engine/com.sletmoe.korogue.random/index.html
 $dokka.location:com.sletmoe.korogue.random/GameRandom.Companion///PointingToDeclaration/engine/com.sletmoe.korogue.random/-game-random/-companion/index.html
 $dokka.location:com.sletmoe.korogue.random/GameRandom.Companion/fromSeed/#kotlin.Long/PointingToDeclaration/engine/com.sletmoe.korogue.random/-game-random/-companion/from-seed.html
@@ -631,7 +694,7 @@ $dokka.location:com.sletmoe.korogue.ui/MapPanel.RenderedGlyph/RenderedGlyph/#kot
 $dokka.location:com.sletmoe.korogue.ui/MapPanel.RenderedGlyph/fg/#/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-map-panel/-rendered-glyph/fg.html
 $dokka.location:com.sletmoe.korogue.ui/MapPanel.RenderedGlyph/glyph/#/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-map-panel/-rendered-glyph/glyph.html
 $dokka.location:com.sletmoe.korogue.ui/MapPanel///PointingToDeclaration/engine/com.sletmoe.korogue.ui/-map-panel/index.html
-$dokka.location:com.sletmoe.korogue.ui/MapPanel/MapPanel/#com.sletmoe.korogue.utilities.IntRect#com.sletmoe.korogue.world.GameWorld#kotlin.Function1[com.sletmoe.korogue.world.Zone,com.sletmoe.korogue.utilities.Grid[kotlin.Boolean]]#kotlin.Function1[com.sletmoe.korogue.world.GameWorld,com.sletmoe.korogue.ecs.Entity?]#kotlin.Function1[com.sletmoe.korogue.world.Tile,com.sletmoe.korogue.ui.MapPanel.RenderedCell?]#kotlin.Function1[com.sletmoe.korogue.ui.MapPanel.OccupantRender,com.sletmoe.korogue.ui.MapPanel.RenderedGlyph?]/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-map-panel/-map-panel.html
+$dokka.location:com.sletmoe.korogue.ui/MapPanel/MapPanel/#com.sletmoe.korogue.utilities.IntRect#com.sletmoe.korogue.world.GameWorld#kotlin.Function1[com.sletmoe.korogue.world.Zone,com.sletmoe.korogue.utilities.Grid[kotlin.Boolean]]#kotlin.Function1[com.sletmoe.korogue.world.GameWorld,com.sletmoe.korogue.ecs.Entity?]#kotlin.Function1[com.sletmoe.korogue.world.Tile,com.sletmoe.korogue.ui.MapPanel.RenderedCell?]#kotlin.Function1[com.sletmoe.korogue.ui.MapPanel.OccupantRender,com.sletmoe.korogue.ui.MapPanel.RenderedGlyph?]#kotlin.Function2[com.sletmoe.korogue.ui.TileSurface,com.sletmoe.korogue.ui.MapCamera,kotlin.Unit]#kotlin.Function0[kotlin.Long]/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-map-panel/-map-panel.html
 $dokka.location:com.sletmoe.korogue.ui/MapPanel/bounds/#/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-map-panel/bounds.html
 $dokka.location:com.sletmoe.korogue.ui/MapPanel/draw/#com.sletmoe.korogue.ui.TileSurface/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-map-panel/draw.html
 $dokka.location:com.sletmoe.korogue.ui/Menu///PointingToDeclaration/engine/com.sletmoe.korogue.ui/-menu/index.html
@@ -835,6 +898,7 @@ $dokka.location:com.sletmoe.korogue.world/Zone/zoneId/#/PointingToDeclaration/e
 $dokka.location:com.sletmoe.korogue.world/ZoneAdjacency///PointingToDeclaration/engine/com.sletmoe.korogue.world/-zone-adjacency/index.html
 $dokka.location:com.sletmoe.korogue.world/ZoneAdjacency/neighborsOf/#kotlin.String/PointingToDeclaration/engine/com.sletmoe.korogue.world/-zone-adjacency/neighbors-of.html
 com.sletmoe.korogue.algorithms.color
+com.sletmoe.korogue.algorithms.geometry
 com.sletmoe.korogue.algorithms.lighting
 com.sletmoe.korogue.algorithms.los
 com.sletmoe.korogue.algorithms.zonegen
@@ -844,6 +908,7 @@ com.sletmoe.korogue.events
 com.sletmoe.korogue.kotile
 com.sletmoe.korogue.loop
 com.sletmoe.korogue.perception
+com.sletmoe.korogue.presentation
 com.sletmoe.korogue.random
 com.sletmoe.korogue.registry
 com.sletmoe.korogue.save
