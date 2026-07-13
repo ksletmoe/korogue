@@ -57,11 +57,11 @@ interface VisualEvent {
      *
      * @property backgroundAt supplies the background color for whatever cell the glyph currently
      *   occupies, given that cell and elapsedMs since this sequence started — lets a caller match
-     *   its own terrain's lighting instead of the flat black [ProjectileSequence] otherwise draws
-     *   (there's no read-back API on [com.sletmoe.korogue.ui.TileSurface] to sample it directly).
-     *   `null` (default) keeps the flat-black background.
+     *   its own terrain's lighting instead of the flat black [GlyphProjectileSequence] otherwise
+     *   draws (there's no read-back API on [com.sletmoe.korogue.ui.TileSurface] to sample it
+     *   directly). `null` (default) keeps the flat-black background.
      */
-    data class Projectile(
+    data class GlyphProjectile(
         val from: Vector2Int,
         val to: Vector2Int,
         val glyph: Char,
@@ -70,14 +70,14 @@ interface VisualEvent {
         val path: List<Vector2Int>? = null,
         val backgroundAt: ((at: Vector2Int, elapsedMs: Long) -> Color)? = null,
     ) : VisualEvent {
-        override fun toSequence(): VisualSequence = ProjectileSequence(this)
+        override fun toSequence(): VisualSequence = GlyphProjectileSequence(this)
     }
 
     /**
      * [region] travelling from [from] to [to] over [durationMs], true sub-pixel motion drawn via
      * [com.sletmoe.kotile.display.KotileCanvas.drawSprite] (krogue-2ua) — the pixel-space/sprite
-     * counterpart to [Projectile]'s free-form mode; there is no grid-snapped sprite mode (that's
-     * what [Projectile] with a glyph is for). [nativeBearingDeg] is [region]'s own drawn facing
+     * counterpart to [GlyphProjectile]'s free-form mode; there is no grid-snapped sprite mode
+     * (that's what [GlyphProjectile] with a glyph is for). [nativeBearingDeg] is [region]'s own drawn facing
      * (`0` = pointing along `+X`/east); the renderer subtracts it from the computed travel bearing
      * so art that isn't drawn east-facing still ends up pointing the right way once rotated.
      *
@@ -101,8 +101,9 @@ interface VisualEvent {
      * [text] rising and fading above [at] over [durationMs] (e.g. a floating damage number) —
      * sprite-space only, drawn character-by-character via [font]'s glyph regions through
      * [com.sletmoe.kotile.display.KotileCanvas.drawSprite]. No glyph/[com.sletmoe.korogue.ui.TileSurface]
-     * counterpart: a TileSurface cell already *is* one character, so text drifting freely above one
-     * would need an overlapping-text seam TileSurface doesn't have.
+     * counterpart yet — not because one is structurally impossible ("-4" over two ASCII cells,
+     * background-color fade instead of a true rise, is a plausible approximation), just because
+     * nothing has needed it so far; add one if/when a game does.
      *
      * @property font glyph source (caller-owned; this event borrows it, never disposes it)
      * @property charWidthPx/[charHeightPx] on-screen size (content pixels — the same space as

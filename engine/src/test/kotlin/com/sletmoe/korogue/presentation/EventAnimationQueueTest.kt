@@ -155,7 +155,7 @@ class EventAnimationQueueTest : FunSpec({
     }
 
     test("projectile interpolates linearly from its start to end cell") {
-        val event = VisualEvent.Projectile(Vector2Int(0, 0), Vector2Int(4, 0), '/', durationMs = 100L)
+        val event = VisualEvent.GlyphProjectile(Vector2Int(0, 0), Vector2Int(4, 0), '/', durationMs = 100L)
         val sequence = event.toSequence()
 
         val midway = RecordingSurface(10, 10)
@@ -169,7 +169,7 @@ class EventAnimationQueueTest : FunSpec({
 
     test("a projectile with a path steps through the path's cells instead of interpolating directly") {
         val path = listOf(Vector2Int(0, 0), Vector2Int(1, 0), Vector2Int(1, 1), Vector2Int(2, 1))
-        val event = VisualEvent.Projectile(Vector2Int(0, 0), Vector2Int(2, 1), '/', durationMs = 100L, path = path)
+        val event = VisualEvent.GlyphProjectile(Vector2Int(0, 0), Vector2Int(2, 1), '/', durationMs = 100L, path = path)
         val sequence = event.toSequence()
 
         val secondCell = RecordingSurface(10, 10)
@@ -183,7 +183,7 @@ class EventAnimationQueueTest : FunSpec({
 
     test("a projectile's backgroundAt callback supplies the background color, not flat black") {
         val event =
-            VisualEvent.Projectile(
+            VisualEvent.GlyphProjectile(
                 Vector2Int(0, 0),
                 Vector2Int(4, 0),
                 '/',
@@ -198,7 +198,7 @@ class EventAnimationQueueTest : FunSpec({
     }
 
     test("a projectile with no backgroundAt callback keeps the flat-black background") {
-        val event = VisualEvent.Projectile(Vector2Int(0, 0), Vector2Int(4, 0), '/', durationMs = 100L)
+        val event = VisualEvent.GlyphProjectile(Vector2Int(0, 0), Vector2Int(4, 0), '/', durationMs = 100L)
         val sequence = event.toSequence()
 
         val surface = RecordingSurface(10, 10)
