@@ -65,6 +65,10 @@ import kotlin.math.sqrt
  *
  *   ./gradlew :demo:animationShowcaseHarness            # -> demo/build/animation-showcase.png
  *   ./gradlew :demo:animationShowcaseHarness -PoutFile=/tmp/a.png
+ *
+ * File layout: constants, then the class in five sections — lifecycle setup ([create]/[sheet]),
+ * lighting shared by both halves, the combat script that drives both halves' queues/pools, the
+ * sprite-only room builder, the glyph-only room builder, and finally [render]/[resize]/[dispose].
  */
 private const val TILE_PX = 16
 private const val SPRITE_COLS = 25
@@ -87,9 +91,8 @@ private const val STEP_MS = 150L
 // Wall-mounted torches (row 0) — diminishing, flickering light (below) radiates from these
 // positions. DiminishingLightValueCalculator + LightFlicker are the engine's real lighting/
 // flicker model (used by LightingSystem/MapPanel for the player's lantern in MyGame, krogue-ncl),
-// reused as-is rather than reinvented. Two per side (was three) — directly over the
-// ranger/scorpion columns, so the arrow at the midpoint (12 tiles apart) sits in the deepest
-// part of the valley.
+// reused as-is rather than reinvented. Two per side — directly over the ranger/scorpion columns,
+// so the arrow at the midpoint (12 tiles apart) sits in the deepest part of the valley.
 private val SPRITE_WALL_TORCH_COLS = listOf(6, 18)
 private val SPRITE_TORCH_POSITIONS = SPRITE_WALL_TORCH_COLS.map { Vector2Int(it, 0) }
 
@@ -113,15 +116,16 @@ private const val PROJECTILE_CYCLE_MS = 1800L // flight + pause before the next 
 // DawnLikeAmmoTiles.ARROW's head (the pale cream/gray end -- not the blue end, which is the
 // fletching, see that object's doc comment) is drawn facing southwest at rotationDeg=0, not along
 // +X -- so rotating it to face due-east (this scene's only travel direction, left-to-right) needs
-// this fixed offset on top of rotationTowards' 0deg. Confirmed via a clean-build snapshot after an
-// initial mixup over which end is the head -- easy to get backwards, don't trust it un-verified
-// (see KotileCanvas.drawSprite's own doc note and kotile:demo's RotationHarness).
+// this fixed offset on top of rotationTowards' 0deg. Rotation direction is easy to get backwards
+// -- verify empirically against a real render before trusting it (see KotileCanvas.drawSprite's
+// own doc note and kotile:demo's RotationHarness), not just from reading the source art.
 private const val ARROW_NATIVE_BEARING_DEG = 135f
 
 /** The glyph-side arrow's own (unlit) foreground color -- a light tan, matching a wooden shaft. */
 private val ARROW_GLYPH_COLOR = Color(0.82f, 0.71f, 0.55f, 1f)
 
-// Torches are now 12 cols apart (was 6). Radius bumped ~10% from the previous 7.0.
+// Torches are 12 cols apart; radius sized so the midpoint between two torches still reads as a
+// visible (if dim) valley, not full black or a flat plateau.
 private const val LIGHT_RADIUS = 7.7
 
 /** Cells beyond every torch's radius still show at this minimum, rather than going pure black. */
@@ -190,12 +194,12 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
     // half holds every currently-active cosmetic effect independently.
     //
     // spriteFlashPool is query-only: buildSpriteRoom reads its activeEvents to re-tint the
-    // scorpion's own sprite and .renderSprite() is deliberately never called on it. The sprite's
-    // own transparent tile margins (padding around the DawnLike creature's silhouette) mean the
-    // opaque creature drawn afterward does NOT fully cover HitFlashSequence's generic quad -- an
-    // earlier version of this relied on that coverage and the quad showed through as a white
-    // border. spriteEffectPool remains for effects meant to be drawn generically (the floating
-    // damage number).
+    // scorpion's own sprite, and drawScorpionFlashOverlay reads it again to draw the additive
+    // flash overlay -- .renderSprite() is deliberately never called on this pool (see
+    // drawScorpionFlashOverlay's doc comment: the sprite's transparent tile margins don't fully
+    // cover HitFlashSequence's generic quad, so the generic render would show as a white border
+    // instead of a flash). spriteEffectPool remains for effects meant to be drawn generically
+    // (the floating damage number).
     private val spriteFlashPool = VisualEffectPool()
     private val spriteEffectPool = VisualEffectPool()
     private val glyphEffectPool = VisualEffectPool()
@@ -211,6 +215,10 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
     private var impactAtMs = -1L
     private var impactFired = false
     private var frame = 0
+
+    // -------------------------------------------------------------------------
+    // Setup
+    // -------------------------------------------------------------------------
 
     override fun create() {
         canvas = KotileCanvas(TILE_PX, TILE_PX)
@@ -244,6 +252,10 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
 
     private fun sheet(relativePath: String): TileSheet =
         TileSheet(Gdx.files.absolute(File(assetsDir, relativePath).path), TILE_PX, TILE_PX)
+
+    // -------------------------------------------------------------------------
+    // Lighting (shared by both halves)
+    // -------------------------------------------------------------------------
 
     /** A distinct [LightFlicker] phase per torch, so nearby torches don't pulse in lockstep. */
     private fun torchSeed(torch: Vector2Int): Long = torch.x * 137L + torch.y * 271L
@@ -309,81 +321,8 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
     ) = (base.toNormalizedRgb() * torchLightColor * lightIntensityAt(x, y, torches, elapsedMs)).toColor()
 
     // -------------------------------------------------------------------------
-    // Sprite (left) half
+    // Combat script (drives both halves)
     // -------------------------------------------------------------------------
-
-    /**
-     * Redrawn every frame (not just once at startup) so the flicker computed by [litTint] at the
-     * current [elapsedMs] actually shows: a [StaticTile]'s `tint` is baked in at draw time, so
-     * showing a changing tint means re-issuing the draw call with a freshly computed one each
-     * frame — the same thing `MapPanel.draw()` does every frame in the real game.
-     */
-    private fun buildSpriteRoom(elapsedMs: Long) {
-        // The wall renderer fully covers row 0 / row ROWS-1 / col 0 (drawn after floor, opaque),
-        // so the floor's edge-shaded pieces belong one cell *inside* the wall — on the first
-        // interior row/column adjacent to it — not on the wall's own row/column, which would be
-        // invisible under it.
-        for (x in 0 until SPRITE_COLS) {
-            for (y in 0 until ROWS) {
-                val nearTop = y == 1
-                val nearBottom = y == ROWS - 2
-                val nearLeft = x == 1
-                val floor =
-                    when {
-                        nearTop && nearLeft -> DawnLikeFloorTiles.TOP_LEFT_CORNER
-                        nearBottom && nearLeft -> DawnLikeFloorTiles.BOTTOM_LEFT_CORNER
-                        nearTop -> DawnLikeFloorTiles.TOP_EDGE
-                        nearBottom -> DawnLikeFloorTiles.BOTTOM_EDGE
-                        nearLeft -> DawnLikeFloorTiles.LEFT_EDGE
-                        else -> DawnLikeFloorTiles.MIDDLE
-                    }
-                val tint = litTint(x, y, SPRITE_TORCH_POSITIONS, elapsedMs)
-                floorRenderer.drawTile(x, y, z = 0, staticTile = floor.copy(tint = tint))
-            }
-        }
-        for (x in 0 until SPRITE_COLS) {
-            val top = if (x == 0) DawnLikeWallTiles.UPPER_LEFT_CORNER else DawnLikeWallTiles.TOP_WALL
-            val bottom = if (x == 0) DawnLikeWallTiles.BOTTOM_LEFT_CORNER else DawnLikeWallTiles.BOTTOM_WALL
-            val topTint = litTint(x, 0, SPRITE_TORCH_POSITIONS, elapsedMs)
-            wallRenderer.drawTile(x, 0, z = 0, staticTile = top.copy(tint = topTint))
-            val bottomTint = litTint(x, ROWS - 1, SPRITE_TORCH_POSITIONS, elapsedMs)
-            wallRenderer.drawTile(x, ROWS - 1, z = 0, staticTile = bottom.copy(tint = bottomTint))
-        }
-        for (y in 1 until ROWS - 1) {
-            val wall = DawnLikeWallTiles.LEFT_WALL.copy(tint = litTint(0, y, SPRITE_TORCH_POSITIONS, elapsedMs))
-            wallRenderer.drawTile(0, y, z = 0, staticTile = wall)
-        }
-
-        for (torchX in SPRITE_WALL_TORCH_COLS) {
-            val torch = Vector2Int(torchX, 0)
-            overlayRenderer.drawTile(torchX, 0, z = 1, tile = torchTile(torch, elapsedMs))
-        }
-
-        val (rangerSheet, rangerCell) = DawnLikeCreatureTiles.RANGER
-        val rangerTint = litTint(SPRITE_RANGER_COL, MID_ROW, SPRITE_TORCH_POSITIONS, elapsedMs)
-        overlayRenderer.drawTile(
-            SPRITE_RANGER_COL,
-            MID_ROW,
-            z = 1,
-            // The source art faces left; the ranger stands on the left shooting right, so it needs
-            // mirroring to actually face its target instead of shooting backward over its shoulder.
-            tile = creatureTile(rangerSheet, rangerCell, rangerTint, flipX = true),
-        )
-
-        val (scorpionSheet, scorpionCell) = DawnLikeCreatureTiles.SCORPION
-        val scorpionTint = litTint(SPRITE_SCORPION_COL, MID_ROW, SPRITE_TORCH_POSITIONS, elapsedMs)
-        overlayRenderer.drawTile(
-            SPRITE_SCORPION_COL,
-            MID_ROW,
-            z = 1,
-            tile = creatureTile(scorpionSheet, scorpionCell, scorpionTint),
-        )
-        // If a HitFlash is active on the scorpion's cell, drawScorpionFlashOverlay (called from
-        // render(), after this tile is actually composited) draws its sprite again with additive
-        // blending on top -- see that function's doc comment for why a tint alone can't do this.
-        // The arrow itself is drawn separately by drawSpriteArrow, via canvas.drawSprite directly
-        // rather than through this grid-locked renderer -- see its doc comment for why.
-    }
 
     /**
      * Fires a shot on both halves' queues at once, once per [PROJECTILE_CYCLE_MS] wall-clock
@@ -471,6 +410,84 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
         glyphEffectPool.spawn(VisualEvent.HitFlash(at = monsterCell), nowMs)
     }
 
+    // -------------------------------------------------------------------------
+    // Sprite (left) half
+    // -------------------------------------------------------------------------
+
+    /**
+     * Redrawn every frame (not just once at startup) so the flicker computed by [litTint] at the
+     * current [elapsedMs] actually shows: a [StaticTile]'s `tint` is baked in at draw time, so
+     * showing a changing tint means re-issuing the draw call with a freshly computed one each
+     * frame — the same thing `MapPanel.draw()` does every frame in the real game.
+     */
+    private fun buildSpriteRoom(elapsedMs: Long) {
+        // The wall renderer fully covers row 0 / row ROWS-1 / col 0 (drawn after floor, opaque),
+        // so the floor's edge-shaded pieces belong one cell *inside* the wall — on the first
+        // interior row/column adjacent to it — not on the wall's own row/column, which would be
+        // invisible under it.
+        for (x in 0 until SPRITE_COLS) {
+            for (y in 0 until ROWS) {
+                val nearTop = y == 1
+                val nearBottom = y == ROWS - 2
+                val nearLeft = x == 1
+                val floor =
+                    when {
+                        nearTop && nearLeft -> DawnLikeFloorTiles.TOP_LEFT_CORNER
+                        nearBottom && nearLeft -> DawnLikeFloorTiles.BOTTOM_LEFT_CORNER
+                        nearTop -> DawnLikeFloorTiles.TOP_EDGE
+                        nearBottom -> DawnLikeFloorTiles.BOTTOM_EDGE
+                        nearLeft -> DawnLikeFloorTiles.LEFT_EDGE
+                        else -> DawnLikeFloorTiles.MIDDLE
+                    }
+                val tint = litTint(x, y, SPRITE_TORCH_POSITIONS, elapsedMs)
+                floorRenderer.drawTile(x, y, z = 0, staticTile = floor.copy(tint = tint))
+            }
+        }
+        for (x in 0 until SPRITE_COLS) {
+            val top = if (x == 0) DawnLikeWallTiles.UPPER_LEFT_CORNER else DawnLikeWallTiles.TOP_WALL
+            val bottom = if (x == 0) DawnLikeWallTiles.BOTTOM_LEFT_CORNER else DawnLikeWallTiles.BOTTOM_WALL
+            val topTint = litTint(x, 0, SPRITE_TORCH_POSITIONS, elapsedMs)
+            wallRenderer.drawTile(x, 0, z = 0, staticTile = top.copy(tint = topTint))
+            val bottomTint = litTint(x, ROWS - 1, SPRITE_TORCH_POSITIONS, elapsedMs)
+            wallRenderer.drawTile(x, ROWS - 1, z = 0, staticTile = bottom.copy(tint = bottomTint))
+        }
+        for (y in 1 until ROWS - 1) {
+            val wall = DawnLikeWallTiles.LEFT_WALL.copy(tint = litTint(0, y, SPRITE_TORCH_POSITIONS, elapsedMs))
+            wallRenderer.drawTile(0, y, z = 0, staticTile = wall)
+        }
+
+        for (torchX in SPRITE_WALL_TORCH_COLS) {
+            val torch = Vector2Int(torchX, 0)
+            overlayRenderer.drawTile(torchX, 0, z = 1, tile = torchTile(torch, elapsedMs))
+        }
+
+        val (rangerSheet, rangerCell) = DawnLikeCreatureTiles.RANGER
+        val rangerTint = litTint(SPRITE_RANGER_COL, MID_ROW, SPRITE_TORCH_POSITIONS, elapsedMs)
+        overlayRenderer.drawTile(
+            SPRITE_RANGER_COL,
+            MID_ROW,
+            z = 1,
+            // The source art faces left; the ranger stands on the left shooting right, so it needs
+            // mirroring to actually face its target instead of shooting backward over its shoulder.
+            tile = creatureTile(rangerSheet, rangerCell, rangerTint, flipX = true),
+        )
+
+        val (scorpionSheet, scorpionCell) = DawnLikeCreatureTiles.SCORPION
+        val scorpionTint = litTint(SPRITE_SCORPION_COL, MID_ROW, SPRITE_TORCH_POSITIONS, elapsedMs)
+        overlayRenderer.drawTile(
+            SPRITE_SCORPION_COL,
+            MID_ROW,
+            z = 1,
+            tile = creatureTile(scorpionSheet, scorpionCell, scorpionTint),
+        )
+        // If a HitFlash is active on the scorpion's cell, drawScorpionFlashOverlay (called from
+        // render(), after this tile is actually composited) draws its sprite again with additive
+        // blending on top -- see that function's doc comment for why a tint alone can't do this.
+        // The arrow itself is drawn by maybeFireProjectiles's VisualEvent.SpriteProjectile, via
+        // SpriteProjectileSequence.renderSprite (canvas.drawSprite directly) rather than through
+        // this grid-locked renderer, since a flying projectile needs sub-tile positions.
+    }
+
     /**
      * The torch sprite showing whichever flame state [torchFrameIndex] says is active for
      * [torch] at [elapsedMs] — a single-frame tile rebuilt fresh each call (matching
@@ -491,6 +508,14 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
         )
     }
 
+    /**
+     * A creature's idle two-frame bounce, tinted by the ambient light at its cell. [flipX] mirrors
+     * both frames horizontally (krogue-csc tracks proper facing-direction mirroring as a real
+     * engine feature; this is a one-off demo fix for the ranger, whose source art faces the wrong
+     * way for where it stands). [TileSheet.region] returns a fresh `TextureRegion` per call, so
+     * flipping it here is safe -- it's not a shared/cached instance another caller could see
+     * mutated.
+     */
     private fun creatureTile(
         sheet: DawnLikeCreatureTiles.Sheet,
         cell: Vector2Int,
@@ -502,9 +527,6 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
                 DawnLikeCreatureTiles.Sheet.PLAYER -> player0Sheet to player1Sheet
                 DawnLikeCreatureTiles.Sheet.PEST -> pest0Sheet to pest1Sheet
             }
-        // TileSheet.region() returns a fresh TextureRegion per call, so flipping it here is safe --
-        // it's not a shared/cached instance other callers could see mutated (krogue-csc tracks
-        // proper facing-direction mirroring as a real engine feature; this is a one-off demo fix).
         val frame0Region = frame0Sheet.region(cell.x, cell.y).also { if (flipX) it.flip(true, false) }
         val frame1Region = frame1Sheet.region(cell.x, cell.y).also { if (flipX) it.flip(true, false) }
         return AnimatedSpriteTile(
@@ -520,11 +542,12 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
 
     /**
      * If a [VisualEvent.HitFlash] is active on the scorpion's cell (in [spriteFlashPool], never
-     * itself `renderSprite()`'d -- see that field's doc comment), draws the scorpion's own sprite
-     * a second time on top, additively blended. A multiply [Color] tint can only ever reproduce a
-     * sprite's native colors (at best, `tint = WHITE`) or darken them -- GDX's `Color` also clamps
-     * every component to `[0, 1]`, so an over-bright tint isn't even representable -- so tinting
-     * the *first* draw can never brighten a dark pixel toward white. Additive blending
+     * itself `renderSprite()`'d, since its generic quad would show through the sprite's own
+     * transparent tile margins as a white border rather than a flash), draws the scorpion's own
+     * sprite a second time on top, additively blended. A multiply [Color] tint can only ever
+     * reproduce a sprite's native colors (at best, `tint = WHITE`) or darken them -- GDX's `Color`
+     * also clamps every component to `[0, 1]`, so an over-bright tint isn't even representable --
+     * so tinting the *first* draw can never brighten a dark pixel toward white. Additive blending
      * ([BlendMode.ADDITIVE]) genuinely adds light instead, which is the only way to make a flash
      * actually read as a flash rather than "the same creature, unchanged."
      */
@@ -536,6 +559,9 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
             ?: return
 
         val (sheetKind, cell) = DawnLikeCreatureTiles.SCORPION
+        // Mirrors kotile's own LOOP-mode frame-index formula (frameIndexAt) for a 2-frame,
+        // equal-duration animation -- needed explicitly here (rather than left to an
+        // AnimatedSpriteTile's own internal clock) since this draws a raw TextureRegion directly.
         val frameIndex = ((elapsedMs / ANIMATION_FRAME_MS) % 2).toInt()
         val sheet =
             when (sheetKind) {
