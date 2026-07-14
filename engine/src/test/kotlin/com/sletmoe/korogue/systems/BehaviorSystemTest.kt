@@ -1,5 +1,6 @@
 package com.sletmoe.korogue.systems
 
+import com.sletmoe.korogue.components.AttackIntent
 import com.sletmoe.korogue.components.Behavior
 import com.sletmoe.korogue.components.Collision
 import com.sletmoe.korogue.components.MoveIntent
@@ -7,6 +8,7 @@ import com.sletmoe.korogue.components.Player
 import com.sletmoe.korogue.components.Portal
 import com.sletmoe.korogue.components.Position
 import com.sletmoe.korogue.components.ZoneMember
+import com.sletmoe.korogue.ecs.EntityId
 import com.sletmoe.korogue.ecs.TickContext
 import com.sletmoe.korogue.ecs.World
 import com.sletmoe.korogue.registry.GameModule
@@ -45,6 +47,18 @@ class BehaviorSystemTest : FunSpec({
     test("attaches no MoveIntent when the strategy returns null") {
         val world = World().addSystem(BehaviorSystem(resolveStrategy = { BehaviorStrategy { _, _, _ -> null } }))
         val id = world.spawn(Behavior("x"), Position(2, 2), ZoneMember("z")).id
+
+        world.tick()
+
+        world.get(id)!!.get<MoveIntent>().shouldBeNull()
+    }
+
+    test("skips an entity that already carries an AttackIntent this tick (krogue-4tn)") {
+        val world =
+            World().addSystem(
+                BehaviorSystem(resolveStrategy = { BehaviorStrategy { _, _, _ -> MoveIntent(1, 0) } }),
+            )
+        val id = world.spawn(Behavior("x"), Position(2, 2), ZoneMember("z"), AttackIntent(EntityId(99))).id
 
         world.tick()
 

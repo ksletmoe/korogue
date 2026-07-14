@@ -53,3 +53,19 @@ data class ZoneChanged(
 data class ItemPickedUp(
     val name: String,
 ) : Event
+
+/**
+ * [attacker] fired a ranged attack at [target] (krogue-4tn), landing as an
+ * [com.sletmoe.korogue.components.AttackIntent] `CombatSystem` resolves like any other. [from]/[to]
+ * are the shooter's and target's cells at the moment of firing; [path] is the clear line between
+ * them (`RangedAttackSystem` already validated it against terrain that blocks line of sight) — a
+ * presentation observer can hand it straight to
+ * [com.sletmoe.korogue.presentation.VisualEvent.GlyphProjectile.path] without recomputing it.
+ */
+data class RangedAttackFired(
+    val attacker: EntityId,
+    val target: EntityId,
+    val from: Vector2Int,
+    val to: Vector2Int,
+    val path: List<Vector2Int>,
+) : Event
