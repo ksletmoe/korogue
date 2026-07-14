@@ -143,7 +143,8 @@ internal class GlyphProjectileSequence(private val event: VisualEvent.GlyphProje
                 path[(t * path.size).toInt().coerceIn(0, path.size - 1)]
             }
         val bg = event.backgroundAt?.invoke(at, elapsedMs) ?: Color.BLACK
-        putAt(surface, camera, at, event.glyph, event.color, bg)
+        val fg = event.tintAt?.invoke(at, elapsedMs, event.color) ?: event.color
+        putAt(surface, camera, at, event.glyph, fg, bg)
     }
 }
 
@@ -191,6 +192,13 @@ internal class SpriteProjectileSequence(private val event: VisualEvent.SpritePro
         val screenY = (pxY / l.tileHeightPx).toInt()
         if (!camera.containsScreen(screenX, screenY)) return
 
+        val worldAt =
+            Vector2Int(
+                (event.from.x + (event.to.x - event.from.x) * t).roundToInt(),
+                (event.from.y + (event.to.y - event.from.y) * t).roundToInt(),
+            )
+        val tint = event.tintAt?.invoke(worldAt, elapsedMs, event.tint) ?: event.tint
+
         val rotationDeg = rotationTowards(fullDx, fullDy) - event.nativeBearingDeg
         canvas.drawSprite(
             pxX = pxX - l.tileWidthPx / 2f,
@@ -198,7 +206,7 @@ internal class SpriteProjectileSequence(private val event: VisualEvent.SpritePro
             region = event.region,
             w = l.tileWidthPx,
             h = l.tileHeightPx,
-            tint = event.tint,
+            tint = tint,
             rotationDeg = rotationDeg,
         )
     }

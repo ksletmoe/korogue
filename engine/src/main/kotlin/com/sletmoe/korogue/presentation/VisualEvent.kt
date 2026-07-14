@@ -60,6 +60,12 @@ interface VisualEvent {
      *   its own terrain's lighting instead of the flat black [GlyphProjectileSequence] otherwise
      *   draws (there's no read-back API on [com.sletmoe.korogue.ui.TileSurface] to sample it
      *   directly). `null` (default) keeps the flat-black background.
+     * @property tintAt supplies the foreground color for whatever cell the glyph currently occupies,
+     *   given that cell, elapsedMs, and [color] to tint (krogue-ea7) — lets a caller apply the same
+     *   per-cell lighting terrain and occupants already get
+     *   ([com.sletmoe.korogue.ui.MapPanel]'s `litColor`, krogue-0w3) instead of the flat,
+     *   wall-clock-constant [color] this sequence otherwise draws throughout its whole flight.
+     *   `null` (default) keeps [color] unchanged.
      */
     data class GlyphProjectile(
         val from: Vector2Int,
@@ -69,6 +75,7 @@ interface VisualEvent {
         val durationMs: Long = DEFAULT_PROJECTILE_MS,
         val path: List<Vector2Int>? = null,
         val backgroundAt: ((at: Vector2Int, elapsedMs: Long) -> Color)? = null,
+        val tintAt: ((at: Vector2Int, elapsedMs: Long, base: Color) -> Color)? = null,
     ) : VisualEvent {
         override fun toSequence(): VisualSequence = GlyphProjectileSequence(this)
     }
@@ -84,6 +91,10 @@ interface VisualEvent {
      * @property stopShortPx how many content pixels short of [to]'s cell center the sprite stops,
      *   so a shot visibly lands just outside its target's cell instead of drawing on top of (or
      *   passing through) whatever occupies it. `0` (default) travels the full distance.
+     * @property tintAt supplies the tint for whatever world cell the sprite currently occupies
+     *   (interpolated from [from]/[to] the same way the drawn position is, krogue-ea7), given that
+     *   cell, elapsedMs, and [tint] to tint — the sprite-space counterpart to [GlyphProjectile.tintAt].
+     *   `null` (default) keeps [tint] unchanged.
      */
     data class SpriteProjectile(
         val from: Vector2Int,
@@ -93,6 +104,7 @@ interface VisualEvent {
         val durationMs: Long = DEFAULT_PROJECTILE_MS,
         val nativeBearingDeg: Float = 0f,
         val stopShortPx: Float = 0f,
+        val tintAt: ((at: Vector2Int, elapsedMs: Long, base: Color) -> Color)? = null,
     ) : VisualEvent {
         override fun toSequence(): VisualSequence = SpriteProjectileSequence(this)
     }

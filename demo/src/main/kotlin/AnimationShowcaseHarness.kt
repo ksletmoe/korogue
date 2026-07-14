@@ -352,6 +352,11 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
                 // leading *edge* to the scorpion's center -- still overlapping. A full tile short
                 // brings the arrow's edge to roughly the scorpion's own leading edge instead.
                 stopShortPx = canvas.layout.tileWidthPx,
+                // Dims/tints the arrow as it crosses the room's torchlight, matching every other
+                // sprite here (krogue-ea7) instead of staying a constant white the whole flight.
+                tintAt = { cell, sequenceElapsedMs, base ->
+                    litColor(base, cell.x, cell.y, SPRITE_TORCH_POSITIONS, fireElapsedMs + sequenceElapsedMs)
+                },
             ),
         )
 
@@ -378,6 +383,11 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
                 // ever sees time relative to its own start.
                 backgroundAt = { cell, sequenceElapsedMs ->
                     litColor(floorGlowBase, cell.x, cell.y, GLYPH_TORCH_POSITIONS, fireElapsedMs + sequenceElapsedMs)
+                },
+                // Same lit-foreground wash the floor and occupants get (krogue-ea7), instead of
+                // GlyphProjectileSequence's default flat, wall-clock-constant color.
+                tintAt = { cell, sequenceElapsedMs, base ->
+                    litColor(base, cell.x, cell.y, GLYPH_TORCH_POSITIONS, fireElapsedMs + sequenceElapsedMs)
                 },
             ),
         )

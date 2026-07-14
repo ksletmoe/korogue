@@ -206,6 +206,57 @@ class EventAnimationQueueTest : FunSpec({
         surface.top(0, 0)!!.bg shouldBe Color.BLACK
     }
 
+    test("a projectile's tintAt callback supplies the foreground color (krogue-ea7)") {
+        val event =
+            VisualEvent.GlyphProjectile(
+                Vector2Int(0, 0),
+                Vector2Int(4, 0),
+                '/',
+                color = Color.WHITE,
+                durationMs = 100L,
+                tintAt = { _, _, _ -> Color.GREEN },
+            )
+        val sequence = event.toSequence()
+
+        val surface = RecordingSurface(10, 10)
+        sequence.render(surface, camera, 0L)
+        surface.top(0, 0)!!.fg shouldBe Color.GREEN
+    }
+
+    test("a projectile's tintAt callback receives the event's own color as base") {
+        var receivedBase: Color? = null
+        val event =
+            VisualEvent.GlyphProjectile(
+                Vector2Int(0, 0),
+                Vector2Int(4, 0),
+                '/',
+                color = Color.RED,
+                durationMs = 100L,
+                tintAt = { _, _, base ->
+                    receivedBase = base
+                    base
+                },
+            )
+        event.toSequence().render(RecordingSurface(10, 10), camera, 0L)
+        receivedBase shouldBe Color.RED
+    }
+
+    test("a projectile with no tintAt callback keeps its own constant color") {
+        val event =
+            VisualEvent.GlyphProjectile(
+                Vector2Int(0, 0),
+                Vector2Int(4, 0),
+                '/',
+                color = Color.RED,
+                durationMs = 100L,
+            )
+        val sequence = event.toSequence()
+
+        val surface = RecordingSurface(10, 10)
+        sequence.render(surface, camera, 0L)
+        surface.top(0, 0)!!.fg shouldBe Color.RED
+    }
+
     test("a game-defined VisualEvent outside the built-in hierarchy plays through the queue unmodified") {
         val queue = EventAnimationQueue()
         val event = MarkerEvent(eventDurationMs = 40L)
