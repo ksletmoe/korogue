@@ -3,6 +3,8 @@ package com.sletmoe.korogue.registry
 import com.sletmoe.korogue.algorithms.lighting.DiminishingLightValueCalculator
 import com.sletmoe.korogue.algorithms.zonegen.ZoneGenContext
 import com.sletmoe.korogue.algorithms.zonegen.ZoneGenerator
+import com.sletmoe.korogue.components.Facing
+import com.sletmoe.korogue.components.RangedAttacker
 import com.sletmoe.korogue.ecs.Entity
 import com.sletmoe.korogue.perception.Contribution
 import com.sletmoe.korogue.perception.DarkvisionSense
@@ -33,6 +35,12 @@ class GameModuleTest : FunSpec({
         module.calculators
             .resolve(DiminishingLightValueCalculator.ID)
             .shouldBeInstanceOf<DiminishingLightValueCalculator>()
+    }
+
+    test("engine defaults register RangedAttacker and Facing so they survive save/load (krogue-4tn)") {
+        val module = GameModule.engineDefaults().build()
+        module.components.isRegistered(RangedAttacker()) shouldBe true
+        module.components.isRegistered(Facing.LEFT) shouldBe true
     }
 
     test("a consumer can register and resolve its own strategy") {

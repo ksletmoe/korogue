@@ -7,6 +7,7 @@ import com.sletmoe.korogue.algorithms.los.SymmetricShadowCaster
 import com.sletmoe.korogue.algorithms.zonegen.ZoneGenerator
 import com.sletmoe.korogue.components.Behavior
 import com.sletmoe.korogue.components.Collision
+import com.sletmoe.korogue.components.Facing
 import com.sletmoe.korogue.components.Health
 import com.sletmoe.korogue.components.Inventory
 import com.sletmoe.korogue.components.Item
@@ -16,6 +17,7 @@ import com.sletmoe.korogue.components.Named
 import com.sletmoe.korogue.components.Player
 import com.sletmoe.korogue.components.Portal
 import com.sletmoe.korogue.components.Position
+import com.sletmoe.korogue.components.RangedAttacker
 import com.sletmoe.korogue.components.Renderable
 import com.sletmoe.korogue.components.ZoneMember
 import com.sletmoe.korogue.ecs.Component
@@ -189,5 +191,10 @@ class GameModule private constructor(
                 .component<Invisible>()
                 .component<Blind>()
                 .component<Dazzled>()
+                .component<RangedAttacker>()
+                // Facing (krogue-csc) was missing from this list since that bead added it -- caught
+                // while wiring RangedAttackSystem (krogue-4tn), registered now so it round-trips
+                // through save/load like every other persistent component.
+                .component<Facing>()
     }
 }

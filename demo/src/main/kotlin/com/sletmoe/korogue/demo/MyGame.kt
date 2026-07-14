@@ -20,6 +20,7 @@ import com.sletmoe.korogue.components.Named
 import com.sletmoe.korogue.components.Player
 import com.sletmoe.korogue.components.Portal
 import com.sletmoe.korogue.components.Position
+import com.sletmoe.korogue.components.RangedAttacker
 import com.sletmoe.korogue.components.RenderLayer
 import com.sletmoe.korogue.components.Renderable
 import com.sletmoe.korogue.components.ZoneMember
@@ -28,6 +29,7 @@ import com.sletmoe.korogue.ecs.TickContext
 import com.sletmoe.korogue.events.EntityDamaged
 import com.sletmoe.korogue.events.EntityDied
 import com.sletmoe.korogue.events.ItemPickedUp
+import com.sletmoe.korogue.events.RangedAttackFired
 import com.sletmoe.korogue.kotile.Game
 import com.sletmoe.korogue.kotile.ZoneFog
 import com.sletmoe.korogue.loop.GameLoop
@@ -52,6 +54,7 @@ import com.sletmoe.korogue.systems.MovementSystem
 import com.sletmoe.korogue.systems.PerceptionSystem
 import com.sletmoe.korogue.systems.PickupSystem
 import com.sletmoe.korogue.systems.PortalSystem
+import com.sletmoe.korogue.systems.RangedAttackSystem
 import com.sletmoe.korogue.systems.WanderStrategy
 import com.sletmoe.korogue.ui.BarValue
 import com.sletmoe.korogue.ui.BarWidget
@@ -194,9 +197,10 @@ class MyGame(
     }
 
     /**
-     * Registers the gameplay systems on [world]'s ECS, in run order: decide AI moves, resolve
-     * movement, apply zone transitions, pick up items, resolve combat, then recompute lighting.
-     * Called for the initial world and again after [load] swaps in a fresh (system-less) world.
+     * Registers the gameplay systems on [world]'s ECS, in run order: resolve ranged attacks, decide
+     * AI moves, resolve movement, apply zone transitions, pick up items, resolve combat, then
+     * recompute lighting. Called for the initial world and again after [load] swaps in a fresh
+     * (system-less) world.
      */
     private fun registerSystems() {
         lightingSystem =
@@ -207,6 +211,9 @@ class MyGame(
         world.ecs
             // First in the pipeline: timed effects (regen/hunger/spawns) resolve at the top of the turn.
             .addSystem(SchedulerSystem(scheduler, gameModule.effects::resolve))
+            // Before BehaviorSystem (krogue-4tn): a RangedAttacker in range+LOS commits to an
+            // AttackIntent here, which BehaviorSystem then sees and skips moving that entity for.
+            .addSystem(RangedAttackSystem(world.zones))
             .addSystem(BehaviorSystem(gameModule.strategies::resolve, activeZones = world::simulatedZones))
             .addSystem(MovementSystem(world.zones))
             .addSystem(PortalSystem(world))
@@ -381,6 +388,23 @@ class MyGame(
                     VisualEvent.DeathFade(at, event.glyph ?: '%', event.color?.toColor() ?: Color.GRAY),
                 )
             }
+        }
+        // Only the shot itself is gated on seeing the shooter (krogue-4tn) -- the resulting
+        // EntityDamaged's HitFlash is unconditional at the player's own cell, which is always
+        // perceived, so a shot from off-screen still registers as a hit, just without a visible
+        // arrow. Enqueued before CombatSystem publishes EntityDamaged for the same tick (RangedAttackSystem
+        // runs earlier in registerSystems), so the shot visibly travels before the flash lands.
+        world.ecs.events.subscribe<RangedAttackFired> { event ->
+            if (!playerPerceives(event.from)) return@subscribe
+            animationQueue.enqueue(
+                VisualEvent.GlyphProjectile(
+                    from = event.from,
+                    to = event.to,
+                    glyph = '*',
+                    color = Color.ORANGE,
+                    path = event.path,
+                ),
+            )
         }
     }
 
@@ -610,19 +634,40 @@ class MyGame(
                 ry = worldgen.nextInt(zone.height)
             } while (!zone.tiles[rx, ry].isWalkable || world.entityAt(zone.zoneId, rx, ry) != null)
 
-            val zombie = worldgen.nextBoolean()
-            world.ecs.spawn(
-                Position(rx, ry),
-                ZoneMember(zone.zoneId),
-                Renderable(
-                    if (zombie) 'z' else 's',
-                    (if (zombie) Color.GREEN else Color.WHITE).toNormalizedRgb(),
-                    RenderLayer.CREATURE,
-                ),
-                Health(100, 100),
-                Named(if (zombie) "zombie" else "sheep", if (zombie) "aggressive" else "docile"),
-                Behavior(if (zombie) HuntPlayerStrategy.ID else WanderStrategy.ID),
-            )
+            when (worldgen.nextInt(3)) {
+                0 ->
+                    world.ecs.spawn(
+                        Position(rx, ry),
+                        ZoneMember(zone.zoneId),
+                        Renderable('s', Color.WHITE.toNormalizedRgb(), RenderLayer.CREATURE),
+                        Health(100, 100),
+                        Named("sheep", "docile"),
+                        Behavior(WanderStrategy.ID),
+                    )
+                1 ->
+                    world.ecs.spawn(
+                        Position(rx, ry),
+                        ZoneMember(zone.zoneId),
+                        Renderable('z', Color.GREEN.toNormalizedRgb(), RenderLayer.CREATURE),
+                        Health(100, 100),
+                        Named("zombie", "aggressive"),
+                        Behavior(HuntPlayerStrategy.ID),
+                    )
+                else ->
+                    // An archer (krogue-4tn): hunts like a zombie, but RangedAttackSystem preempts
+                    // its move with an AttackIntent once it has line of sight to the player beyond
+                    // melee range -- proving VisualEvent.GlyphProjectile fires from real ECS combat,
+                    // not a scripted demo (see AnimationShowcaseHarness for that).
+                    world.ecs.spawn(
+                        Position(rx, ry),
+                        ZoneMember(zone.zoneId),
+                        Renderable('a', Color.ORANGE.toNormalizedRgb(), RenderLayer.CREATURE),
+                        Health(100, 100),
+                        Named("archer", "aggressive"),
+                        Behavior(HuntPlayerStrategy.ID),
+                        RangedAttacker(),
+                    )
+            }
         }
     }
 
