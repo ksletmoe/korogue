@@ -406,17 +406,25 @@ class MyGame(
         // runs earlier in registerSystems), so the shot visibly travels before the flash lands.
         world.ecs.events.subscribe<RangedAttackFired> { event ->
             if (!playerPerceives(event.from)) return@subscribe
+            // event.to/event.path are a snapshot of the player's cell when RangedAttackSystem fired
+            // -- earlier in this same tick, before MovementSystem resolves the player's own move.
+            // Event dispatch happens at end-of-tick (ADR-0010), after MovementSystem has already
+            // run, so re-reading the player's Position here gets where they actually land this turn
+            // instead of the square they were standing on when the shot was decided. No path (the
+            // snapshotted one may no longer reach the new cell); free-form flight covers this fine
+            // over one grid step. Purely cosmetic -- CombatSystem's AttackIntent always lands on the
+            // target entity regardless of position, so this can't change whether the hit connects.
+            val landedAt = world.ecs.get(playerId)?.get<Position>()?.point ?: event.to
             // The traditional roguelike missile glyph (krogue-awi): |/-\ picked by travel
             // direction, an arrow's ASCII equivalent to VisualEvent.SpriteProjectile's continuous
             // sprite rotation (krogue-m05) -- a glyph can't rotate, so it buckets instead.
-            val arrowGlyph = directionalMissileGlyph(event.to.x - event.from.x, event.to.y - event.from.y)
+            val arrowGlyph = directionalMissileGlyph(landedAt.x - event.from.x, landedAt.y - event.from.y)
             animationQueue.enqueue(
                 VisualEvent.GlyphProjectile(
                     from = event.from,
-                    to = event.to,
+                    to = landedAt,
                     glyph = arrowGlyph,
                     color = Color.ORANGE,
-                    path = event.path,
                 ),
             )
         }
