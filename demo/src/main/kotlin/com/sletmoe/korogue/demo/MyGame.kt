@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Color
 import com.sletmoe.korogue.algorithms.color.toNormalizedRgb
+import com.sletmoe.korogue.algorithms.geometry.directionalMissileGlyph
 import com.sletmoe.korogue.algorithms.lighting.DiminishingLightValueCalculator
 import com.sletmoe.korogue.algorithms.los.LineOfSightCalculator
 import com.sletmoe.korogue.algorithms.los.OmnicientLineOfSightCalculator
@@ -396,11 +397,15 @@ class MyGame(
         // runs earlier in registerSystems), so the shot visibly travels before the flash lands.
         world.ecs.events.subscribe<RangedAttackFired> { event ->
             if (!playerPerceives(event.from)) return@subscribe
+            // The traditional roguelike missile glyph (krogue-awi): |/-\ picked by travel
+            // direction, an arrow's ASCII equivalent to VisualEvent.SpriteProjectile's continuous
+            // sprite rotation (krogue-m05) -- a glyph can't rotate, so it buckets instead.
+            val arrowGlyph = directionalMissileGlyph(event.to.x - event.from.x, event.to.y - event.from.y)
             animationQueue.enqueue(
                 VisualEvent.GlyphProjectile(
                     from = event.from,
                     to = event.to,
-                    glyph = '*',
+                    glyph = arrowGlyph,
                     color = Color.ORANGE,
                     path = event.path,
                 ),
