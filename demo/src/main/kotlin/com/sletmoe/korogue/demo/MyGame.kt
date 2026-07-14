@@ -113,7 +113,9 @@ class MyGame(
      * creatures don't move at frame rate; turn-based lets them act every turn.
      */
     private val turnBased: Boolean = true,
-) : Game() {
+    // On-demand rendering (krogue-4ul) only makes sense in turn-based mode: RealTimeLoop advances
+    // the world every frame regardless of input, so it always needs a frame drawn for it too.
+) : Game(continuousRendering = !turnBased) {
     private val startPoint = Vector2Int(10, 10)
 
     private val symmetricShadowCaster = SymmetricShadowCaster()
@@ -284,6 +286,13 @@ class MyGame(
             if (!gameOverShown && (world.ecs.get(playerId)?.get<Health>()?.dead == true)) openGameOver()
         }
     }
+
+    /**
+     * A visual sequence advances on the wall clock, not on input (krogue-wuq) — so with on-demand
+     * rendering (krogue-4ul) it needs its own reason to keep drawing frames, unlike an ordinary
+     * player move which [Game]'s per-keypress [Game.requestRedraw] already covers.
+     */
+    override fun needsContinuousRedraw(): Boolean = animationQueue.isPlaying
 
     override fun drawFrame(elapsedMs: Long) {
         animationClockMs = elapsedMs
