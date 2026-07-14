@@ -43,7 +43,7 @@
         </button>
         <div class="navigation-controls--break ui-kit_mobile-only"></div>
         <div class="library-version" id="library-version">
-1.0.0.54-SNAPSHOT        </div>
+1.0.0.55-SNAPSHOT        </div>
         <div class="navigation-controls">
         <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
                 <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true"
@@ -103,12 +103,12 @@
         </nav>
         <div id="resizer" class="resizer" data-item-type="BAR"></div>
         <div id="main" data-item-type="SECTION" role="main">
-<div class="main-content" data-page-type="member" id="content" pageIds="engine::com.sletmoe.korogue.kotile/Game/Game/#/PointingToDeclaration//-56654334">
+<div class="main-content" data-page-type="member" id="content" pageIds="engine::com.sletmoe.korogue.kotile/Game/Game/#kotlin.Boolean/PointingToDeclaration//-56654334">
   <div class="breadcrumbs"><a href="../../../index.html">engine</a><span class="delimiter">/</span><a href="../index.html">com.sletmoe.korogue.kotile</a><span class="delimiter">/</span><a href="index.html">Game</a><span class="delimiter">/</span><span class="current">Game</span></div>
   <div class="cover ">
     <h1 class="cover"><span><span>Game</span></span></h1>
   </div>
-  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="token punctuation">)</span></div></div></div>
+  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">continuousRendering<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">true</span></span></span><span class="token punctuation">)</span></div><h4 class="tableheader">Parameters</h4><div class="table"><div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><u><span>continuous</span><wbr></wbr><span><span>Rendering</span></span></u></div></span></div><div><div class="title"><p class="paragraph"><code class="lang-kotlin">true</code> (default, matches libGDX's own default) renders every frame at vsync regardless of whether anything changed — required for a <a href="../../com.sletmoe.korogue.loop/-real-time-loop/index.html">com.sletmoe.korogue.loop.RealTimeLoop</a> game, since the world advances every frame either way. <code class="lang-kotlin">false</code> (krogue-4ul) renders only on demand: a frame is drawn when <span data-unresolved-link="com.sletmoe.korogue.kotile/Game/requestRedraw/#/PointingToDeclaration/">requestRedraw</span> is called (already wired to every key press) or while <span data-unresolved-link="com.sletmoe.korogue.kotile/Game/needsContinuousRedraw/#/PointingToDeclaration/">needsContinuousRedraw</span> reports <code class="lang-kotlin">true</code> (a presentation animation still mid-flight) — for a turn-based game sitting idle between moves this is the difference between pegging a CPU core at vsync and costing ~0%. Complements krogue-drk (dirty-region redraw, which is about <i>what</i> gets redrawn rather than <i>how often</i>).</p></div></div></div></div></div></div></div>
 </div>
     <div class="footer">
         <div class="footer--container">

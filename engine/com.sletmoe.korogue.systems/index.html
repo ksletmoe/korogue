@@ -43,7 +43,7 @@
         </button>
         <div class="navigation-controls--break ui-kit_mobile-only"></div>
         <div class="library-version" id="library-version">
-1.0.0.54-SNAPSHOT        </div>
+1.0.0.55-SNAPSHOT        </div>
         <div class="navigation-controls">
         <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
                 <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true"
@@ -259,6 +259,21 @@
               <div>
                 <div class="title">
                   <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-portal-system/index.html">PortalSystem</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">gameWorld<span class="token operator">: </span><a href="../com.sletmoe.korogue.world/-game-world/index.html">GameWorld</a></span></span><span class="token punctuation">)</span> : <a href="../com.sletmoe.korogue.ecs/-system/index.html">System</a></div><div class="brief "><p class="paragraph">Sends <strong>any</strong> entity standing on a <a href="../com.sletmoe.korogue.components/-portal/index.html">Portal</a> through it: relocates the entity to the portal's target (zone + position) atomically via <a href="../com.sletmoe.korogue.world/-game-world/relocate.html">GameWorld.relocate</a> (ADR-0021 Mechanic B — required so a chasing monster actually follows through the portal), and publishes a <a href="../com.sletmoe.korogue.events/-zone-changed/index.html">ZoneChanged</a> event per crossing entity (Phase 4c). Runs after <code class="lang-kotlin">MovementSystem</code> (an entity must have stepped onto the portal) and before <code class="lang-kotlin">LightingSystem</code> (so the arriving zone is lit the same tick).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-665497520%2FClasslikes%2F-56654334" anchor-label="RangedAttackSystem" id="-665497520%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-ranged-attack-system/index.html"><span>Ranged</span><wbr></wbr><span>Attack</span><wbr></wbr><span><span>System</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-665497520%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-ranged-attack-system/index.html">RangedAttackSystem</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">zones<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-map/index.html">Map</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span><a href="../com.sletmoe.korogue.world/-zone/index.html">Zone</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span> : <a href="../com.sletmoe.korogue.ecs/-system/index.html">System</a></div><div class="brief "><p class="paragraph">Lets a <a href="../com.sletmoe.korogue.components/-ranged-attacker/index.html">RangedAttacker</a> hit a distant player instead of only ever chasing/bumping into them (krogue-4tn). For each <code class="lang-kotlin">RangedAttacker</code> + <a href="../com.sletmoe.korogue.components/-position/index.html">Position</a> + <a href="../com.sletmoe.korogue.components/-zone-member/index.html">ZoneMember</a> entity sharing the player's zone, Chebyshev distance strictly between 1 (melee already owns adjacent — see <code class="lang-kotlin">MovementSystem</code>) and the attacker's <a href="../com.sletmoe.korogue.components/-ranged-attacker/range.html">RangedAttacker.range</a> inclusive, with a <a href="../com.sletmoe.korogue.algorithms.geometry/line-of-cells-stopping-at-blocker.html">lineOfCellsStoppingAtBlocker</a> path that reaches the player's own cell unbroken: emits an <a href="../com.sletmoe.korogue.components/-attack-intent/index.html">AttackIntent</a> on the attacker (resolved by <code class="lang-kotlin">CombatSystem</code> exactly like a melee hit) and publishes a <a href="../com.sletmoe.korogue.events/-ranged-attack-fired/index.html">RangedAttackFired</a> so a presentation observer can animate the shot.</p></div></div></div>
                 </div>
               </div>
             </div>
