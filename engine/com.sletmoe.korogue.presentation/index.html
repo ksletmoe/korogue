@@ -43,7 +43,7 @@
         </button>
         <div class="navigation-controls--break ui-kit_mobile-only"></div>
         <div class="library-version" id="library-version">
-1.0.0.56-SNAPSHOT        </div>
+1.0.0.57-SNAPSHOT        </div>
         <div class="navigation-controls">
         <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
                 <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true"
@@ -128,6 +128,21 @@
               </div>
             </div>
           </div>
+<a data-name="464815957%2FClasslikes%2F-56654334" anchor-label="EventAnimationQueueTest" id="464815957%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-event-animation-queue-test/index.html"><span>Event</span><wbr></wbr><span>Animation</span><wbr></wbr><span>Queue</span><wbr></wbr><span><span>Test</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="464815957%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-event-animation-queue-test/index.html">EventAnimationQueueTest</a> : <span data-unresolved-link="/&amp;lt;ERROR CLASS&amp;gt; ERROR CLASS: Symbol not found for FunSpec///PointingToDeclaration/">&lt;ERROR CLASS&gt; ERROR CLASS: Symbol not found for FunSpec</span></div><div class="brief "><p class="paragraph"><a href="-event-animation-queue/index.html">EventAnimationQueue</a> is the presentation-only sequencer (krogue-wuq, ADR-0023's third time axis): these tests drive it with a fake <a href="../com.sletmoe.korogue.ui/-recording-surface/index.html">RecordingSurface</a>/<a href="../com.sletmoe.korogue.ui/-map-camera/index.html">MapCamera</a> — no GL context, no ECS world — since it never reads or writes game state in the first place.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
 <a data-name="-1305995417%2FClasslikes%2F-56654334" anchor-label="VisualEffectPool" id="-1305995417%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
           <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
             <div class="main-subrow keyValue ">
@@ -139,6 +154,21 @@
               <div>
                 <div class="title">
                   <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-visual-effect-pool/index.html">VisualEffectPool</a></div><div class="brief "><p class="paragraph">A pool of independently-timed <a href="-visual-event/index.html">VisualEvent</a>s that all play at once, with no input-gating concept at all — the companion to <a href="-event-animation-queue/index.html">EventAnimationQueue</a> for the <i>other</i> common shape of visual effect: cosmetic, fire-and-forget, and never something a game should pause turns for (multiple simultaneous hit-flashes, a floating damage number stacking with the flash it accompanies, …). <a href="-event-animation-queue/index.html">EventAnimationQueue</a> deliberately plays one sequence at a time — right for &quot;gate input on a bolt in flight&quot; — but that means a caller wanting N simultaneous non-gating effects previously had to hand-manage N separate <code class="lang-kotlin">EventAnimationQueue</code> instances, one per concurrent effect, with no engine support for it. This mirrors kotile's own <span data-unresolved-link="com.sletmoe.kotile.rendering/EffectsLayer///PointingToDeclaration/">com.sletmoe.kotile.rendering.EffectsLayer</span> primitive, which already models &quot;many independent transient items&quot; as a plain list — this is that same shape one layer up, for presentation-side game events instead of raw sprites.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="350986229%2FClasslikes%2F-56654334" anchor-label="VisualEffectPoolTest" id="350986229%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-visual-effect-pool-test/index.html"><span>Visual</span><wbr></wbr><span>Effect</span><wbr></wbr><span>Pool</span><wbr></wbr><span><span>Test</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="350986229%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-visual-effect-pool-test/index.html">VisualEffectPoolTest</a> : <span data-unresolved-link="/&amp;lt;ERROR CLASS&amp;gt; ERROR CLASS: Symbol not found for FunSpec///PointingToDeclaration/">&lt;ERROR CLASS&gt; ERROR CLASS: Symbol not found for FunSpec</span></div><div class="brief "><p class="paragraph"><a href="-visual-effect-pool/index.html">VisualEffectPool</a> is the non-gating companion to <a href="-event-animation-queue/index.html">EventAnimationQueue</a>: no GL context or ECS world needed, same as that queue's own tests — driven with a fake <a href="../com.sletmoe.korogue.ui/-recording-surface/index.html">RecordingSurface</a>/<a href="../com.sletmoe.korogue.ui/-map-camera/index.html">MapCamera</a>.</p></div></div></div>
                 </div>
               </div>
             </div>

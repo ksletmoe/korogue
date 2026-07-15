@@ -43,7 +43,7 @@
         </button>
         <div class="navigation-controls--break ui-kit_mobile-only"></div>
         <div class="library-version" id="library-version">
-1.0.0.56-SNAPSHOT        </div>
+1.0.0.57-SNAPSHOT        </div>
         <div class="navigation-controls">
         <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
                 <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true"
@@ -203,6 +203,21 @@
               </div>
             </div>
           </div>
+<a data-name="291905222%2FClasslikes%2F-56654334" anchor-label="EngineSensesTest" id="291905222%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-engine-senses-test/index.html"><span>Engine</span><wbr></wbr><span>Senses</span><wbr></wbr><span><span>Test</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="291905222%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-engine-senses-test/index.html">EngineSensesTest</a> : <span data-unresolved-link="/&amp;lt;ERROR CLASS&amp;gt; ERROR CLASS: Symbol not found for DescribeSpec///PointingToDeclaration/">&lt;ERROR CLASS&gt; ERROR CLASS: Symbol not found for DescribeSpec</span></div><div class="brief "><p class="paragraph">Unit tests for the engine's built-in <a href="-sense/index.html">Sense</a> contributors (ADR-0015, krogue-1my.2): their tags and their reveal behaviour over line-of-sight, lighting, radius, and entity detection. The two-phase reveal/suppress <i>algorithm</i> is covered by <a href="-standard-perception-test/index.html">StandardPerceptionTest</a>; this exercises the senses themselves.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
 <a data-name="-44625962%2FClasslikes%2F-56654334" anchor-label="Invisible" id="-44625962%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
           <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
             <div class="main-subrow keyValue ">
@@ -244,6 +259,21 @@
               <div>
                 <div class="title">
                   <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">fun </span><span class="token keyword">interface </span><a href="-perception-model/index.html">PerceptionModel</a></div><div class="brief "><p class="paragraph">Perception's policy seam (ADR-0015, layer 3): turns the world facts (illumination, line-of-sight) plus an observer's senses and targets' concealment into a <a href="-perceived/index.html">Perceived</a> result. The primitive is a <strong>query</strong> — callable for the player, a companion, a charmed monster, or a monster asking &quot;can I see the player?&quot; — so the renderer, AI, and faction visibility all reuse one model.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1651906792%2FClasslikes%2F-56654334" anchor-label="PerceptionScenarioTest" id="-1651906792%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-perception-scenario-test/index.html"><span>Perception</span><wbr></wbr><span>Scenario</span><wbr></wbr><span><span>Test</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1651906792%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-perception-scenario-test/index.html">PerceptionScenarioTest</a> : <span data-unresolved-link="/&amp;lt;ERROR CLASS&amp;gt; ERROR CLASS: Symbol not found for DescribeSpec///PointingToDeclaration/">&lt;ERROR CLASS&gt; ERROR CLASS: Symbol not found for DescribeSpec</span></div><div class="brief "><p class="paragraph">End-to-end scenarios for concealment, piercing, and suppression (ADR-0015, krogue-1my.3), driven by the engine's <i>real</i> built-in senses, <a href="-invisible/index.html">Invisible</a>/<a href="-blind/index.html">Blind</a> effects, and <a href="-standard-perception/index.html">StandardPerception</a> wired by <code class="lang-kotlin">GameModule.engineDefaults()</code> — the algorithm and the senses are unit-tested separately (<a href="-standard-perception-test/index.html">StandardPerceptionTest</a>, <a href="-engine-senses-test/index.html">EngineSensesTest</a>); this proves the concrete pieces compose.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -334,6 +364,21 @@
               <div>
                 <div class="title">
                   <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-standard-perception/index.html">StandardPerception</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">senses<span class="token operator">: </span><a href="../com.sletmoe.korogue.registry/-registry/index.html">Registry</a><span class="token operator">&lt;</span><a href="-sense/index.html">Sense</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span> : <a href="-perception-model/index.html">PerceptionModel</a></div><div class="brief "><p class="paragraph">The engine's default <a href="-perception-model/index.html">PerceptionModel</a> (ADR-0015): the <strong>two-phase reveal/suppress</strong> model over the observer's composable senses.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-116057525%2FClasslikes%2F-56654334" anchor-label="StandardPerceptionTest" id="-116057525%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-standard-perception-test/index.html"><span>Standard</span><wbr></wbr><span>Perception</span><wbr></wbr><span><span>Test</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-116057525%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-standard-perception-test/index.html">StandardPerceptionTest</a> : <span data-unresolved-link="/&amp;lt;ERROR CLASS&amp;gt; ERROR CLASS: Symbol not found for DescribeSpec///PointingToDeclaration/">&lt;ERROR CLASS&gt; ERROR CLASS: Symbol not found for DescribeSpec</span></div><div class="brief "><p class="paragraph">Unit tests for <a href="-standard-perception/index.html">StandardPerception</a>'s two-phase reveal/suppress model (ADR-0015), driven by fixture senses/suppressors/concealments so the algorithm is exercised independently of the engine's built-in senses (krogue-1my.2) and concealments (krogue-1my.3).</p></div></div></div>
                 </div>
               </div>
             </div>

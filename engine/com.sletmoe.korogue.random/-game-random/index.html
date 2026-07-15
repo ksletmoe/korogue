@@ -43,7 +43,7 @@
         </button>
         <div class="navigation-controls--break ui-kit_mobile-only"></div>
         <div class="library-version" id="library-version">
-1.0.0.56-SNAPSHOT        </div>
+1.0.0.57-SNAPSHOT        </div>
         <div class="navigation-controls">
         <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
                 <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true"
@@ -107,7 +107,7 @@
   <div class="breadcrumbs"><a href="../../../index.html">engine</a><span class="delimiter">/</span><a href="../index.html">com.sletmoe.korogue.random</a><span class="delimiter">/</span><span class="current">GameRandom</span></div>
   <div class="cover ">
     <h1 class="cover"><span>Game</span><wbr></wbr><span><span>Random</span></span></h1>
-    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">GameRandom</a></div><p class="paragraph">The game's source of randomness: a master seed plus <strong>named, isolated streams</strong> derived from it (ADR-0009). <code class="lang-kotlin">stream(&quot;worldgen&quot;)</code> and <code class="lang-kotlin">stream(&quot;combat&quot;)</code> never perturb each other, so &quot;same master seed ⇒ same world + loot&quot; holds no matter how gameplay code evolves, and a saved game resumes exactly via <a href="snapshot.html">snapshot</a>/<a href="-companion/restore.html">restore</a>.</p><p class="paragraph">Sharing the master seed reproduces a new game. Whether to expose seed entry is the consuming game's choice; <a href="-companion/random.html">random</a> gives a fresh random seed by default.</p></div></div>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">GameRandom</a><span class="source-link-wrapper"><span class="source-link" data-element-type="source-link">(<a href="https://github.com/ksletmoe/korogue/tree/mainline/engine/src/main/kotlin/com/sletmoe/korogue/random/GameRandom.kt#L14">source</a>)</span></span></div><p class="paragraph">The game's source of randomness: a master seed plus <strong>named, isolated streams</strong> derived from it (ADR-0009). <code class="lang-kotlin">stream(&quot;worldgen&quot;)</code> and <code class="lang-kotlin">stream(&quot;combat&quot;)</code> never perturb each other, so &quot;same master seed ⇒ same world + loot&quot; holds no matter how gameplay code evolves, and a saved game resumes exactly via <a href="snapshot.html">snapshot</a>/<a href="-companion/restore.html">restore</a>.</p><p class="paragraph">Sharing the master seed reproduces a new game. Whether to expose seed entry is the consuming game's choice; <a href="-companion/random.html">random</a> gives a fresh random seed by default.</p></div></div>
   </div>
   <div class="tabbedcontent">
     <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
