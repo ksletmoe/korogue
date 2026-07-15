@@ -30,6 +30,28 @@ class LayeredTilemap<T : Any>(val width: Int, val height: Int) {
     // Layers sorted descending so topCellAt iteration returns highest z first.
     private val layers: TreeMap<Int, Grid<T?>> = TreeMap(compareByDescending { it })
 
+    // Per-position mutation counter (krogue-c0q): bumped whenever a write touches (x, y) on any
+    // layer, so a consumer that samples this tilemap through a viewport (render(source, viewport))
+    // can detect "changed since I last rendered this cell" by comparing versionAt against its own
+    // remembered value -- without a single consumable dirty flag on the tilemap itself, which would
+    // break for multiple consumers sharing one source (see ADR-0024's "Alternatives considered").
+    // Starts at 0 (matches every cell's initial, never-written state); a real write always produces
+    // a version >= 1, so any consumer's "never rendered" sentinel just needs to differ from 0.
+    private val version = Grid(width, height, 0)
+    private var nextVersion = 1
+
+    /**
+     * The mutation count at column [x], row [y] — bumped by any write (on any
+     * layer) that touches this position. Consumers compare this against a
+     * remembered prior value to detect "this cell changed since I last looked"
+     * without consuming a shared signal off the tilemap (krogue-c0q).
+     */
+    fun versionAt(x: Int, y: Int): Int = version[x, y]
+
+    private fun bump(x: Int, y: Int) {
+        version[x, y] = nextVersion++
+    }
+
     // -------------------------------------------------------------------------
     // Mutation
     // -------------------------------------------------------------------------
@@ -47,6 +69,7 @@ class LayeredTilemap<T : Any>(val width: Int, val height: Int) {
      */
     fun setCell(x: Int, y: Int, z: Int, cell: T) {
         layers.getOrPut(z) { Grid(width, height, null) }[x, y] = cell
+        bump(x, y)
     }
 
     /**
@@ -63,6 +86,7 @@ class LayeredTilemap<T : Any>(val width: Int, val height: Int) {
      */
     fun removeCell(x: Int, y: Int, z: Int) {
         layers[z]?.set(x, y, null)
+        bump(x, y)
     }
 
     /**
@@ -84,7 +108,9 @@ class LayeredTilemap<T : Any>(val width: Int, val height: Int) {
     fun moveCell(fromX: Int, fromY: Int, fromZ: Int, toX: Int, toY: Int, toZ: Int) {
         val cell = layers[fromZ]?.get(fromX, fromY) ?: return
         layers[fromZ]!![fromX, fromY] = null
+        bump(fromX, fromY)
         layers.getOrPut(toZ) { Grid(width, height, null) }[toX, toY] = cell
+        bump(toX, toY)
     }
 
     /**
@@ -92,7 +118,18 @@ class LayeredTilemap<T : Any>(val width: Int, val height: Int) {
      * layer [z] does not exist.
      */
     fun clearLayer(z: Int) {
+        val existed = layers[z] != null
         layers[z]?.clear()
+        // Bump every position -- clearLayer leaves no trace of which cells were actually populated
+        // on this layer, so a consumer sampling any of them must see a version change. A no-op
+        // layer (never created) genuinely changes nothing, so skip the bump entirely then.
+        if (existed) {
+            for (y in 0 until height) {
+                for (x in 0 until width) {
+                    bump(x, y)
+                }
+            }
+        }
     }
 
     /**
@@ -100,6 +137,11 @@ class LayeredTilemap<T : Any>(val width: Int, val height: Int) {
      */
     fun clearAllLayers() {
         layers.values.forEach { it.clear() }
+        for (y in 0 until height) {
+            for (x in 0 until width) {
+                bump(x, y)
+            }
+        }
     }
 
     // -------------------------------------------------------------------------

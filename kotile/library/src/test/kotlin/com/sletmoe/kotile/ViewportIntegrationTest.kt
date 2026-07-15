@@ -224,4 +224,55 @@ class ViewportIntegrationTest : FunSpec({
         avg.b.toDouble() shouldBe (0.0 plusOrMinus 0.05)
         pixels.dispose()
     }
+
+    // -----------------------------------------------------------------------
+    // krogue-c0q: per-observer dirty tracking for render(source, viewport)
+    // -----------------------------------------------------------------------
+
+    test("AsciiTileWindow: a write to a shared world is reflected on the next render(source, viewport) call")
+        .config(enabled = HeadlessGl.available) {
+        // Regression guard for the render(source, viewport) cache added in krogue-c0q: it must
+        // still pick up a write made directly to the caller-owned world between two render calls.
+        val pixels = HeadlessGl.render(40, 20, Color.BLACK) {
+            val world = LayeredTilemap<AnimatableAsciiTile>(4, 2)
+            val window = AsciiTileWindow.create {
+                widthInTiles = 4
+                heightInTiles = 2
+                fitToWindow = false
+            }
+            window.render(world, TileViewport(0, 0)) // first paint: nothing placed yet
+            world.setCell(0, 0, 0, AsciiTileDescriptor(' ', Color.WHITE, Color.BLUE))
+            window.render(world, TileViewport(0, 0)) // must pick up the write with no viewport change
+            window.dispose()
+        }
+        pixels.averageColor(0, 0, 10, 10).b.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        pixels.dispose()
+    }
+
+    test("AsciiTileWindow: two windows sharing one world each see their own update regardless of render order")
+        .config(enabled = HeadlessGl.available) {
+        // The exact bug krogue-c0q closes: a single consumable "dirty since last render" flag on
+        // the shared world would be stolen by whichever window renders first, leaving the other
+        // wrongly believing nothing changed. Window B renders SECOND, after A, and must still show
+        // its own update.
+        val world = LayeredTilemap<AnimatableAsciiTile>(8, 2)
+        val pixelsB = HeadlessGl.render(40, 20, Color.BLACK) {
+            val windowA = AsciiTileWindow.create { widthInTiles = 4; heightInTiles = 2; fitToWindow = false }
+            val windowB = AsciiTileWindow.create { widthInTiles = 4; heightInTiles = 2; fitToWindow = false }
+            windowA.render(world, TileViewport(0, 0)) // first paint, world columns [0, 4)
+            windowB.render(world, TileViewport(4, 0)) // first paint, world columns [4, 8)
+
+            // Changes visible only to A (world col 1) and only to B (world col 5).
+            world.setCell(1, 0, 0, AsciiTileDescriptor(' ', Color.WHITE, Color.RED))
+            world.setCell(5, 0, 0, AsciiTileDescriptor(' ', Color.WHITE, Color.GREEN))
+
+            windowA.render(world, TileViewport(0, 0)) // A renders first...
+            windowB.render(world, TileViewport(4, 0)) // ...then B: must still see its own change
+            windowA.dispose()
+            windowB.dispose()
+        }
+        // World col 5 -> B's local col 1 -> screen pixels [10, 20).
+        pixelsB.averageColor(10, 0, 20, 10).g.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        pixelsB.dispose()
+    }
 })

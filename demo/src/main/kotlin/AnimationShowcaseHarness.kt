@@ -710,6 +710,9 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
     ) = asciiWindow.resize(width, height)
 
     override fun dispose() {
+        floorRenderer.dispose()
+        wallRenderer.dispose()
+        overlayRenderer.dispose()
         asciiWindow.dispose() // shared canvas + font not owned by the window
         canvas.dispose()
         font.dispose()

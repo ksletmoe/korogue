@@ -188,6 +188,8 @@ private class SpriteRenderHarness(private val outPath: String) : ApplicationAdap
     }
 
     override fun dispose() {
+        sprites.dispose()
+        layered.dispose()
         canvas.dispose()
         sheet.dispose()
         layeredSheet.dispose()

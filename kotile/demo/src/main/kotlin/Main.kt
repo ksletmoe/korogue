@@ -108,6 +108,7 @@ class KotileDemo : ApplicationAdapter() {
     }
 
     override fun dispose() {
+        sprites.dispose()
         overlay.dispose()
         spriteCanvas.dispose()
         sheet.dispose()

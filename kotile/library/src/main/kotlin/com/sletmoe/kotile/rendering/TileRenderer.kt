@@ -1,11 +1,13 @@
 package com.sletmoe.kotile.rendering
 
 import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.utils.Disposable
 import com.sletmoe.kotile.display.KotileCanvas
 import com.sletmoe.kotile.tiles.SpriteTileEntry
 import com.sletmoe.kotile.tiles.StaticTile
 import com.sletmoe.kotile.tiles.Tile
 import com.sletmoe.kotile.utilities.LayeredTilemap
+import com.sletmoe.kotile.utilities.Vector2Int
 import com.sletmoe.kotile.utilities.Vector3Int
 
 /**
@@ -39,7 +41,7 @@ import com.sletmoe.kotile.utilities.Vector3Int
  *
  * @param canvas the canvas tiles are drawn to
  */
-abstract class TileRenderer(protected val canvas: KotileCanvas) {
+abstract class TileRenderer(protected val canvas: KotileCanvas) : Disposable {
     /**
      * Current grid width in tiles. Reflects the canvas at construction time
      * and is updated by [onResize].
@@ -54,6 +56,26 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) {
 
     private var tilemap = LayeredTilemap<SpriteTileEntry>(windowWidth, windowHeight)
 
+    // Per-cell composite cache (krogue-drk/krogue-oxi, ADR-0024): [render] and [asLayer] recomposite
+    // only the cells marked dirty since the last call, blitting the persistent result as one sprite.
+    private val compositeCache = GridCompositeCache(canvas.tileWidthPx, canvas.tileHeightPx)
+
+    // Separate cache + per-observer dirty tracker for the render(source, viewport) overload
+    // (krogue-c0q): source is caller-owned and may be shared across several renderers/panes, so it
+    // cannot share compositeCache's write-driven dirty marking (that tilemap never flows through
+    // this renderer's own drawTile/clearTile). ViewportDirtyTracker instead polls
+    // LayeredTilemap.versionAt each call — see its doc for why that is safe for multiple observers
+    // where a single consumable dirty flag would not be.
+    private val viewportCache = GridCompositeCache(canvas.tileWidthPx, canvas.tileHeightPx)
+    private val viewportDirtyTracker = ViewportDirtyTracker(viewportCache)
+
+    // Positions currently holding a Tile (animated) entry on any z-layer. Recomputed from ground
+    // truth (not incrementally counted) on every single-cell write touching that position -- see
+    // refreshAnimatedTrackingAt -- so it can never drift out of sync with the tilemap. Every render
+    // call marks all of these dirty, since an animated tile's resolved appearance can change every
+    // frame without a corresponding write (ADR-0024).
+    private val animatedPositions = HashSet<Vector2Int>()
+
     /**
      * Rebuilds the internal tilemap to fit the new pixel dimensions. Tiles
      * outside the new bounds are dropped; those still within bounds are
@@ -62,13 +84,19 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) {
     fun onResize(widthPx: Int, heightPx: Int) {
         canvas.resize(widthPx, heightPx)
         tilemap = LayeredTilemap(windowWidth, windowHeight)
+        animatedPositions.clear()
+        compositeCache.markAllDirty()
     }
 
     /** Places [staticTile] at [position] (x, y, z-layer). */
-    fun drawTile(position: Vector3Int, staticTile: StaticTile) = tilemap.setCell(position, staticTile)
+    fun drawTile(position: Vector3Int, staticTile: StaticTile) = drawTile(position.x, position.y, position.z, staticTile)
 
     /** Places [staticTile] at column [x], row [y] on z-layer [z]. */
-    fun drawTile(x: Int, y: Int, z: Int, staticTile: StaticTile) = tilemap.setCell(x, y, z, staticTile)
+    fun drawTile(x: Int, y: Int, z: Int, staticTile: StaticTile) {
+        tilemap.setCell(x, y, z, staticTile)
+        refreshAnimatedTrackingAt(x, y)
+        compositeCache.markCellDirty(x, y)
+    }
 
     /**
      * Places an animated [tile] at [position] (x, y, z-layer).
@@ -77,7 +105,7 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) {
      * sharing the same instance will show the same animation frame at the same
      * wall-clock time (stateless time model).
      */
-    fun drawTile(position: Vector3Int, tile: Tile) = tilemap.setCell(position, tile)
+    fun drawTile(position: Vector3Int, tile: Tile) = drawTile(position.x, position.y, position.z, tile)
 
     /**
      * Places an animated [tile] at column [x], row [y] on z-layer [z].
@@ -86,13 +114,34 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) {
      * sharing the same instance will show the same animation frame at the same
      * wall-clock time (stateless time model).
      */
-    fun drawTile(x: Int, y: Int, z: Int, tile: Tile) = tilemap.setCell(x, y, z, tile)
+    fun drawTile(x: Int, y: Int, z: Int, tile: Tile) {
+        tilemap.setCell(x, y, z, tile)
+        animatedPositions.add(Vector2Int(x, y))
+        compositeCache.markCellDirty(x, y)
+    }
 
     /** Removes the tile at [position] (x, y, z-layer). */
-    fun clearTile(position: Vector3Int) = tilemap.removeCell(position)
+    fun clearTile(position: Vector3Int) = clearTile(position.x, position.y, position.z)
 
     /** Removes the tile at column [x], row [y] on z-layer [z]. */
-    fun clearTile(x: Int, y: Int, z: Int) = tilemap.removeCell(x, y, z)
+    fun clearTile(x: Int, y: Int, z: Int) {
+        tilemap.removeCell(x, y, z)
+        refreshAnimatedTrackingAt(x, y)
+        compositeCache.markCellDirty(x, y)
+    }
+
+    /**
+     * Re-derives whether ([x], [y]) still hosts an animated [Tile] on *any*
+     * z-layer, from the tilemap itself rather than incremental bookkeeping —
+     * cheap (bounded by layer count) since it only runs on a write, and always
+     * correct even when a write replaces or removes the specific layer that
+     * used to make this position animated.
+     */
+    private fun refreshAnimatedTrackingAt(x: Int, y: Int) {
+        val stillAnimated = tilemap.layerKeys.any { z -> tilemap.cellAt(x, y, z) is Tile }
+        val position = Vector2Int(x, y)
+        if (stillAnimated) animatedPositions.add(position) else animatedPositions.remove(position)
+    }
 
     /**
      * Composites every populated layer of the internal tilemap (bottom-up) to
@@ -105,7 +154,7 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) {
      */
     fun render(elapsedMs: Long = 0L) {
         canvas.begin()
-        renderGrid(tilemap, TileViewport(), elapsedMs)
+        drawCachedGrid(elapsedMs)
         canvas.end()
     }
 
@@ -124,8 +173,47 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) {
             check(canvas === this@TileRenderer.canvas) {
                 "TileRenderer.asLayer must be composited on the canvas it was built with"
             }
-            renderGrid(tilemap, TileViewport(), elapsedMs())
+            drawCachedGrid(elapsedMs())
         }
+    }
+
+    /** Recomposites dirty cells of [tilemap] into [compositeCache], then blits the cache as one sprite. */
+    private fun drawCachedGrid(elapsedMs: Long) {
+        compositeCache.ensureSize(windowWidth, windowHeight)
+        for (position in animatedPositions) compositeCache.markCellDirty(position.x, position.y)
+        compositeCache.recompositeIfDirty { x, y, drawer -> drawCell(x, y, elapsedMs, drawer) }
+        // The FBO pass above (if it ran) clobbered the global GL viewport; restore this canvas's own
+        // before drawing the blit below, or it lands at the wrong offset/scale (ADR-0024).
+        canvas.reapplyViewport()
+        compositeCache.cachedRegion?.let { region ->
+            // On-screen (possibly scaled/letterboxed) size, matching how KotileCanvas.drawTile
+            // places individual cells — the cache is captured at native resolution but blitted at
+            // whatever size/offset the current GridLayout dictates.
+            val l = canvas.layout
+            canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = l.contentWidthPx, h = l.contentHeightPx)
+        }
+    }
+
+    /**
+     * Draws [tilemap]'s cell ([x], [y]) — every populated layer bottom-up — into the composite
+     * cache's [GridCompositeCache.TileDrawer]. The cached path's viewport is always the origin (the
+     * scrollable-viewport `render(source, viewport)` overload bypasses this cache entirely), so
+     * screen and logical coordinates are identical here.
+     */
+    private fun drawCell(x: Int, y: Int, elapsedMs: Long, drawer: GridCompositeCache.TileDrawer) {
+        for (layer in tilemap.layersBottomUp) {
+            when (val entry = layer[x, y]) {
+                is StaticTile -> drawer.drawTile(x, y, regionFor(entry), entry.tint, entry.flipX, entry.flipY)
+                is Tile -> drawer.drawTile(x, y, entry.regionFor(elapsedMs), entry.tintFor(elapsedMs), entry.flipX, entry.flipY)
+                null -> {}
+            }
+        }
+    }
+
+    /** Releases the offscreen composite caches' GPU resources. Safe to call even if never rendered. */
+    override fun dispose() {
+        compositeCache.dispose()
+        viewportCache.dispose()
     }
 
     /**
@@ -140,6 +228,12 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) {
      * the visible cell count but does not move the origin, so the world does
      * not appear to scroll when the window grows or shrinks.
      *
+     * Recomposites only the cells that changed since this renderer last drew
+     * this `source` at this `viewport` (krogue-c0q) — safe even when several
+     * renderers sample the same `source`, since each tracks its own dirty state
+     * rather than consuming a shared signal off the tilemap. A different
+     * `source` instance or a changed `viewport` origin redraws everything.
+     *
      * @param source the logical tile space to sample from; may be larger than the visible window
      * @param viewport the top-left corner of the visible region in [source] tile coordinates;
      *   defaults to `(0, 0)` which samples from the source's origin
@@ -151,40 +245,38 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) {
         elapsedMs: Long = 0L,
     ) {
         canvas.begin()
-        renderGrid(source, viewport, elapsedMs)
+        viewportCache.ensureSize(windowWidth, windowHeight)
+        viewportDirtyTracker.markDirtyCells(source, viewport, windowWidth, windowHeight) { logicalX, logicalY ->
+            source.layerKeys.any { z -> source.cellAt(logicalX, logicalY, z) is Tile }
+        }
+        viewportCache.recompositeIfDirty { x, y, drawer -> drawViewportCell(source, viewport, x, y, elapsedMs, drawer) }
+        viewportDirtyTracker.recordRenderedVersions(source, viewport, windowWidth, windowHeight)
+        canvas.reapplyViewport()
+        viewportCache.cachedRegion?.let { region ->
+            val l = canvas.layout
+            canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = l.contentWidthPx, h = l.contentHeightPx)
+        }
         canvas.end()
     }
 
-    private fun renderGrid(
+    /** Draws [source]'s cell at `viewport`-relative screen position ([x], [y]) — every populated layer bottom-up. */
+    private fun drawViewportCell(
         source: LayeredTilemap<SpriteTileEntry>,
         viewport: TileViewport,
+        x: Int,
+        y: Int,
         elapsedMs: Long,
+        drawer: GridCompositeCache.TileDrawer,
     ) {
-        // Composite bottom-up: draw each populated layer from the lowest z to
-        // the highest so a foreground tile is alpha-blended over the layers
-        // beneath it (its transparent pixels reveal the terrain below).
+        val logicalY = viewport.originY + y
+        if (logicalY < 0 || logicalY >= source.height) return
+        val logicalX = viewport.originX + x
+        if (logicalX < 0 || logicalX >= source.width) return
         for (layer in source.layersBottomUp) {
-            for (screenY in 0 until windowHeight) {
-                val logicalY = viewport.originY + screenY
-                if (logicalY < 0 || logicalY >= source.height) continue
-                for (screenX in 0 until windowWidth) {
-                    val logicalX = viewport.originX + screenX
-                    if (logicalX < 0 || logicalX >= source.width) continue
-                    when (val entry = layer[logicalX, logicalY]) {
-                        is StaticTile ->
-                            canvas.drawTile(screenX, screenY, regionFor(entry), entry.tint, entry.flipX, entry.flipY)
-                        is Tile ->
-                            canvas.drawTile(
-                                screenX,
-                                screenY,
-                                entry.regionFor(elapsedMs),
-                                entry.tintFor(elapsedMs),
-                                entry.flipX,
-                                entry.flipY,
-                            )
-                        null -> {}
-                    }
-                }
+            when (val entry = layer[logicalX, logicalY]) {
+                is StaticTile -> drawer.drawTile(x, y, regionFor(entry), entry.tint, entry.flipX, entry.flipY)
+                is Tile -> drawer.drawTile(x, y, entry.regionFor(elapsedMs), entry.tintFor(elapsedMs), entry.flipX, entry.flipY)
+                null -> {}
             }
         }
     }

@@ -187,6 +187,22 @@ open class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposabl
     }
 
     /**
+     * Re-applies this canvas's [GridViewport] (GL viewport + projection matrix) **without**
+     * restarting the batch. Required after drawing to a different GL target in the middle of an
+     * active [begin]/[end] pass — libGDX's `FrameBuffer.end()` always resets the GL viewport to the
+     * full backbuffer, not whatever was active before it, so a canvas whose content rect is
+     * letterboxed/offset (or smaller than the backbuffer, e.g. under HiDPI) must restore its own
+     * viewport before any further [drawTile]/[drawSprite] calls or they land in the wrong place
+     * (krogue-drk, ADR-0024 — [com.sletmoe.kotile.rendering.GridCompositeCache] is the motivating
+     * caller). Safe to call even when nothing clobbered the viewport; it just re-applies the same
+     * values.
+     */
+    internal fun reapplyViewport() {
+        viewport.apply()
+        batch.projectionMatrix = viewport.camera.combined
+    }
+
+    /**
      * Ends the current batch, flushing it to the screen. Restores the
      * `Nearest` mag filter on any textures the sharp-bilinear pass switched to
      * `Linear`, so textures are left in their default crisp state.

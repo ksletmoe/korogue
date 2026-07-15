@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.PixmapIO
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.sletmoe.kotile.display.KotileCanvas
+import com.sletmoe.kotile.display.ascii.AnimatedAsciiTile
 import com.sletmoe.kotile.display.ascii.AsciiTileDescriptor
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
 import com.sletmoe.kotile.display.ascii.Fonts
@@ -668,6 +669,137 @@ class RenderingIntegrationTest : FunSpec({
         // Cell (6,0) holds a red glyph; cell (0,0) was never written.
         pixels.averageColor(60, 0, 70, 10).r.toDouble() shouldBeGreaterThan 0.05
         pixels.averageColor(0, 0, 10, 10).r.toDouble() shouldBe (0.0 plusOrMinus 0.05)
+        pixels.dispose()
+    }
+
+    // -------------------------------------------------------------------------
+    // krogue-drk: whole-frame composite cache (ADR-0024)
+    // -------------------------------------------------------------------------
+
+    test("krogue-drk: AsciiTileWindow's composite cache reflects a clearTile, not stale content").config(
+        enabled = HeadlessGl.available,
+    ) {
+        // Regression guard for the cache's FBO recomposite pass: it must clear before redrawing, or
+        // a cell cleared after the first paint would keep showing its old (cached) color forever.
+        val pixels = HeadlessGl.render(80, 40, Color.BLACK) {
+            val window = AsciiTileWindow.create {
+                widthInTiles = 8
+                heightInTiles = 4
+            }
+            window.drawTile(0, 0, AsciiTileDescriptor(' ', Color.WHITE, Color.RED))
+            window.render() // first paint: cache created, cell (0,0) red
+            window.clearTile(0, 0)
+            window.render() // recomposite must drop the red, not retain it from the cache
+            window.dispose()
+        }
+        pixels.averageColor(0, 0, 10, 10).r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+        pixels.dispose()
+    }
+
+    test("krogue-drk: AsciiTileWindow renders identical output across repeated render calls with no writes between them").config(
+        enabled = HeadlessGl.available,
+    ) {
+        // The cache-hit path (dirty == false) must still reproduce the same frame, not blank/stale.
+        val pixels = HeadlessGl.render(80, 40, Color.BLACK) {
+            val window = AsciiTileWindow.create {
+                widthInTiles = 8
+                heightInTiles = 4
+            }
+            window.drawTile(0, 0, AsciiTileDescriptor(' ', Color.WHITE, Color.BLUE))
+            window.render()
+            window.render() // cache hit: no writes since the previous render
+            window.render()
+            window.dispose()
+        }
+        pixels.averageColor(0, 0, 10, 10).b.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        pixels.dispose()
+    }
+
+    test("krogue-drk: an AnimatedAsciiTile keeps animating across renders with no writes between them").config(
+        enabled = HeadlessGl.available,
+    ) {
+        // Placing an animated tile is sticky (ADR-0024): every render call must recomposite even
+        // though nothing was written between the two render() calls below, or the animation would
+        // visibly freeze on its first-painted frame.
+        val tile = AnimatedAsciiTile(
+            frames = listOf(
+                AnimationFrame(AsciiTileDescriptor(' ', Color.WHITE, Color.RED), durationMs = 100),
+                AnimationFrame(AsciiTileDescriptor(' ', Color.WHITE, Color.GREEN), durationMs = 100),
+            ),
+        )
+        val pixels = HeadlessGl.render(80, 40, Color.BLACK) {
+            val window = AsciiTileWindow.create {
+                widthInTiles = 8
+                heightInTiles = 4
+            }
+            window.drawTile(0, 0, tile)
+            window.render(elapsedMs = 0) // first paint: frame 0 (red)
+            window.render(elapsedMs = 150) // frame 1 (green) -- no writes between these two calls
+            window.dispose()
+        }
+        val topLeft = pixels.averageColor(0, 0, 10, 10)
+        topLeft.g.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        topLeft.r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+        pixels.dispose()
+    }
+
+    test("krogue-drk: SpriteTileRenderer's composite cache reflects a clearTile, not stale content").config(
+        enabled = HeadlessGl.available,
+    ) {
+        val pixels = HeadlessGl.render(8, 8, Color.BLACK) {
+            val tilePixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
+            tilePixmap.setColor(Color.RED)
+            tilePixmap.fill()
+            val file = File.createTempFile("kotile-drk-clear", ".png").apply { deleteOnExit() }
+            PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), tilePixmap)
+            tilePixmap.dispose()
+
+            val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
+            val canvas = KotileCanvas(8, 8)
+            val renderer = SpriteTileRenderer(canvas, sheet)
+            renderer.drawTile(0, 0, z = 0, staticTile = StaticTile(0, 0))
+            renderer.render() // first paint: red
+            renderer.clearTile(0, 0, z = 0)
+            renderer.render() // recomposite must drop the red, not retain it from the cache
+            renderer.dispose()
+            canvas.dispose()
+            sheet.dispose()
+        }
+        pixels.averageColor(0, 0, 8, 8).r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+        pixels.dispose()
+    }
+
+    test("krogue-drk: TileRenderer keeps an AnimatedSpriteTile animating across renders with no writes between them").config(
+        enabled = HeadlessGl.available,
+    ) {
+        val pixels = HeadlessGl.render(8, 8, Color.BLACK) {
+            val tilePixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
+            tilePixmap.setColor(SHEET_BLUE)
+            tilePixmap.fill()
+            val file = File.createTempFile("kotile-drk-anim", ".png").apply { deleteOnExit() }
+            PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), tilePixmap)
+            tilePixmap.dispose()
+
+            val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
+            val canvas = KotileCanvas(8, 8)
+            val renderer = SpriteTileRenderer(canvas, sheet)
+            val region = sheet.region(0, 0)
+            val shimmering = AnimatedSpriteTile(
+                frames = listOf(
+                    AnimationFrame(region, durationMs = 100),
+                    AnimationFrame(region, durationMs = 100, tint = Color.GREEN),
+                ),
+            )
+            renderer.drawTile(0, 0, z = 0, tile = shimmering)
+            renderer.render(elapsedMs = 0) // first paint: frame 0 (sheet's own blue)
+            renderer.render(elapsedMs = 150) // frame 1 (green) -- no writes between these two calls
+            renderer.dispose()
+            canvas.dispose()
+            sheet.dispose()
+        }
+        val avg = pixels.averageColor(0, 0, 8, 8)
+        avg.g.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        avg.b.toDouble() shouldBe (0.0 plusOrMinus 0.1)
         pixels.dispose()
     }
 })
