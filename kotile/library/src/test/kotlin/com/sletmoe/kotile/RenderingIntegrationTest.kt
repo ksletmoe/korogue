@@ -139,10 +139,11 @@ class RenderingIntegrationTest : FunSpec({
             sheet.dispose()
         }
 
-        // Frame 0 (elapsedMs=0): no override -> the sheet's own blue shows through.
+        // Frame 0 (elapsedMs=0): no override -> the sheet's own blue (0.3, 0.3, 0.9) shows through
+        // at the implicit WHITE constant tint, unscaled.
         val frame0 = pixels.averageColor(0, 0, 8, 8)
         frame0.b.toDouble() shouldBe (0.9 plusOrMinus 0.1)
-        frame0.g.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+        frame0.r.toDouble() shouldBe (0.3 plusOrMinus 0.1)
 
         val pixelsFrame1 = HeadlessGl.render(8, 8, Color.BLACK) {
             val tilePixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
@@ -168,8 +169,12 @@ class RenderingIntegrationTest : FunSpec({
             sheet.dispose()
         }
 
+        // Frame 1 (elapsedMs=150): GREEN(0,1,0) override multiplies onto the sheet's own blue, so r
+        // and b (both zeroed by GREEN's own r/b components) drop out while g is capped at the
+        // sheet's own 0.3 -- tint is multiplicative, not a replacement, so it can only ever darken a
+        // channel, never brighten one past the source texture's own value.
         val frame1 = pixelsFrame1.averageColor(0, 0, 8, 8)
-        frame1.g.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        frame1.r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
         frame1.b.toDouble() shouldBe (0.0 plusOrMinus 0.1)
 
         pixels.dispose()
@@ -797,8 +802,13 @@ class RenderingIntegrationTest : FunSpec({
             canvas.dispose()
             sheet.dispose()
         }
+        // GREEN(0,1,0) multiplies onto the sheet's own blue (0.3, 0.3, 0.9): r and b drop to 0, g is
+        // capped at the sheet's own 0.3 -- not 1.0, since tint only ever darkens, never brightens
+        // past the source texture. g alone can't distinguish this from a stale frame-0 WHITE-tint
+        // render (both average 0.3 there), so assert on r, which frame 0 leaves at 0.3 and only
+        // frame 1's override zeroes.
         val avg = pixels.averageColor(0, 0, 8, 8)
-        avg.g.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        avg.r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
         avg.b.toDouble() shouldBe (0.0 plusOrMinus 0.1)
         pixels.dispose()
     }
