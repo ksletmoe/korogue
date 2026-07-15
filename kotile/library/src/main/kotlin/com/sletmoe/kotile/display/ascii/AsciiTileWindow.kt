@@ -6,10 +6,12 @@ import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.utils.Disposable
 import com.sletmoe.kotile.display.KotileCanvas
+import com.sletmoe.kotile.rendering.GridCompositeCache
 import com.sletmoe.kotile.rendering.IntegerScale
 import com.sletmoe.kotile.rendering.Layer
 import com.sletmoe.kotile.rendering.ScalePolicy
 import com.sletmoe.kotile.rendering.TileViewport
+import com.sletmoe.kotile.rendering.ViewportDirtyTracker
 import com.sletmoe.kotile.utilities.LayeredTilemap
 import com.sletmoe.kotile.utilities.Vector2Int
 import com.sletmoe.kotile.utilities.Vector3Int
@@ -138,6 +140,26 @@ class AsciiTileWindow private constructor(
 
     private var layeredTiles = LayeredTilemap<AnimatableAsciiTile>(widthInTiles, heightInTiles)
 
+    // Per-cell composite cache (krogue-drk/krogue-oxi, ADR-0024): [render] and [asLayer] recomposite
+    // only the cells marked dirty since the last call, blitting the persistent result as one sprite.
+    private val compositeCache = GridCompositeCache(canvas.tileWidthPx, canvas.tileHeightPx)
+
+    // Separate cache + per-observer dirty tracker for the render(source, viewport) overload
+    // (krogue-c0q): source is caller-owned and may be shared across several windows/panes, so it
+    // cannot share compositeCache's write-driven dirty marking (that tilemap never flows through
+    // this window's own drawTile/clearTile). ViewportDirtyTracker instead polls
+    // LayeredTilemap.versionAt each call — see its doc for why that is safe for multiple observers
+    // where a single consumable dirty flag would not be.
+    private val viewportCache = GridCompositeCache(canvas.tileWidthPx, canvas.tileHeightPx)
+    private val viewportDirtyTracker = ViewportDirtyTracker(viewportCache)
+
+    // Positions currently holding an AnimatedAsciiTile on any z-layer. Recomputed from ground truth
+    // (not incrementally counted) on every single-cell write touching that position -- see
+    // refreshAnimatedTrackingAt -- so it can never drift out of sync with the tilemap. Every render
+    // call marks all of these dirty, since an animated tile's resolved appearance can change every
+    // frame without a corresponding write (ADR-0024).
+    private val animatedPositions = HashSet<Vector2Int>()
+
     private val backgroundTexture: Texture
     private val backgroundRegion: TextureRegion
 
@@ -186,6 +208,21 @@ class AsciiTileWindow private constructor(
      */
     fun drawTile(x: Int, y: Int, z: Int, tile: AnimatableAsciiTile) {
         layeredTiles.setCell(x, y, z, tile)
+        refreshAnimatedTrackingAt(x, y)
+        compositeCache.markCellDirty(x, y)
+    }
+
+    /**
+     * Re-derives whether ([x], [y]) still hosts an [AnimatedAsciiTile] on *any*
+     * z-layer, from the tilemap itself rather than incremental bookkeeping —
+     * cheap (bounded by layer count) since it only runs on a write, and always
+     * correct even when a write replaces or removes the specific layer that
+     * used to make this position animated.
+     */
+    private fun refreshAnimatedTrackingAt(x: Int, y: Int) {
+        val stillAnimated = layeredTiles.layerKeys.any { z -> layeredTiles.cellAt(x, y, z) is AnimatedAsciiTile }
+        val position = Vector2Int(x, y)
+        if (stillAnimated) animatedPositions.add(position) else animatedPositions.remove(position)
     }
 
     /**
@@ -194,9 +231,7 @@ class AsciiTileWindow private constructor(
      *
      * @throws IndexOutOfBoundsException if the cell is outside the grid
      */
-    fun drawTile(position: Vector3Int, tile: AnimatableAsciiTile) {
-        layeredTiles.setCell(position, tile)
-    }
+    fun drawTile(position: Vector3Int, tile: AnimatableAsciiTile) = drawTile(position.x, position.y, position.z, tile)
 
     // -------------------------------------------------------------------------
     // Write — text
@@ -235,7 +270,7 @@ class AsciiTileWindow private constructor(
         text.forEachIndexed { index, character ->
             val cellX = x + index
             if (cellX in 0 until widthInTiles) {
-                layeredTiles.setCell(cellX, y, z, AsciiTileDescriptor(character, foreground, background))
+                drawTile(cellX, y, z, AsciiTileDescriptor(character, foreground, background))
             }
         }
     }
@@ -260,8 +295,11 @@ class AsciiTileWindow private constructor(
         for (y in 0 until heightInTiles) {
             for (x in 0 until widthInTiles) {
                 layeredTiles.setCell(x, y, z, tile)
+                refreshAnimatedTrackingAt(x, y)
             }
         }
+        // Every cell changed -- cheaper to mark the whole grid than every cell individually.
+        compositeCache.markAllDirty()
     }
 
     // -------------------------------------------------------------------------
@@ -282,15 +320,15 @@ class AsciiTileWindow private constructor(
      */
     fun clearTile(x: Int, y: Int, z: Int) {
         layeredTiles.removeCell(x, y, z)
+        refreshAnimatedTrackingAt(x, y)
+        compositeCache.markCellDirty(x, y)
     }
 
     /**
      * Clears the cell at [position] (x, y, z). No-op if layer z does not
      * exist.
      */
-    fun clearTile(position: Vector3Int) {
-        layeredTiles.removeCell(position)
-    }
+    fun clearTile(position: Vector3Int) = clearTile(position.x, position.y, position.z)
 
     // -------------------------------------------------------------------------
     // Clear — layers
@@ -302,6 +340,8 @@ class AsciiTileWindow private constructor(
      */
     fun clear() {
         layeredTiles.clearAllLayers()
+        animatedPositions.clear()
+        compositeCache.markAllDirty()
     }
 
     /**
@@ -309,7 +349,20 @@ class AsciiTileWindow private constructor(
      * written to.
      */
     fun clearLayer(z: Int) {
+        // Only cells actually populated on this layer can change -- collect them before clearing
+        // (removeCell/clearLayer leave no trace of what was there) so the recomposite doesn't have
+        // to touch the rest of a possibly-mostly-empty layer (e.g. a UI overlay with a few widgets).
+        val affected = mutableListOf<Vector2Int>()
+        for (y in 0 until heightInTiles) {
+            for (x in 0 until widthInTiles) {
+                if (layeredTiles.cellAt(x, y, z) != null) affected.add(Vector2Int(x, y))
+            }
+        }
         layeredTiles.clearLayer(z)
+        for (position in affected) {
+            refreshAnimatedTrackingAt(position.x, position.y)
+            compositeCache.markCellDirty(position.x, position.y)
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -348,7 +401,7 @@ class AsciiTileWindow private constructor(
      */
     fun render(elapsedMs: Long = 0L) {
         canvas.begin()
-        renderGrid(layeredTiles, TileViewport(), elapsedMs)
+        drawCachedGrid(elapsedMs)
         canvas.end()
     }
 
@@ -371,8 +424,39 @@ class AsciiTileWindow private constructor(
             check(canvas === this@AsciiTileWindow.canvas) {
                 "AsciiTileWindow.asLayer must be composited on the canvas it was built with"
             }
-            renderGrid(layeredTiles, TileViewport(), elapsedMs())
+            drawCachedGrid(elapsedMs())
         }
+    }
+
+    /** Recomposites dirty cells of [layeredTiles] into [compositeCache], then blits the cache as one sprite. */
+    private fun drawCachedGrid(elapsedMs: Long) {
+        compositeCache.ensureSize(widthInTiles, heightInTiles)
+        for (position in animatedPositions) compositeCache.markCellDirty(position.x, position.y)
+        compositeCache.recompositeIfDirty { x, y, drawer -> drawCell(x, y, elapsedMs, drawer) }
+        // The FBO pass above (if it ran) clobbered the global GL viewport; restore this canvas's own
+        // before drawing the blit below, or it lands at the wrong offset/scale (ADR-0024).
+        canvas.reapplyViewport()
+        compositeCache.cachedRegion?.let { region ->
+            // On-screen (possibly scaled/letterboxed) size, matching how KotileCanvas.drawTile
+            // places individual cells — the cache is captured at native resolution but blitted at
+            // whatever size/offset the current GridLayout dictates.
+            val l = canvas.layout
+            canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = l.contentWidthPx, h = l.contentHeightPx)
+        }
+    }
+
+    /**
+     * Draws [layeredTiles]'s cell ([x], [y]) — the composited (top-most non-null) descriptor's
+     * background quad then glyph — into the composite cache's [GridCompositeCache.TileDrawer]. The
+     * cached path's viewport is always the origin (the scrollable-viewport `render(source,
+     * viewport)` overload bypasses this cache entirely), so screen and logical coordinates are
+     * identical here.
+     */
+    private fun drawCell(x: Int, y: Int, elapsedMs: Long, drawer: GridCompositeCache.TileDrawer) {
+        val cell = layeredTiles.topCellAt(x, y) ?: return
+        val descriptor = cell.descriptorAt(elapsedMs)
+        drawer.drawTile(x, y, backgroundRegion, descriptor.backgroundColor)
+        font.glyph(descriptor.character)?.let { glyph -> drawer.drawTile(x, y, glyph, descriptor.foregroundColor) }
     }
 
     /**
@@ -391,6 +475,12 @@ class AsciiTileWindow private constructor(
      * @param viewport the top-left corner of the visible region in [source] tile coordinates;
      *   defaults to `(0, 0)` which samples from the source's origin
      * @param elapsedMs wall-clock time for resolving any [AnimatedAsciiTile] cells
+     *
+     * Recomposites only the cells that changed since this window last drew this
+     * `source` at this `viewport` (krogue-c0q) — safe even when several windows
+     * sample the same `source`, since each tracks its own dirty state rather
+     * than consuming a shared signal off the tilemap. A different `source`
+     * instance or a changed `viewport` origin redraws everything.
      */
     fun render(
         source: LayeredTilemap<AnimatableAsciiTile>,
@@ -398,30 +488,40 @@ class AsciiTileWindow private constructor(
         elapsedMs: Long = 0L,
     ) {
         canvas.begin()
-        renderGrid(source, viewport, elapsedMs)
+        viewportCache.ensureSize(widthInTiles, heightInTiles)
+        viewportDirtyTracker.markDirtyCells(source, viewport, widthInTiles, heightInTiles) { logicalX, logicalY ->
+            source.topCellAt(logicalX, logicalY) is AnimatedAsciiTile
+        }
+        viewportCache.recompositeIfDirty { x, y, drawer -> drawViewportCell(source, viewport, x, y, elapsedMs, drawer) }
+        viewportDirtyTracker.recordRenderedVersions(source, viewport, widthInTiles, heightInTiles)
+        canvas.reapplyViewport()
+        viewportCache.cachedRegion?.let { region ->
+            val l = canvas.layout
+            canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = l.contentWidthPx, h = l.contentHeightPx)
+        }
         canvas.end()
     }
 
-    private fun renderGrid(
+    /**
+     * Draws [source]'s cell at `viewport`-relative screen position ([x], [y]) — the composited
+     * (top-most non-null) descriptor's background quad then glyph.
+     */
+    private fun drawViewportCell(
         source: LayeredTilemap<AnimatableAsciiTile>,
         viewport: TileViewport,
+        x: Int,
+        y: Int,
         elapsedMs: Long,
+        drawer: GridCompositeCache.TileDrawer,
     ) {
-        for (screenY in 0 until heightInTiles) {
-            val logicalY = viewport.originY + screenY
-            if (logicalY < 0 || logicalY >= source.height) continue
-            for (screenX in 0 until widthInTiles) {
-                val logicalX = viewport.originX + screenX
-                if (logicalX < 0 || logicalX >= source.width) continue
-                val cell = source.topCellAt(logicalX, logicalY) ?: continue
-                val descriptor = cell.descriptorAt(elapsedMs)
-
-                canvas.drawTile(screenX, screenY, backgroundRegion, descriptor.backgroundColor)
-                font.glyph(descriptor.character)?.let { glyph ->
-                    canvas.drawTile(screenX, screenY, glyph, descriptor.foregroundColor)
-                }
-            }
-        }
+        val logicalY = viewport.originY + y
+        if (logicalY < 0 || logicalY >= source.height) return
+        val logicalX = viewport.originX + x
+        if (logicalX < 0 || logicalX >= source.width) return
+        val cell = source.topCellAt(logicalX, logicalY) ?: return
+        val descriptor = cell.descriptorAt(elapsedMs)
+        drawer.drawTile(x, y, backgroundRegion, descriptor.backgroundColor)
+        font.glyph(descriptor.character)?.let { glyph -> drawer.drawTile(x, y, glyph, descriptor.foregroundColor) }
     }
 
     // -------------------------------------------------------------------------
@@ -469,6 +569,15 @@ class AsciiTileWindow private constructor(
                 }
             }
         }
+        // Grid coordinates shifted/dropped -- rebuild from the new tilemap rather than trying to
+        // translate the old position set.
+        animatedPositions.clear()
+        for (y in 0 until heightInTiles) {
+            for (x in 0 until widthInTiles) {
+                refreshAnimatedTrackingAt(x, y)
+            }
+        }
+        compositeCache.markAllDirty()
     }
 
     // -------------------------------------------------------------------------
@@ -494,6 +603,8 @@ class AsciiTileWindow private constructor(
         if (ownsCanvas) canvas.dispose()
         if (ownsFont) font.dispose()
         backgroundTexture.dispose()
+        compositeCache.dispose()
+        viewportCache.dispose()
     }
 
     // -------------------------------------------------------------------------
