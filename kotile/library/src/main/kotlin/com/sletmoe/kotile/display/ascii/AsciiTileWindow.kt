@@ -30,12 +30,17 @@ import com.sletmoe.kotile.utilities.Vector3Int
  *
  * ## Cell content
  *
- * Both static and animated cells are supported. They share the
- * [AnimatableAsciiTile] sealed interface:
- * - [AsciiTileDescriptor] — fixed glyph and colors; the most common case.
- * - [AnimatedAsciiTile] — cycles through a sequence of descriptors over time,
- *   enabling Brogue-style effects such as torch flicker. Pass the elapsed
- *   wall-clock time to [render] to drive animation.
+ * Both static and time-varying cells are supported. They share the [AsciiTile]
+ * sealed interface:
+ * - [StaticAsciiTile] — fixed glyph and colors; the most common case.
+ * - [DynamicAsciiTile] — resolves to a different appearance as the clock
+ *   advances. [AnimatedAsciiTile] is the built-in implementation, cycling
+ *   through a sequence of frames to enable Brogue-style effects such as torch
+ *   flicker; implement the interface yourself for other time-driven rules.
+ *
+ * Pass the elapsed wall-clock time to [render] to drive either. Cells holding a
+ * [DynamicAsciiTile] are redrawn every frame; static cells are cached and
+ * repainted only when written.
  *
  * ## Coordinate system
  *
@@ -85,7 +90,7 @@ import com.sletmoe.kotile.utilities.Vector3Int
  *
  * To render a windowed slice of a larger logical tile space, use
  * [render(source, viewport)][render] with a consumer-owned
- * `LayeredTilemap<AnimatableAsciiTile>` and a [TileViewport] describing the
+ * `LayeredTilemap<AsciiTile>` and a [TileViewport] describing the
  * top-left origin. Logical cells outside the source bounds are treated as empty.
  *
  * @property widthInTiles grid width in cells
@@ -139,7 +144,7 @@ class AsciiTileWindow private constructor(
      */
     val layout: com.sletmoe.kotile.rendering.GridLayout get() = canvas.layout
 
-    private var layeredTiles = LayeredTilemap<AnimatableAsciiTile>(widthInTiles, heightInTiles)
+    private var layeredTiles = LayeredTilemap<AsciiTile>(widthInTiles, heightInTiles)
 
     // Per-cell composite cache (krogue-drk/krogue-oxi, ADR-0024): [render] and [asLayer] recomposite
     // only the cells marked dirty since the last call, blitting the persistent result as one sprite.
@@ -194,39 +199,43 @@ class AsciiTileWindow private constructor(
 
     /**
      * Sets the cell at column [x], row [y] on z-layer 0 to [tile]. Accepts
-     * both static [AsciiTileDescriptor] and [AnimatedAsciiTile] content.
+     * both static [StaticAsciiTile] and [AnimatedAsciiTile] content.
      *
      * Existing callers that do not use layers continue to work unchanged; all
      * writes go to z=0 by default.
      *
      * @throws IndexOutOfBoundsException if the cell is outside the grid
      */
-    fun drawTile(x: Int, y: Int, tile: AnimatableAsciiTile) {
+    fun drawTile(x: Int, y: Int, tile: AsciiTile) {
         drawTile(x, y, z = 0, tile = tile)
     }
 
     /**
      * Sets the cell at column [x], row [y] on layer [z] to [tile]. The layer
      * is created on demand if it does not yet exist. Accepts both static
-     * [AsciiTileDescriptor] and [AnimatedAsciiTile] content.
+     * [StaticAsciiTile] and [AnimatedAsciiTile] content.
      *
      * @throws IndexOutOfBoundsException if the cell is outside the grid
      */
-    fun drawTile(x: Int, y: Int, z: Int, tile: AnimatableAsciiTile) {
+    fun drawTile(x: Int, y: Int, z: Int, tile: AsciiTile) {
         layeredTiles.setCell(x, y, z, tile)
         refreshAnimatedTrackingAt(x, y)
         compositeCache.markCellDirty(x, y)
     }
 
     /**
-     * Re-derives whether ([x], [y]) still hosts an [AnimatedAsciiTile] on *any*
+     * Re-derives whether ([x], [y]) still hosts a [DynamicAsciiTile] on *any*
      * z-layer, from the tilemap itself rather than incremental bookkeeping —
      * cheap (bounded by layer count) since it only runs on a write, and always
      * correct even when a write replaces or removes the specific layer that
      * used to make this position animated.
+     *
+     * Keyed on the [DynamicAsciiTile] *branch*, not the built-in
+     * [AnimatedAsciiTile]: any tile whose appearance varies with time needs the
+     * per-frame redraw, including consumer-supplied implementations.
      */
     private fun refreshAnimatedTrackingAt(x: Int, y: Int) {
-        val stillAnimated = layeredTiles.layerKeys.any { z -> layeredTiles.cellAt(x, y, z) is AnimatedAsciiTile }
+        val stillAnimated = layeredTiles.layerKeys.any { z -> layeredTiles.cellAt(x, y, z) is DynamicAsciiTile }
         val position = Vector2Int(x, y)
         if (stillAnimated) animatedPositions.add(position) else animatedPositions.remove(position)
     }
@@ -237,7 +246,7 @@ class AsciiTileWindow private constructor(
      *
      * @throws IndexOutOfBoundsException if the cell is outside the grid
      */
-    fun drawTile(position: Vector3Int, tile: AnimatableAsciiTile) = drawTile(position.x, position.y, position.z, tile)
+    fun drawTile(position: Vector3Int, tile: AsciiTile) = drawTile(position.x, position.y, position.z, tile)
 
     // -------------------------------------------------------------------------
     // Write — text
@@ -276,7 +285,7 @@ class AsciiTileWindow private constructor(
         text.forEachIndexed { index, character ->
             val cellX = x + index
             if (cellX in 0 until widthInTiles) {
-                drawTile(cellX, y, z, AsciiTileDescriptor(character, foreground, background))
+                drawTile(cellX, y, z, StaticAsciiTile(character, foreground, background))
             }
         }
     }
@@ -287,9 +296,9 @@ class AsciiTileWindow private constructor(
 
     /**
      * Sets every cell on layer z=0 to [tile]. Accepts both static
-     * [AsciiTileDescriptor] and [AnimatedAsciiTile] content.
+     * [StaticAsciiTile] and [AnimatedAsciiTile] content.
      */
-    fun fill(tile: AnimatableAsciiTile) {
+    fun fill(tile: AsciiTile) {
         fill(z = 0, tile = tile)
     }
 
@@ -297,7 +306,7 @@ class AsciiTileWindow private constructor(
      * Sets every cell on layer [z] to [tile]. The layer is created on demand
      * if it does not yet exist.
      */
-    fun fill(z: Int, tile: AnimatableAsciiTile) {
+    fun fill(z: Int, tile: AsciiTile) {
         for (y in 0 until heightInTiles) {
             for (x in 0 until widthInTiles) {
                 layeredTiles.setCell(x, y, z, tile)
@@ -376,21 +385,21 @@ class AsciiTileWindow private constructor(
     // -------------------------------------------------------------------------
 
     /**
-     * Returns the composited (top-most non-null) [AsciiTileDescriptor] at
+     * Returns the composited (top-most non-null) [StaticAsciiTile] at
      * column [x], row [y], or `null` if all layers are empty at that cell.
      *
      * @param elapsedMs wall-clock time used to resolve animated cells to a
      *   concrete descriptor. Defaults to 0 (first frame).
      */
-    fun topDescriptorAt(x: Int, y: Int, elapsedMs: Long = 0L): AsciiTileDescriptor? =
-        layeredTiles.topCellAt(x, y)?.descriptorAt(elapsedMs)
+    fun topTileAt(x: Int, y: Int, elapsedMs: Long = 0L): StaticAsciiTile? =
+        layeredTiles.topCellAt(x, y)?.resolveAt(elapsedMs)
 
     /**
-     * Returns the composited (top-most non-null) [AsciiTileDescriptor] at
+     * Returns the composited (top-most non-null) [StaticAsciiTile] at
      * [position], or `null` if all layers are empty at that cell.
      */
-    fun topDescriptorAt(position: Vector2Int, elapsedMs: Long = 0L): AsciiTileDescriptor? =
-        layeredTiles.topCellAt(position)?.descriptorAt(elapsedMs)
+    fun topTileAt(position: Vector2Int, elapsedMs: Long = 0L): StaticAsciiTile? =
+        layeredTiles.topCellAt(position)?.resolveAt(elapsedMs)
 
     // -------------------------------------------------------------------------
     // Render
@@ -403,7 +412,7 @@ class AsciiTileWindow private constructor(
      * @param elapsedMs monotonically increasing wall-clock time in milliseconds
      *   used to determine the current frame of any [AnimatedAsciiTile] cells.
      *   Defaults to `0`, which always shows the first frame — suitable for
-     *   windows that only use static [AsciiTileDescriptor] cells.
+     *   windows that only use static [StaticAsciiTile] cells.
      */
     fun render(elapsedMs: Long = 0L) {
         canvas.begin()
@@ -463,7 +472,7 @@ class AsciiTileWindow private constructor(
      */
     private fun drawCell(x: Int, y: Int, elapsedMs: Long, drawer: GridCompositeCache.TileDrawer) {
         val cell = layeredTiles.topCellAt(x, y) ?: return
-        val descriptor = cell.descriptorAt(elapsedMs)
+        val descriptor = cell.resolveAt(elapsedMs)
         drawer.drawTile(x, y, backgroundRegion, descriptor.backgroundColor)
         font.glyph(descriptor.character)?.let { glyph -> drawer.drawTile(x, y, glyph, descriptor.foregroundColor) }
     }
@@ -492,14 +501,14 @@ class AsciiTileWindow private constructor(
      * instance or a changed `viewport` origin redraws everything.
      */
     fun render(
-        source: LayeredTilemap<AnimatableAsciiTile>,
+        source: LayeredTilemap<AsciiTile>,
         viewport: TileViewport = TileViewport(),
         elapsedMs: Long = 0L,
     ) {
         canvas.begin()
         viewportCache.ensureSize(widthInTiles, heightInTiles)
         viewportDirtyTracker.markDirtyCells(source, viewport, widthInTiles, heightInTiles) { logicalX, logicalY ->
-            source.topCellAt(logicalX, logicalY) is AnimatedAsciiTile
+            source.topCellAt(logicalX, logicalY) is DynamicAsciiTile
         }
         viewportCache.recompositeIfDirty { x, y, drawer -> drawViewportCell(source, viewport, x, y, elapsedMs, drawer) }
         viewportDirtyTracker.recordRenderedVersions(source, viewport, widthInTiles, heightInTiles)
@@ -516,7 +525,7 @@ class AsciiTileWindow private constructor(
      * (top-most non-null) descriptor's background quad then glyph.
      */
     private fun drawViewportCell(
-        source: LayeredTilemap<AnimatableAsciiTile>,
+        source: LayeredTilemap<AsciiTile>,
         viewport: TileViewport,
         x: Int,
         y: Int,
@@ -528,7 +537,7 @@ class AsciiTileWindow private constructor(
         val logicalX = viewport.originX + x
         if (logicalX < 0 || logicalX >= source.width) return
         val cell = source.topCellAt(logicalX, logicalY) ?: return
-        val descriptor = cell.descriptorAt(elapsedMs)
+        val descriptor = cell.resolveAt(elapsedMs)
         drawer.drawTile(x, y, backgroundRegion, descriptor.backgroundColor)
         font.glyph(descriptor.character)?.let { glyph -> drawer.drawTile(x, y, glyph, descriptor.foregroundColor) }
     }

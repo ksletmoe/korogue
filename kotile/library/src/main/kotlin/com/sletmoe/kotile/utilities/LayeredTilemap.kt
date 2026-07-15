@@ -10,9 +10,9 @@ import java.util.TreeMap
  * This class is generic over the *non-null* cell type [T]; every grid slot
  * holds `T?`, where `null` means "empty". The type parameter lets both the
  * sprite-tile path ([com.sletmoe.kotile.rendering.TileRenderer] with
- * [com.sletmoe.kotile.tiles.StaticTile]) and the ASCII path
+ * [com.sletmoe.kotile.tiles.StaticSpriteTile]) and the ASCII path
  * ([com.sletmoe.kotile.display.ascii.AsciiTileWindow] with
- * [com.sletmoe.kotile.display.ascii.AsciiTileDescriptor]) share the same
+ * [com.sletmoe.kotile.display.ascii.StaticAsciiTile]) share the same
  * layering logic without duplication.
  *
  * **Create-on-demand / permissive policy** (mirrored from both paths):

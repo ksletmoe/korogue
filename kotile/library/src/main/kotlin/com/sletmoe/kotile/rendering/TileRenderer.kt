@@ -4,23 +4,23 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.utils.Disposable
 import com.sletmoe.kotile.display.BlendMode
 import com.sletmoe.kotile.display.KotileCanvas
-import com.sletmoe.kotile.tiles.SpriteTileEntry
-import com.sletmoe.kotile.tiles.StaticTile
-import com.sletmoe.kotile.tiles.Tile
+import com.sletmoe.kotile.tiles.DynamicSpriteTile
+import com.sletmoe.kotile.tiles.SpriteTile
+import com.sletmoe.kotile.tiles.StaticSpriteTile
 import com.sletmoe.kotile.utilities.LayeredTilemap
 import com.sletmoe.kotile.utilities.Vector2Int
 import com.sletmoe.kotile.utilities.Vector3Int
 
 /**
- * Renders a [LayeredTilemap] of [SpriteTileEntry] tiles to a [KotileCanvas]
+ * Renders a [LayeredTilemap] of [SpriteTile] tiles to a [KotileCanvas]
  * each frame.
  *
- * Two concrete tile types are supported:
- * - [StaticTile] — coordinate-based; [regionFor] is called with the tile so
- *   subclasses can resolve the region from a sheet or other source.
- * - [Tile] (e.g. [com.sletmoe.kotile.tiles.AnimatedSpriteTile]) — owns its
- *   frames; [regionFor] is called with the elapsed wall-clock time so the tile
- *   can return the current animation frame.
+ * Both branches of [SpriteTile] are supported:
+ * - [StaticSpriteTile] — coordinate-based; [regionFor] is called with the tile
+ *   so subclasses can resolve the region from a sheet or other source.
+ * - [DynamicSpriteTile] (e.g. [com.sletmoe.kotile.tiles.AnimatedSpriteTile]) —
+ *   owns its frames; the tile is asked for its own region at the elapsed
+ *   wall-clock time.
  *
  * Tiles are mutated with [drawTile]/[clearTile] and drawn by [render], which
  * redraws the whole grid every frame. Cells are **composited bottom-up**: every
@@ -28,8 +28,8 @@ import com.sletmoe.kotile.utilities.Vector3Int
  * tile placed on a higher layer is alpha-blended over the terrain beneath it and
  * its transparent pixels reveal the lower layers (a background terrain tile plus
  * a foreground entity sprite in the same cell). Subclasses implement [regionFor]
- * to map a [StaticTile] to the texture region representing it; [Tile] instances
- * resolve their own regions.
+ * to map a [StaticSpriteTile] to the texture region representing it;
+ * [DynamicSpriteTile] instances resolve their own regions.
  *
  * Call [onResize] from the application's resize callback so the internal
  * tilemap is rebuilt to match the new canvas dimensions. Tiles outside the new
@@ -55,7 +55,7 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) : Disposable {
      */
     val windowHeight: Int get() = canvas.height
 
-    private var tilemap = LayeredTilemap<SpriteTileEntry>(windowWidth, windowHeight)
+    private var tilemap = LayeredTilemap<SpriteTile>(windowWidth, windowHeight)
 
     // Per-cell composite cache (krogue-drk/krogue-oxi, ADR-0024): [render] and [asLayer] recomposite
     // only the cells marked dirty since the last call, blitting the persistent result as one sprite.
@@ -70,7 +70,7 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) : Disposable {
     private val viewportCache = GridCompositeCache(canvas.tileWidthPx, canvas.tileHeightPx)
     private val viewportDirtyTracker = ViewportDirtyTracker(viewportCache)
 
-    // Positions currently holding a Tile (animated) entry on any z-layer. Recomputed from ground
+    // Positions currently holding a DynamicSpriteTile entry on any z-layer. Recomputed from ground
     // truth (not incrementally counted) on every single-cell write touching that position -- see
     // refreshAnimatedTrackingAt -- so it can never drift out of sync with the tilemap. Every render
     // call marks all of these dirty, since an animated tile's resolved appearance can change every
@@ -90,10 +90,10 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) : Disposable {
     }
 
     /** Places [staticTile] at [position] (x, y, z-layer). */
-    fun drawTile(position: Vector3Int, staticTile: StaticTile) = drawTile(position.x, position.y, position.z, staticTile)
+    fun drawTile(position: Vector3Int, staticTile: StaticSpriteTile) = drawTile(position.x, position.y, position.z, staticTile)
 
     /** Places [staticTile] at column [x], row [y] on z-layer [z]. */
-    fun drawTile(x: Int, y: Int, z: Int, staticTile: StaticTile) {
+    fun drawTile(x: Int, y: Int, z: Int, staticTile: StaticSpriteTile) {
         tilemap.setCell(x, y, z, staticTile)
         refreshAnimatedTrackingAt(x, y)
         compositeCache.markCellDirty(x, y)
@@ -102,20 +102,20 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) : Disposable {
     /**
      * Places an animated [tile] at [position] (x, y, z-layer).
      *
-     * The same [Tile] instance may be placed at multiple cells. All cells
+     * The same [DynamicSpriteTile] instance may be placed at multiple cells. All cells
      * sharing the same instance will show the same animation frame at the same
      * wall-clock time (stateless time model).
      */
-    fun drawTile(position: Vector3Int, tile: Tile) = drawTile(position.x, position.y, position.z, tile)
+    fun drawTile(position: Vector3Int, tile: DynamicSpriteTile) = drawTile(position.x, position.y, position.z, tile)
 
     /**
      * Places an animated [tile] at column [x], row [y] on z-layer [z].
      *
-     * The same [Tile] instance may be placed at multiple cells. All cells
+     * The same [DynamicSpriteTile] instance may be placed at multiple cells. All cells
      * sharing the same instance will show the same animation frame at the same
      * wall-clock time (stateless time model).
      */
-    fun drawTile(x: Int, y: Int, z: Int, tile: Tile) {
+    fun drawTile(x: Int, y: Int, z: Int, tile: DynamicSpriteTile) {
         tilemap.setCell(x, y, z, tile)
         animatedPositions.add(Vector2Int(x, y))
         compositeCache.markCellDirty(x, y)
@@ -132,14 +132,14 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) : Disposable {
     }
 
     /**
-     * Re-derives whether ([x], [y]) still hosts an animated [Tile] on *any*
+     * Re-derives whether ([x], [y]) still hosts an animated [DynamicSpriteTile] on *any*
      * z-layer, from the tilemap itself rather than incremental bookkeeping —
      * cheap (bounded by layer count) since it only runs on a write, and always
      * correct even when a write replaces or removes the specific layer that
      * used to make this position animated.
      */
     private fun refreshAnimatedTrackingAt(x: Int, y: Int) {
-        val stillAnimated = tilemap.layerKeys.any { z -> tilemap.cellAt(x, y, z) is Tile }
+        val stillAnimated = tilemap.layerKeys.any { z -> tilemap.cellAt(x, y, z) is DynamicSpriteTile }
         val position = Vector2Int(x, y)
         if (stillAnimated) animatedPositions.add(position) else animatedPositions.remove(position)
     }
@@ -149,9 +149,9 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) : Disposable {
      * the canvas for this frame.
      *
      * @param elapsedMs monotonically increasing wall-clock time in milliseconds
-     *   used to determine the current frame of any [Tile] (animated) entries.
+     *   used to determine the current frame of any [DynamicSpriteTile] (animated) entries.
      *   Defaults to `0`, which always shows the first frame — suitable for
-     *   renderers that only use [StaticTile].
+     *   renderers that only use [StaticSpriteTile].
      */
     fun render(elapsedMs: Long = 0L) {
         canvas.begin()
@@ -166,7 +166,7 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) : Disposable {
      * `begin`/`end` — the stack owns the single batch for the frame.
      *
      * @param elapsedMs supplies the wall-clock time used to resolve animated
-     *   [Tile] frames, sampled once per [Layer.render]; defaults to a constant 0
+     *   [DynamicSpriteTile] frames, sampled once per [Layer.render]; defaults to a constant 0
      *   (first frame) for static grids.
      */
     fun asLayer(elapsedMs: () -> Long = { 0L }): Layer = object : Layer {
@@ -207,8 +207,8 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) : Disposable {
     private fun drawCell(x: Int, y: Int, elapsedMs: Long, drawer: GridCompositeCache.TileDrawer) {
         for (layer in tilemap.layersBottomUp) {
             when (val entry = layer[x, y]) {
-                is StaticTile -> drawer.drawTile(x, y, regionFor(entry), entry.tint, entry.flipX, entry.flipY)
-                is Tile -> drawer.drawTile(x, y, entry.regionFor(elapsedMs), entry.tintFor(elapsedMs), entry.flipX, entry.flipY)
+                is StaticSpriteTile -> drawer.drawTile(x, y, regionFor(entry), entry.tint, entry.flipX, entry.flipY)
+                is DynamicSpriteTile -> drawer.drawTile(x, y, entry.regionFor(elapsedMs), entry.tintFor(elapsedMs), entry.flipX, entry.flipY)
                 null -> {}
             }
         }
@@ -241,17 +241,17 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) : Disposable {
      * @param source the logical tile space to sample from; may be larger than the visible window
      * @param viewport the top-left corner of the visible region in [source] tile coordinates;
      *   defaults to `(0, 0)` which samples from the source's origin
-     * @param elapsedMs wall-clock time for resolving any animated [Tile] entries
+     * @param elapsedMs wall-clock time for resolving any animated [DynamicSpriteTile] entries
      */
     fun render(
-        source: LayeredTilemap<SpriteTileEntry>,
+        source: LayeredTilemap<SpriteTile>,
         viewport: TileViewport = TileViewport(),
         elapsedMs: Long = 0L,
     ) {
         canvas.begin()
         viewportCache.ensureSize(windowWidth, windowHeight)
         viewportDirtyTracker.markDirtyCells(source, viewport, windowWidth, windowHeight) { logicalX, logicalY ->
-            source.layerKeys.any { z -> source.cellAt(logicalX, logicalY, z) is Tile }
+            source.layerKeys.any { z -> source.cellAt(logicalX, logicalY, z) is DynamicSpriteTile }
         }
         viewportCache.recompositeIfDirty { x, y, drawer -> drawViewportCell(source, viewport, x, y, elapsedMs, drawer) }
         viewportDirtyTracker.recordRenderedVersions(source, viewport, windowWidth, windowHeight)
@@ -265,7 +265,7 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) : Disposable {
 
     /** Draws [source]'s cell at `viewport`-relative screen position ([x], [y]) — every populated layer bottom-up. */
     private fun drawViewportCell(
-        source: LayeredTilemap<SpriteTileEntry>,
+        source: LayeredTilemap<SpriteTile>,
         viewport: TileViewport,
         x: Int,
         y: Int,
@@ -278,13 +278,13 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) : Disposable {
         if (logicalX < 0 || logicalX >= source.width) return
         for (layer in source.layersBottomUp) {
             when (val entry = layer[logicalX, logicalY]) {
-                is StaticTile -> drawer.drawTile(x, y, regionFor(entry), entry.tint, entry.flipX, entry.flipY)
-                is Tile -> drawer.drawTile(x, y, entry.regionFor(elapsedMs), entry.tintFor(elapsedMs), entry.flipX, entry.flipY)
+                is StaticSpriteTile -> drawer.drawTile(x, y, regionFor(entry), entry.tint, entry.flipX, entry.flipY)
+                is DynamicSpriteTile -> drawer.drawTile(x, y, entry.regionFor(elapsedMs), entry.tintFor(elapsedMs), entry.flipX, entry.flipY)
                 null -> {}
             }
         }
     }
 
     /** Returns the texture region that represents [staticTile]. */
-    protected abstract fun regionFor(staticTile: StaticTile): TextureRegion
+    protected abstract fun regionFor(staticTile: StaticSpriteTile): TextureRegion
 }

@@ -4,24 +4,24 @@ import com.badlogic.gdx.graphics.Color
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 
-class StaticTileTest : FunSpec({
+class StaticSpriteTileTest : FunSpec({
     test("tint defaults to white so the sprite is drawn unmodified") {
-        StaticTile(2, 5).tint shouldBe Color.WHITE
+        StaticSpriteTile(2, 5).tint shouldBe Color.WHITE
     }
 
     test("an explicit tint is retained") {
-        val tile = StaticTile(0, 0, Color.RED)
+        val tile = StaticSpriteTile(0, 0, Color.RED)
         tile.tint shouldBe Color.RED
     }
 
     test("flipX and flipY default to false") {
-        val tile = StaticTile(0, 0)
+        val tile = StaticSpriteTile(0, 0)
         tile.flipX shouldBe false
         tile.flipY shouldBe false
     }
 
     test("an explicit flipX/flipY is retained") {
-        val tile = StaticTile(0, 0, flipX = true, flipY = true)
+        val tile = StaticSpriteTile(0, 0, flipX = true, flipY = true)
         tile.flipX shouldBe true
         tile.flipY shouldBe true
     }

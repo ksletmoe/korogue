@@ -45,7 +45,7 @@ toolchain). Run everything through `./gradlew`.
 
 Tests use **Kotest** (`FunSpec`) and live in `:library`. Two kinds:
 
-- **Unit tests** for GL-free logic (`Grid`, `LayeredTilemap`, `StaticTile`) —
+- **Unit tests** for GL-free logic (`Grid`, `LayeredTilemap`, `StaticSpriteTile`) —
   run anywhere via `./gradlew :library:test`.
 - **Headless GL integration tests** (`RenderingIntegrationTest`) that boot a
   real offscreen LWJGL3 context, render through the public API, and assert on
@@ -108,17 +108,23 @@ Library source lives under `library/src/main/kotlin`. Package root:
   an optional `keyColor` that is zeroed out to transparent on load (so a sheet
   with a solid background color can alpha-blend). Nearest filtering keeps
   pixel art crisp.
-- `tiles/StaticTile` — a sheet cell `(sheetX, sheetY)` plus a `tint`
-  (default `Color.WHITE` = unmodified).
-- `rendering/TileRenderer` — abstract; holds a `LayeredTilemap` of
-  `StaticTile`s (z-ordered) and redraws it each frame, applying each tile's
-  tint. Subclasses map a tile to its region.
+- `tiles/SpriteTile` — sealed base for sprite cell content, with two branches
+  (krogue-xcx): `StaticSpriteTile` (a sheet cell `(sheetX, sheetY)` plus a
+  `tint`, default `Color.WHITE` = unmodified; the renderer resolves its region)
+  and `DynamicSpriteTile` (owns its own region for a given elapsed time).
+  `AnimatedSpriteTile` is the built-in `DynamicSpriteTile`, cycling frames.
+- `rendering/TileRenderer` — abstract; holds a `LayeredTilemap` of `SpriteTile`s
+  (z-ordered) and redraws it each frame, applying each tile's tint. Subclasses
+  map a `StaticSpriteTile` to its region; `DynamicSpriteTile`s resolve their own.
 - `rendering/SpriteTileRenderer` — concrete `TileRenderer` backed by a
   `TileSheet`. The entry point for image sprite-sheet rendering.
-- `display/ascii/` — the ASCII layer: `AsciiTileWindow` (holds a grid of
-  descriptors, draws a background quad + foreground-tinted glyph per cell),
-  `AsciiTileDescriptor` (char + fg/bg color), and `Font`/`Fonts` (loads a
-  16x16 CP437 sheet; key color defaults to black, overridable).
+- `display/ascii/` — the ASCII layer: `AsciiTileWindow` (holds a grid of cells,
+  draws a background quad + foreground-tinted glyph per cell) and `Font`/`Fonts`
+  (loads a 16x16 CP437 sheet; key color defaults to black, overridable). Cell
+  content mirrors the sprite hierarchy one-for-one: sealed `AsciiTile` ->
+  `StaticAsciiTile` (char + fg/bg color) + `DynamicAsciiTile` (resolves to a
+  `StaticAsciiTile` at a given time), with `AnimatedAsciiTile` the built-in
+  `DynamicAsciiTile`. Keep the two hierarchies' names in step.
 - `utilities/` — `Grid<T>` (flat 2D array), `LayeredTilemap` (z-layered tile
   storage), `Vector2Int`, `Vector3Int`.
 

@@ -1,6 +1,6 @@
 package com.sletmoe.korogue.demo.animation
 
-import com.sletmoe.kotile.tiles.StaticTile
+import com.sletmoe.kotile.tiles.StaticSpriteTile
 
 /**
  * Named DawnLike floor pieces from `Objects/Floor.png` (16x16 tiles, CC-BY 4.0 — see
@@ -16,20 +16,20 @@ import com.sletmoe.kotile.tiles.StaticTile
  */
 object DawnLikeFloorTiles {
     /** Floor touching both the top and left walls. */
-    val TOP_LEFT_CORNER = StaticTile(sheetX = 0, sheetY = 6)
+    val TOP_LEFT_CORNER = StaticSpriteTile(sheetX = 0, sheetY = 6)
 
     /** Floor touching the top wall only (repeat horizontally along the top run). */
-    val TOP_EDGE = StaticTile(sheetX = 1, sheetY = 6)
+    val TOP_EDGE = StaticSpriteTile(sheetX = 1, sheetY = 6)
 
     /** Floor touching the left wall only (repeat vertically along the left run). */
-    val LEFT_EDGE = StaticTile(sheetX = 0, sheetY = 7)
+    val LEFT_EDGE = StaticSpriteTile(sheetX = 0, sheetY = 7)
 
     /** Interior floor touching no wall. */
-    val MIDDLE = StaticTile(sheetX = 1, sheetY = 7)
+    val MIDDLE = StaticSpriteTile(sheetX = 1, sheetY = 7)
 
     /** Floor touching both the bottom and left walls. */
-    val BOTTOM_LEFT_CORNER = StaticTile(sheetX = 0, sheetY = 8)
+    val BOTTOM_LEFT_CORNER = StaticSpriteTile(sheetX = 0, sheetY = 8)
 
     /** Floor touching the bottom wall only (repeat horizontally along the bottom run). */
-    val BOTTOM_EDGE = StaticTile(sheetX = 1, sheetY = 8)
+    val BOTTOM_EDGE = StaticSpriteTile(sheetX = 1, sheetY = 8)
 }

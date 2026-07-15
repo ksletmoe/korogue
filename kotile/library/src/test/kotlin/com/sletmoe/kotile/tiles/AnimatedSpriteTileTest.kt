@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldBeInstanceOf
 
 /**
  * Unit tests for [AnimatedSpriteTile] frame selection logic.
@@ -14,6 +15,20 @@ import io.kotest.matchers.shouldBe
  * required.
  */
 class AnimatedSpriteTileTest : FunSpec({
+
+    // -----------------------------------------------------------------------
+    // Branch membership (krogue-xcx). TileRenderer decides which cells to
+    // recomposite every frame with `is DynamicSpriteTile`; re-parenting this
+    // class straight onto SpriteTile would freeze animation on its first
+    // painted frame with nothing else failing. Mirrors the ASCII path's
+    // [com.sletmoe.kotile.display.ascii.DynamicAsciiTileTest].
+    // -----------------------------------------------------------------------
+
+    test("AnimatedSpriteTile is a DynamicSpriteTile, so animated cells get per-frame recomposites") {
+        val tile = AnimatedSpriteTile(listOf(AnimationFrame(TextureRegion(), durationMs = 100)))
+
+        tile.shouldBeInstanceOf<DynamicSpriteTile>()
+    }
 
     // -----------------------------------------------------------------------
     // Construction guards

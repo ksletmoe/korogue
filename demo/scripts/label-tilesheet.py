@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Overlays column/row index labels on a DawnLike-style tile sheet, so a specific tile can be
 called out as (sheetX, sheetY) in tile-grid units — the same coordinate system
-kotile's StaticTile(sheetX, sheetY) takes. Dev aid only, not part of the build.
+kotile's StaticSpriteTile(sheetX, sheetY) takes. Dev aid only, not part of the build.
 
 Usage:
     demo/scripts/label-tilesheet.py <sheet.png> [--tile-size 16] [--scale 3] [--out labeled.png]

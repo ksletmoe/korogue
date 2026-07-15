@@ -6,7 +6,7 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.PixmapIO
-import com.sletmoe.kotile.display.ascii.AsciiTileDescriptor
+import com.sletmoe.kotile.display.ascii.StaticAsciiTile
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
 import com.sletmoe.kotile.rendering.FitScale
 import com.sletmoe.kotile.rendering.IntegerScale
@@ -62,7 +62,7 @@ private class FixedGridHarness(
     private fun buildScene() {
         // Interior floor so the whole content rect is covered and any clip is
         // visible against the dark-blue clear color of the bars.
-        window.fill(AsciiTileDescriptor('.', Color.DARK_GRAY, Color.BLACK))
+        window.fill(StaticAsciiTile('.', Color.DARK_GRAY, Color.BLACK))
 
         // Solid full-block ring (CP437 0xDB = 'Û') around the extreme edge. If
         // the content rect is centered correctly this ring frames a clean inset
@@ -93,7 +93,7 @@ private class FixedGridHarness(
         }
 
     private fun block(x: Int, y: Int, color: Color) =
-        window.drawTile(x, y, AsciiTileDescriptor('Û', color, Color.BLACK))
+        window.drawTile(x, y, StaticAsciiTile('Û', color, Color.BLACK))
 
     override fun render() {
         // Distinct dark blue so letterbox bars are unmistakable vs black cells.

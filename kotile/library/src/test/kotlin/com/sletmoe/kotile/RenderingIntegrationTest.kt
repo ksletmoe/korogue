@@ -8,9 +8,10 @@ import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.sletmoe.kotile.display.KotileCanvas
 import com.sletmoe.kotile.display.ascii.AnimatedAsciiTile
-import com.sletmoe.kotile.display.ascii.AsciiTileDescriptor
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
+import com.sletmoe.kotile.display.ascii.DynamicAsciiTile
 import com.sletmoe.kotile.display.ascii.Fonts
+import com.sletmoe.kotile.display.ascii.StaticAsciiTile
 import com.sletmoe.kotile.rendering.Effect
 import com.sletmoe.kotile.rendering.EffectsLayer
 import com.sletmoe.kotile.rendering.FitScale
@@ -24,7 +25,7 @@ import com.sletmoe.kotile.rendering.UiLayer
 import com.sletmoe.kotile.rendering.Widget
 import com.sletmoe.kotile.tiles.AnimatedSpriteTile
 import com.sletmoe.kotile.tiles.AnimationFrame
-import com.sletmoe.kotile.tiles.StaticTile
+import com.sletmoe.kotile.tiles.StaticSpriteTile
 import com.sletmoe.kotile.tiles.TileSheet
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.comparables.shouldBeGreaterThan
@@ -56,7 +57,7 @@ class RenderingIntegrationTest : FunSpec({
                 widthInTiles = 8
                 heightInTiles = 4
             }
-            window.fill(AsciiTileDescriptor(' ', Color.WHITE, Color.BLUE))
+            window.fill(StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
             window.render()
             window.dispose()
         }
@@ -75,7 +76,7 @@ class RenderingIntegrationTest : FunSpec({
                 widthInTiles = 8
                 heightInTiles = 4
             }
-            window.drawTile(0, 0, AsciiTileDescriptor('Û', Color.RED, Color.CLEAR))
+            window.drawTile(0, 0, StaticAsciiTile('Û', Color.RED, Color.CLEAR))
             window.render()
             window.dispose()
         }
@@ -114,7 +115,7 @@ class RenderingIntegrationTest : FunSpec({
     ) {
         // krogue-2ur: frame 0 has no override (renders at the tile's WHITE constant tint, i.e.
         // the sheet's own blue); frame 1 overrides to green. Proves TileRenderer.renderGrid calls
-        // entry.tintFor(elapsedMs) — not the old constant entry.tint — for the Tile branch.
+        // entry.tintFor(elapsedMs) — not the old constant entry.tint — for the DynamicSpriteTile branch.
         val pixels = HeadlessGl.render(8, 8, Color.BLACK) {
             val tilePixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
             tilePixmap.setColor(SHEET_BLUE)
@@ -352,7 +353,7 @@ class RenderingIntegrationTest : FunSpec({
         pixels.dispose()
     }
 
-    test("TileRenderer honors a StaticTile's flipX (krogue-csc)").config(enabled = HeadlessGl.available) {
+    test("TileRenderer honors a StaticSpriteTile's flipX (krogue-csc)").config(enabled = HeadlessGl.available) {
         val pixels = HeadlessGl.render(8, 8, Color.BLACK) {
             val sheetPixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
             sheetPixmap.blending = Pixmap.Blending.None
@@ -367,7 +368,7 @@ class RenderingIntegrationTest : FunSpec({
             val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
             val canvas = KotileCanvas(8, 8)
             val renderer = SpriteTileRenderer(canvas, sheet)
-            renderer.drawTile(0, 0, z = 0, staticTile = StaticTile(0, 0, flipX = true))
+            renderer.drawTile(0, 0, z = 0, staticTile = StaticSpriteTile(0, 0, flipX = true))
             renderer.render()
             canvas.dispose()
             sheet.dispose()
@@ -482,7 +483,7 @@ class RenderingIntegrationTest : FunSpec({
                 heightInTiles = 2
                 fitToWindow = false // fixed 2x2 grid -> 20x20 px at integer 1x
             }
-            window.fill(AsciiTileDescriptor(' ', Color.WHITE, Color.BLUE)) // bg quads blue
+            window.fill(StaticAsciiTile(' ', Color.WHITE, Color.BLUE)) // bg quads blue
             val red = solidTexture(Color.RED)
 
             val stack = LayerStack(canvas)
@@ -577,7 +578,7 @@ class RenderingIntegrationTest : FunSpec({
                 heightInTiles = 2
                 fitToWindow = false // fixed 2x2 grid -> 20x20 px at integer 1x
             }
-            window.fill(AsciiTileDescriptor(' ', Color.WHITE, Color.BLUE))
+            window.fill(StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
             val red = solidTexture(Color.RED)
 
             val ui = UiLayer()
@@ -646,7 +647,7 @@ class RenderingIntegrationTest : FunSpec({
                 fitToWindow = false
                 scalePolicy = FitScale
             }
-            window.drawTile(0, 0, AsciiTileDescriptor('Û', Color.WHITE, Color.CLEAR))
+            window.drawTile(0, 0, StaticAsciiTile('Û', Color.WHITE, Color.CLEAR))
             window.render()
             window.dispose()
         }
@@ -691,7 +692,7 @@ class RenderingIntegrationTest : FunSpec({
                 widthInTiles = 8
                 heightInTiles = 4
             }
-            window.drawTile(0, 0, AsciiTileDescriptor(' ', Color.WHITE, Color.RED))
+            window.drawTile(0, 0, StaticAsciiTile(' ', Color.WHITE, Color.RED))
             window.render() // first paint: cache created, cell (0,0) red
             window.clearTile(0, 0)
             window.render() // recomposite must drop the red, not retain it from the cache
@@ -710,7 +711,7 @@ class RenderingIntegrationTest : FunSpec({
                 widthInTiles = 8
                 heightInTiles = 4
             }
-            window.drawTile(0, 0, AsciiTileDescriptor(' ', Color.WHITE, Color.BLUE))
+            window.drawTile(0, 0, StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
             window.render()
             window.render() // cache hit: no writes since the previous render
             window.render()
@@ -728,8 +729,8 @@ class RenderingIntegrationTest : FunSpec({
         // visibly freeze on its first-painted frame.
         val tile = AnimatedAsciiTile(
             frames = listOf(
-                AnimationFrame(AsciiTileDescriptor(' ', Color.WHITE, Color.RED), durationMs = 100),
-                AnimationFrame(AsciiTileDescriptor(' ', Color.WHITE, Color.GREEN), durationMs = 100),
+                AnimationFrame(StaticAsciiTile(' ', Color.WHITE, Color.RED), durationMs = 100),
+                AnimationFrame(StaticAsciiTile(' ', Color.WHITE, Color.GREEN), durationMs = 100),
             ),
         )
         val pixels = HeadlessGl.render(80, 40, Color.BLACK) {
@@ -740,6 +741,32 @@ class RenderingIntegrationTest : FunSpec({
             window.drawTile(0, 0, tile)
             window.render(elapsedMs = 0) // first paint: frame 0 (red)
             window.render(elapsedMs = 150) // frame 1 (green) -- no writes between these two calls
+            window.dispose()
+        }
+        val topLeft = pixels.averageColor(0, 0, 10, 10)
+        topLeft.g.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        topLeft.r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+        pixels.dispose()
+    }
+
+    test("krogue-xcx: a consumer-supplied DynamicAsciiTile keeps repainting, not just AnimatedAsciiTile").config(
+        enabled = HeadlessGl.available,
+    ) {
+        // The window's per-frame repaint tracking must key on the DynamicAsciiTile *branch*, not on
+        // the built-in AnimatedAsciiTile class -- otherwise a consumer's own time-driven tile paints
+        // once and then freezes, since nothing is written between the two render() calls below.
+        val custom = object : DynamicAsciiTile {
+            override fun resolveAt(elapsedMs: Long): StaticAsciiTile =
+                StaticAsciiTile(' ', Color.WHITE, if (elapsedMs < 100) Color.RED else Color.GREEN)
+        }
+        val pixels = HeadlessGl.render(80, 40, Color.BLACK) {
+            val window = AsciiTileWindow.create {
+                widthInTiles = 8
+                heightInTiles = 4
+            }
+            window.drawTile(0, 0, custom)
+            window.render(elapsedMs = 0) // first paint: red
+            window.render(elapsedMs = 150) // green -- no writes between these two calls
             window.dispose()
         }
         val topLeft = pixels.averageColor(0, 0, 10, 10)
@@ -762,7 +789,7 @@ class RenderingIntegrationTest : FunSpec({
             val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
             val canvas = KotileCanvas(8, 8)
             val renderer = SpriteTileRenderer(canvas, sheet)
-            renderer.drawTile(0, 0, z = 0, staticTile = StaticTile(0, 0))
+            renderer.drawTile(0, 0, z = 0, staticTile = StaticSpriteTile(0, 0))
             renderer.render() // first paint: red
             renderer.clearTile(0, 0, z = 0)
             renderer.render() // recomposite must drop the red, not retain it from the cache
@@ -830,10 +857,10 @@ class RenderingIntegrationTest : FunSpec({
                 widthInTiles = 8
                 heightInTiles = 4
             }
-            window.drawTile(0, 0, AsciiTileDescriptor(' ', Color.WHITE, Color.BLUE))
-            window.drawTile(1, 0, AsciiTileDescriptor(' ', Color.WHITE, Color.GREEN))
+            window.drawTile(0, 0, StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
+            window.drawTile(1, 0, StaticAsciiTile(' ', Color.WHITE, Color.GREEN))
             window.render() // first paint: both cells set, cache fully dirty
-            window.drawTile(0, 0, AsciiTileDescriptor(' ', Color.WHITE, Color.RED)) // only (0,0) changes
+            window.drawTile(0, 0, StaticAsciiTile(' ', Color.WHITE, Color.RED)) // only (0,0) changes
             window.render() // partial-dirty recomposite: only (0,0)'s scissor rect should be touched
             window.dispose()
         }
@@ -864,8 +891,8 @@ class RenderingIntegrationTest : FunSpec({
                 widthInTiles = 8
                 heightInTiles = 4
             }
-            window.drawTile(0, 0, z = 0, tile = AsciiTileDescriptor(' ', Color.WHITE, Color.BLUE))
-            window.drawTile(0, 0, z = 1, tile = AsciiTileDescriptor(' ', Color.WHITE, Color.RED))
+            window.drawTile(0, 0, z = 0, tile = StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
+            window.drawTile(0, 0, z = 1, tile = StaticAsciiTile(' ', Color.WHITE, Color.RED))
             window.render() // first paint: top (red) layer wins
             window.clearTile(0, 0, z = 1) // remove the top layer
             window.render() // must recomposite to reveal the bottom (blue) layer
@@ -930,7 +957,7 @@ private fun maxEdgeBlend(policy: ScalePolicy, windowPx: Int): Float {
         val canvas = KotileCanvas(8, 8)
         canvas.useFixedGrid(1, 1, policy)
         val renderer = SpriteTileRenderer(canvas, sheet)
-        renderer.drawTile(0, 0, z = 0, staticTile = StaticTile(0, 0))
+        renderer.drawTile(0, 0, z = 0, staticTile = StaticSpriteTile(0, 0))
         renderer.render()
         canvas.dispose()
         sheet.dispose()
@@ -963,7 +990,7 @@ private fun renderSpriteTile(tileColor: Color, tint: Color): Color {
         val renderer = SpriteTileRenderer(canvas, sheet)
         for (y in 0 until 8) {
             for (x in 0 until 8) {
-                renderer.drawTile(x, y, z = 0, staticTile = StaticTile(sheetX = 0, sheetY = 0, tint = tint))
+                renderer.drawTile(x, y, z = 0, staticTile = StaticSpriteTile(sheetX = 0, sheetY = 0, tint = tint))
             }
         }
         renderer.render()
@@ -998,8 +1025,8 @@ private fun renderLayered(background: Color, foreground: Color): Color {
         val renderer = SpriteTileRenderer(canvas, sheet)
         for (y in 0 until 8) {
             for (x in 0 until 8) {
-                renderer.drawTile(x, y, z = 0, staticTile = StaticTile(sheetX = 0, sheetY = 0))
-                renderer.drawTile(x, y, z = 1, staticTile = StaticTile(sheetX = 0, sheetY = 1))
+                renderer.drawTile(x, y, z = 0, staticTile = StaticSpriteTile(sheetX = 0, sheetY = 0))
+                renderer.drawTile(x, y, z = 1, staticTile = StaticSpriteTile(sheetX = 0, sheetY = 1))
             }
         }
         renderer.render()

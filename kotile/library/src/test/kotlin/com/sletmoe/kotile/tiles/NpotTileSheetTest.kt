@@ -75,7 +75,7 @@ class NpotTileSheetTest : FunSpec({
                     val renderer = SpriteTileRenderer(canvas, sheet)
                     for (ry in 0 until rows) {
                         for (rx in 0 until cols) {
-                            renderer.drawTile(rx, ry, z = 0, staticTile = StaticTile(rx, ry))
+                            renderer.drawTile(rx, ry, z = 0, staticTile = StaticSpriteTile(rx, ry))
                         }
                     }
                     renderer.render()

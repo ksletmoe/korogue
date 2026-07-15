@@ -1,8 +1,8 @@
 package com.sletmoe.korogue.ui
 
 import com.badlogic.gdx.graphics.Color
-import com.sletmoe.kotile.display.ascii.AsciiTileDescriptor
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
+import com.sletmoe.kotile.display.ascii.StaticAsciiTile
 
 /**
  * The real [TileSurface]: writes cells into a kotile [AsciiTileWindow]'s internal z-layered grid
@@ -26,6 +26,6 @@ class WindowSurface(
         bg: Color,
     ) {
         if (x < 0 || x >= width || y < 0 || y >= height) return
-        window.drawTile(x, y, z, AsciiTileDescriptor(glyph, fg, bg))
+        window.drawTile(x, y, z, StaticAsciiTile(glyph, fg, bg))
     }
 }

@@ -22,16 +22,16 @@ import com.sletmoe.korogue.ui.MapCamera
 import com.sletmoe.korogue.ui.WindowSurface
 import com.sletmoe.kotile.display.BlendMode
 import com.sletmoe.kotile.display.KotileCanvas
-import com.sletmoe.kotile.display.ascii.AsciiTileDescriptor
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
 import com.sletmoe.kotile.display.ascii.Font
 import com.sletmoe.kotile.display.ascii.Fonts
+import com.sletmoe.kotile.display.ascii.StaticAsciiTile
 import com.sletmoe.kotile.rendering.IntegerScale
 import com.sletmoe.kotile.rendering.SpriteTileRenderer
 import com.sletmoe.kotile.tiles.AnimatedSpriteTile
 import com.sletmoe.kotile.tiles.AnimationFrame
 import com.sletmoe.kotile.tiles.PlaybackMode
-import com.sletmoe.kotile.tiles.StaticTile
+import com.sletmoe.kotile.tiles.StaticSpriteTile
 import com.sletmoe.kotile.tiles.TileSheet
 import com.sletmoe.kotile.utilities.Vector2Int
 import java.io.File
@@ -426,7 +426,7 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
 
     /**
      * Redrawn every frame (not just once at startup) so the flicker computed by [litTint] at the
-     * current [elapsedMs] actually shows: a [StaticTile]'s `tint` is baked in at draw time, so
+     * current [elapsedMs] actually shows: a [StaticSpriteTile]'s `tint` is baked in at draw time, so
      * showing a changing tint means re-issuing the draw call with a freshly computed one each
      * frame — the same thing `MapPanel.draw()` does every frame in the real game.
      */
@@ -601,18 +601,18 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
             for (y in 0 until ROWS) {
                 val lit = litColor(floorColor, x, y, GLYPH_TORCH_POSITIONS, elapsedMs)
                 val glow = litColor(floorGlowBase, x, y, GLYPH_TORCH_POSITIONS, elapsedMs)
-                asciiWindow.drawTile(x, y, AsciiTileDescriptor('.', lit, glow))
+                asciiWindow.drawTile(x, y, StaticAsciiTile('.', lit, glow))
             }
         }
         for (x in SPRITE_COLS until TOTAL_COLS) {
             val topLit = litColor(wallColor, x, 0, GLYPH_TORCH_POSITIONS, elapsedMs)
-            asciiWindow.drawTile(x, 0, AsciiTileDescriptor('#', topLit, Color.BLACK))
+            asciiWindow.drawTile(x, 0, StaticAsciiTile('#', topLit, Color.BLACK))
             val bottomLit = litColor(wallColor, x, ROWS - 1, GLYPH_TORCH_POSITIONS, elapsedMs)
-            asciiWindow.drawTile(x, ROWS - 1, AsciiTileDescriptor('#', bottomLit, Color.BLACK))
+            asciiWindow.drawTile(x, ROWS - 1, StaticAsciiTile('#', bottomLit, Color.BLACK))
         }
         for (y in 1 until ROWS - 1) {
             val lit = litColor(wallColor, TOTAL_COLS - 1, y, GLYPH_TORCH_POSITIONS, elapsedMs)
-            asciiWindow.drawTile(TOTAL_COLS - 1, y, AsciiTileDescriptor('#', lit, Color.BLACK))
+            asciiWindow.drawTile(TOTAL_COLS - 1, y, StaticAsciiTile('#', lit, Color.BLACK))
         }
 
         // Brogue-style torch flicker: background color shifts to simulate an unsteady flame; no
@@ -625,7 +625,7 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
             val bright = torchFrameIndex(torch, elapsedMs) == 0
             val fg = if (bright) Color.ORANGE else Color.YELLOW
             val bg = if (bright) Color(0.5f, 0.25f, 0f, 1f) else Color(0.4f, 0.2f, 0f, 1f)
-            asciiWindow.drawTile(torch.x, torch.y, AsciiTileDescriptor('!', fg, bg))
+            asciiWindow.drawTile(torch.x, torch.y, StaticAsciiTile('!', fg, bg))
         }
 
         // Placeholder combatants — specific glyph/color choices are provisional until
@@ -633,7 +633,7 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
         asciiWindow.drawTile(
             GLYPH_PLAYER_COL,
             MID_ROW,
-            AsciiTileDescriptor(
+            StaticAsciiTile(
                 '@',
                 litColor(Color.CYAN, GLYPH_PLAYER_COL, MID_ROW, GLYPH_TORCH_POSITIONS, elapsedMs),
                 litColor(floorGlowBase, GLYPH_PLAYER_COL, MID_ROW, GLYPH_TORCH_POSITIONS, elapsedMs),
@@ -642,7 +642,7 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
         asciiWindow.drawTile(
             GLYPH_MONSTER_COL,
             MID_ROW,
-            AsciiTileDescriptor(
+            StaticAsciiTile(
                 's',
                 litColor(Color.GREEN, GLYPH_MONSTER_COL, MID_ROW, GLYPH_TORCH_POSITIONS, elapsedMs),
                 litColor(floorGlowBase, GLYPH_MONSTER_COL, MID_ROW, GLYPH_TORCH_POSITIONS, elapsedMs),

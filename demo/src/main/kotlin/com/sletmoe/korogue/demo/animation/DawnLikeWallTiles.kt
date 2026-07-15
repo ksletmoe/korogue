@@ -1,6 +1,6 @@
 package com.sletmoe.korogue.demo.animation
 
-import com.sletmoe.kotile.tiles.StaticTile
+import com.sletmoe.kotile.tiles.StaticSpriteTile
 
 /**
  * Named DawnLike wall pieces from `Objects/Wall.png` (16x16 tiles, CC-BY 4.0 — see
@@ -15,17 +15,17 @@ import com.sletmoe.kotile.tiles.StaticTile
  */
 object DawnLikeWallTiles {
     /** West wall turning the corner into the north wall (top-left of the sprite half). */
-    val UPPER_LEFT_CORNER = StaticTile(sheetX = 0, sheetY = 3)
+    val UPPER_LEFT_CORNER = StaticSpriteTile(sheetX = 0, sheetY = 3)
 
     /** A plain north-wall segment (repeat horizontally to span the sprite half's width). */
-    val TOP_WALL = StaticTile(sheetX = 1, sheetY = 3)
+    val TOP_WALL = StaticSpriteTile(sheetX = 1, sheetY = 3)
 
     /** A plain west-wall segment (repeat vertically for a wall of any height). */
-    val LEFT_WALL = StaticTile(sheetX = 0, sheetY = 4)
+    val LEFT_WALL = StaticSpriteTile(sheetX = 0, sheetY = 4)
 
     /** West wall turning the corner into the south wall (bottom-left of the sprite half). */
-    val BOTTOM_LEFT_CORNER = StaticTile(sheetX = 0, sheetY = 5)
+    val BOTTOM_LEFT_CORNER = StaticSpriteTile(sheetX = 0, sheetY = 5)
 
     /** A plain south-wall segment (repeat horizontally to span the sprite half's width). */
-    val BOTTOM_WALL = StaticTile(sheetX = 4, sheetY = 5)
+    val BOTTOM_WALL = StaticSpriteTile(sheetX = 4, sheetY = 5)
 }

@@ -9,7 +9,7 @@ import com.badlogic.gdx.graphics.PixmapIO
 import com.sletmoe.kotile.display.KotileCanvas
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
 import com.sletmoe.kotile.rendering.SpriteTileRenderer
-import com.sletmoe.kotile.tiles.StaticTile
+import com.sletmoe.kotile.tiles.StaticSpriteTile
 import com.sletmoe.kotile.tiles.TileSheet
 import java.util.zip.Deflater
 
@@ -48,7 +48,7 @@ class KotileDemo : ApplicationAdapter() {
         // (tint defaults to white = no color manipulation).
         for (sheetY in 0..2) {
             for (sheetX in 0..13) {
-                putSprite(2 + sheetX, 2 + sheetY, StaticTile(sheetX, sheetY))
+                putSprite(2 + sheetX, 2 + sheetY, StaticSpriteTile(sheetX, sheetY))
             }
         }
 
@@ -56,11 +56,11 @@ class KotileDemo : ApplicationAdapter() {
         val stripLength = 36
         repeat(stripLength) { i ->
             val hue = Color(0f, 0f, 0f, 1f).fromHsv(i * 360f / stripLength, 1f, 1f)
-            putSprite(2 + i, 7, StaticTile(sheetX = 0, sheetY = 2, tint = hue))
+            putSprite(2 + i, 7, StaticSpriteTile(sheetX = 0, sheetY = 2, tint = hue))
         }
         // ...and once more untinted, for comparison.
         repeat(stripLength) { i ->
-            putSprite(2 + i, 9, StaticTile(sheetX = 0, sheetY = 2))
+            putSprite(2 + i, 9, StaticSpriteTile(sheetX = 0, sheetY = 2))
         }
     }
 
@@ -70,7 +70,7 @@ class KotileDemo : ApplicationAdapter() {
      * out-of-bounds cell, so shrinking the window past the showcase would
      * otherwise crash; clip it here instead.
      */
-    private fun putSprite(x: Int, y: Int, tile: StaticTile) {
+    private fun putSprite(x: Int, y: Int, tile: StaticSpriteTile) {
         if (x in 0 until sprites.windowWidth && y in 0 until sprites.windowHeight) {
             sprites.drawTile(x, y, z = 0, staticTile = tile)
         }

@@ -7,7 +7,7 @@ import com.sletmoe.kotile.utilities.Vector2Int
  * `demo/assets/dawnlike/ATTRIBUTION.md`), for the animation showcase's light-flicker demo
  * (krogue-aqo, feeding krogue-ncl/krogue-2ur).
  *
- * Unlike [DawnLikeWallTiles]/[DawnLikeFloorTiles] this isn't a single [com.sletmoe.kotile.tiles.StaticTile]:
+ * Unlike [DawnLikeWallTiles]/[DawnLikeFloorTiles] this isn't a single [com.sletmoe.kotile.tiles.StaticSpriteTile]:
  * DawnLike ships 2-frame decor animation as two *separate* sheet files sharing the same cell
  * coordinate, rather than two cells within one sheet. Building the actual
  * [com.sletmoe.kotile.tiles.AnimatedSpriteTile] needs both `Objects/Decor0.png` and

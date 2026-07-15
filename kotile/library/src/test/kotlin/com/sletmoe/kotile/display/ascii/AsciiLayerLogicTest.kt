@@ -11,7 +11,7 @@ import io.kotest.matchers.shouldBe
  * Pure-logic tests for the layer compositing behaviour that backs
  * [AsciiTileWindow].
  *
- * These tests drive [LayeredTilemap]&lt;[AsciiTileDescriptor]&gt; directly and
+ * These tests drive [LayeredTilemap]&lt;[StaticAsciiTile]&gt; directly and
  * require no OpenGL context, so they always run (no [com.sletmoe.kotile.HeadlessGl]
  * guard needed).
  *
@@ -20,26 +20,26 @@ import io.kotest.matchers.shouldBe
  */
 class AsciiLayerLogicTest : FunSpec({
 
-    fun descriptor(ch: Char) = AsciiTileDescriptor(ch, Color.WHITE, Color.BLACK)
+    fun descriptor(ch: Char) = StaticAsciiTile(ch, Color.WHITE, Color.BLACK)
 
     // -------------------------------------------------------------------------
     // Layer ordering / compositing
     // -------------------------------------------------------------------------
 
     test("an empty tilemap returns null for every cell") {
-        val map = LayeredTilemap<AsciiTileDescriptor>(4, 4)
+        val map = LayeredTilemap<StaticAsciiTile>(4, 4)
         map.topCellAt(0, 0) shouldBe null
     }
 
     test("a cell written on z=0 becomes the top cell") {
-        val map = LayeredTilemap<AsciiTileDescriptor>(4, 4)
+        val map = LayeredTilemap<StaticAsciiTile>(4, 4)
         val d = descriptor('A')
         map.setCell(0, 0, 0, d)
         map.topCellAt(0, 0) shouldBe d
     }
 
     test("higher z wins over lower z at the same cell") {
-        val map = LayeredTilemap<AsciiTileDescriptor>(4, 4)
+        val map = LayeredTilemap<StaticAsciiTile>(4, 4)
         val low = descriptor('L')
         val high = descriptor('H')
         map.setCell(1, 1, 0, low)
@@ -48,7 +48,7 @@ class AsciiLayerLogicTest : FunSpec({
     }
 
     test("lower z shows through when higher z cell is null") {
-        val map = LayeredTilemap<AsciiTileDescriptor>(4, 4)
+        val map = LayeredTilemap<StaticAsciiTile>(4, 4)
         val base = descriptor('B')
         map.setCell(2, 2, 0, base)
         // Layer 1 exists but cell (2,2) is not set on it.
@@ -57,7 +57,7 @@ class AsciiLayerLogicTest : FunSpec({
     }
 
     test("negative z layers are supported and ordered correctly") {
-        val map = LayeredTilemap<AsciiTileDescriptor>(4, 4)
+        val map = LayeredTilemap<StaticAsciiTile>(4, 4)
         val background = descriptor('B')
         val overlay = descriptor('O')
         map.setCell(0, 0, -1, background)
@@ -71,11 +71,11 @@ class AsciiLayerLogicTest : FunSpec({
 
     test("removeCell on a missing layer is a no-op") {
         // Must not throw even though layer 99 was never created.
-        LayeredTilemap<AsciiTileDescriptor>(4, 4).removeCell(0, 0, 99)
+        LayeredTilemap<StaticAsciiTile>(4, 4).removeCell(0, 0, 99)
     }
 
     test("removing the top cell exposes the cell on the layer below") {
-        val map = LayeredTilemap<AsciiTileDescriptor>(4, 4)
+        val map = LayeredTilemap<StaticAsciiTile>(4, 4)
         val base = descriptor('B')
         val top = descriptor('T')
         map.setCell(1, 1, 0, base)
@@ -85,7 +85,7 @@ class AsciiLayerLogicTest : FunSpec({
     }
 
     test("removeCell via Vector3Int overload works") {
-        val map = LayeredTilemap<AsciiTileDescriptor>(4, 4)
+        val map = LayeredTilemap<StaticAsciiTile>(4, 4)
         val d = descriptor('X')
         map.setCell(Vector3Int(2, 3, 0), d)
         map.removeCell(Vector3Int(2, 3, 0))
@@ -97,7 +97,7 @@ class AsciiLayerLogicTest : FunSpec({
     // -------------------------------------------------------------------------
 
     test("clearLayer removes all cells on one layer without disturbing others") {
-        val map = LayeredTilemap<AsciiTileDescriptor>(4, 4)
+        val map = LayeredTilemap<StaticAsciiTile>(4, 4)
         val base = descriptor('B')
         val overlay = descriptor('O')
         map.setCell(0, 0, 0, base)
@@ -110,7 +110,7 @@ class AsciiLayerLogicTest : FunSpec({
     }
 
     test("clearLayer on a layer that does not exist is a no-op") {
-        LayeredTilemap<AsciiTileDescriptor>(4, 4).clearLayer(42)
+        LayeredTilemap<StaticAsciiTile>(4, 4).clearLayer(42)
     }
 
     // -------------------------------------------------------------------------
@@ -118,7 +118,7 @@ class AsciiLayerLogicTest : FunSpec({
     // -------------------------------------------------------------------------
 
     test("clearAllLayers wipes every cell on every layer") {
-        val map = LayeredTilemap<AsciiTileDescriptor>(4, 4)
+        val map = LayeredTilemap<StaticAsciiTile>(4, 4)
         map.setCell(0, 0, 0, descriptor('A'))
         map.setCell(1, 1, 3, descriptor('B'))
         map.clearAllLayers()
@@ -131,7 +131,7 @@ class AsciiLayerLogicTest : FunSpec({
     // -------------------------------------------------------------------------
 
     test("cellAt returns the value on a specific layer ignoring compositing") {
-        val map = LayeredTilemap<AsciiTileDescriptor>(4, 4)
+        val map = LayeredTilemap<StaticAsciiTile>(4, 4)
         val base = descriptor('B')
         val top = descriptor('T')
         map.setCell(0, 0, 0, base)
@@ -143,7 +143,7 @@ class AsciiLayerLogicTest : FunSpec({
     }
 
     test("cellAt returns null for a missing layer") {
-        val map = LayeredTilemap<AsciiTileDescriptor>(4, 4)
+        val map = LayeredTilemap<StaticAsciiTile>(4, 4)
         map.cellAt(0, 0, 99) shouldBe null
     }
 
@@ -152,7 +152,7 @@ class AsciiLayerLogicTest : FunSpec({
     // -------------------------------------------------------------------------
 
     test("layerKeys tracks all written layers") {
-        val map = LayeredTilemap<AsciiTileDescriptor>(4, 4)
+        val map = LayeredTilemap<StaticAsciiTile>(4, 4)
         map.setCell(0, 0, 0, descriptor('A'))
         map.setCell(0, 0, 2, descriptor('B'))
         map.setCell(0, 0, -1, descriptor('C'))
@@ -164,11 +164,11 @@ class AsciiLayerLogicTest : FunSpec({
     // -------------------------------------------------------------------------
 
     test("moveCell from a missing layer is a no-op") {
-        LayeredTilemap<AsciiTileDescriptor>(4, 4).moveCell(0, 0, 99, 1, 1, 0)
+        LayeredTilemap<StaticAsciiTile>(4, 4).moveCell(0, 0, 99, 1, 1, 0)
     }
 
     test("moveCell relocates a cell to another position and layer") {
-        val map = LayeredTilemap<AsciiTileDescriptor>(4, 4)
+        val map = LayeredTilemap<StaticAsciiTile>(4, 4)
         val d = descriptor('M')
         map.setCell(0, 0, 0, d)
         map.moveCell(0, 0, 0, 3, 3, 1)
@@ -181,7 +181,7 @@ class AsciiLayerLogicTest : FunSpec({
     // -------------------------------------------------------------------------
 
     test("setCell and topCellAt vector overloads work") {
-        val map = LayeredTilemap<AsciiTileDescriptor>(4, 4)
+        val map = LayeredTilemap<StaticAsciiTile>(4, 4)
         val d = descriptor('V')
         map.setCell(Vector3Int(1, 2, 0), d)
         map.topCellAt(Vector2Int(1, 2)) shouldBe d

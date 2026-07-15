@@ -5,27 +5,27 @@ import com.sletmoe.kotile.tiles.PlaybackMode
 import com.sletmoe.kotile.tiles.frameIndexAt
 
 /**
- * An [AnimatableAsciiTile] that cycles through a sequence of
- * [AsciiTileDescriptor] frames over time.
+ * A [DynamicAsciiTile] that cycles through a sequence of [StaticAsciiTile]
+ * frames over time.
  *
  * This enables Brogue-style visual effects such as lighting flicker, where a
  * floor cell's background color shifts subtly between frames to simulate the
  * warm, unsteady light of a torch.
  *
  * Time model is **stateless**: callers supply the elapsed wall-clock time on
- * every [descriptorAt] call. The same instance may be placed at multiple grid
+ * every [resolveAt] call. The same instance may be placed at multiple grid
  * cells; all cells sharing the instance show the same frame at the same
  * wall-clock time. To display independent animation phases at different cells,
  * create separate instances or subtract a per-cell offset from [elapsedMs]
- * before calling [descriptorAt].
+ * before calling [resolveAt].
  *
  * ## Construction example — floor cell with Brogue-style torch flicker
  * ```kotlin
  * val flicker = AnimatedAsciiTile(
  *     frames = listOf(
- *         AnimationFrame(AsciiTileDescriptor('.', Color.YELLOW, Color(0.4f, 0.2f, 0f, 1f)), 120),
- *         AnimationFrame(AsciiTileDescriptor('.', Color.YELLOW, Color(0.5f, 0.25f, 0f, 1f)), 80),
- *         AnimationFrame(AsciiTileDescriptor('.', Color.ORANGE, Color(0.45f, 0.22f, 0f, 1f)), 100),
+ *         AnimationFrame(StaticAsciiTile('.', Color.YELLOW, Color(0.4f, 0.2f, 0f, 1f)), 120),
+ *         AnimationFrame(StaticAsciiTile('.', Color.YELLOW, Color(0.5f, 0.25f, 0f, 1f)), 80),
+ *         AnimationFrame(StaticAsciiTile('.', Color.ORANGE, Color(0.45f, 0.22f, 0f, 1f)), 100),
  *     ),
  *     mode = PlaybackMode.PING_PONG,
  * )
@@ -39,9 +39,9 @@ import com.sletmoe.kotile.tiles.frameIndexAt
  *   non-positive [AnimationFrame.durationMs].
  */
 public class AnimatedAsciiTile(
-    public val frames: List<AnimationFrame<AsciiTileDescriptor>>,
+    public val frames: List<AnimationFrame<StaticAsciiTile>>,
     public val mode: PlaybackMode = PlaybackMode.LOOP,
-) : AnimatableAsciiTile {
+) : DynamicAsciiTile {
     init {
         require(frames.isNotEmpty()) { "AnimatedAsciiTile requires at least one frame" }
         frames.forEachIndexed { index, frame ->
@@ -52,13 +52,13 @@ public class AnimatedAsciiTile(
     }
 
     /**
-     * Returns the [AsciiTileDescriptor] for the frame active at [elapsedMs]
+     * Returns the [StaticAsciiTile] for the frame active at [elapsedMs]
      * milliseconds of wall-clock time. [PlaybackMode] governs what happens
      * after the sequence ends.
      *
      * @param elapsedMs monotonically increasing wall-clock time in milliseconds.
      *   Negative values are treated as `0` (first frame).
      */
-    override fun descriptorAt(elapsedMs: Long): AsciiTileDescriptor =
+    override fun resolveAt(elapsedMs: Long): StaticAsciiTile =
         frames[frameIndexAt(frames, mode, elapsedMs)].content
 }

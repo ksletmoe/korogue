@@ -5,11 +5,11 @@ import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.PixmapIO
 import com.badlogic.gdx.Gdx
 import com.sletmoe.kotile.display.KotileCanvas
-import com.sletmoe.kotile.display.ascii.AsciiTileDescriptor
+import com.sletmoe.kotile.display.ascii.StaticAsciiTile
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
 import com.sletmoe.kotile.display.ascii.Fonts
 import com.sletmoe.kotile.rendering.SpriteTileRenderer
-import com.sletmoe.kotile.tiles.StaticTile
+import com.sletmoe.kotile.tiles.StaticSpriteTile
 import com.sletmoe.kotile.tiles.TileSheet
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.doubles.plusOrMinus
@@ -33,7 +33,7 @@ class RenderingLifecycleIntegrationTest : FunSpec({
                 widthInTiles = 4
                 heightInTiles = 2
             }
-            window.drawTile(0, 0, AsciiTileDescriptor(' ', Color.WHITE, Color.RED))
+            window.drawTile(0, 0, StaticAsciiTile(' ', Color.WHITE, Color.RED))
             window.render()
             window.dispose()
             window.dispose() // must not throw or double-free GPU resources
@@ -52,7 +52,7 @@ class RenderingLifecycleIntegrationTest : FunSpec({
             val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
             val canvas = KotileCanvas(8, 8)
             val renderer = SpriteTileRenderer(canvas, sheet)
-            renderer.drawTile(0, 0, z = 0, staticTile = StaticTile(0, 0))
+            renderer.drawTile(0, 0, z = 0, staticTile = StaticSpriteTile(0, 0))
             renderer.render()
             renderer.dispose()
             renderer.dispose() // must not throw or double-free GPU resources
@@ -101,25 +101,25 @@ class RenderingLifecycleIntegrationTest : FunSpec({
             }
             window.resize(20, 20) // sync the canvas layout to the initial 2x2 grid
 
-            window.drawTile(0, 0, AsciiTileDescriptor(' ', Color.WHITE, Color.RED))
+            window.drawTile(0, 0, StaticAsciiTile(' ', Color.WHITE, Color.RED))
             window.render()
 
             // Grow 2x2 -> 4x4: old content must survive, and the newly available corner cell must
             // render at the CORRECT screen position -- this depends on the cache's per-frame pixel
             // height (used by the y-flip scissor math) being recomputed for the new grid size.
             window.resize(40, 40)
-            window.drawTile(3, 3, AsciiTileDescriptor(' ', Color.WHITE, Color.GREEN))
+            window.drawTile(3, 3, StaticAsciiTile(' ', Color.WHITE, Color.GREEN))
             window.render()
 
             // Grow again 4x4 -> 6x6: same check, one more time.
             window.resize(60, 60)
-            window.drawTile(5, 5, AsciiTileDescriptor(' ', Color.WHITE, Color.BLUE))
+            window.drawTile(5, 5, StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
             window.render()
 
             // Shrink 6x6 -> 2x2: the now-out-of-bounds green/blue cells are dropped; a freshly
             // written cell within the smaller grid must still land at the right (smaller) position.
             window.resize(20, 20)
-            window.drawTile(1, 1, AsciiTileDescriptor(' ', Color.WHITE, Color.PURPLE))
+            window.drawTile(1, 1, StaticAsciiTile(' ', Color.WHITE, Color.PURPLE))
             window.render()
 
             // Shrink to the degenerate 1x1 grid: must not crash, and the one surviving cell (0,0,
@@ -150,7 +150,7 @@ class RenderingLifecycleIntegrationTest : FunSpec({
             window.render() // first paint at 3x3, nothing written
 
             window.resize(60, 60) // grow 3x3 -> 6x6
-            window.drawTile(5, 5, AsciiTileDescriptor(' ', Color.WHITE, Color.GREEN)) // new bottom-right corner
+            window.drawTile(5, 5, StaticAsciiTile(' ', Color.WHITE, Color.GREEN)) // new bottom-right corner
             window.render()
             window.dispose()
         }
@@ -175,11 +175,11 @@ class RenderingLifecycleIntegrationTest : FunSpec({
             val windowA = AsciiTileWindow.createWithCanvas(canvas, font) { widthInTiles = 4; heightInTiles = 2 }
             val windowB = AsciiTileWindow.createWithCanvas(canvas, font) { widthInTiles = 4; heightInTiles = 2 }
 
-            windowA.drawTile(0, 0, AsciiTileDescriptor(' ', Color.WHITE, Color.RED))
+            windowA.drawTile(0, 0, StaticAsciiTile(' ', Color.WHITE, Color.RED))
             windowA.render()
             windowA.dispose() // must NOT dispose the shared canvas/font
 
-            windowB.drawTile(0, 0, AsciiTileDescriptor(' ', Color.WHITE, Color.GREEN))
+            windowB.drawTile(0, 0, StaticAsciiTile(' ', Color.WHITE, Color.GREEN))
             windowB.render() // exercises the still-shared canvas after A's dispose
             windowB.dispose()
 

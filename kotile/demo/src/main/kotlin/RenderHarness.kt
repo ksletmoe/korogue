@@ -6,8 +6,8 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.PixmapIO
-import com.sletmoe.kotile.display.ascii.AnimatableAsciiTile
-import com.sletmoe.kotile.display.ascii.AsciiTileDescriptor
+import com.sletmoe.kotile.display.ascii.AsciiTile
+import com.sletmoe.kotile.display.ascii.StaticAsciiTile
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
 import com.sletmoe.kotile.rendering.TileViewport
 import com.sletmoe.kotile.utilities.LayeredTilemap
@@ -40,7 +40,7 @@ private const val MAP_H = 50
 
 private class RenderHarness(private val outPath: String) : ApplicationAdapter() {
     private lateinit var window: AsciiTileWindow
-    private val source = LayeredTilemap<AnimatableAsciiTile>(MAP_W, MAP_H)
+    private val source = LayeredTilemap<AsciiTile>(MAP_W, MAP_H)
     private var frame = 0
 
     override fun create() {
@@ -62,8 +62,8 @@ private class RenderHarness(private val outPath: String) : ApplicationAdapter() 
         // swatch is 4 cells wide. If THESE are bright but the glyph rows below
         // are dark, the darkening is glyph/font-texture specific.
         swatches.forEachIndexed { i, c ->
-            repeat(4) { dx -> source.setCell(i * 4 + dx, 0, 1, AsciiTileDescriptor(' ', Color.BLACK, c)) }
-            repeat(4) { dx -> source.setCell(i * 4 + dx, 1, 1, AsciiTileDescriptor(' ', Color.BLACK, c)) }
+            repeat(4) { dx -> source.setCell(i * 4 + dx, 0, 1, StaticAsciiTile(' ', Color.BLACK, c)) }
+            repeat(4) { dx -> source.setCell(i * 4 + dx, 1, 1, StaticAsciiTile(' ', Color.BLACK, c)) }
         }
 
         // Rows 3-4: GLYPH path at full coverage. Full-block (CP437 0xDB) tinted
@@ -71,8 +71,8 @@ private class RenderHarness(private val outPath: String) : ApplicationAdapter() 
         // above are bright -> font/glyph tinting is the problem. If BOTH are
         // dark -> the darkening is global (gamma / blend / projection).
         swatches.forEachIndexed { i, c ->
-            repeat(4) { dx -> source.setCell(i * 4 + dx, 3, 1, AsciiTileDescriptor('Û', c, Color.BLACK)) }
-            repeat(4) { dx -> source.setCell(i * 4 + dx, 4, 1, AsciiTileDescriptor('Û', c, Color.BLACK)) }
+            repeat(4) { dx -> source.setCell(i * 4 + dx, 3, 1, StaticAsciiTile('Û', c, Color.BLACK)) }
+            repeat(4) { dx -> source.setCell(i * 4 + dx, 4, 1, StaticAsciiTile('Û', c, Color.BLACK)) }
         }
 
         // z=0: a recognizable floor/border so the whole visible area is covered.
@@ -81,7 +81,7 @@ private class RenderHarness(private val outPath: String) : ApplicationAdapter() 
                 val edge = x == 0 || y == 0 || x == MAP_W - 1 || y == MAP_H - 1
                 val glyph = if (edge) '#' else '.'
                 val fg = if (edge) Color.GRAY else Color.LIGHT_GRAY
-                source.setCell(x, y, 0, AsciiTileDescriptor(glyph, fg, Color.BLACK))
+                source.setCell(x, y, 0, StaticAsciiTile(glyph, fg, Color.BLACK))
             }
         }
 
@@ -96,7 +96,7 @@ private class RenderHarness(private val outPath: String) : ApplicationAdapter() 
         val ramp = 20
         repeat(ramp) { i ->
             val v = 1f - i.toFloat() / (ramp - 1)
-            source.setCell(2 + i, 14, 1, AsciiTileDescriptor('@', Color(v, v, 0f, 1f), Color.BLACK))
+            source.setCell(2 + i, 14, 1, StaticAsciiTile('@', Color(v, v, 0f, 1f), Color.BLACK))
         }
     }
 
@@ -104,7 +104,7 @@ private class RenderHarness(private val outPath: String) : ApplicationAdapter() 
         s.forEachIndexed { i, c ->
             val cx = x + i
             if (cx in 0 until MAP_W && y in 0 until MAP_H) {
-                source.setCell(cx, y, 1, AsciiTileDescriptor(c, fg, Color.BLACK))
+                source.setCell(cx, y, 1, StaticAsciiTile(c, fg, Color.BLACK))
             }
         }
     }

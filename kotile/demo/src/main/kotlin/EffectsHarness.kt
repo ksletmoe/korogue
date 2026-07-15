@@ -9,7 +9,7 @@ import com.badlogic.gdx.graphics.PixmapIO
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.sletmoe.kotile.display.KotileCanvas
-import com.sletmoe.kotile.display.ascii.AsciiTileDescriptor
+import com.sletmoe.kotile.display.ascii.StaticAsciiTile
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
 import com.sletmoe.kotile.display.ascii.Font
 import com.sletmoe.kotile.display.ascii.Fonts
@@ -74,7 +74,7 @@ private class EffectsHarness(private val outPath: String) : ApplicationAdapter()
         // A dim floor of '.' so the bolts have a grid to sit "between".
         for (y in 0 until ROWS) {
             for (x in 0 until COLS) {
-                window.drawTile(x, y, AsciiTileDescriptor('.', Color(0.25f, 0.28f, 0.32f, 1f), Color.CLEAR))
+                window.drawTile(x, y, StaticAsciiTile('.', Color(0.25f, 0.28f, 0.32f, 1f), Color.CLEAR))
             }
         }
         window.drawText(1, 0, "free effects layer: bolts at sub-tile positions", Color.LIME, Color.CLEAR)

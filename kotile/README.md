@@ -88,7 +88,7 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
-import com.sletmoe.kotile.display.ascii.AsciiTileDescriptor
+import com.sletmoe.kotile.display.ascii.StaticAsciiTile
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
 
 class HelloKotile : ApplicationAdapter() {
@@ -99,7 +99,7 @@ class HelloKotile : ApplicationAdapter() {
             widthInTiles = 80
             heightInTiles = 30
         }
-        window.fill(AsciiTileDescriptor(' ', Color.WHITE, Color.valueOf("1d1f21ff")))
+        window.fill(StaticAsciiTile(' ', Color.WHITE, Color.valueOf("1d1f21ff")))
         window.drawText(2, 1, "Hello, kotile!", Color.LIME, Color.CLEAR)
     }
 
@@ -129,7 +129,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.sletmoe.kotile.display.KotileCanvas
 import com.sletmoe.kotile.rendering.SpriteTileRenderer
-import com.sletmoe.kotile.tiles.StaticTile
+import com.sletmoe.kotile.tiles.StaticSpriteTile
 import com.sletmoe.kotile.tiles.TileSheet
 
 // 16x16 tiles; pixels that are exactly magenta become transparent.
@@ -137,9 +137,9 @@ val sheet = TileSheet(Gdx.files.internal("tiles.png"), tileWidthPx = 16, tileHei
 val renderer = SpriteTileRenderer(KotileCanvas(16, 16), sheet)
 
 // Draw sheet cell (1,4) at grid (3,2) on layer 0, in its own colors:
-renderer.drawTile(x = 3, y = 2, z = 0, staticTile = StaticTile(sheetX = 1, sheetY = 4))
+renderer.drawTile(x = 3, y = 2, z = 0, staticTile = StaticSpriteTile(sheetX = 1, sheetY = 4))
 // ...and again, recolored via a tint (white = unchanged):
-renderer.drawTile(x = 4, y = 2, z = 0, staticTile = StaticTile(sheetX = 1, sheetY = 4, tint = Color.RED))
+renderer.drawTile(x = 4, y = 2, z = 0, staticTile = StaticSpriteTile(sheetX = 1, sheetY = 4, tint = Color.RED))
 
 // each frame:
 renderer.render()

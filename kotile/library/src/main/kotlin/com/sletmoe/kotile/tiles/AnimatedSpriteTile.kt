@@ -4,7 +4,7 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 
 /**
- * A [Tile] that cycles through a sequence of [TextureRegion] frames over time.
+ * A [DynamicSpriteTile] that cycles through a sequence of [TextureRegion] frames over time.
  *
  * Time model is **stateless**: callers supply the elapsed wall-clock time on
  * every [regionFor] call. The same instance may be placed at multiple grid
@@ -42,7 +42,7 @@ public class AnimatedSpriteTile(
     override val tint: Color = Color.WHITE,
     override val flipX: Boolean = false,
     override val flipY: Boolean = false,
-) : Tile {
+) : DynamicSpriteTile {
     init {
         require(frames.isNotEmpty()) { "AnimatedSpriteTile requires at least one frame" }
         frames.forEachIndexed { index, frame ->

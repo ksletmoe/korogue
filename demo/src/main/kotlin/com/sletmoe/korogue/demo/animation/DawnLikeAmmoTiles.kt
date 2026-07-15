@@ -1,6 +1,6 @@
 package com.sletmoe.korogue.demo.animation
 
-import com.sletmoe.kotile.tiles.StaticTile
+import com.sletmoe.kotile.tiles.StaticSpriteTile
 
 /**
  * Named DawnLike projectile sprites from `Items/Ammo.png` (16x16 tiles, CC-BY 4.0 — see
@@ -14,5 +14,5 @@ import com.sletmoe.kotile.tiles.StaticTile
  */
 object DawnLikeAmmoTiles {
     /** Arrow: pale cream/gray head at the bottom-left, blue fletching at the top-right (southwest-facing native bearing). */
-    val ARROW = StaticTile(sheetX = 0, sheetY = 2)
+    val ARROW = StaticSpriteTile(sheetX = 0, sheetY = 2)
 }

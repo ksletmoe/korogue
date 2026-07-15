@@ -5,15 +5,15 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.PixmapIO
 import com.sletmoe.kotile.display.KotileCanvas
-import com.sletmoe.kotile.display.ascii.AnimatableAsciiTile
+import com.sletmoe.kotile.display.ascii.AsciiTile
 import com.sletmoe.kotile.display.ascii.AnimatedAsciiTile
-import com.sletmoe.kotile.display.ascii.AsciiTileDescriptor
+import com.sletmoe.kotile.display.ascii.StaticAsciiTile
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
 import com.sletmoe.kotile.rendering.SpriteTileRenderer
 import com.sletmoe.kotile.rendering.TileViewport
 import com.sletmoe.kotile.tiles.AnimationFrame
-import com.sletmoe.kotile.tiles.SpriteTileEntry
-import com.sletmoe.kotile.tiles.StaticTile
+import com.sletmoe.kotile.tiles.SpriteTile
+import com.sletmoe.kotile.tiles.StaticSpriteTile
 import com.sletmoe.kotile.tiles.TileSheet
 import com.sletmoe.kotile.utilities.LayeredTilemap
 import io.kotest.core.spec.style.FunSpec
@@ -41,8 +41,8 @@ class ViewportIntegrationTest : FunSpec({
         // Setting the viewport origin to (2, 1) maps that logical cell to
         // screen cell (0, 0), so the top-left 10×10 pixels should be red.
         val pixels = HeadlessGl.render(40, 20, Color.BLACK) {
-            val world = LayeredTilemap<AnimatableAsciiTile>(6, 4)
-            world.setCell(2, 1, 0, AsciiTileDescriptor('Û', Color.RED, Color.CLEAR))
+            val world = LayeredTilemap<AsciiTile>(6, 4)
+            world.setCell(2, 1, 0, StaticAsciiTile('Û', Color.RED, Color.CLEAR))
 
             val window = AsciiTileWindow.create {
                 widthInTiles = 4
@@ -74,8 +74,8 @@ class ViewportIntegrationTest : FunSpec({
         // should produce the same result as writing directly to the internal
         // grid and calling the no-arg render().
         val pixels = HeadlessGl.render(40, 20, Color.BLACK) {
-            val world = LayeredTilemap<AnimatableAsciiTile>(4, 2)
-            world.setCell(0, 0, 0, AsciiTileDescriptor('Û', Color.RED, Color.CLEAR))
+            val world = LayeredTilemap<AsciiTile>(4, 2)
+            world.setCell(0, 0, 0, StaticAsciiTile('Û', Color.RED, Color.CLEAR))
 
             val window = AsciiTileWindow.create {
                 widthInTiles = 4
@@ -97,8 +97,8 @@ class ViewportIntegrationTest : FunSpec({
         // world is in view, and nothing is placed there. The tile placed at
         // (0, 0) is outside the visible window, so all screen cells stay black.
         val pixels = HeadlessGl.render(40, 20, Color.BLACK) {
-            val world = LayeredTilemap<AnimatableAsciiTile>(4, 2)
-            world.setCell(0, 0, 0, AsciiTileDescriptor('Û', Color.RED, Color.CLEAR))
+            val world = LayeredTilemap<AsciiTile>(4, 2)
+            world.setCell(0, 0, 0, StaticAsciiTile('Û', Color.RED, Color.CLEAR))
 
             val window = AsciiTileWindow.create {
                 widthInTiles = 4
@@ -123,8 +123,8 @@ class ViewportIntegrationTest : FunSpec({
         // With viewport (0, 0) it is at screen column 4, outside the 4-wide
         // window — screen stays black. With viewport (4, 0) it maps to screen
         // cell (0, 0) and should appear blue.
-        val world = LayeredTilemap<AnimatableAsciiTile>(8, 4)
-        world.setCell(4, 0, 0, AsciiTileDescriptor(' ', Color.WHITE, Color.BLUE))
+        val world = LayeredTilemap<AsciiTile>(8, 4)
+        world.setCell(4, 0, 0, StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
 
         // Render without scrolling — tile is off-screen.
         val pixelsNoScroll = HeadlessGl.render(40, 20, Color.BLACK) {
@@ -176,8 +176,8 @@ class ViewportIntegrationTest : FunSpec({
             val canvas = KotileCanvas(10, 10)
             val renderer = SpriteTileRenderer(canvas, sheet)
 
-            val world = LayeredTilemap<SpriteTileEntry>(6, 4)
-            world.setCell(2, 1, 0, StaticTile(0, 0))
+            val world = LayeredTilemap<SpriteTile>(6, 4)
+            world.setCell(2, 1, 0, StaticSpriteTile(0, 0))
 
             renderer.render(world, TileViewport(originX = 2, originY = 1))
             canvas.dispose()
@@ -212,8 +212,8 @@ class ViewportIntegrationTest : FunSpec({
             val canvas = KotileCanvas(10, 10)
             val renderer = SpriteTileRenderer(canvas, sheet)
 
-            val world = LayeredTilemap<SpriteTileEntry>(4, 2)
-            world.setCell(0, 0, 0, StaticTile(0, 0))
+            val world = LayeredTilemap<SpriteTile>(4, 2)
+            world.setCell(0, 0, 0, StaticSpriteTile(0, 0))
 
             renderer.render(world, TileViewport(originX = 4, originY = 0))
             canvas.dispose()
@@ -236,14 +236,14 @@ class ViewportIntegrationTest : FunSpec({
         // Regression guard for the render(source, viewport) cache added in krogue-c0q: it must
         // still pick up a write made directly to the caller-owned world between two render calls.
         val pixels = HeadlessGl.render(40, 20, Color.BLACK) {
-            val world = LayeredTilemap<AnimatableAsciiTile>(4, 2)
+            val world = LayeredTilemap<AsciiTile>(4, 2)
             val window = AsciiTileWindow.create {
                 widthInTiles = 4
                 heightInTiles = 2
                 fitToWindow = false
             }
             window.render(world, TileViewport(0, 0)) // first paint: nothing placed yet
-            world.setCell(0, 0, 0, AsciiTileDescriptor(' ', Color.WHITE, Color.BLUE))
+            world.setCell(0, 0, 0, StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
             window.render(world, TileViewport(0, 0)) // must pick up the write with no viewport change
             window.dispose()
         }
@@ -257,7 +257,7 @@ class ViewportIntegrationTest : FunSpec({
         // the shared world would be stolen by whichever window renders first, leaving the other
         // wrongly believing nothing changed. Window B renders SECOND, after A, and must still show
         // its own update.
-        val world = LayeredTilemap<AnimatableAsciiTile>(8, 2)
+        val world = LayeredTilemap<AsciiTile>(8, 2)
         val pixelsB = HeadlessGl.render(40, 20, Color.BLACK) {
             val windowA = AsciiTileWindow.create { widthInTiles = 4; heightInTiles = 2; fitToWindow = false }
             val windowB = AsciiTileWindow.create { widthInTiles = 4; heightInTiles = 2; fitToWindow = false }
@@ -265,8 +265,8 @@ class ViewportIntegrationTest : FunSpec({
             windowB.render(world, TileViewport(4, 0)) // first paint, world columns [4, 8)
 
             // Changes visible only to A (world col 1) and only to B (world col 5).
-            world.setCell(1, 0, 0, AsciiTileDescriptor(' ', Color.WHITE, Color.RED))
-            world.setCell(5, 0, 0, AsciiTileDescriptor(' ', Color.WHITE, Color.GREEN))
+            world.setCell(1, 0, 0, StaticAsciiTile(' ', Color.WHITE, Color.RED))
+            world.setCell(5, 0, 0, StaticAsciiTile(' ', Color.WHITE, Color.GREEN))
 
             windowA.render(world, TileViewport(0, 0)) // A renders first...
             windowB.render(world, TileViewport(4, 0)) // ...then B: must still see its own change
@@ -292,9 +292,9 @@ class ViewportIntegrationTest : FunSpec({
         // in lastVersions -- the existing scroll test in this file uses two separate HeadlessGl
         // windows, which only ever hits each renderer's own first-paint path.
         val pixels = HeadlessGl.render(40, 20, Color.BLACK) {
-            val world = LayeredTilemap<AnimatableAsciiTile>(8, 2)
-            world.setCell(0, 0, 0, AsciiTileDescriptor(' ', Color.WHITE, Color.RED))
-            world.setCell(4, 0, 0, AsciiTileDescriptor(' ', Color.WHITE, Color.GREEN))
+            val world = LayeredTilemap<AsciiTile>(8, 2)
+            world.setCell(0, 0, 0, StaticAsciiTile(' ', Color.WHITE, Color.RED))
+            world.setCell(4, 0, 0, StaticAsciiTile(' ', Color.WHITE, Color.GREEN))
 
             val window = AsciiTileWindow.create {
                 widthInTiles = 4
@@ -322,12 +322,12 @@ class ViewportIntegrationTest : FunSpec({
         // even though nothing is ever written to `world` between the two render() calls below.
         val tile = AnimatedAsciiTile(
             frames = listOf(
-                AnimationFrame(AsciiTileDescriptor(' ', Color.WHITE, Color.RED), durationMs = 100),
-                AnimationFrame(AsciiTileDescriptor(' ', Color.WHITE, Color.GREEN), durationMs = 100),
+                AnimationFrame(StaticAsciiTile(' ', Color.WHITE, Color.RED), durationMs = 100),
+                AnimationFrame(StaticAsciiTile(' ', Color.WHITE, Color.GREEN), durationMs = 100),
             ),
         )
         val pixels = HeadlessGl.render(40, 20, Color.BLACK) {
-            val world = LayeredTilemap<AnimatableAsciiTile>(4, 2)
+            val world = LayeredTilemap<AsciiTile>(4, 2)
             world.setCell(0, 0, 0, tile)
 
             val window = AsciiTileWindow.create {
