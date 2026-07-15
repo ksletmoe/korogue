@@ -17,6 +17,17 @@ enum class BlendMode {
      * stays dark regardless of the tint's magnitude; light is genuinely additive, recoloring isn't).
      */
     ADDITIVE,
+
+    /**
+     * Drawn pixels overwrite what's beneath outright — color and alpha alike — instead of
+     * compositing over it. Needed when the source already **is** the complete, authoritative
+     * image for the region it covers (e.g. blitting a [com.sletmoe.kotile.rendering.GridCompositeCache]'s
+     * offscreen composite onto the canvas, krogue-drk/ADR-0024): with [NORMAL] blending, a
+     * transparent source pixel (`alpha == 0`, meaning "nothing here now") leaves the destination's
+     * *previous* frame content untouched instead of clearing it, so a cell cleared since the last
+     * paint would keep showing its stale color forever.
+     */
+    REPLACE,
     ;
 
     /**
@@ -28,6 +39,7 @@ enum class BlendMode {
         when (this) {
             NORMAL -> batch.setBlendFunctionSeparate(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA, GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
             ADDITIVE -> batch.setBlendFunctionSeparate(GL20.GL_SRC_ALPHA, GL20.GL_ONE, GL20.GL_SRC_ALPHA, GL20.GL_ONE)
+            REPLACE -> batch.setBlendFunctionSeparate(GL20.GL_ONE, GL20.GL_ZERO, GL20.GL_ONE, GL20.GL_ZERO)
         }
     }
 }

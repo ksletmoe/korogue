@@ -2,6 +2,7 @@ package com.sletmoe.kotile.rendering
 
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.utils.Disposable
+import com.sletmoe.kotile.display.BlendMode
 import com.sletmoe.kotile.display.KotileCanvas
 import com.sletmoe.kotile.tiles.SpriteTileEntry
 import com.sletmoe.kotile.tiles.StaticTile
@@ -188,9 +189,12 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) : Disposable {
         compositeCache.cachedRegion?.let { region ->
             // On-screen (possibly scaled/letterboxed) size, matching how KotileCanvas.drawTile
             // places individual cells — the cache is captured at native resolution but blitted at
-            // whatever size/offset the current GridLayout dictates.
+            // whatever size/offset the current GridLayout dictates. REPLACE, not the default NORMAL
+            // blend: the cache is already the complete authoritative composite for this region, so a
+            // cell cleared since the last paint (fully transparent in the cache) must overwrite the
+            // canvas's stale pixel there rather than alpha-blend and leave it untouched (krogue-drk).
             val l = canvas.layout
-            canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = l.contentWidthPx, h = l.contentHeightPx)
+            canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = l.contentWidthPx, h = l.contentHeightPx, blend = BlendMode.REPLACE)
         }
     }
 
@@ -254,7 +258,7 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) : Disposable {
         canvas.reapplyViewport()
         viewportCache.cachedRegion?.let { region ->
             val l = canvas.layout
-            canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = l.contentWidthPx, h = l.contentHeightPx)
+            canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = l.contentWidthPx, h = l.contentHeightPx, blend = BlendMode.REPLACE)
         }
         canvas.end()
     }
