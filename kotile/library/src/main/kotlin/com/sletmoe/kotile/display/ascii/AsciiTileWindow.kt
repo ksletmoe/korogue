@@ -164,6 +164,11 @@ class AsciiTileWindow private constructor(
     private val backgroundTexture: Texture
     private val backgroundRegion: TextureRegion
 
+    // Guards dispose() against a second call. Unlike GridCompositeCache (whose dispose() nulls its
+    // own fields so a repeat call is a safe no-op via `?.dispose()`), the resources released here --
+    // a shared KotileCanvas/Font, a plain Texture -- aren't safe to dispose twice on their own.
+    private var disposed = false
+
     init {
         // A 1x1 white texture, tinted per cell and stretched to the tile size —
         // so it is always magnified and never minified. It therefore needs no
@@ -602,8 +607,12 @@ class AsciiTileWindow private constructor(
      * - The [Font] passed to [createWithCanvas] follows the same rule: if you
      *   supply a font it is considered externally owned and will **not** be
      *   disposed by this window.
+     *
+     * A second call is a no-op (see [disposed]).
      */
     override fun dispose() {
+        if (disposed) return
+        disposed = true
         if (ownsCanvas) canvas.dispose()
         if (ownsFont) font.dispose()
         backgroundTexture.dispose()
