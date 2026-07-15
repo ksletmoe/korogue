@@ -1,6 +1,6 @@
 package com.sletmoe.korogue.ecs
 
-import kotlin.random.Random
+import com.sletmoe.korogue.random.GameRandom
 
 /**
  * Owns every [Entity] and [System] and drives them via [tick].
@@ -20,8 +20,21 @@ import kotlin.random.Random
  * **Mutation flows through [World].** [Entity] is read-only to callers; component
  * changes go through [set] / [update] / [remove], giving a single seam onto which
  * change tracking / save-state deltas can later be hooked.
+ *
+ * **Randomness is seeded by construction** (ADR-0025). The world owns its [random], so
+ * every tick draws from a seeded, serializable stream and there is no API path to an
+ * unseeded world — ADR-0009's "same master seed ⇒ same world + loot" and exact
+ * save/resume hold without the caller threading an RNG through [tick]. Pass
+ * [GameRandom.fromSeed] to reproduce a specific game (or to pin a test); the default
+ * rolls a fresh master seed.
+ *
+ * @property random this world's source of randomness, and part of its save state — the
+ *   save codec snapshots it, so a loaded game resumes mid-stream. Draw named streams from
+ *   it ([GameRandom.stream]) for any randomness outside a tick.
  */
-class World {
+class World(
+    val random: GameRandom = GameRandom.random(),
+) {
     private var nextId = 0L
     private val entitiesById = LinkedHashMap<EntityId, Entity>()
     private val systems = ArrayList<System>()
@@ -174,14 +187,29 @@ class World {
      * Runs every registered system once in registration order, drains the [events] bus to
      * its subscribers, then advances the turn counter. Events are dispatched after all
      * systems have run, so subscribers observe a consistent end-of-tick world.
+     *
+     * Systems draw randomness from this world's [random] via [TickContext.random], so a
+     * tick is reproducible from the master seed with nothing for the caller to remember.
      */
-    fun tick(
-        elapsedMs: Long = 0L,
-        random: Random = Random.Default,
-    ) {
-        val ctx = TickContext(turn = turn, elapsedMs = elapsedMs, random = random)
+    fun tick(elapsedMs: Long = 0L) {
+        val ctx = tickContext(elapsedMs)
         for (system in systems) system.update(this, ctx)
         events.dispatch()
         turn++
     }
+
+    /**
+     * A [TickContext] for the turn about to run, drawing on this world's seeded [random].
+     *
+     * For running a single [System] **out of band** — outside [tick], without advancing the
+     * turn or firing the others. The motivating case is priming derived state before the
+     * first tick: a turn-based game's light map and perception caches are computed by their
+     * systems during a tick, so a freshly built (or just-loaded) world renders black until
+     * the player moves; calling `lighting.update(world, world.tickContext())` at startup
+     * fills them in without giving monsters a free turn.
+     *
+     * Prefer [tick] for anything that should count as a turn.
+     */
+    fun tickContext(elapsedMs: Long = 0L): TickContext =
+        TickContext(turn = turn, elapsedMs = elapsedMs, random = random.stream(GameRandom.GAMEPLAY))
 }

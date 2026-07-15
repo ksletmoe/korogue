@@ -145,9 +145,10 @@ MoveIntent?`. To add an AI:
 
 1. **Write it.** Implement `BehaviorStrategy` — a *pure decision* that reads the world and
    returns a `MoveIntent` (or null to stay put). Don't mutate the world (`BehaviorSystem`
-   applies the intent through the mutation seam); draw randomness from `ctx.random` (the seeded
-   gameplay stream) so runs replay; keep per-entity state in components, since one instance is
-   shared across every entity bearing its id.
+   applies the intent through the mutation seam); draw randomness from `ctx.random` — the
+   world's own seeded gameplay stream, since the world owns its RNG (ADR-0025) — so runs
+   replay and saves resume mid-stream; keep per-entity state in components, since one instance
+   is shared across every entity bearing its id.
 2. **Register it** under a stable id on the module:
    `GameModule.engineDefaults().strategy("patrol", PatrolStrategy()).build()`.
 3. **Tag entities** with `Behavior("patrol")`. Each tick `BehaviorSystem` resolves the id via

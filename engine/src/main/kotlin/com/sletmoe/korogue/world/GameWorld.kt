@@ -6,6 +6,7 @@ import com.sletmoe.korogue.components.ZoneMember
 import com.sletmoe.korogue.ecs.Entity
 import com.sletmoe.korogue.ecs.EntityId
 import com.sletmoe.korogue.ecs.World
+import com.sletmoe.korogue.random.GameRandom
 import com.sletmoe.korogue.utilities.initialize
 import kotlin.random.Random
 
@@ -35,6 +36,14 @@ open class GameWorld(
 
     /** The zone registry as a live, read-only view — reflects later [addZone]/[removeZone] calls. */
     val zones: Map<String, Zone> = zoneRegistry
+
+    /**
+     * This world's source of randomness — the [ecs] world's [World.random], surfaced here so
+     * game code with a [GameWorld] in hand can draw its own named streams
+     * (`world.random.stream("loot")`) without plumbing one alongside. One master seed backs
+     * worldgen, gameplay, and everything the game adds (ADR-0009, ADR-0025).
+     */
+    val random: GameRandom get() = ecs.random
 
     var currentZoneId: String
         get() = _currentZoneId
@@ -122,7 +131,14 @@ open class GameWorld(
         return zone.isWalkable(x, y) && entityAt(zoneId, x, y) == null
     }
 
-    open class Builder {
+    /**
+     * @property random the master RNG for the world being built. It seeds zone generation here
+     *   and becomes the built [World.random], so one seed reproduces the whole game. Defaults
+     *   to a fresh random master seed; pass [GameRandom.fromSeed] to reproduce a known one.
+     */
+    open class Builder(
+        private val random: GameRandom = GameRandom.random(),
+    ) {
         private val zones: MutableMap<String, Zone> = mutableMapOf()
         private var currentZoneId: String? = null
 
@@ -131,12 +147,19 @@ open class GameWorld(
         // touches a live World.
         private val pendingSpawns: MutableList<Pair<String, SpawnRequest>> = mutableListOf()
 
+        /**
+         * Generates and registers a zone.
+         *
+         * @param random the stream this zone's generators draw from. Defaults to the world's
+         *   [GameRandom.WORLDGEN] stream, so zones are reproducible from the master seed by
+         *   default; override only to isolate a zone on a stream of its own.
+         */
         fun zone(
             zoneId: String,
             width: Int,
             height: Int,
             isCurrentZone: Boolean = false,
-            random: Random = Random.Default,
+            random: Random = this.random.stream(GameRandom.WORLDGEN),
             zoneBuilderInit: Zone.Builder.() -> Unit = {},
         ): Zone {
             // Build the Zone.Builder directly (rather than Zone.create) so its buffered
@@ -162,7 +185,7 @@ open class GameWorld(
                 throw RuntimeException("A World must have the currentZoneId set")
             }
 
-            val gameWorld = GameWorld(World(), zones, currentZoneId!!)
+            val gameWorld = GameWorld(World(random), zones, currentZoneId!!)
 
             // Materialize buffered zone-gen spawns now that the ECS world exists (ADR-0019),
             // adding Position (the cell) and ZoneMember (the zone) to each entity's own components.
@@ -175,8 +198,15 @@ open class GameWorld(
     }
 
     companion object {
-        fun create(worldBuilderInit: Builder.() -> Unit = {}): GameWorld {
-            return initialize(Builder(), worldBuilderInit).build()
+        /**
+         * Builds a world. [random] seeds both its generation and its play — pass
+         * [GameRandom.fromSeed] to reproduce a shared seed, or omit it to roll a fresh game.
+         */
+        fun create(
+            random: GameRandom = GameRandom.random(),
+            worldBuilderInit: Builder.() -> Unit = {},
+        ): GameWorld {
+            return initialize(Builder(random), worldBuilderInit).build()
         }
     }
 }

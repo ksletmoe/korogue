@@ -23,6 +23,19 @@ class GameRandom private constructor(
     fun snapshot(): GameRandomState = GameRandomState(masterSeed, streams.mapValues { it.value.state() })
 
     companion object {
+        /**
+         * The stream [com.sletmoe.korogue.ecs.World.tick] hands to every system each turn —
+         * the sink for combat rolls, AI choices, and anything else gameplay draws.
+         */
+        const val GAMEPLAY = "gameplay"
+
+        /**
+         * The stream world generation draws from — the default for
+         * [com.sletmoe.korogue.world.GameWorld.Builder.zone]. Isolated from [GAMEPLAY], so
+         * "same master seed ⇒ same world" holds however gameplay evolves.
+         */
+        const val WORLDGEN = "worldgen"
+
         /** A game reproducible from [masterSeed]. */
         fun fromSeed(masterSeed: Long): GameRandom = GameRandom(masterSeed, linkedMapOf())
 

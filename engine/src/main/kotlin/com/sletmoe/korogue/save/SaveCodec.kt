@@ -18,16 +18,21 @@ import kotlinx.serialization.decodeFromByteArray
 import kotlinx.serialization.encodeToByteArray
 
 /**
- * A loaded game: the rebuilt [GameWorld], its [GameRandom], and per-zone fog-of-war memory
- * ([fog], zoneId → explored grid; empty if the save had none). The host restores [fog] into
- * its `ZoneFog` so explored areas survive a save/load (krogue-k77).
+ * A loaded game: the rebuilt [GameWorld] and per-zone fog-of-war memory ([fog], zoneId →
+ * explored grid; empty if the save had none). The host restores [fog] into its `ZoneFog` so
+ * explored areas survive a save/load (krogue-k77).
  */
 data class LoadedGame(
     val world: GameWorld,
-    val random: GameRandom,
     val fog: Map<String, Grid<Boolean>> = emptyMap(),
     val schedule: SchedulerState = SchedulerState(),
-)
+) {
+    /**
+     * The restored [GameRandom] — every stream resumed mid-sequence, so play continues as if
+     * never saved. Owned by [world] (ADR-0025); surfaced here for convenience.
+     */
+    val random: GameRandom get() = world.random
+}
 
 /**
  * Saves/loads a game to/from CBOR bytes (ADR-0009). Built from a [ComponentRegistry] (a
@@ -41,9 +46,13 @@ class SaveCodec(
 ) {
     private val cbor = Cbor { serializersModule = components.serializersModule }
 
+    /**
+     * Encodes [world] — entities, terrain, and its [GameWorld.random] state — to bytes. The RNG
+     * rides along with the world rather than being passed in, so a save cannot be written that
+     * resumes on a different (or unseeded) stream.
+     */
     fun save(
         world: GameWorld,
-        random: GameRandom,
         fog: Map<String, Grid<Boolean>> = emptyMap(),
         schedule: SchedulerState = SchedulerState(),
     ): ByteArray {
@@ -61,7 +70,7 @@ class SaveCodec(
                 currentZoneId = world.currentZoneId,
                 turn = ecs.currentTurn,
                 nextEntityId = ecs.nextEntityId,
-                rng = random.snapshot(),
+                rng = world.random.snapshot(),
                 zones = zones,
                 entities = entities,
                 fog = savedFog,
@@ -80,13 +89,13 @@ class SaveCodec(
 
         val zones = data.zones.associate { it.zoneId to rebuildZone(it) }
         val fog = data.fog.associate { it.zoneId to rebuildFog(it) }
-        val ecs = World()
+        val ecs = World(GameRandom.restore(data.rng))
         ecs.restore(
             turn = data.turn,
             nextId = data.nextEntityId,
             entities = data.entities.map { Entity(EntityId(it.id), it.components) },
         )
-        return LoadedGame(GameWorld(ecs, zones, data.currentZoneId), GameRandom.restore(data.rng), fog, data.schedule)
+        return LoadedGame(GameWorld(ecs, zones, data.currentZoneId), fog, data.schedule)
     }
 
     private fun <T> flatten(grid: Grid<T>): List<T> {

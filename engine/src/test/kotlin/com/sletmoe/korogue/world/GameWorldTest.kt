@@ -7,6 +7,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.collections.shouldNotContain
 import io.kotest.matchers.shouldBe
+import kotlin.random.Random
 
 /**
  * Tests for [GameWorld]'s dynamic zone registry (ADR-0016, krogue-go8): a world can grow and shrink
@@ -22,7 +23,7 @@ class GameWorldTest : FunSpec({
 
     test("addZone registers a zone you can then enter") {
         val world = world()
-        world.addZone(Zone.create("next", 3, 3))
+        world.addZone(Zone.create("next", 3, 3, Random(0)))
 
         world.zones.keys shouldContainExactlyInAnyOrder listOf("start", "next")
         world.currentZoneId = "next" // now a legal switch
@@ -33,14 +34,14 @@ class GameWorldTest : FunSpec({
         val world = world()
         val captured: Map<String, Zone> = world.zones // as a system would hold it
 
-        world.addZone(Zone.create("next", 3, 3))
+        world.addZone(Zone.create("next", 3, 3, Random(0)))
 
         captured.containsKey("next") shouldBe true
     }
 
     test("removeZone discards a zone's terrain") {
         val world = world()
-        world.addZone(Zone.create("next", 3, 3))
+        world.addZone(Zone.create("next", 3, 3, Random(0)))
         world.currentZoneId = "next"
 
         world.removeZone("start")
@@ -60,7 +61,7 @@ class GameWorldTest : FunSpec({
 
     test("relocate sets ZoneMember and Position together, atomically (ADR-0021 Mechanic B)") {
         val world = world()
-        world.addZone(Zone.create("next", 3, 3))
+        world.addZone(Zone.create("next", 3, 3, Random(0)))
         val entity = world.ecs.spawn(Position(1, 1), ZoneMember("start")).id
 
         world.relocate(entity, "next", 2, 2)
@@ -71,7 +72,7 @@ class GameWorldTest : FunSpec({
 
     test("relocate is a no-op for an unknown entity id") {
         val world = world()
-        world.addZone(Zone.create("next", 3, 3))
+        world.addZone(Zone.create("next", 3, 3, Random(0)))
         val entity = world.ecs.spawn(Position(1, 1), ZoneMember("start")).id
         world.ecs.despawn(entity)
 

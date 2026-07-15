@@ -69,7 +69,7 @@ class ZoneGeneratorTest : FunSpec({
 
     test("Zone.create fails fast if an entity-aware generator buffered spawns") {
         shouldThrow<IllegalStateException> {
-            Zone.create("t", 5, 5) { addFeature(ZoneGenerator { it.spawn(1, 1, Tag("x")) }) }
+            Zone.create("t", 5, 5, Random(1)) { addFeature(ZoneGenerator { it.spawn(1, 1, Tag("x")) }) }
         }
     }
 

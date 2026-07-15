@@ -20,8 +20,11 @@ import com.sletmoe.korogue.ecs.World
  * - **Return null to pass.** A null result means "stay put this tick" — no intent is
  *   attached. The decision surface is currently movement; richer action types (attack,
  *   use, cast) would broaden this return type, not the registration mechanism.
- * - **Deterministic via [ctx].** Draw any randomness from `ctx.random` (a seeded
- *   gameplay stream, ADR-0009) so the same seed replays identically — never `Random.Default`.
+ * - **Deterministic via [ctx].** Draw any randomness from `ctx.random` — the world's seeded
+ *   gameplay stream (ADR-0009, ADR-0025) — so the same seed replays identically and a save
+ *   resumes mid-stream. Reaching for `Random.Default` (or any RNG of your own) instead is the
+ *   one way a strategy can still break that guarantee: it is unseeded and unsaveable, so the
+ *   replay diverges. Need an isolated sequence? Take a named stream off `world.random`.
  * - **Stateless / shared.** One instance is registered once and reused for every entity
  *   bearing its id, so keep per-entity state in components, not in the strategy object.
  *

@@ -69,11 +69,20 @@ open class Zone(
         y: Int,
     ): Boolean = isPassable(x, y, setOf(MovementTags.WALK))
 
+    /**
+     * @property random the stream feature generators draw from. Required, and deliberately
+     *   has no default: an unseeded generator silently forfeits ADR-0009's reproducible
+     *   worldgen (ADR-0025). Prefer
+     *   [GameWorld.Builder.zone][com.sletmoe.korogue.world.GameWorld.Builder.zone], which
+     *   supplies the world's own
+     *   [worldgen stream][com.sletmoe.korogue.random.GameRandom.WORLDGEN]; pass one
+     *   explicitly here only when building terrain standalone.
+     */
     open class Builder(
         private val zoneId: String,
         width: Int,
         height: Int,
-        private val random: Random = Random.Default,
+        private val random: Random,
     ) {
         private val tiles: Grid<Tile> = Grid(width, height, BLANK_TILE)
         private val genContext = ZoneGenContext(tiles, random)
@@ -123,13 +132,15 @@ open class Zone(
          * [GameWorld.Builder.zone][com.sletmoe.korogue.world.GameWorld.Builder.zone] for
          * entity-aware generation, which captures and materializes them.
          *
+         * @param random the stream feature generators draw from — see [Builder.random] for why
+         *   it is required rather than defaulted.
          * @throws IllegalStateException if the [zoneBuilderInit] buffered any entity spawns.
          */
         fun create(
             zoneId: String,
             width: Int,
             height: Int,
-            random: Random = Random.Default,
+            random: Random,
             zoneBuilderInit: Builder.() -> Unit = {},
         ): Zone {
             val builder = initialize(Builder(zoneId, width, height, random), zoneBuilderInit)

@@ -34,7 +34,7 @@ class SaveCodecTest : FunSpec({
     test("round-trips entities, terrain, currentZoneId, turn, RNG, and the id counter") {
         val rng = GameRandom.fromSeed(42)
         val world =
-            GameWorld.create {
+            GameWorld.create(rng) {
                 zone("a", 4, 4, isCurrentZone = true) { fill(floor) }
                 zone("b", 3, 3) { fill(floor) }
             }
@@ -51,7 +51,7 @@ class SaveCodecTest : FunSpec({
         repeat(3) { world.ecs.tick() }
         repeat(5) { rng.stream("gameplay").nextInt() }
 
-        val loaded = codec.load(codec.save(world, rng))
+        val loaded = codec.load(codec.save(world))
 
         loaded.world.currentZoneId shouldBe "a"
         loaded.world.ecs.currentTurn shouldBe 3
@@ -87,7 +87,7 @@ class SaveCodecTest : FunSpec({
             }
         val fogB = Grid(3, 2, false).apply { this[2, 1] = true }
 
-        val loaded = codec.load(codec.save(world, GameRandom.fromSeed(1), mapOf("a" to fogA, "b" to fogB)))
+        val loaded = codec.load(codec.save(world, mapOf("a" to fogA, "b" to fogB)))
 
         loaded.fog.keys shouldBe setOf("a", "b")
         val a = loaded.fog.getValue("a")
@@ -134,7 +134,7 @@ class SaveCodecTest : FunSpec({
                 }
             }
 
-        val loaded = codec.load(codec.save(world, GameRandom.fromSeed(7)))
+        val loaded = codec.load(codec.save(world))
         val tiles = loaded.world.zones.getValue("cave").tiles
 
         for (y in 0 until 6) {
@@ -171,7 +171,7 @@ class SaveCodecTest : FunSpec({
                 }
             }
 
-        val savedBytes = codec.save(world, GameRandom.fromSeed(1))
+        val savedBytes = codec.save(world)
 
         // Baseline: what the pre-krogue-yox codec wrote for this zone — one full Tile (name,
         // two colors, two booleans) per cell, no interning/RLE. Reproduced here with the same
@@ -190,7 +190,7 @@ class SaveCodecTest : FunSpec({
     test("a save without fog loads with empty fog (additive default, no version bump)") {
         val world = GameWorld.create { zone("a", 2, 2, isCurrentZone = true) { fill(floor) } }
 
-        val loaded = codec.load(codec.save(world, GameRandom.fromSeed(1)))
+        val loaded = codec.load(codec.save(world))
 
         loaded.fog shouldBe emptyMap()
     }
@@ -203,7 +203,7 @@ class SaveCodecTest : FunSpec({
                 daemon("hunger", everyTurns = 10)
             }
 
-        val loaded = codec.load(codec.save(world, GameRandom.fromSeed(1), schedule = scheduler.snapshot()))
+        val loaded = codec.load(codec.save(world, schedule = scheduler.snapshot()))
 
         loaded.schedule shouldBe scheduler.snapshot()
         // Restore into a fresh scheduler and confirm the timers are live.
@@ -214,7 +214,7 @@ class SaveCodecTest : FunSpec({
     test("a save without a schedule loads with an empty one (additive default)") {
         val world = GameWorld.create { zone("a", 2, 2, isCurrentZone = true) { fill(floor) } }
 
-        val loaded = codec.load(codec.save(world, GameRandom.fromSeed(1)))
+        val loaded = codec.load(codec.save(world))
 
         loaded.schedule shouldBe SchedulerState()
     }

@@ -30,3 +30,12 @@ Point-in-time records of **why** significant or hard-to-reverse decisions were m
 | [0014](0014-extensibility-ethos.md) | Extensibility ethos — pluggable policy, fixed mechanism | Accepted |
 | [0015](0015-visibility-and-perception.md) | Visibility & perception — three layers, composable senses | Accepted |
 | [0016](0016-dynamic-zones-for-multi-level-worlds.md) | Dynamic zones for multi-level worlds | Accepted |
+| [0017](0017-display-scaling-and-resize.md) | Dynamic window resize, display scaling, and centering | Accepted |
+| [0018](0018-layer-model-grid-and-free-layers.md) | kotile layer model — grid layers and free (pixel-space) layers | Accepted |
+| [0019](0019-prefab-entity-aware-worldgen.md) | Prefab-based, entity-aware world generation | Accepted |
+| [0020](0020-magical-darkness-region-concealment.md) | Magical darkness as region concealment (not just unlit) | Accepted (supersedes part of ADR-0015) |
+| [0021](0021-simulation-scope-and-cross-zone-awareness.md) | Simulation scope vs. cross-zone awareness — two independent knobs | Accepted |
+| [0022](0022-entity-occupancy-collision-and-locomotion.md) | Entity occupancy — tag-based collision and locomotion | Accepted |
+| [0023](0023-time-cost-turn-scheduling-and-time-axes.md) | Time-cost turn scheduling (energy model) and the game-time vs animation-time split | Proposed |
+| [0024](0024-dirty-region-redraw-grid-composite-cache.md) | Grid composite cache instead of per-frame full repaint | Accepted |
+| [0025](0025-world-owns-its-rng.md) | The world owns its RNG — determinism by construction | Accepted |

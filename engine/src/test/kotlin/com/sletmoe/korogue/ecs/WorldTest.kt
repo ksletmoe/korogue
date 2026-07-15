@@ -1,13 +1,14 @@
 package com.sletmoe.korogue.ecs
 
+import com.sletmoe.korogue.random.GameRandom
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.booleans.shouldBeFalse
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.types.shouldBeInstanceOf
-import kotlin.random.Random
 
 // Test components live in TestComponents.kt.
 
@@ -186,15 +187,15 @@ class WorldTest : DescribeSpec({
             seenTurns shouldContainExactly listOf(0L, 1L)
         }
 
-        it("passes elapsedMs and random through the context") {
-            val world = World()
+        it("passes elapsedMs through the context, alongside the world's own gameplay stream") {
+            val world = World(GameRandom.fromSeed(42))
             var seen: TickContext? = null
             world.addSystem { _, ctx -> seen = ctx }
-            val rng = Random(42)
-            world.tick(elapsedMs = 16L, random = rng)
+            world.tick(elapsedMs = 16L)
             val captured = requireNotNull(seen)
             captured.elapsedMs shouldBe 16L
-            captured.random shouldBe rng
+            // Systems get the world's seeded stream — not an RNG the caller had to supply.
+            captured.random shouldBe world.random.stream(GameRandom.GAMEPLAY)
         }
 
         it("lets a system query and mutate the world") {
@@ -215,6 +216,63 @@ class WorldTest : DescribeSpec({
             val s2 = System { _, _ -> }
             world.addSystem(s1).addSystem(s2)
             world.systems() shouldContainExactly listOf(s1, s2)
+        }
+    }
+
+    // The out-of-band seam (ADR-0025): running one system without taking a turn. It exists so
+    // callers priming derived state at startup (light maps, perception caches) don't have to
+    // invent a TickContext — and an invented one meant an invented, unseeded RNG.
+    describe("tickContext") {
+        it("hands out the world's own gameplay stream, so an out-of-band run is seeded too") {
+            val world = World(GameRandom.fromSeed(42))
+            world.tickContext().random shouldBe world.random.stream(GameRandom.GAMEPLAY)
+        }
+
+        it("reports the turn about to run and passes elapsedMs through") {
+            val world = World()
+            world.tick()
+            world.tick()
+            val ctx = world.tickContext(elapsedMs = 16L)
+            ctx.turn shouldBe 2L // the turn tick() would process next, matching what tick() passes
+            ctx.elapsedMs shouldBe 16L
+        }
+
+        it("defaults elapsedMs to zero") {
+            World().tickContext().elapsedMs shouldBe 0L
+        }
+
+        it("neither advances the turn nor runs systems — the whole point of priming") {
+            val world = World()
+            var ran = 0
+            world.addSystem { _, _ -> ran++ }
+
+            repeat(3) { world.tickContext() }
+
+            ran shouldBe 0
+            world.currentTurn shouldBe 0L
+            // …and the world still ticks normally afterwards.
+            world.tick()
+            ran shouldBe 1
+            world.currentTurn shouldBe 1L
+        }
+
+        it("shares the gameplay stream with tick, so priming and ticking can't desync") {
+            // Both draw the same sequence: a system primed out of band consumes from the same
+            // stream a later tick continues, rather than replaying draws or forking a parallel one.
+            val world = World(GameRandom.fromSeed(7))
+            val primed = world.tickContext().random.nextLong()
+
+            var duringTick: Long? = null
+            world.addSystem { _, ctx -> duringTick = ctx.random.nextLong() }
+            world.tick()
+
+            duringTick shouldNotBe primed // the stream advanced; it did not restart
+
+            // Against a fresh stream off the same seed: priming took the first draw, and the
+            // tick picked up at the second — one continuous sequence across both entry points.
+            val expected = GameRandom.fromSeed(7).stream(GameRandom.GAMEPLAY)
+            expected.nextLong() shouldBe primed
+            expected.nextLong() shouldBe duringTick
         }
     }
 })

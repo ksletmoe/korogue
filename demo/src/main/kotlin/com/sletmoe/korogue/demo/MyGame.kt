@@ -26,7 +26,6 @@ import com.sletmoe.korogue.components.RenderLayer
 import com.sletmoe.korogue.components.Renderable
 import com.sletmoe.korogue.components.ZoneMember
 import com.sletmoe.korogue.ecs.EntityId
-import com.sletmoe.korogue.ecs.TickContext
 import com.sletmoe.korogue.events.EntityDamaged
 import com.sletmoe.korogue.events.EntityDied
 import com.sletmoe.korogue.events.ItemPickedUp
@@ -106,7 +105,12 @@ import kotlin.random.Random
  * reads the current zone each frame, so a transition needs no renderer rebuild.
  */
 class MyGame(
-    private var gameRandom: GameRandom = GameRandom.random(),
+    /**
+     * The RNG for a **new** game — pass [GameRandom.fromSeed] to replay a known seed. It seeds
+     * [buildWorld], after which the world owns it (`world.random`) and a [load] swaps in the
+     * save's; nothing here re-reads this field.
+     */
+    private val gameRandom: GameRandom = GameRandom.random(),
     /**
      * Turn-based (default) advances the world once per player move (krogue-lhw); real-time advances
      * every frame as the demo originally did. Real-time keeps the per-tick AI act-chance throttle so
@@ -131,9 +135,11 @@ class MyGame(
             activeLos.calculateLineOfSight(origin, tiles, maxViewDistance)
         }
 
-    // Content (world gen + placement) draws from one stream; gameplay (AI/combat) from
-    // another, so the same master seed always yields the same world (ADR-0009).
-    private val worldgen: Random = gameRandom.stream("worldgen")
+    // Entity placement (creatures, loot) shares the world's "worldgen" stream with zone generation —
+    // the same one `GameWorld.Builder.zone` defaults to — so one master seed lays out the same caves
+    // *and* the same occupants, isolated from whatever combat draws (ADR-0009). Read through `world`
+    // rather than captured, so it tracks the world a load swaps in.
+    private val worldgen: Random get() = world.random.stream(GameRandom.WORLDGEN)
 
     // Engine defaults plus the demo's overrides: a `SightSense` reading the toggleable FOV above, and
     // — in turn-based mode — AI that acts every turn (overriding the built-in strategies' per-tick act
@@ -236,7 +242,7 @@ class MyGame(
     private fun primeLighting() {
         lightingSystem.update(
             world.ecs,
-            TickContext(turn = world.ecs.currentTurn, elapsedMs = 0L, random = Random.Default),
+            world.ecs.tickContext(),
         )
     }
 
@@ -248,7 +254,7 @@ class MyGame(
     private fun primePerception() {
         perceptionSystem.update(
             world.ecs,
-            TickContext(turn = world.ecs.currentTurn, elapsedMs = 0L, random = Random.Default),
+            world.ecs.tickContext(),
         )
     }
 
@@ -282,7 +288,7 @@ class MyGame(
         // -> MovementSystem -> PortalSystem -> PickupSystem -> CombatSystem -> LightingSystem);
         // gameplay randomness draws from its own stream (ADR-0009).
         gameLoop.advance(deltaMs) {
-            world.ecs.tick(random = gameRandom.stream("gameplay"))
+            world.ecs.tick()
             if (!gameOverShown && (world.ecs.get(playerId)?.get<Health>()?.dead == true)) openGameOver()
         }
     }
@@ -524,7 +530,7 @@ class MyGame(
 
     /** Writes the full game state (entities + terrain + RNG + per-zone fog + timers) to [saveFile]. */
     private fun save() {
-        val bytes = saveCodec.save(world, gameRandom, zoneFog.snapshot(), scheduler.snapshot())
+        val bytes = saveCodec.save(world, zoneFog.snapshot(), scheduler.snapshot())
         saveFile.writeBytes(bytes)
         println("Saved ${bytes.size} bytes to ${saveFile.absolutePath}")
     }
@@ -542,7 +548,6 @@ class MyGame(
         }
         val loaded = saveCodec.load(saveFile.readBytes())
         world = loaded.world
-        gameRandom = loaded.random
         zoneFog.restore(loaded.fog)
         scheduler.restore(loaded.schedule)
         playerId = world.ecs.entitiesWith<Player>().first().id
@@ -572,13 +577,15 @@ class MyGame(
     // Setup
     // -------------------------------------------------------------------------
 
+    // Zone gen draws from the world's "worldgen" stream and gameplay (AI/combat) from "gameplay",
+    // so the same master seed always yields the same caves however combat evolves (ADR-0009).
     private fun buildWorld(): GameWorld =
-        GameWorld.create {
-            zone(ZONE_1, 200, 200, isCurrentZone = true, random = worldgen) {
+        GameWorld.create(gameRandom) {
+            zone(ZONE_1, 200, 200, isCurrentZone = true) {
                 fill(WALL_TILE)
                 addFeature(randomWalkCave(startPoint.x, startPoint.y, 6000, GROUND_TILE))
             }
-            zone(ZONE_2, 200, 200, random = worldgen) {
+            zone(ZONE_2, 200, 200) {
                 fill(WALL_TILE)
                 addFeature(randomWalkCave(startPoint.x, startPoint.y, 6000, GROUND_TILE))
             }
