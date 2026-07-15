@@ -39,3 +39,4 @@ Point-in-time records of **why** significant or hard-to-reverse decisions were m
 | [0023](0023-time-cost-turn-scheduling-and-time-axes.md) | Time-cost turn scheduling (energy model) and the game-time vs animation-time split | Proposed |
 | [0024](0024-dirty-region-redraw-grid-composite-cache.md) | Grid composite cache instead of per-frame full repaint | Accepted |
 | [0025](0025-world-owns-its-rng.md) | The world owns its RNG — determinism by construction | Accepted |
+| [0026](0026-single-canonical-grid.md) | One canonical Grid — kotile owns the 2D grid type | Accepted |

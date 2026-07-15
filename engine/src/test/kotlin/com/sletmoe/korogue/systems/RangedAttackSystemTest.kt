@@ -10,10 +10,10 @@ import com.sletmoe.korogue.components.RangedAttacker
 import com.sletmoe.korogue.components.ZoneMember
 import com.sletmoe.korogue.ecs.World
 import com.sletmoe.korogue.events.RangedAttackFired
-import com.sletmoe.korogue.utilities.Grid
 import com.sletmoe.korogue.world.BLANK_TILE
 import com.sletmoe.korogue.world.Tile
 import com.sletmoe.korogue.world.Zone
+import com.sletmoe.kotile.utilities.Grid
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe

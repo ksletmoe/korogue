@@ -1,6 +1,6 @@
 package com.sletmoe.korogue.kotile
 
-import com.sletmoe.korogue.utilities.Grid
+import com.sletmoe.kotile.utilities.Grid
 
 /**
  * Fog-of-war memory kept per zone, owned by the host (not the renderer). The renderer is
@@ -38,11 +38,11 @@ class ZoneFog {
      * A defensive copy of every zone's fog grid, for persistence — pass to `SaveCodec.save`.
      * Copies decouple the snapshot from the live grids, which keep mutating after a save.
      */
-    fun snapshot(): Map<String, Grid<Boolean>> = byZone.mapValues { Grid.of(it.value) }
+    fun snapshot(): Map<String, Grid<Boolean>> = byZone.mapValues { it.value.copy() }
 
     /** Replaces all fog memory with copies of [grids] (e.g. from `LoadedGame.fog` on load). */
     fun restore(grids: Map<String, Grid<Boolean>>) {
         byZone.clear()
-        grids.forEach { (zoneId, grid) -> byZone[zoneId] = Grid.of(grid) }
+        grids.forEach { (zoneId, grid) -> byZone[zoneId] = grid.copy() }
     }
 }

@@ -7,11 +7,11 @@ import com.sletmoe.korogue.ecs.World
 import com.sletmoe.korogue.random.GameRandom
 import com.sletmoe.korogue.registry.ComponentRegistry
 import com.sletmoe.korogue.schedule.SchedulerState
-import com.sletmoe.korogue.utilities.Grid
 import com.sletmoe.korogue.world.BLANK_TILE
 import com.sletmoe.korogue.world.GameWorld
 import com.sletmoe.korogue.world.Tile
 import com.sletmoe.korogue.world.Zone
+import com.sletmoe.kotile.utilities.Grid
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.cbor.Cbor
 import kotlinx.serialization.decodeFromByteArray

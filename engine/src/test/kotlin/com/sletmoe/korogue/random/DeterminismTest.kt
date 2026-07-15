@@ -10,10 +10,10 @@ import com.sletmoe.korogue.save.SaveCodec
 import com.sletmoe.korogue.systems.BehaviorSystem
 import com.sletmoe.korogue.systems.MovementSystem
 import com.sletmoe.korogue.systems.WanderStrategy
-import com.sletmoe.korogue.utilities.Grid
 import com.sletmoe.korogue.world.GameWorld
 import com.sletmoe.korogue.world.Tile
 import com.sletmoe.korogue.world.Zone
+import com.sletmoe.kotile.utilities.Grid
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe

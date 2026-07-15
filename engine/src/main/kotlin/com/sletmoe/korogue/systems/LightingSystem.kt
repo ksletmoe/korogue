@@ -10,6 +10,7 @@ import com.sletmoe.korogue.ecs.System
 import com.sletmoe.korogue.ecs.TickContext
 import com.sletmoe.korogue.ecs.World
 import com.sletmoe.korogue.utilities.distance
+import com.sletmoe.korogue.utilities.forEachCoordinateInRadius
 import com.sletmoe.korogue.world.Zone
 
 /**

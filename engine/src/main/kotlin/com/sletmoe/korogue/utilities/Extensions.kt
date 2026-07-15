@@ -46,13 +46,3 @@ inline fun <T> ReentrantLock.withLock(action: () -> T) {
         unlock()
     }
 }
-
-infix fun Grid<Boolean>.or(other: Grid<Boolean>): Grid<Boolean> {
-    val newGrid = Grid.of(this)
-
-    other.forEachCoordinate { coordinate ->
-        newGrid[coordinate] = newGrid[coordinate] || other[coordinate]
-    }
-
-    return newGrid
-}

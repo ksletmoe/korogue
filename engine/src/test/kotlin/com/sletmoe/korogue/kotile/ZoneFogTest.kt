@@ -1,6 +1,6 @@
 package com.sletmoe.korogue.kotile
 
-import com.sletmoe.korogue.utilities.Grid
+import com.sletmoe.kotile.utilities.Grid
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeSameInstanceAs

@@ -13,9 +13,9 @@ import com.sletmoe.korogue.registry.GameModule
 import com.sletmoe.korogue.schedule.Scheduler
 import com.sletmoe.korogue.schedule.SchedulerState
 import com.sletmoe.korogue.systems.HuntPlayerStrategy
-import com.sletmoe.korogue.utilities.Grid
 import com.sletmoe.korogue.world.GameWorld
 import com.sletmoe.korogue.world.Tile
+import com.sletmoe.kotile.utilities.Grid
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.ints.shouldBeLessThan

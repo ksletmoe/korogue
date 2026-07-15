@@ -6,9 +6,9 @@ import com.sletmoe.korogue.algorithms.zonegen.ZoneFeatureGenerator
 import com.sletmoe.korogue.algorithms.zonegen.ZoneGenContext
 import com.sletmoe.korogue.algorithms.zonegen.ZoneGenerator
 import com.sletmoe.korogue.components.MovementTags
-import com.sletmoe.korogue.utilities.Grid
 import com.sletmoe.korogue.utilities.IntRect
 import com.sletmoe.korogue.utilities.initialize
+import com.sletmoe.kotile.utilities.Grid
 import kotlin.random.Random
 
 /**

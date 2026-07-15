@@ -192,6 +192,18 @@ then given a tested ECS foundation:
   viewport render, animation); sprite `TileRenderer`; `TileViewport`; animation framework;
   `Layer`/`LayerStack` + free (pixel-space) `EffectsLayer`/`UiLayer` (ADR-0018);
   `com.sletmoe.kotile.input` (pixel→tile **and** pixel→content-pixel).
+- **`Grid<T>` is the one canonical grid type (krogue-ld1, ADR-0026).** The engine's rival
+  `com.sletmoe.korogue.utilities.Grid` is gone; korogue imports
+  `com.sletmoe.kotile.utilities.Grid`. kotile's row-major-array version absorbed the general
+  parts of the engine's API (`Vector2Int` accessors, `forEach`, `forEachCoordinate`,
+  `lastColumnIndex`/`lastRowIndex`, and `copy()` in place of the `Grid.of()` companion).
+  `forEachIndexed((Vector2Int, T))` was dropped — it had zero call sites in either repo.
+  Gotchas: out-of-bounds now throws `IndexOutOfBoundsException`, not raw `RuntimeException`
+  (a narrowing — `IndexOutOfBoundsException` is one, so existing catches hold); zero-sized
+  grids are now legal and copyable, where `Grid.of` used to reject them. The roguelike-side
+  `forEachCoordinateInRadius` and `Grid<Boolean>.or` stayed in korogue as extensions on
+  kotile's `Grid` (they need `IntRect` / `distanceSq`) — see
+  `engine/.../utilities/GridExtensions.kt`.
 - **Sprite alpha layering (krogue-ejd).** The sprite `TileRenderer` composites a cell's
   z-layers **bottom-up** (`LayeredTilemap.layersBottomUp`) instead of drawing only the top
   cell, so a foreground entity sprite alpha-blends over a background terrain tile and its

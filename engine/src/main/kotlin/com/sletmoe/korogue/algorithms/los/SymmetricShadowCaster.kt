@@ -1,9 +1,9 @@
 package com.sletmoe.korogue.algorithms.los
 
-import com.sletmoe.korogue.utilities.Grid
 import com.sletmoe.korogue.utilities.IntRect
 import com.sletmoe.korogue.utilities.distanceSq
 import com.sletmoe.korogue.world.Tile
+import com.sletmoe.kotile.utilities.Grid
 import com.sletmoe.kotile.utilities.Vector2Int
 import org.apache.commons.math3.fraction.Fraction
 import kotlin.math.ceil

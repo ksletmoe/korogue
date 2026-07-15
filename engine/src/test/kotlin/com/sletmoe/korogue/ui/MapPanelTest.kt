@@ -12,10 +12,10 @@ import com.sletmoe.korogue.components.Renderable
 import com.sletmoe.korogue.components.ZoneMember
 import com.sletmoe.korogue.ecs.EntityId
 import com.sletmoe.korogue.perception.Perceived
-import com.sletmoe.korogue.utilities.Grid
 import com.sletmoe.korogue.utilities.IntRect
 import com.sletmoe.korogue.world.GameWorld
 import com.sletmoe.korogue.world.Tile
+import com.sletmoe.kotile.utilities.Grid
 import com.sletmoe.kotile.utilities.Vector2Int
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.nulls.shouldBeNull

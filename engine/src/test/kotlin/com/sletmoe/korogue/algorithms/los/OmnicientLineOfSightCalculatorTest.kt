@@ -1,9 +1,9 @@
 package com.sletmoe.korogue.algorithms.los
 
 import com.badlogic.gdx.graphics.Color
-import com.sletmoe.korogue.utilities.Grid
 import com.sletmoe.korogue.world.BLANK_TILE
 import com.sletmoe.korogue.world.Tile
+import com.sletmoe.kotile.utilities.Grid
 import com.sletmoe.kotile.utilities.Vector2Int
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.booleans.shouldBeTrue
