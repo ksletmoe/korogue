@@ -23,8 +23,11 @@ jobs:
           java-version: '21'
           cache: 'gradle'
 
+      - name: Install Xvfb (for GL-gated tests)
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri
+
       - name: Run tests
-        run: ./gradlew check
+        run: xvfb-run -a ./gradlew check
 
       - name: Bundle the build report
         if: failure()
