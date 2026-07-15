@@ -105,8 +105,8 @@ class MapPanelTest : FunSpec({
 
         capturedCamera.shouldNotBeNull()
         // The observer is at (2, 2), centred in a 6x6 viewport on a 6x6 zone -> origin (0, 0).
-        capturedCamera!!.screenX(2) shouldBe 2
-        capturedCamera!!.screenY(2) shouldBe 2
+        capturedCamera.screenX(2) shouldBe 2
+        capturedCamera.screenY(2) shouldBe 2
         // decorate saw the writes terrain/occupants already made this frame (ran after them).
         (puttsAtDecorateTime > 0) shouldBe true
     }
