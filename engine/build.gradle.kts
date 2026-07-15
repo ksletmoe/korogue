@@ -1,7 +1,5 @@
-import org.jetbrains.dokka.DokkaConfiguration.Visibility
-import org.jetbrains.dokka.Platform
-import org.jetbrains.dokka.gradle.DokkaTask
-import java.net.URL
+import org.jetbrains.dokka.gradle.engine.parameters.VisibilityModifier
+import java.net.URI
 
 plugins {
     kotlin("jvm")
@@ -60,46 +58,48 @@ kotlin {
     }
 }
 
-tasks.withType<DokkaTask>().configureEach {
+dokka {
     moduleName.set(project.name)
     moduleVersion.set(project.version.toString())
-    outputDirectory.set(layout.buildDirectory.dir("dokka/$name"))
-    failOnWarning.set(false)
-    suppressObviousFunctions.set(true)
-    suppressInheritedMembers.set(false)
-    offlineMode.set(false)
 
-    dokkaSourceSets {
-        configureEach {
-            documentedVisibilities.set(setOf(Visibility.PUBLIC))
-            reportUndocumented.set(false)
-            skipEmptyPackages.set(true)
+    dokkaPublications.configureEach {
+        outputDirectory.set(layout.buildDirectory.dir("dokka/$name"))
+        failOnWarning.set(false)
+        offlineMode.set(false)
+        suppressObviousFunctions.set(true)
+        suppressInheritedMembers.set(false)
+    }
+
+    dokkaSourceSets.configureEach {
+        documentedVisibilities.set(setOf(VisibilityModifier.Public))
+        reportUndocumented.set(false)
+        skipEmptyPackages.set(true)
+        skipDeprecated.set(false)
+        suppressGeneratedFiles.set(true)
+        jdkVersion.set(21)
+        languageVersion.set("2.3")
+        apiVersion.set("2.3")
+        enableKotlinStdLibDocumentationLink.set(true)
+        enableJdkDocumentationLink.set(true)
+        // No analysisPlatform override (V1's Platform.DEFAULT): Dokka auto-detects JVM from the
+        // kotlin("jvm") plugin already applied to this project, the same effective result.
+        sourceRoots.from(file("src"))
+
+        sourceLink {
+            localDirectory.set(projectDir.resolve("src"))
+            remoteUrl.set(URI("https://github.com/ksletmoe/korogue/tree/mainline/engine/src"))
+            remoteLineSuffix.set("#L")
+        }
+
+        perPackageOption {
+            suppress.set(false)
             skipDeprecated.set(false)
-            suppressGeneratedFiles.set(true)
-            jdkVersion.set(21)
-            languageVersion.set("2.3")
-            apiVersion.set("2.3")
-            noStdlibLink.set(false)
-            noJdkLink.set(false)
-            platform.set(Platform.DEFAULT)
-            sourceRoots.from(file("src"))
-
-            sourceLink {
-                localDirectory.set(projectDir.resolve("src"))
-                remoteUrl.set(URL("https://github.com/ksletmoe/korogue/tree/mainline/engine/src"))
-                remoteLineSuffix.set("#L")
-            }
-
-            perPackageOption {
-                suppress.set(false)
-                skipDeprecated.set(false)
-                reportUndocumented.set(false)
-                documentedVisibilities.set(
-                    setOf(
-                        Visibility.PUBLIC,
-                    ),
-                )
-            }
+            reportUndocumented.set(false)
+            documentedVisibilities.set(
+                setOf(
+                    VisibilityModifier.Public,
+                ),
+            )
         }
     }
 }
