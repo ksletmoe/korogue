@@ -80,7 +80,7 @@ private class SpriteRenderHarness(private val outPath: String) : ApplicationAdap
         // they're speckled garbage, the macOS NPOT fix has regressed.
         for (sy in 0..2) {
             for (sx in 0..13) {
-                sprites.drawTile(1 + sx, 1 + sy, z = 0, staticTile = StaticSpriteTile(sx, sy))
+                sprites.drawTile(1 + sx, 1 + sy, z = 0, tile = StaticSpriteTile(sx, sy))
             }
         }
 
@@ -89,7 +89,7 @@ private class SpriteRenderHarness(private val outPath: String) : ApplicationAdap
         val hueLen = 36
         repeat(hueLen) { i ->
             val hue = Color(0f, 0f, 0f, 1f).fromHsv(i * 360f / hueLen, 1f, 1f)
-            sprites.drawTile(1 + i, 5, z = 0, staticTile = StaticSpriteTile(sheetX = 0, sheetY = 2, tint = hue))
+            sprites.drawTile(1 + i, 5, z = 0, tile = StaticSpriteTile(sheetX = 0, sheetY = 2, tint = hue))
         }
 
         // Row 7: brightness ramp — same tile multiplied toward black, the sprite
@@ -97,7 +97,7 @@ private class SpriteRenderHarness(private val outPath: String) : ApplicationAdap
         val rampLen = 20
         repeat(rampLen) { i ->
             val v = 1f - i.toFloat() / (rampLen - 1)
-            sprites.drawTile(1 + i, 7, z = 0, staticTile = StaticSpriteTile(sheetX = 0, sheetY = 2, tint = Color(v, v, v, 1f)))
+            sprites.drawTile(1 + i, 7, z = 0, tile = StaticSpriteTile(sheetX = 0, sheetY = 2, tint = Color(v, v, v, 1f)))
         }
 
         // Row 9: an animated tile cycling three art-block cells, resolved at
@@ -118,15 +118,15 @@ private class SpriteRenderHarness(private val outPath: String) : ApplicationAdap
         }
 
         // z=1 over z=0: layering check — a tinted tile on top of the art block.
-        sprites.drawTile(3, 2, z = 1, staticTile = StaticSpriteTile(sheetX = 0, sheetY = 0, tint = Color.RED))
+        sprites.drawTile(3, 2, z = 1, tile = StaticSpriteTile(sheetX = 0, sheetY = 0, tint = Color.RED))
 
         // Row 12: alpha layering — a red diamond sprite (transparent surround)
         // on z=1 over a green terrain tile on z=0, both from the synthetic sheet.
         // The terrain must show through the sprite's transparent corners; drawn
         // downscaled (32px source -> 20px cell) so any mip halo is visible.
         for (x in 1..10) {
-            layered.drawTile(x, 12, z = 0, staticTile = StaticSpriteTile(sheetX = 0, sheetY = 0)) // terrain
-            layered.drawTile(x, 12, z = 1, staticTile = StaticSpriteTile(sheetX = 1, sheetY = 0)) // creature
+            layered.drawTile(x, 12, z = 0, tile = StaticSpriteTile(sheetX = 0, sheetY = 0)) // terrain
+            layered.drawTile(x, 12, z = 1, tile = StaticSpriteTile(sheetX = 1, sheetY = 0)) // creature
         }
     }
 
@@ -182,8 +182,8 @@ private class SpriteRenderHarness(private val outPath: String) : ApplicationAdap
     }
 
     override fun resize(width: Int, height: Int) {
-        sprites.onResize(width, height) // rebuilds the internal tilemap
-        layered.onResize(width, height) // both renderers track the canvas size
+        sprites.resize(width, height) // rebuilds the internal tilemap
+        layered.resize(width, height) // both renderers track the canvas size
         buildScene() // ...so repopulate them
     }
 

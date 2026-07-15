@@ -52,7 +52,7 @@ class RenderingLifecycleIntegrationTest : FunSpec({
             val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
             val canvas = KotileCanvas(8, 8)
             val renderer = SpriteTileRenderer(canvas, sheet)
-            renderer.drawTile(0, 0, z = 0, staticTile = StaticSpriteTile(0, 0))
+            renderer.drawTile(0, 0, z = 0, tile = StaticSpriteTile(0, 0))
             renderer.render()
             renderer.dispose()
             renderer.dispose() // must not throw or double-free GPU resources

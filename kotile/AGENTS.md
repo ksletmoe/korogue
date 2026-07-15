@@ -116,6 +116,11 @@ Library source lives under `library/src/main/kotlin`. Package root:
 - `rendering/TileRenderer` — abstract; holds a `LayeredTilemap` of `SpriteTile`s
   (z-ordered) and redraws it each frame, applying each tile's tint. Subclasses
   map a `StaticSpriteTile` to its region; `DynamicSpriteTile`s resolve their own.
+  The **sprite sibling of `AsciiTileWindow`**: the two share one vocabulary
+  (ADR-0028) — `widthInTiles`/`heightInTiles`, `resize`, `drawTile`/`clearTile`/
+  `clear`/`clearLayer`/`fill`, `topTileAt`, `render`, `asLayer`. Adding a member
+  to one path means mirroring it on the other, or listing it as deliberately
+  path-specific in `RenderPathParityTest` — which fails on unexplained drift.
 - `rendering/SpriteTileRenderer` — concrete `TileRenderer` backed by a
   `TileSheet`. The entry point for image sprite-sheet rendering.
 - `display/ascii/` — the ASCII layer: `AsciiTileWindow` (holds a grid of cells,

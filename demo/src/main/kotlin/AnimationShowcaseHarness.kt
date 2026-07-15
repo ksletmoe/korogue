@@ -450,20 +450,20 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
                         else -> DawnLikeFloorTiles.MIDDLE
                     }
                 val tint = litTint(x, y, SPRITE_TORCH_POSITIONS, elapsedMs)
-                floorRenderer.drawTile(x, y, z = 0, staticTile = floor.copy(tint = tint))
+                floorRenderer.drawTile(x, y, z = 0, tile = floor.copy(tint = tint))
             }
         }
         for (x in 0 until SPRITE_COLS) {
             val top = if (x == 0) DawnLikeWallTiles.UPPER_LEFT_CORNER else DawnLikeWallTiles.TOP_WALL
             val bottom = if (x == 0) DawnLikeWallTiles.BOTTOM_LEFT_CORNER else DawnLikeWallTiles.BOTTOM_WALL
             val topTint = litTint(x, 0, SPRITE_TORCH_POSITIONS, elapsedMs)
-            wallRenderer.drawTile(x, 0, z = 0, staticTile = top.copy(tint = topTint))
+            wallRenderer.drawTile(x, 0, z = 0, tile = top.copy(tint = topTint))
             val bottomTint = litTint(x, ROWS - 1, SPRITE_TORCH_POSITIONS, elapsedMs)
-            wallRenderer.drawTile(x, ROWS - 1, z = 0, staticTile = bottom.copy(tint = bottomTint))
+            wallRenderer.drawTile(x, ROWS - 1, z = 0, tile = bottom.copy(tint = bottomTint))
         }
         for (y in 1 until ROWS - 1) {
             val wall = DawnLikeWallTiles.LEFT_WALL.copy(tint = litTint(0, y, SPRITE_TORCH_POSITIONS, elapsedMs))
-            wallRenderer.drawTile(0, y, z = 0, staticTile = wall)
+            wallRenderer.drawTile(0, y, z = 0, tile = wall)
         }
 
         for (torchX in SPRITE_WALL_TORCH_COLS) {

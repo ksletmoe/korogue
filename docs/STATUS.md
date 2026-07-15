@@ -192,6 +192,15 @@ then given a tested ECS foundation:
   viewport render, animation); sprite `TileRenderer`; `TileViewport`; animation framework;
   `Layer`/`LayerStack` + free (pixel-space) `EffectsLayer`/`UiLayer` (ADR-0018);
   `com.sletmoe.kotile.input` (pixel→tile **and** pixel→content-pixel).
+- **The sprite and ascii render paths share one vocabulary (krogue-0y8, ADR-0028).**
+  `TileRenderer` adopted `AsciiTileWindow`'s names — `widthInTiles`/`heightInTiles` (was
+  `windowWidth`/`windowHeight`), `resize` (was `onResize`) — and gained the clear/fill/query
+  methods it lacked (`clear`, `clearLayer`, `fill`, `topTileAt`, z-defaulted `drawTile`/
+  `clearTile`) plus `tileWidthPx`/`tileHeightPx`/`layout`. Its `drawTile` overload pair
+  collapsed to one taking the sealed `SpriteTile`. `RenderPathParityTest` reflects over both
+  classes and fails on unexplained drift, so mirroring is enforced, not remembered. Kept
+  asymmetric on purpose: compositing policy (see krogue-8mr) and construction (abstract
+  `regionFor` vs the resource-owning `create {}` factory).
 - **`Grid<T>` is the one canonical grid type (krogue-ld1, ADR-0026).** The engine's rival
   `com.sletmoe.korogue.utilities.Grid` is gone; korogue imports
   `com.sletmoe.kotile.utilities.Grid`. kotile's row-major-array version absorbed the general

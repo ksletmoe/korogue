@@ -137,9 +137,9 @@ val sheet = TileSheet(Gdx.files.internal("tiles.png"), tileWidthPx = 16, tileHei
 val renderer = SpriteTileRenderer(KotileCanvas(16, 16), sheet)
 
 // Draw sheet cell (1,4) at grid (3,2) on layer 0, in its own colors:
-renderer.drawTile(x = 3, y = 2, z = 0, staticTile = StaticSpriteTile(sheetX = 1, sheetY = 4))
+renderer.drawTile(x = 3, y = 2, z = 0, tile = StaticSpriteTile(sheetX = 1, sheetY = 4))
 // ...and again, recolored via a tint (white = unchanged):
-renderer.drawTile(x = 4, y = 2, z = 0, staticTile = StaticSpriteTile(sheetX = 1, sheetY = 4, tint = Color.RED))
+renderer.drawTile(x = 4, y = 2, z = 0, tile = StaticSpriteTile(sheetX = 1, sheetY = 4, tint = Color.RED))
 
 // each frame:
 renderer.render()

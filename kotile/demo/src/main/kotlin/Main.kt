@@ -71,8 +71,8 @@ class KotileDemo : ApplicationAdapter() {
      * otherwise crash; clip it here instead.
      */
     private fun putSprite(x: Int, y: Int, tile: StaticSpriteTile) {
-        if (x in 0 until sprites.windowWidth && y in 0 until sprites.windowHeight) {
-            sprites.drawTile(x, y, z = 0, staticTile = tile)
+        if (x in 0 until sprites.widthInTiles && y in 0 until sprites.heightInTiles) {
+            sprites.drawTile(x, y, z = 0, tile = tile)
         }
     }
 
@@ -101,7 +101,7 @@ class KotileDemo : ApplicationAdapter() {
     override fun resize(width: Int, height: Int) {
         // Resize BOTH surfaces (not just the overlay) and redraw, since each
         // reflows its grid and drops content that no longer fits.
-        sprites.onResize(width, height)
+        sprites.resize(width, height)
         overlay.resize(width, height)
         drawSprites()
         drawOverlay()

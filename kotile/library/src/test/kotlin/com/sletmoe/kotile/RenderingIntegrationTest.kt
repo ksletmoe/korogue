@@ -27,6 +27,7 @@ import com.sletmoe.kotile.tiles.AnimatedSpriteTile
 import com.sletmoe.kotile.tiles.AnimationFrame
 import com.sletmoe.kotile.tiles.StaticSpriteTile
 import com.sletmoe.kotile.tiles.TileSheet
+import com.sletmoe.kotile.utilities.Vector2Int
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.doubles.plusOrMinus
@@ -368,7 +369,7 @@ class RenderingIntegrationTest : FunSpec({
             val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
             val canvas = KotileCanvas(8, 8)
             val renderer = SpriteTileRenderer(canvas, sheet)
-            renderer.drawTile(0, 0, z = 0, staticTile = StaticSpriteTile(0, 0, flipX = true))
+            renderer.drawTile(0, 0, z = 0, tile = StaticSpriteTile(0, 0, flipX = true))
             renderer.render()
             canvas.dispose()
             sheet.dispose()
@@ -789,7 +790,7 @@ class RenderingIntegrationTest : FunSpec({
             val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
             val canvas = KotileCanvas(8, 8)
             val renderer = SpriteTileRenderer(canvas, sheet)
-            renderer.drawTile(0, 0, z = 0, staticTile = StaticSpriteTile(0, 0))
+            renderer.drawTile(0, 0, z = 0, tile = StaticSpriteTile(0, 0))
             renderer.render() // first paint: red
             renderer.clearTile(0, 0, z = 0)
             renderer.render() // recomposite must drop the red, not retain it from the cache
@@ -799,6 +800,171 @@ class RenderingIntegrationTest : FunSpec({
         }
         pixels.averageColor(0, 0, 8, 8).r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
         pixels.dispose()
+    }
+
+    // -------------------------------------------------------------------------
+    // krogue-0y8 (ADR-0028): the clear/fill/query surface TileRenderer gained when it
+    // was aligned to AsciiTileWindow. Each of these mutates the composite cache's dirty
+    // state, so they are exactly the krogue-drk stale-content shape -- assert on pixels
+    // after a second render, not just on the tilemap.
+    // -------------------------------------------------------------------------
+
+    /**
+     * Writes a 16x8 two-tile sheet (left tile red, right tile blue) and returns its path.
+     * Must be called inside a [HeadlessGl.render] block -- it needs `Gdx.files`.
+     */
+    fun twoTileSheetPath(name: String): String {
+        val pixmap = Pixmap(16, 8, Pixmap.Format.RGBA8888)
+        pixmap.setColor(Color.RED)
+        pixmap.fillRectangle(0, 0, 8, 8)
+        pixmap.setColor(Color.BLUE)
+        pixmap.fillRectangle(8, 0, 8, 8)
+        val file = File.createTempFile(name, ".png").apply { deleteOnExit() }
+        PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), pixmap)
+        pixmap.dispose()
+        return file.absolutePath
+    }
+
+    val redTile = StaticSpriteTile(0, 0)
+    val blueTile = StaticSpriteTile(1, 0)
+
+    test("krogue-0y8: TileRenderer.fill covers every cell on z=0").config(enabled = HeadlessGl.available) {
+        // 16x16 window of 8x8 tiles = a 2x2 grid; fill must reach all four cells, not just (0,0).
+        val pixels = HeadlessGl.render(16, 16, Color.BLACK) {
+            val sheet = TileSheet(Gdx.files.absolute(twoTileSheetPath("kotile-0y8-fill")), 8, 8)
+            val canvas = KotileCanvas(8, 8)
+            val renderer = SpriteTileRenderer(canvas, sheet)
+            renderer.fill(redTile)
+            renderer.render()
+            renderer.dispose()
+            canvas.dispose()
+            sheet.dispose()
+        }
+        // Every corner cell is red.
+        for ((x, y) in listOf(0 to 0, 8 to 0, 0 to 8, 8 to 8)) {
+            val avg = pixels.averageColor(x, y, x + 8, y + 8)
+            avg.r.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+            avg.b.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+        }
+        pixels.dispose()
+    }
+
+    test("krogue-0y8: TileRenderer.clear drops every layer, leaving no stale cache content").config(
+        enabled = HeadlessGl.available,
+    ) {
+        val pixels = HeadlessGl.render(8, 8, Color.BLACK) {
+            val sheet = TileSheet(Gdx.files.absolute(twoTileSheetPath("kotile-0y8-clear")), 8, 8)
+            val canvas = KotileCanvas(8, 8)
+            val renderer = SpriteTileRenderer(canvas, sheet)
+            renderer.drawTile(0, 0, z = 0, tile = redTile)
+            renderer.drawTile(0, 0, z = 1, tile = blueTile)
+            renderer.render() // first paint: both layers
+            renderer.clear()
+            renderer.render() // recomposite must drop both, not retain them from the cache
+            renderer.dispose()
+            canvas.dispose()
+            sheet.dispose()
+        }
+        val avg = pixels.averageColor(0, 0, 8, 8)
+        avg.r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+        avg.b.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+        pixels.dispose()
+    }
+
+    test("krogue-0y8: TileRenderer.clearLayer clears only its own layer and reveals the one beneath").config(
+        enabled = HeadlessGl.available,
+    ) {
+        // The sharpest test of clearLayer's bookkeeping: it must dirty the cells it vacated
+        // (or the blue stays, stale) without disturbing z=0 (or the red vanishes too).
+        val pixels = HeadlessGl.render(8, 8, Color.BLACK) {
+            val sheet = TileSheet(Gdx.files.absolute(twoTileSheetPath("kotile-0y8-clearlayer")), 8, 8)
+            val canvas = KotileCanvas(8, 8)
+            val renderer = SpriteTileRenderer(canvas, sheet)
+            renderer.drawTile(0, 0, z = 0, tile = redTile)
+            renderer.drawTile(0, 0, z = 1, tile = blueTile) // opaque, so it hides the red
+            renderer.render() // first paint: blue over red
+            renderer.clearLayer(1)
+            renderer.render()
+            renderer.dispose()
+            canvas.dispose()
+            sheet.dispose()
+        }
+        val avg = pixels.averageColor(0, 0, 8, 8)
+        avg.r.toDouble() shouldBe (1.0 plusOrMinus 0.1) // z=0 survived
+        avg.b.toDouble() shouldBe (0.0 plusOrMinus 0.1) // z=1 is gone, not stale
+        pixels.dispose()
+    }
+
+    test("krogue-0y8: TileRenderer.clearLayer on a never-written layer is a no-op").config(
+        enabled = HeadlessGl.available,
+    ) {
+        val pixels = HeadlessGl.render(8, 8, Color.BLACK) {
+            val sheet = TileSheet(Gdx.files.absolute(twoTileSheetPath("kotile-0y8-clearlayer-noop")), 8, 8)
+            val canvas = KotileCanvas(8, 8)
+            val renderer = SpriteTileRenderer(canvas, sheet)
+            renderer.drawTile(0, 0, z = 0, tile = redTile)
+            renderer.clearLayer(99) // must not throw, and must not disturb z=0
+            renderer.render()
+            renderer.dispose()
+            canvas.dispose()
+            sheet.dispose()
+        }
+        pixels.averageColor(0, 0, 8, 8).r.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        pixels.dispose()
+    }
+
+    test("krogue-0y8: TileRenderer's z-defaulted drawTile and clearTile both address layer 0").config(
+        enabled = HeadlessGl.available,
+    ) {
+        // Proves the defaults really are z=0 on both sides: a z-defaulted write is removed by
+        // clearLayer(0), and a z-defaulted clear removes an explicit z=0 write.
+        val pixels = HeadlessGl.render(16, 8, Color.BLACK) {
+            val sheet = TileSheet(Gdx.files.absolute(twoTileSheetPath("kotile-0y8-zdefault")), 8, 8)
+            val canvas = KotileCanvas(8, 8)
+            val renderer = SpriteTileRenderer(canvas, sheet)
+            renderer.drawTile(0, 0, redTile) // z defaults to 0
+            renderer.drawTile(1, 0, z = 0, tile = redTile)
+            renderer.render()
+            renderer.clearLayer(0) // removes the z-defaulted write at (0,0)
+            renderer.drawTile(1, 0, z = 0, tile = redTile)
+            renderer.clearTile(1, 0) // z defaults to 0, so this removes it again
+            renderer.render()
+            renderer.dispose()
+            canvas.dispose()
+            sheet.dispose()
+        }
+        pixels.averageColor(0, 0, 8, 8).r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+        pixels.averageColor(8, 0, 16, 8).r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+        pixels.dispose()
+    }
+
+    test("krogue-0y8: TileRenderer.topTileAt returns the highest-z tile, or null when empty").config(
+        enabled = HeadlessGl.available,
+    ) {
+        // A pure query, but TileRenderer needs a KotileCanvas, which needs a GL context.
+        var empty: Any? = "unset"
+        var top: Any? = null
+        var topByPosition: Any? = null
+        var afterClear: Any? = "unset"
+        HeadlessGl.render(8, 8, Color.BLACK) {
+            val sheet = TileSheet(Gdx.files.absolute(twoTileSheetPath("kotile-0y8-query")), 8, 8)
+            val canvas = KotileCanvas(8, 8)
+            val renderer = SpriteTileRenderer(canvas, sheet)
+            empty = renderer.topTileAt(0, 0)
+            renderer.drawTile(0, 0, z = 0, tile = redTile)
+            renderer.drawTile(0, 0, z = 1, tile = blueTile)
+            top = renderer.topTileAt(0, 0)
+            topByPosition = renderer.topTileAt(Vector2Int(0, 0))
+            renderer.clearLayer(1)
+            afterClear = renderer.topTileAt(0, 0)
+            renderer.dispose()
+            canvas.dispose()
+            sheet.dispose()
+        }.dispose()
+        empty shouldBe null
+        top shouldBe blueTile // highest z wins, not the z=0 red
+        topByPosition shouldBe blueTile // the Vector2Int overload agrees
+        afterClear shouldBe redTile // z=0 shows through once z=1 is cleared
     }
 
     test("krogue-drk: TileRenderer keeps an AnimatedSpriteTile animating across renders with no writes between them").config(
@@ -957,7 +1123,7 @@ private fun maxEdgeBlend(policy: ScalePolicy, windowPx: Int): Float {
         val canvas = KotileCanvas(8, 8)
         canvas.useFixedGrid(1, 1, policy)
         val renderer = SpriteTileRenderer(canvas, sheet)
-        renderer.drawTile(0, 0, z = 0, staticTile = StaticSpriteTile(0, 0))
+        renderer.drawTile(0, 0, z = 0, tile = StaticSpriteTile(0, 0))
         renderer.render()
         canvas.dispose()
         sheet.dispose()
@@ -990,7 +1156,7 @@ private fun renderSpriteTile(tileColor: Color, tint: Color): Color {
         val renderer = SpriteTileRenderer(canvas, sheet)
         for (y in 0 until 8) {
             for (x in 0 until 8) {
-                renderer.drawTile(x, y, z = 0, staticTile = StaticSpriteTile(sheetX = 0, sheetY = 0, tint = tint))
+                renderer.drawTile(x, y, z = 0, tile = StaticSpriteTile(sheetX = 0, sheetY = 0, tint = tint))
             }
         }
         renderer.render()
@@ -1025,8 +1191,8 @@ private fun renderLayered(background: Color, foreground: Color): Color {
         val renderer = SpriteTileRenderer(canvas, sheet)
         for (y in 0 until 8) {
             for (x in 0 until 8) {
-                renderer.drawTile(x, y, z = 0, staticTile = StaticSpriteTile(sheetX = 0, sheetY = 0))
-                renderer.drawTile(x, y, z = 1, staticTile = StaticSpriteTile(sheetX = 0, sheetY = 1))
+                renderer.drawTile(x, y, z = 0, tile = StaticSpriteTile(sheetX = 0, sheetY = 0))
+                renderer.drawTile(x, y, z = 1, tile = StaticSpriteTile(sheetX = 0, sheetY = 1))
             }
         }
         renderer.render()

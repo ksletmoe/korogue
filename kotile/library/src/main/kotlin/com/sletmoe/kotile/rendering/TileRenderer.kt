@@ -22,16 +22,40 @@ import com.sletmoe.kotile.utilities.Vector3Int
  *   owns its frames; the tile is asked for its own region at the elapsed
  *   wall-clock time.
  *
- * Tiles are mutated with [drawTile]/[clearTile] and drawn by [render], which
- * redraws the whole grid every frame. Cells are **composited bottom-up**: every
- * populated z-layer is drawn from the lowest z to the highest, so a foreground
- * tile placed on a higher layer is alpha-blended over the terrain beneath it and
- * its transparent pixels reveal the lower layers (a background terrain tile plus
- * a foreground entity sprite in the same cell). Subclasses implement [regionFor]
- * to map a [StaticSpriteTile] to the texture region representing it;
- * [DynamicSpriteTile] instances resolve their own regions.
+ * Tiles are mutated with [drawTile]/[clearTile]/[fill]/[clear] and drawn by
+ * [render]. Cells are **composited bottom-up**: every populated z-layer is drawn
+ * from the lowest z to the highest, so a foreground tile placed on a higher layer
+ * is alpha-blended over the terrain beneath it and its transparent pixels reveal
+ * the lower layers (a background terrain tile plus a foreground entity sprite in
+ * the same cell). Subclasses implement [regionFor] to map a [StaticSpriteTile] to
+ * the texture region representing it; [DynamicSpriteTile] instances resolve their
+ * own regions.
  *
- * Call [onResize] from the application's resize callback so the internal
+ * This is the sprite sibling of
+ * [com.sletmoe.kotile.display.ascii.AsciiTileWindow] (ADR-0028): the two paths
+ * deliberately share the same vocabulary — [widthInTiles]/[heightInTiles],
+ * [resize], [drawTile]/[clearTile]/[clear]/[clearLayer]/[fill], [topTileAt],
+ * [render], [asLayer] — so intuition transfers between them.
+ *
+ * ## Layer semantics
+ *
+ * Layers are identified by an integer z-index; a higher z draws on top, and
+ * layers are created on demand the first time a cell is written to them. Unlike
+ * the ASCII path (where the highest-z non-null cell wins outright), every
+ * populated layer here is drawn, so alpha in an upper sprite reveals what is
+ * beneath it.
+ *
+ * ## clear / fill semantics
+ *
+ * - [clear] (no args) — clears every cell on every layer.
+ * - [clearLayer] — clears every cell on one specific layer; no-op if the layer
+ *   has never been written to.
+ * - [clearTile] (x, y) — clears the cell at (x, y) on z=0.
+ * - [clearTile] (x, y, z) — clears the cell at (x, y) on layer z.
+ * - [fill] (tile) — fills every cell on z=0.
+ * - [fill] (z, tile) — fills every cell on the specified layer.
+ *
+ * Call [resize] from the application's resize callback so the internal
  * tilemap is rebuilt to match the new canvas dimensions. Tiles outside the new
  * bounds are dropped; tiles that still fit are preserved.
  *
@@ -45,17 +69,45 @@ import com.sletmoe.kotile.utilities.Vector3Int
 abstract class TileRenderer(protected val canvas: KotileCanvas) : Disposable {
     /**
      * Current grid width in tiles. Reflects the canvas at construction time
-     * and is updated by [onResize].
+     * and is updated by [resize].
      */
-    val windowWidth: Int get() = canvas.width
+    val widthInTiles: Int get() = canvas.width
 
     /**
      * Current grid height in tiles. Reflects the canvas at construction time
-     * and is updated by [onResize].
+     * and is updated by [resize].
      */
-    val windowHeight: Int get() = canvas.height
+    val heightInTiles: Int get() = canvas.height
 
-    private var tilemap = LayeredTilemap<SpriteTile>(windowWidth, windowHeight)
+    /**
+     * A tile's native width in pixels (pre-scaling).
+     *
+     * Use this together with [tileHeightPx], [widthInTiles], and
+     * [heightInTiles] to configure a
+     * [com.sletmoe.kotile.input.KotileInputProcessor] for pixel-to-tile
+     * coordinate translation.
+     */
+    val tileWidthPx: Int get() = canvas.tileWidthPx
+
+    /**
+     * A tile's native height in pixels (pre-scaling).
+     *
+     * Use this together with [tileWidthPx], [widthInTiles], and
+     * [heightInTiles] to configure a
+     * [com.sletmoe.kotile.input.KotileInputProcessor] for pixel-to-tile
+     * coordinate translation.
+     */
+    val tileHeightPx: Int get() = canvas.tileHeightPx
+
+    /**
+     * The current grid placement (visible tile count, on-screen tile size, and
+     * centering offset). Pass a provider of this to
+     * [com.sletmoe.kotile.input.KotileInputProcessor] so mouse→tile mapping
+     * stays correct under scaling and letterboxing.
+     */
+    val layout: GridLayout get() = canvas.layout
+
+    private var tilemap = LayeredTilemap<SpriteTile>(widthInTiles, heightInTiles)
 
     // Per-cell composite cache (krogue-drk/krogue-oxi, ADR-0024): [render] and [asLayer] recomposite
     // only the cells marked dirty since the last call, blitting the persistent result as one sprite.
@@ -82,54 +134,128 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) : Disposable {
      * outside the new bounds are dropped; those still within bounds are
      * preserved. Call this from the application's resize callback.
      */
-    fun onResize(widthPx: Int, heightPx: Int) {
+    fun resize(widthPx: Int, heightPx: Int) {
         canvas.resize(widthPx, heightPx)
-        tilemap = LayeredTilemap(windowWidth, windowHeight)
+        tilemap = LayeredTilemap(widthInTiles, heightInTiles)
         animatedPositions.clear()
         compositeCache.markAllDirty()
     }
 
-    /** Places [staticTile] at [position] (x, y, z-layer). */
-    fun drawTile(position: Vector3Int, staticTile: StaticSpriteTile) = drawTile(position.x, position.y, position.z, staticTile)
+    // -------------------------------------------------------------------------
+    // Write — single cell
+    // -------------------------------------------------------------------------
 
-    /** Places [staticTile] at column [x], row [y] on z-layer [z]. */
-    fun drawTile(x: Int, y: Int, z: Int, staticTile: StaticSpriteTile) {
-        tilemap.setCell(x, y, z, staticTile)
+    /**
+     * Places [tile] at column [x], row [y] on z-layer 0. Accepts both
+     * [StaticSpriteTile] and [DynamicSpriteTile] content.
+     */
+    fun drawTile(x: Int, y: Int, tile: SpriteTile) = drawTile(x, y, z = 0, tile = tile)
+
+    /**
+     * Places [tile] at column [x], row [y] on z-layer [z]. The layer is created
+     * on demand if it does not yet exist. Accepts both [StaticSpriteTile] and
+     * [DynamicSpriteTile] content.
+     *
+     * The same [DynamicSpriteTile] instance may be placed at multiple cells. All
+     * cells sharing the same instance show the same animation frame at the same
+     * wall-clock time (stateless time model).
+     */
+    fun drawTile(x: Int, y: Int, z: Int, tile: SpriteTile) {
+        tilemap.setCell(x, y, z, tile)
         refreshAnimatedTrackingAt(x, y)
         compositeCache.markCellDirty(x, y)
     }
 
-    /**
-     * Places an animated [tile] at [position] (x, y, z-layer).
-     *
-     * The same [DynamicSpriteTile] instance may be placed at multiple cells. All cells
-     * sharing the same instance will show the same animation frame at the same
-     * wall-clock time (stateless time model).
-     */
-    fun drawTile(position: Vector3Int, tile: DynamicSpriteTile) = drawTile(position.x, position.y, position.z, tile)
+    /** Places [tile] at [position] (x, y, z-layer). */
+    fun drawTile(position: Vector3Int, tile: SpriteTile) = drawTile(position.x, position.y, position.z, tile)
+
+    // -------------------------------------------------------------------------
+    // Write — fill
+    // -------------------------------------------------------------------------
+
+    /** Sets every cell on layer z=0 to [tile]. */
+    fun fill(tile: SpriteTile) = fill(z = 0, tile = tile)
 
     /**
-     * Places an animated [tile] at column [x], row [y] on z-layer [z].
-     *
-     * The same [DynamicSpriteTile] instance may be placed at multiple cells. All cells
-     * sharing the same instance will show the same animation frame at the same
-     * wall-clock time (stateless time model).
+     * Sets every cell on layer [z] to [tile]. The layer is created on demand if
+     * it does not yet exist.
      */
-    fun drawTile(x: Int, y: Int, z: Int, tile: DynamicSpriteTile) {
-        tilemap.setCell(x, y, z, tile)
-        animatedPositions.add(Vector2Int(x, y))
-        compositeCache.markCellDirty(x, y)
+    fun fill(z: Int, tile: SpriteTile) {
+        for (y in 0 until heightInTiles) {
+            for (x in 0 until widthInTiles) {
+                tilemap.setCell(x, y, z, tile)
+                refreshAnimatedTrackingAt(x, y)
+            }
+        }
+        // Every cell changed -- cheaper to mark the whole grid than every cell individually.
+        compositeCache.markAllDirty()
     }
 
-    /** Removes the tile at [position] (x, y, z-layer). */
-    fun clearTile(position: Vector3Int) = clearTile(position.x, position.y, position.z)
+    // -------------------------------------------------------------------------
+    // Clear
+    // -------------------------------------------------------------------------
 
-    /** Removes the tile at column [x], row [y] on z-layer [z]. */
+    /**
+     * Removes the tile at column [x], row [y] on z-layer 0. No-op if layer 0
+     * has never been written to.
+     */
+    fun clearTile(x: Int, y: Int) = clearTile(x, y, z = 0)
+
+    /** Removes the tile at column [x], row [y] on z-layer [z]. No-op if layer [z] does not exist. */
     fun clearTile(x: Int, y: Int, z: Int) {
         tilemap.removeCell(x, y, z)
         refreshAnimatedTrackingAt(x, y)
         compositeCache.markCellDirty(x, y)
     }
+
+    /** Removes the tile at [position] (x, y, z-layer). No-op if layer z does not exist. */
+    fun clearTile(position: Vector3Int) = clearTile(position.x, position.y, position.z)
+
+    /** Clears every cell on every layer. Use [clearLayer] to clear only one layer. */
+    fun clear() {
+        tilemap.clearAllLayers()
+        animatedPositions.clear()
+        compositeCache.markAllDirty()
+    }
+
+    /** Clears every cell on layer [z]. No-op if layer [z] has never been written to. */
+    fun clearLayer(z: Int) {
+        // Only cells actually populated on this layer can change -- collect them before clearing
+        // (removeCell/clearLayer leave no trace of what was there) so the recomposite doesn't have
+        // to touch the rest of a possibly-mostly-empty layer (e.g. a sparse effects overlay).
+        val affected = mutableListOf<Vector2Int>()
+        for (y in 0 until heightInTiles) {
+            for (x in 0 until widthInTiles) {
+                if (tilemap.cellAt(x, y, z) != null) affected.add(Vector2Int(x, y))
+            }
+        }
+        tilemap.clearLayer(z)
+        for (position in affected) {
+            refreshAnimatedTrackingAt(position.x, position.y)
+            compositeCache.markCellDirty(position.x, position.y)
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Query
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns the top-most (highest-z) non-null [SpriteTile] at column [x], row
+     * [y], or `null` if every layer is empty at that cell.
+     *
+     * Unlike the ASCII path's
+     * [topTileAt][com.sletmoe.kotile.display.ascii.AsciiTileWindow.topTileAt],
+     * this is *not* the whole composited appearance of the cell: sprite cells are
+     * drawn bottom-up and alpha-blended, so lower layers may still be visible
+     * beneath what is returned here. It answers "what is on top", not "what does
+     * this cell look like" — the latter has no tile-shaped answer on this path,
+     * since a [StaticSpriteTile]'s region is resolved by [regionFor].
+     */
+    fun topTileAt(x: Int, y: Int): SpriteTile? = tilemap.topCellAt(x, y)
+
+    /** Returns the top-most (highest-z) non-null [SpriteTile] at [position], or `null` if empty. */
+    fun topTileAt(position: Vector2Int): SpriteTile? = tilemap.topCellAt(position)
 
     /**
      * Re-derives whether ([x], [y]) still hosts an animated [DynamicSpriteTile] on *any*
@@ -180,7 +306,7 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) : Disposable {
 
     /** Recomposites dirty cells of [tilemap] into [compositeCache], then blits the cache as one sprite. */
     private fun drawCachedGrid(elapsedMs: Long) {
-        compositeCache.ensureSize(windowWidth, windowHeight)
+        compositeCache.ensureSize(widthInTiles, heightInTiles)
         for (position in animatedPositions) compositeCache.markCellDirty(position.x, position.y)
         compositeCache.recompositeIfDirty { x, y, drawer -> drawCell(x, y, elapsedMs, drawer) }
         // The FBO pass above (if it ran) clobbered the global GL viewport; restore this canvas's own
@@ -228,7 +354,7 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) : Disposable {
      * that fall outside [source]'s bounds are skipped silently — no tile is
      * drawn for those screen positions.
      *
-     * The viewport origin stays fixed across [onResize] calls; a resize changes
+     * The viewport origin stays fixed across [resize] calls; a resize changes
      * the visible cell count but does not move the origin, so the world does
      * not appear to scroll when the window grows or shrinks.
      *
@@ -249,12 +375,12 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) : Disposable {
         elapsedMs: Long = 0L,
     ) {
         canvas.begin()
-        viewportCache.ensureSize(windowWidth, windowHeight)
-        viewportDirtyTracker.markDirtyCells(source, viewport, windowWidth, windowHeight) { logicalX, logicalY ->
+        viewportCache.ensureSize(widthInTiles, heightInTiles)
+        viewportDirtyTracker.markDirtyCells(source, viewport, widthInTiles, heightInTiles) { logicalX, logicalY ->
             source.layerKeys.any { z -> source.cellAt(logicalX, logicalY, z) is DynamicSpriteTile }
         }
         viewportCache.recompositeIfDirty { x, y, drawer -> drawViewportCell(source, viewport, x, y, elapsedMs, drawer) }
-        viewportDirtyTracker.recordRenderedVersions(source, viewport, windowWidth, windowHeight)
+        viewportDirtyTracker.recordRenderedVersions(source, viewport, widthInTiles, heightInTiles)
         canvas.reapplyViewport()
         viewportCache.cachedRegion?.let { region ->
             val l = canvas.layout
