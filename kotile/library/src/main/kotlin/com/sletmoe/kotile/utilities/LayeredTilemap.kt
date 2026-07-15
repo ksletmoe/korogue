@@ -85,7 +85,8 @@ class LayeredTilemap<T : Any>(val width: Int, val height: Int) {
      * No-op if layer [z] does not exist.
      */
     fun removeCell(x: Int, y: Int, z: Int) {
-        layers[z]?.set(x, y, null)
+        val layer = layers[z] ?: return
+        layer[x, y] = null
         bump(x, y)
     }
 

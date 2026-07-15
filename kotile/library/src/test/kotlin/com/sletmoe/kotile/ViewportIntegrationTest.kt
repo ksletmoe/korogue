@@ -6,10 +6,12 @@ import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.PixmapIO
 import com.sletmoe.kotile.display.KotileCanvas
 import com.sletmoe.kotile.display.ascii.AnimatableAsciiTile
+import com.sletmoe.kotile.display.ascii.AnimatedAsciiTile
 import com.sletmoe.kotile.display.ascii.AsciiTileDescriptor
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
 import com.sletmoe.kotile.rendering.SpriteTileRenderer
 import com.sletmoe.kotile.rendering.TileViewport
+import com.sletmoe.kotile.tiles.AnimationFrame
 import com.sletmoe.kotile.tiles.SpriteTileEntry
 import com.sletmoe.kotile.tiles.StaticTile
 import com.sletmoe.kotile.tiles.TileSheet
@@ -274,5 +276,72 @@ class ViewportIntegrationTest : FunSpec({
         // World col 5 -> B's local col 1 -> screen pixels [10, 20).
         pixelsB.averageColor(10, 0, 20, 10).g.toDouble() shouldBe (1.0 plusOrMinus 0.1)
         pixelsB.dispose()
+    }
+
+    // -----------------------------------------------------------------------
+    // krogue-flj: cross-frame scroll invalidation and shared-source animation,
+    // both on a persistent (reused) window/cache rather than a fresh one per frame
+    // -----------------------------------------------------------------------
+
+    test("AsciiTileWindow: scrolling the viewport on a persistent renderer reveals new content and drops the old")
+        .config(enabled = HeadlessGl.available) {
+        // World 8x2: red at logical (0,0), green at logical (4,0). ONE window renders at origin
+        // (0,0) first (red visible at screen (0,0)), then scrolls to origin (4,0) (green now at
+        // screen (0,0)). Reusing the same window/cache across both renders is what exercises
+        // ViewportDirtyTracker's viewportChanged -> markAllDirty branch and the resize/-1 sentinel
+        // in lastVersions -- the existing scroll test in this file uses two separate HeadlessGl
+        // windows, which only ever hits each renderer's own first-paint path.
+        val pixels = HeadlessGl.render(40, 20, Color.BLACK) {
+            val world = LayeredTilemap<AnimatableAsciiTile>(8, 2)
+            world.setCell(0, 0, 0, AsciiTileDescriptor(' ', Color.WHITE, Color.RED))
+            world.setCell(4, 0, 0, AsciiTileDescriptor(' ', Color.WHITE, Color.GREEN))
+
+            val window = AsciiTileWindow.create {
+                widthInTiles = 4
+                heightInTiles = 2
+                fitToWindow = false
+            }
+            window.render(world, TileViewport(0, 0)) // first paint: red at screen (0,0)
+            window.render(world, TileViewport(4, 0)) // scrolled: green now at screen (0,0)
+            window.dispose()
+        }
+
+        val cell00 = pixels.averageColor(0, 0, 10, 10)
+        cell00.g.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        cell00.r.toDouble() shouldBe (0.0 plusOrMinus 0.1) // red must not linger from the cache
+        pixels.dispose()
+    }
+
+    test(
+        "AsciiTileWindow: an animated tile on a shared source keeps animating across render(source, viewport) " +
+            "calls with no writes between them",
+    ).config(enabled = HeadlessGl.available) {
+        // The exact krogue-asz symptom (animation freezing on its first-painted frame), but on the
+        // shared-source render(source, viewport) path instead of the internal-tilemap path krogue-drk
+        // already guards: ViewportDirtyTracker.isAnimatedAt must force the cell dirty on every call
+        // even though nothing is ever written to `world` between the two render() calls below.
+        val tile = AnimatedAsciiTile(
+            frames = listOf(
+                AnimationFrame(AsciiTileDescriptor(' ', Color.WHITE, Color.RED), durationMs = 100),
+                AnimationFrame(AsciiTileDescriptor(' ', Color.WHITE, Color.GREEN), durationMs = 100),
+            ),
+        )
+        val pixels = HeadlessGl.render(40, 20, Color.BLACK) {
+            val world = LayeredTilemap<AnimatableAsciiTile>(4, 2)
+            world.setCell(0, 0, 0, tile)
+
+            val window = AsciiTileWindow.create {
+                widthInTiles = 4
+                heightInTiles = 2
+                fitToWindow = false
+            }
+            window.render(world, TileViewport(0, 0), elapsedMs = 0) // frame 0: red
+            window.render(world, TileViewport(0, 0), elapsedMs = 150) // frame 1: green -- no writes between
+            window.dispose()
+        }
+        val cell00 = pixels.averageColor(0, 0, 10, 10)
+        cell00.g.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        cell00.r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+        pixels.dispose()
     }
 })

@@ -812,6 +812,70 @@ class RenderingIntegrationTest : FunSpec({
         avg.b.toDouble() shouldBe (0.0 plusOrMinus 0.1)
         pixels.dispose()
     }
+
+    // -------------------------------------------------------------------------
+    // krogue-ls4: partial-dirty recomposite must not bleed into untouched cells
+    // -------------------------------------------------------------------------
+
+    test(
+        "krogue-ls4: partial-dirty recomposite changes only the written cell, leaving an " +
+            "untouched neighbor's pixels intact",
+    ).config(enabled = HeadlessGl.available) {
+        // The whole reason the partial-dirty path exists: changing ONE cell on a multi-cell grid
+        // must not bleed into (or wipe) an adjacent, unchanged cell's per-cell glScissor+glClear.
+        // Reuses ONE persistent window across two renders -- a fresh window per frame would only
+        // ever hit the fully-dirty first-paint branch, never this one.
+        val pixels = HeadlessGl.render(80, 40, Color.BLACK) {
+            val window = AsciiTileWindow.create {
+                widthInTiles = 8
+                heightInTiles = 4
+            }
+            window.drawTile(0, 0, AsciiTileDescriptor(' ', Color.WHITE, Color.BLUE))
+            window.drawTile(1, 0, AsciiTileDescriptor(' ', Color.WHITE, Color.GREEN))
+            window.render() // first paint: both cells set, cache fully dirty
+            window.drawTile(0, 0, AsciiTileDescriptor(' ', Color.WHITE, Color.RED)) // only (0,0) changes
+            window.render() // partial-dirty recomposite: only (0,0)'s scissor rect should be touched
+            window.dispose()
+        }
+        // Changed cell now red...
+        val changed = pixels.averageColor(0, 0, 10, 10)
+        changed.r.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        changed.b.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+        // ...adjacent unchanged cell still shows its own prior (green) content, not bled or cleared.
+        val untouched = pixels.averageColor(10, 0, 20, 10)
+        untouched.g.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        untouched.r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+        pixels.dispose()
+    }
+
+    // -------------------------------------------------------------------------
+    // krogue-r0f: removing the top z-layer at a cell must reveal the layer beneath, through the cache
+    // -------------------------------------------------------------------------
+
+    test(
+        "krogue-r0f: removing the top layer at a cell recomposites to reveal the layer beneath, through the cache",
+    ).config(enabled = HeadlessGl.available) {
+        // Two stacked layers at the same cell: an opaque top (red) over a differently-colored bottom
+        // (blue). On a persistent renderer, removing the top layer and re-rendering must recomposite
+        // to the bottom layer's color -- not retain the removed top layer's stale cached pixels, which
+        // is exactly what would happen if the cell were redrawn without first being cleared.
+        val pixels = HeadlessGl.render(80, 40, Color.BLACK) {
+            val window = AsciiTileWindow.create {
+                widthInTiles = 8
+                heightInTiles = 4
+            }
+            window.drawTile(0, 0, z = 0, tile = AsciiTileDescriptor(' ', Color.WHITE, Color.BLUE))
+            window.drawTile(0, 0, z = 1, tile = AsciiTileDescriptor(' ', Color.WHITE, Color.RED))
+            window.render() // first paint: top (red) layer wins
+            window.clearTile(0, 0, z = 1) // remove the top layer
+            window.render() // must recomposite to reveal the bottom (blue) layer
+            window.dispose()
+        }
+        val cell00 = pixels.averageColor(0, 0, 10, 10)
+        cell00.b.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        cell00.r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+        pixels.dispose()
+    }
 })
 
 /**
