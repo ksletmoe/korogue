@@ -5,6 +5,11 @@
 // com.sletmoe.korogue:korogue (:engine) and com.sletmoe:kotile (:kotile:library).
 plugins {
     id("io.github.gradle-nexus.publish-plugin")
+    // Resolved here (apply false) so :demo, :engine, and :kotile:demo — which each apply
+    // kotlin("jvm") in their own plugins {} block — share this one classloading instead of each
+    // loading the plugin independently, which Gradle warns can corrupt build-cache/accessor state
+    // across differently-located checkouts ("Kotlin Gradle plugin was loaded multiple times").
+    kotlin("jvm") apply false
 }
 
 group = "com.sletmoe.korogue"
