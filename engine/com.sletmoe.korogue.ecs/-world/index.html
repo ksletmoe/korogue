@@ -43,7 +43,7 @@
         </button>
         <div class="navigation-controls--break ui-kit_mobile-only"></div>
         <div class="library-version" id="library-version">
-1.0.0.62-SNAPSHOT        </div>
+1.0.0.63-SNAPSHOT        </div>
         <div class="navigation-controls">
         <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
                 <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true"
@@ -107,24 +107,24 @@
   <div class="breadcrumbs"><a href="../../../index.html">engine</a><span class="delimiter">/</span><a href="../index.html">com.sletmoe.korogue.ecs</a><span class="delimiter">/</span><span class="current">World</span></div>
   <div class="cover ">
     <h1 class="cover"><span><span>World</span></span></h1>
-    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">World</a><span class="source-link-wrapper"><span class="source-link" data-element-type="source-link">(<a href="https://github.com/ksletmoe/korogue/tree/mainline/engine/src/main/kotlin/com/sletmoe/korogue/ecs/World.kt#L24">source</a>)</span></span></div><p class="paragraph">Owns every <a href="../-entity/index.html">Entity</a> and <a href="../-system/index.html">System</a> and drives them via <a href="tick.html">tick</a>.</p><p class="paragraph"><strong>Queries scan all entities</strong> — there is no component index. At korogue's scale (hundreds to low thousands of entities) an O(n) scan per query is negligible, and going index-free removes a whole class of index-desync bugs. If queries ever become hot at much larger scale, a component-type index can be introduced behind these same methods without changing any caller.</p><p class="paragraph"><strong>Query results are snapshots.</strong> <a href="entities.html">entities</a> and <a href="entities-with.html">entitiesWith</a> capture the entity set when the sequence is created, so a system may freely <a href="spawn.html">spawn</a> / <a href="despawn.html">despawn</a> (or mutate components) while iterating a query without a <code class="lang-kotlin">ConcurrentModificationException</code>; such structural changes simply are not reflected in an already-running iteration.</p><p class="paragraph"><strong>Mutation flows through </strong><a href="index.html"><strong>World</strong></a><strong>.</strong> <a href="../-entity/index.html">Entity</a> is read-only to callers; component changes go through <a href="set.html">set</a> / <a href="update.html">update</a> / <a href="remove.html">remove</a>, giving a single seam onto which change tracking / save-state deltas can later be hooked.</p></div></div>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">World</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter "><span class="token keyword">val </span>random<span class="token operator">: </span><a href="../../com.sletmoe.korogue.random/-game-random/index.html">GameRandom</a><span class="token operator"> = </span>GameRandom.random()</span></span><span class="token punctuation">)</span><span class="source-link-wrapper"><span class="source-link" data-element-type="source-link">(<a href="https://github.com/ksletmoe/korogue/tree/mainline/engine/src/main/kotlin/com/sletmoe/korogue/ecs/World.kt#L35">source</a>)</span></span></div><p class="paragraph">Owns every <a href="../-entity/index.html">Entity</a> and <a href="../-system/index.html">System</a> and drives them via <a href="tick.html">tick</a>.</p><p class="paragraph"><strong>Queries scan all entities</strong> — there is no component index. At korogue's scale (hundreds to low thousands of entities) an O(n) scan per query is negligible, and going index-free removes a whole class of index-desync bugs. If queries ever become hot at much larger scale, a component-type index can be introduced behind these same methods without changing any caller.</p><p class="paragraph"><strong>Query results are snapshots.</strong> <a href="entities.html">entities</a> and <a href="entities-with.html">entitiesWith</a> capture the entity set when the sequence is created, so a system may freely <a href="spawn.html">spawn</a> / <a href="despawn.html">despawn</a> (or mutate components) while iterating a query without a <code class="lang-kotlin">ConcurrentModificationException</code>; such structural changes simply are not reflected in an already-running iteration.</p><p class="paragraph"><strong>Mutation flows through </strong><a href="index.html"><strong>World</strong></a><strong>.</strong> <a href="../-entity/index.html">Entity</a> is read-only to callers; component changes go through <a href="set.html">set</a> / <a href="update.html">update</a> / <a href="remove.html">remove</a>, giving a single seam onto which change tracking / save-state deltas can later be hooked.</p><p class="paragraph"><strong>Randomness is seeded by construction</strong> (ADR-0025). The world owns its <span data-unresolved-link="com.sletmoe.korogue.ecs/World//#com.sletmoe.korogue.random.GameRandom/PointingToCallableParameters(0)/">random</span>, so every tick draws from a seeded, serializable stream and there is no API path to an unseeded world — ADR-0009's &quot;same master seed ⇒ same world + loot&quot; and exact save/resume hold without the caller threading an RNG through <a href="tick.html">tick</a>. Pass <a href="../../com.sletmoe.korogue.random/-game-random/-companion/from-seed.html">GameRandom.fromSeed</a> to reproduce a specific game (or to pin a test); the default rolls a fresh master seed.</p></div></div>
   </div>
   <div class="tabbedcontent">
     <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
     <div class="tabs-section-body">
       <div data-togglable="CONSTRUCTOR">
         <h2 class="tableheader">Constructors</h2>
-        <div class="table"><a data-name="1417020698%2FConstructors%2F-56654334" anchor-label="World" id="1417020698%2FConstructors%2F-56654334" data-filterable-set=":engine/main"></a>
+        <div class="table"><a data-name="-2009295040%2FConstructors%2F-56654334" anchor-label="World" id="-2009295040%2FConstructors%2F-56654334" data-filterable-set=":engine/main"></a>
           <div class="table-row table-row_content" data-togglable="CONSTRUCTOR" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
             <div class="main-subrow keyValue ">
               <div class=""><span class="inline-flex">
                   <div><a href="-world.html"><span><span>World</span></span></a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1417020698%2FConstructors%2F-56654334"></span>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2009295040%2FConstructors%2F-56654334"></span>
                     <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="token punctuation">)</span></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">random<span class="token operator">: </span><a href="../../com.sletmoe.korogue.random/-game-random/index.html">GameRandom</a><span class="token operator"> = </span>GameRandom.random()</span></span><span class="token punctuation">)</span></div></div></div>
                 </div>
               </div>
             </div>
@@ -174,6 +174,21 @@
               <div>
                 <div class="title">
                   <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="events.html">events</a><span class="token operator">: </span><a href="../-event-bus/index.html">EventBus</a></div><div class="brief "><p class="paragraph">The world's pub/sub bus (Phase 4c). Systems <a href="../-event-bus/publish.html">EventBus.publish</a> notifications while they run; subscribers register here. Transient runtime state — handlers are code and the queue is in-flight, so the bus is not part of save state. <a href="tick.html">tick</a> drains it after every system has run.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="39680427%2FProperties%2F-56654334" anchor-label="random" id="39680427%2FProperties%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="random.html"><span><span>random</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="39680427%2FProperties%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="random.html">random</a><span class="token operator">: </span><a href="../../com.sletmoe.korogue.random/-game-random/index.html">GameRandom</a></div><div class="brief "><p class="paragraph">this world's source of randomness, and part of its save state — the save codec snapshots it, so a loaded game resumes mid-stream. Draw named streams from it (<a href="../../com.sletmoe.korogue.random/-game-random/stream.html">GameRandom.stream</a>) for any randomness outside a tick.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -332,17 +347,32 @@
               </div>
             </div>
           </div>
-<a data-name="2109817046%2FFunctions%2F-56654334" anchor-label="tick" id="2109817046%2FFunctions%2F-56654334" data-filterable-set=":engine/main"></a>
+<a data-name="-2141030328%2FFunctions%2F-56654334" anchor-label="tick" id="-2141030328%2FFunctions%2F-56654334" data-filterable-set=":engine/main"></a>
           <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
             <div class="main-subrow keyValue ">
               <div class=""><span class="inline-flex">
                   <div><a href="tick.html"><span><span>tick</span></span></a></div>
-<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2109817046%2FFunctions%2F-56654334"></span>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2141030328%2FFunctions%2F-56654334"></span>
                     <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="tick.html"><span class="token function">tick</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">elapsedMs<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a><span class="token operator"> = </span><span class="token constant">0</span><span class="token punctuation">, </span></span><span class="parameter ">random<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.random/-random/index.html">Random</a><span class="token operator"> = </span>Random.Default</span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Runs every registered system once in registration order, drains the <a href="events.html">events</a> bus to its subscribers, then advances the turn counter. Events are dispatched after all systems have run, so subscribers observe a consistent end-of-tick world.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="tick.html"><span class="token function">tick</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">elapsedMs<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a><span class="token operator"> = </span><span class="token constant">0</span></span></span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Runs every registered system once in registration order, drains the <a href="events.html">events</a> bus to its subscribers, then advances the turn counter. Events are dispatched after all systems have run, so subscribers observe a consistent end-of-tick world.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="381957887%2FFunctions%2F-56654334" anchor-label="tickContext" id="381957887%2FFunctions%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="tick-context.html"><span>tick</span><wbr></wbr><span><span>Context</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="381957887%2FFunctions%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="tick-context.html"><span class="token function">tickContext</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">elapsedMs<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-long/index.html">Long</a><span class="token operator"> = </span><span class="token constant">0</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../-tick-context/index.html">TickContext</a></div><div class="brief "><p class="paragraph">A <a href="../-tick-context/index.html">TickContext</a> for the turn about to run, drawing on this world's seeded <span data-unresolved-link="com.sletmoe.korogue.ecs/World//#com.sletmoe.korogue.random.GameRandom/PointingToCallableParameters(0)/">random</span>.</p></div></div></div>
                 </div>
               </div>
             </div>
