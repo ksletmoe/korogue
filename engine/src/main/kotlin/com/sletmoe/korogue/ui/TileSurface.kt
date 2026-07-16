@@ -9,8 +9,11 @@ import com.badlogic.gdx.graphics.Color
  * making the toolkit's layout and drawing logic headlessly testable.
  *
  * Coordinates are top-left origin (matching the window). Writes outside `[0, width) x
- * [0, height)` are silently dropped. Higher [put] `z` draws on top (top-cell-wins, the
- * window's compositing model).
+ * [0, height)` are silently dropped. Higher [put] `z` draws on top, resolved per channel
+ * the way the backing window resolves it (ADR-0030): the top-most `z` supplies the glyph
+ * and [put]'s `fg`, while `bg` comes from the top-most `z` whose background is not fully
+ * transparent. So a widget can pass a transparent `bg` to draw over whatever is beneath it
+ * without restating that color.
  */
 interface TileSurface {
     val width: Int
