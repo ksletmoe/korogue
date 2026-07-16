@@ -31,6 +31,53 @@ workflow and sync details are in the "Beads Issue Tracker" section below and via
 - Keep files focused (~500 lines).
 - Commits use a `Co-Authored-By: Claude …` trailer (Claude Code's default
   attribution, which includes the current model version).
+- **Anything an agent posts to GitHub must say so.** `gh` authenticates as the
+  repo owner, so an agent-written PR body, PR/issue comment, or review reads as
+  if a human typed it. Anyone reading the thread — a human, or another review bot
+  weighing how much to trust a claim — deserves to know a model wrote it. So end
+  every `gh pr comment` / `gh issue comment` / `gh pr review` / `gh pr create`
+  body with an attribution line:
+
+  ```text
+  🤖 Written by <actual model name> via Claude Code, posted by @<owner>'s gh CLI.
+  ```
+
+  `<actual model name>` and `<owner>` are placeholders — replace both with the
+  real values (e.g. `Claude Opus 4.8`) before posting; never submit the literal
+  placeholder text. Name the actual model you are, not a generic "an AI". If you
+  rewrite a comment (`--edit-last`) the line must survive the rewrite. This is
+  not the same as the commit trailer: that covers what landed in git, this
+  covers what was said about it — and review threads are where the unverified
+  claims live.
+- **Do not state a verification you did not run.** Say what you actually ran and
+  what it printed. If something is unverified, say so — the GL tests only execute
+  on Linux CI, so "compiles clean" and "verified" are very different claims here.
+- **Verify the artifact you are shipping, in the shape you are shipping it.**
+  Because the GL suite is skipped on macOS, the usual move is a throwaway harness
+  (`JavaExec` + `-XstartOnFirstThread`, see `kotile/demo`) that renders real pixels
+  locally. That harness is *not* the thing being shipped, and it drifts from the
+  committed test silently. It has produced a wrong claim to a reviewer three times
+  in one session, each time because the harness reproduced the **logic** but not
+  the **environment**:
+  - the harness rendered against framebuffer 0 while the committed test ran inside
+    `HeadlessGl`'s capture FBO, so the bug's `handle != 0` condition never held and
+    the shipped test could not fail at all;
+  - the harness snapshotted the viewport around a single render while the test
+    compared across a `resize`, so CI failed on an assertion the harness liked;
+  - the harness used a 40x40 window, making the `resize(40, 40)` under test a
+    no-op, and nearly produced a confidently wrong rebuttal to a reviewer.
+
+  So mirror the committed test's **geometry and GL state**, not just its steps:
+  same window size, same bound framebuffer, same call order, same points where
+  values are captured. **When harness and test disagree, treat the result as
+  unresolved and investigate both** — the harness may be wrong, but the
+  committed test may also be stale or defective. Don't report a verification
+  claim, red or green, until you've reconciled the two and exercised the
+  committed test's actual shape. A regression test must fail against the
+  un-fixed code and pass after the fix, proven in the *test's* shape, not the
+  harness's: a test that cannot fail against the un-fixed code is worse than
+  no test, because it reads as coverage. And never report a harness result as
+  though it were the test's.
 - **The Rogue example is a faithful recreation — don't deviate on gameplay.**
   Reproduce original Rogue's behavior, rules, and data exactly (the canonical
   BSD 5.4.4 C source is at `~/Downloads/rogue5.4.4`; transcribe tables and port
