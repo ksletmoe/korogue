@@ -198,4 +198,16 @@ class LayeredTilemap<T : Any>(val width: Int, val height: Int) {
      * winning (highest-z) layer.
      */
     val layersBottomUp: Collection<Grid<T?>> get() = layers.descendingMap().values
+
+    /**
+     * The populated layers ordered from the highest z down to the lowest, as a
+     * live view over the internal layer map — the order [topCellAt] resolves in.
+     *
+     * Intended for **per-channel resolution**: walking down the stack to find the
+     * first layer that supplies some property of a cell, rather than collapsing
+     * the stack to one winning layer ([topCellAt]) or drawing all of it
+     * ([layersBottomUp]). The ASCII path uses this to resolve a cell's background
+     * from the top-most layer that actually paints one (ADR-0030).
+     */
+    val layersTopDown: Collection<Grid<T?>> get() = layers.values
 }

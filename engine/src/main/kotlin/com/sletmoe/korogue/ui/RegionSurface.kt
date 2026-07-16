@@ -10,8 +10,12 @@ import com.sletmoe.korogue.utilities.IntRect
  * on its layer's z-band, without knowing where it sits on screen.
  *
  * [dim] < 1 darkens output — used by [UiRoot] to render the layers beneath an open modal dialog
- * dimmed while the (opaque) dialog draws at full brightness (the dim-behind effect, top-cell-wins,
- * no alpha blending).
+ * dimmed while the (opaque) dialog draws at full brightness (the dim-behind effect). It relies on
+ * the dialog's cells carrying **opaque** backgrounds: those win their cell outright, so nothing
+ * underneath shows through. Backgrounds are resolved per channel (ADR-0030), not alpha-blended, so
+ * a dialog cell that passed a *transparent* background would now show the dimmed layer beneath it
+ * rather than the dialog's own fill. [dimmed] scales rgb and preserves alpha, so an opaque cell
+ * stays opaque through the dimming and the effect is unaffected.
  */
 class RegionSurface(
     private val delegate: TileSurface,

@@ -708,9 +708,10 @@ class RenderingIntegrationTest : FunSpec({
     }
 
     // -------------------------------------------------------------------------
-    // krogue-8mr (ADR-0029): the ASCII path composites top-cell-wins, deliberately, and
-    // the sprite path does not. That asymmetry is a decision, so pin it -- a future change
-    // to either policy should fail here rather than surprise a consumer.
+    // krogue-7va (ADR-0030): an ASCII cell's glyph and background resolve from different
+    // layers -- glyph top-cell-wins, background from the top-most cell that paints one. These
+    // supersede the ADR-0029 cases that pinned background as top-cell-wins too; that policy
+    // is what made a transparent background do nothing. Pinned so it can't drift back.
     // -------------------------------------------------------------------------
 
     /** Renders one 10x10 ASCII cell: z=0 is always '#' white on blue; [overlay] goes on z=1. */
@@ -730,55 +731,68 @@ class RenderingIntegrationTest : FunSpec({
         return avg
     }
 
-    test("krogue-8mr: an upper ASCII cell replaces the one beneath it, transparent background and all").config(
+    test("krogue-7va: a CLEAR-background ASCII cell keeps the background of the cell beneath it").config(
         enabled = HeadlessGl.available,
     ) {
-        // The ASCII policy in one assertion: a CLEAR background does NOT reveal z=0. It reveals
-        // the canvas clear color. StaticAsciiTile's KDoc used to promise the opposite (ADR-0029).
+        // The point of per-channel resolution (ADR-0030): an overlay sits ON the terrain instead of
+        // erasing it. The '@' takes the glyph channel; z=0's blue still supplies the background,
+        // without the creature cell having to know what colour the floor is.
         val baseline = asciiOverlayCell(null)
-        baseline.b.toDouble() shouldBe (1.0 plusOrMinus 0.1) // z=0's blue is there to be hidden
+        baseline.b.toDouble() shouldBe (1.0 plusOrMinus 0.1)
 
+        // Averaged over the whole cell the blue lands near 0.72, not 1.0, because the '@' glyph
+        // itself covers roughly a quarter of the cell in red. Asserting "most of the cell is still
+        // blue" rather than a tuned constant, and pinning the contrast against BLACK below.
         val overlaid = asciiOverlayCell(StaticAsciiTile('@', Color.RED, Color.CLEAR))
-        overlaid.b.toDouble() shouldBe (0.0 plusOrMinus 0.1) // ...and it is gone, not blended
-        overlaid.r.toDouble() shouldBeGreaterThan 0.1 // the '@' itself did draw
+        overlaid.b.toDouble() shouldBeGreaterThan 0.5 // z=0's background survived under the glyph
+        overlaid.r.toDouble() shouldBeGreaterThan 0.1 // ...and the '@' drew on top of it
     }
 
-    test("krogue-8mr: a transparent ASCII background is indistinguishable from an opaque black one").config(
+    test("krogue-7va: a transparent ASCII background is now distinguishable from an opaque black one").config(
         enabled = HeadlessGl.available,
     ) {
-        // The sharpest statement of top-cell-wins: alpha in a layered cell's background buys
-        // nothing at all. If per-channel compositing ever lands (krogue-7va) this must change.
+        // The inverse of what ADR-0029 measured and pinned. CLEAR used to be byte-identical to
+        // BLACK once layered, which is what made StaticAsciiTile's KDoc a lie; now CLEAR defers to
+        // the layer below and BLACK paints black, so they must differ.
         val clear = asciiOverlayCell(StaticAsciiTile('@', Color.RED, Color.CLEAR))
         val black = asciiOverlayCell(StaticAsciiTile('@', Color.RED, Color.BLACK))
-        clear.r.toDouble() shouldBe (black.r.toDouble() plusOrMinus 0.02)
-        clear.g.toDouble() shouldBe (black.g.toDouble() plusOrMinus 0.02)
-        clear.b.toDouble() shouldBe (black.b.toDouble() plusOrMinus 0.02)
+        clear.b.toDouble() shouldBeGreaterThan 0.5 // defers to z=0's blue
+        black.b.toDouble() shouldBe (0.0 plusOrMinus 0.1) // paints its own black
     }
 
-    test("krogue-8mr: a blank ASCII cell still occupies its position and hides the layer below").config(
+    test("krogue-7va: an opaque ASCII background still wins outright, hiding the one beneath").config(
         enabled = HeadlessGl.available,
     ) {
-        // The footgun the KDoc now warns about: a space is keyed out, so this cell draws nothing
-        // whatsoever -- yet it still wins its position and blanks the terrain under it. Use
-        // clearTile, not a space, to let a lower layer through.
+        // Per-channel is not alpha blending: the first cell that paints a background wins and its
+        // colour is used as-is. An opaque overlay must still hide the terrain colour completely.
+        val opaque = asciiOverlayCell(StaticAsciiTile('@', Color.RED, Color.GREEN))
+        opaque.g.toDouble() shouldBeGreaterThan 0.5 // the overlay's green
+        opaque.b.toDouble() shouldBe (0.0 plusOrMinus 0.1) // z=0's blue is gone
+    }
+
+    test("krogue-7va: a blank ASCII cell still wins the glyph channel, but not the background").config(
+        enabled = HeadlessGl.available,
+    ) {
+        // The remaining footgun, now narrower than it was: a space is keyed out and draws nothing,
+        // and it still takes the GLYPH channel (so '#' below is hidden) -- but the background below
+        // now shows through, where before the whole cell went black. clearTile still beats a space.
         val blanked = asciiOverlayCell(StaticAsciiTile(' ', Color.WHITE, Color.CLEAR))
-        blanked.r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
-        blanked.g.toDouble() shouldBe (0.0 plusOrMinus 0.1)
-        blanked.b.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+        blanked.b.toDouble() shouldBe (1.0 plusOrMinus 0.15) // z=0's background survives in full...
+        blanked.r.toDouble() shouldBe (0.0 plusOrMinus 0.1) // ...but z=0's white '#' is not drawn
     }
 
-    test("krogue-8mr: the sprite path composites bottom-up, the ASCII path does not").config(
+    test("krogue-7va: both paths let an upper layer that paints nothing reveal the one beneath").config(
         enabled = HeadlessGl.available,
     ) {
-        // Both paths, same setup -- an upper layer that draws nothing over an opaque lower one --
-        // asserted side by side, so the divergence is stated once rather than inferred from two
-        // tests in different files. Sprite: fully transparent foreground reveals the background.
-        // ASCII: a blank cell hides it. See ADR-0029 for why matching them would be wrong.
+        // Same setup on both paths, asserted side by side. They still resolve differently by
+        // construction (sprite alpha-blends pixels; ASCII picks a background layer per channel),
+        // but the consumer-visible promise now agrees: an upper layer that paints nothing does not
+        // erase what is under it. See ADR-0029 for the divergence, ADR-0030 for the convergence.
         val sprite = renderLayered(background = Color.BLUE, foreground = Color(1f, 0f, 0f, 0f))
-        sprite.b.toDouble() shouldBe (1.0 plusOrMinus 0.1) // lower layer survives
+        sprite.b.toDouble() shouldBe (1.0 plusOrMinus 0.1)
 
         val ascii = asciiOverlayCell(StaticAsciiTile(' ', Color.WHITE, Color.CLEAR))
-        ascii.b.toDouble() shouldBe (0.0 plusOrMinus 0.1) // lower layer does not
+        ascii.b.toDouble() shouldBe (1.0 plusOrMinus 0.15)
     }
 
     // -------------------------------------------------------------------------
