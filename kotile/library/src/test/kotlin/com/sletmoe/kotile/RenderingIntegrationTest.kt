@@ -2,10 +2,13 @@ package com.sletmoe.kotile
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.PixmapIO
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.graphics.glutils.FrameBuffer
+import com.badlogic.gdx.utils.BufferUtils
 import com.sletmoe.kotile.display.KotileCanvas
 import com.sletmoe.kotile.display.ascii.AnimatedAsciiTile
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
@@ -779,6 +782,59 @@ class RenderingIntegrationTest : FunSpec({
 
         val ascii = asciiOverlayCell(StaticAsciiTile(' ', Color.WHITE, Color.CLEAR))
         ascii.b.toDouble() shouldBe (0.0 plusOrMinus 0.1) // lower layer does not
+    }
+
+    // -------------------------------------------------------------------------
+    // krogue-s5h: a consumer's own FrameBuffer must survive kotile rendering. libGDX FBOs
+    // do not nest -- FrameBuffer.end() binds 0 unconditionally -- so the composite cache
+    // used to silently steal it and put the frame on screen instead, with no error.
+    // -------------------------------------------------------------------------
+
+    test("krogue-s5h: rendering inside a consumer's own FrameBuffer leaves it bound, and lands in it").config(
+        enabled = HeadlessGl.available,
+    ) {
+        // The consumer case this protects: render kotile into your own FBO to post-process it,
+        // render to a texture, do a transition, take a screenshot. Drive an AsciiTileWindow inside
+        // a caller-owned FBO and read that FBO back -- if the cache steals the binding, the content
+        // goes to the window and this reads an empty buffer.
+        var boundAfter = -1
+        var callerHandle = -1
+        var pixelsInCallerFbo: Color? = null
+
+        HeadlessGl.render(20, 20, Color.BLACK) {
+            val consumerFbo = FrameBuffer(Pixmap.Format.RGBA8888, 20, 20, false)
+            consumerFbo.begin()
+            Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
+            Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
+            callerHandle = consumerFbo.framebufferHandle
+
+            val window = AsciiTileWindow.create {
+                widthInTiles = 2
+                heightInTiles = 2
+            }
+            window.fill(StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
+            window.render() // recomposites -> fbo.begin()/end() inside the consumer's FBO
+
+            // Still the consumer's FBO, not the window's back buffer?
+            val query = BufferUtils.newIntBuffer(16)
+            Gdx.gl.glGetIntegerv(GL20.GL_FRAMEBUFFER_BINDING, query)
+            boundAfter = query.get(0)
+
+            // ...and did the blue actually land in it? Bind the caller's FBO explicitly before
+            // reading: createFromFrameBuffer reads whatever is bound, so reading blind would
+            // happily report the window's contents and pass even when the binding was stolen.
+            Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, callerHandle)
+            val inside = Pixmap.createFromFrameBuffer(0, 0, 20, 20)
+            pixelsInCallerFbo = inside.averageColor(0, 0, 20, 20)
+            inside.dispose()
+
+            consumerFbo.end()
+            window.dispose()
+            consumerFbo.dispose()
+        }.dispose()
+
+        boundAfter shouldBe callerHandle // the binding survived the recomposite
+        pixelsInCallerFbo!!.b.toDouble() shouldBe (1.0 plusOrMinus 0.15) // the frame went where the caller asked
     }
 
     // -------------------------------------------------------------------------

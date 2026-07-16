@@ -110,6 +110,15 @@ import com.sletmoe.kotile.utilities.Vector3Int
  * `LayeredTilemap<AsciiTile>` and a [TileViewport] describing the
  * top-left origin. Logical cells outside the source bounds are treated as empty.
  *
+ * ## Rendering inside your own FrameBuffer
+ *
+ * Supported: [render] leaves whatever framebuffer and viewport you had bound
+ * exactly as it found them, so you can wrap it in your own
+ * [com.badlogic.gdx.graphics.glutils.FrameBuffer] to render to a texture,
+ * post-process the frame, drive a screen transition, or grab a screenshot
+ * (krogue-s5h). This has to be stated because libGDX itself does not behave that
+ * way — its framebuffers do not nest — so kotile restores the binding for you.
+ *
  * @property widthInTiles grid width in cells
  * @property heightInTiles grid height in cells
  */

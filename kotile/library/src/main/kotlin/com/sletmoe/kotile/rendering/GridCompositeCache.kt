@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.graphics.glutils.FrameBuffer
+import com.badlogic.gdx.utils.BufferUtils
 import com.badlogic.gdx.utils.Disposable
 
 /**
@@ -56,6 +57,11 @@ internal class GridCompositeCache(
         fun drawTile(x: Int, y: Int, region: TextureRegion, tint: Color, flipX: Boolean = false, flipY: Boolean = false)
     }
 
+    // Scratch buffer for glGetIntegerv. Reused rather than allocated per recomposite, which runs
+    // every frame that anything changed. glGetIntegerv wants room for the largest query it serves
+    // (GL_VIEWPORT: 4 ints); 16 is libGDX's own habit and costs nothing.
+    private val glQueryBuffer = BufferUtils.newIntBuffer(16)
+
     private var frameBuffer: FrameBuffer? = null
     private var batch: SpriteBatch? = null
     private var camera: OrthographicCamera? = null
@@ -93,7 +99,9 @@ internal class GridCompositeCache(
         gridHeight = heightInTiles
         pxWidth = (widthInTiles * tileWidthPx).coerceAtLeast(1)
         pxHeight = (heightInTiles * tileHeightPx).coerceAtLeast(1)
-        frameBuffer = FrameBuffer(Pixmap.Format.RGBA8888, pxWidth, pxHeight, false)
+        // The FrameBuffer constructor leaves framebuffer 0 bound once it has built -- on a consumer
+        // who had their own bound, that is a silent theft on the very first render (krogue-s5h).
+        frameBuffer = preservingFrameBuffer { FrameBuffer(Pixmap.Format.RGBA8888, pxWidth, pxHeight, false) }
         // FrameBuffer color attachments default to linear filtering (unlike a plain Texture, which
         // defaults to nearest) -- left alone, blitting this 1:1-native cache back at a >1x on-screen
         // scale comes out blurred instead of crisp. Force nearest so IntegerScale stays pixel-perfect;
@@ -132,6 +140,15 @@ internal class GridCompositeCache(
         val fbo = frameBuffer ?: return
         val b = batch ?: return
 
+        preservingFrameBuffer {
+            recomposite(fbo, b, draw)
+        }
+
+        fullyDirty = false
+        dirtyCells.clear()
+    }
+
+    private fun recomposite(fbo: FrameBuffer, b: SpriteBatch, draw: (x: Int, y: Int, drawer: TileDrawer) -> Unit) {
         fbo.begin()
         b.projectionMatrix = camera!!.combined
         val drawer = nativeDrawer(b)
@@ -162,9 +179,37 @@ internal class GridCompositeCache(
             Gdx.gl.glDisable(GL20.GL_SCISSOR_TEST)
         }
         fbo.end()
+    }
 
-        fullyDirty = false
-        dirtyCells.clear()
+    /**
+     * Runs [block] and puts back whatever framebuffer and viewport were bound before it.
+     *
+     * libGDX framebuffers do not nest, in two separate places: `FrameBuffer.end()` binds
+     * framebuffer 0 and resets the viewport to the whole backbuffer rather than restoring what was
+     * bound before `begin()`, **and** the `FrameBuffer` *constructor* leaves 0 bound once it has
+     * finished building. Either one silently steals a consumer's own FrameBuffer: someone rendering
+     * kotile into a texture for a post-process, a transition or a screenshot would find their buffer
+     * empty and their frame on screen instead, with no error at all (krogue-s5h).
+     *
+     * So both the allocation ([ensureSize]) and the draw pass ([recompositeIfDirty]) are wrapped in
+     * this, making the cache invisible to whatever GL state it interrupted.
+     */
+    private inline fun <T> preservingFrameBuffer(block: () -> T): T {
+        glQueryBuffer.clear()
+        Gdx.gl.glGetIntegerv(GL20.GL_FRAMEBUFFER_BINDING, glQueryBuffer)
+        val handle = glQueryBuffer.get(0)
+        glQueryBuffer.clear()
+        Gdx.gl.glGetIntegerv(GL20.GL_VIEWPORT, glQueryBuffer)
+        val viewport = IntArray(4) { glQueryBuffer.get(it) }
+
+        try {
+            return block()
+        } finally {
+            // Rebinding 0 is what libGDX already did; skip the redundant call in the common case
+            // where the consumer had no FrameBuffer of their own bound.
+            if (handle != 0) Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, handle)
+            Gdx.gl.glViewport(viewport[0], viewport[1], viewport[2], viewport[3])
+        }
     }
 
     private fun nativeDrawer(b: SpriteBatch): TileDrawer {

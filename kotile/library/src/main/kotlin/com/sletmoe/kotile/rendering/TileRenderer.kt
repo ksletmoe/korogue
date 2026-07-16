@@ -66,6 +66,15 @@ import com.sletmoe.kotile.utilities.Vector3Int
  * tilemap is rebuilt to match the new canvas dimensions. Tiles outside the new
  * bounds are dropped; tiles that still fit are preserved.
  *
+ * ## Rendering inside your own FrameBuffer
+ *
+ * Supported: [render] leaves whatever framebuffer and viewport you had bound
+ * exactly as it found them, so you can wrap it in your own
+ * [com.badlogic.gdx.graphics.glutils.FrameBuffer] to render to a texture,
+ * post-process the frame, drive a screen transition, or grab a screenshot
+ * (krogue-s5h). This has to be stated because libGDX itself does not behave that
+ * way — its framebuffers do not nest — so kotile restores the binding for you.
+ *
  * To render a windowed slice of a larger logical tile space, use the
  * [render(source, viewport)][render] overload with a consumer-owned
  * [LayeredTilemap] and a [TileViewport] describing the top-left origin.
