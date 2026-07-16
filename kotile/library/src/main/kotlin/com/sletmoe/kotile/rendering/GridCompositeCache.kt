@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.graphics.glutils.FrameBuffer
+import com.badlogic.gdx.utils.BufferUtils
 import com.badlogic.gdx.utils.Disposable
 
 /**
@@ -56,6 +57,19 @@ internal class GridCompositeCache(
         fun drawTile(x: Int, y: Int, region: TextureRegion, tint: Color, flipX: Boolean = false, flipY: Boolean = false)
     }
 
+    // Scratch buffer for glGetIntegerv. Reused rather than allocated per recomposite, which runs
+    // every frame that anything changed. glGetIntegerv wants room for the largest query it serves
+    // (GL_VIEWPORT: 4 ints); 16 is libGDX's own habit and costs nothing.
+    //
+    // Shared mutable state, so the invariant matters: preservingFrameBuffer copies everything it
+    // reads out of this buffer into locals *before* running its block, and never touches it again
+    // afterwards. That is what makes nesting one preservingFrameBuffer inside another safe -- the
+    // inner call can clear and reuse the buffer freely, because the outer call is already done with
+    // it. Keep it that way: reading from this buffer after the block would silently see the inner
+    // call's values instead of its own. (Single-threaded by construction -- all of this runs on the
+    // GL thread.)
+    private val glQueryBuffer = BufferUtils.newIntBuffer(16)
+
     private var frameBuffer: FrameBuffer? = null
     private var batch: SpriteBatch? = null
     private var camera: OrthographicCamera? = null
@@ -88,22 +102,30 @@ internal class GridCompositeCache(
      */
     fun ensureSize(widthInTiles: Int, heightInTiles: Int) {
         if (widthInTiles == gridWidth && heightInTiles == gridHeight && frameBuffer != null) return
-        disposeGpuResources()
-        gridWidth = widthInTiles
-        gridHeight = heightInTiles
-        pxWidth = (widthInTiles * tileWidthPx).coerceAtLeast(1)
-        pxHeight = (heightInTiles * tileHeightPx).coerceAtLeast(1)
-        frameBuffer = FrameBuffer(Pixmap.Format.RGBA8888, pxWidth, pxHeight, false)
-        // FrameBuffer color attachments default to linear filtering (unlike a plain Texture, which
-        // defaults to nearest) -- left alone, blitting this 1:1-native cache back at a >1x on-screen
-        // scale comes out blurred instead of crisp. Force nearest so IntegerScale stays pixel-perfect;
-        // the outer KotileCanvas.drawSprite call still switches to sharp-bilinear on top of this when
-        // the final on-screen scale is fractional (that shader wants Linear, set per-draw, separately).
-        frameBuffer!!.colorBufferTexture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
-        batch = SpriteBatch()
-        camera = OrthographicCamera().apply {
-            setToOrtho(false, pxWidth.toFloat(), pxHeight.toFloat())
-            update()
+        // The whole (re)allocation runs under the guard, not just the FrameBuffer constructor:
+        // that constructor leaves framebuffer 0 bound once it has built, and deleting a framebuffer
+        // that happens to be bound also reverts the binding to 0 per the GL spec. The old cache
+        // buffer should never be the bound one by the time we get here, but "should never" is the
+        // kind of assumption that quietly stops being true, and guarding the whole block costs one
+        // pair of GL queries on a resize (krogue-s5h).
+        preservingFrameBuffer {
+            disposeGpuResources()
+            gridWidth = widthInTiles
+            gridHeight = heightInTiles
+            pxWidth = (widthInTiles * tileWidthPx).coerceAtLeast(1)
+            pxHeight = (heightInTiles * tileHeightPx).coerceAtLeast(1)
+            frameBuffer = FrameBuffer(Pixmap.Format.RGBA8888, pxWidth, pxHeight, false)
+            // FrameBuffer color attachments default to linear filtering (unlike a plain Texture, which
+            // defaults to nearest) -- left alone, blitting this 1:1-native cache back at a >1x on-screen
+            // scale comes out blurred instead of crisp. Force nearest so IntegerScale stays pixel-perfect;
+            // the outer KotileCanvas.drawSprite call still switches to sharp-bilinear on top of this when
+            // the final on-screen scale is fractional (that shader wants Linear, set per-draw, separately).
+            frameBuffer!!.colorBufferTexture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
+            batch = SpriteBatch()
+            camera = OrthographicCamera().apply {
+                setToOrtho(false, pxWidth.toFloat(), pxHeight.toFloat())
+                update()
+            }
         }
         markAllDirty()
     }
@@ -132,6 +154,15 @@ internal class GridCompositeCache(
         val fbo = frameBuffer ?: return
         val b = batch ?: return
 
+        preservingFrameBuffer {
+            recomposite(fbo, b, draw)
+        }
+
+        fullyDirty = false
+        dirtyCells.clear()
+    }
+
+    private fun recomposite(fbo: FrameBuffer, b: SpriteBatch, draw: (x: Int, y: Int, drawer: TileDrawer) -> Unit) {
         fbo.begin()
         b.projectionMatrix = camera!!.combined
         val drawer = nativeDrawer(b)
@@ -162,9 +193,41 @@ internal class GridCompositeCache(
             Gdx.gl.glDisable(GL20.GL_SCISSOR_TEST)
         }
         fbo.end()
+    }
 
-        fullyDirty = false
-        dirtyCells.clear()
+    /**
+     * Runs [block] and puts back whatever framebuffer and viewport were bound before it.
+     *
+     * libGDX framebuffers do not nest, in two separate places: `FrameBuffer.end()` binds
+     * framebuffer 0 and resets the viewport to the whole backbuffer rather than restoring what was
+     * bound before `begin()`, **and** the `FrameBuffer` *constructor* leaves 0 bound once it has
+     * finished building. Either one silently steals a consumer's own FrameBuffer: someone rendering
+     * kotile into a texture for a post-process, a transition or a screenshot would find their buffer
+     * empty and their frame on screen instead, with no error at all (krogue-s5h).
+     *
+     * So both the allocation ([ensureSize]) and the draw pass ([recompositeIfDirty]) are wrapped in
+     * this, making the cache invisible to whatever GL state it interrupted.
+     */
+    private inline fun <T> preservingFrameBuffer(block: () -> T): T {
+        glQueryBuffer.clear()
+        Gdx.gl.glGetIntegerv(GL20.GL_FRAMEBUFFER_BINDING, glQueryBuffer)
+        val handle = glQueryBuffer.get(0)
+        glQueryBuffer.clear()
+        Gdx.gl.glGetIntegerv(GL20.GL_VIEWPORT, glQueryBuffer)
+        val viewport = IntArray(4) { glQueryBuffer.get(it) }
+
+        try {
+            return block()
+        } finally {
+            // Always rebind, including handle 0. Skipping the "redundant" zero case would only be
+            // safe on the happy path, where FrameBuffer.end() has already bound 0 for us. If block()
+            // throws between fbo.begin() and fbo.end() -- a consumer's regionFor(), a draw callback,
+            // an allocation failure -- our internal cache FBO is still bound, and skipping the
+            // rebind would leave it bound for good, silently redirecting every later draw into the
+            // cache. One redundant GL call per recomposite is the right price for that.
+            Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, handle)
+            Gdx.gl.glViewport(viewport[0], viewport[1], viewport[2], viewport[3])
+        }
     }
 
     private fun nativeDrawer(b: SpriteBatch): TileDrawer {

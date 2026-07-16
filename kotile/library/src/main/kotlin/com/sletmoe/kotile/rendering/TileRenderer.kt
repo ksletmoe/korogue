@@ -66,6 +66,15 @@ import com.sletmoe.kotile.utilities.Vector3Int
  * tilemap is rebuilt to match the new canvas dimensions. Tiles outside the new
  * bounds are dropped; tiles that still fit are preserved.
  *
+ * ## Rendering inside your own FrameBuffer
+ *
+ * Supported: [render] leaves whatever framebuffer and viewport you had bound
+ * exactly as it found them, so you can wrap it in your own
+ * [com.badlogic.gdx.graphics.glutils.FrameBuffer] to render to a texture,
+ * post-process the frame, drive a screen transition, or grab a screenshot
+ * (krogue-s5h). This has to be stated because libGDX itself does not behave that
+ * way — its framebuffers do not nest — so kotile restores the binding for you.
+ *
  * To render a windowed slice of a larger logical tile space, use the
  * [render(source, viewport)][render] overload with a consumer-owned
  * [LayeredTilemap] and a [TileViewport] describing the top-left origin.
@@ -316,8 +325,12 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) : Disposable {
         compositeCache.ensureSize(widthInTiles, heightInTiles)
         for (position in animatedPositions) compositeCache.markCellDirty(position.x, position.y)
         compositeCache.recompositeIfDirty { x, y, drawer -> drawCell(x, y, elapsedMs, drawer) }
-        // The FBO pass above (if it ran) clobbered the global GL viewport; restore this canvas's own
-        // before drawing the blit below, or it lands at the wrong offset/scale (ADR-0024).
+        // Re-assert this canvas's own viewport + projection before the blit below. The FBO pass
+        // above no longer clobbers the viewport -- GridCompositeCache restores what it found
+        // (krogue-s5h), so this is now a cheap idempotent re-assert rather than the repair ADR-0024
+        // originally needed it to be. Kept deliberately: the blit's correctness shouldn't depend on
+        // a guarantee made by a collaborator, and reapplyViewport also restores the batch's
+        // projection matrix, which the cache never promised anything about.
         canvas.reapplyViewport()
         compositeCache.cachedRegion?.let { region ->
             // On-screen (possibly scaled/letterboxed) size, matching how KotileCanvas.drawTile
