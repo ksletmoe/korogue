@@ -24,6 +24,7 @@ import com.sletmoe.kotile.rendering.LayerStack
 import com.sletmoe.kotile.rendering.PixelRect
 import com.sletmoe.kotile.rendering.ScalePolicy
 import com.sletmoe.kotile.rendering.SpriteTileRenderer
+import com.sletmoe.kotile.rendering.TileRenderer
 import com.sletmoe.kotile.rendering.UiLayer
 import com.sletmoe.kotile.rendering.Widget
 import com.sletmoe.kotile.tiles.AnimatedSpriteTile
@@ -857,6 +858,60 @@ class RenderingIntegrationTest : FunSpec({
         boundAfter shouldBe callerHandle // the binding survived the recomposite
         viewportAfter.toList() shouldBe viewportBefore.toList() // ...and so did the viewport
         pixelsInCallerFbo!!.b.toDouble() shouldBe (1.0 plusOrMinus 0.15) // the frame went where the caller asked
+    }
+
+    test("krogue-s5h: a throwing draw callback still leaves the caller's framebuffer bound").config(
+        enabled = HeadlessGl.available,
+    ) {
+        // The restore has to survive the unhappy path too. If a consumer's own code throws
+        // mid-recomposite -- here a regionFor() that blows up between fbo.begin() and fbo.end() --
+        // libGDX never runs its end(), so kotile's internal cache FBO is still bound. Restoring
+        // only "when someone else's buffer was bound" would leave that cache FBO bound for good,
+        // and every later draw in the app would silently land inside it.
+        var boundBeforeThrow = -1
+        var boundAfterThrow = -2
+        var threw = false
+
+        HeadlessGl.render(16, 16, Color.BLACK) {
+            val tilePixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
+            tilePixmap.setColor(Color.RED)
+            tilePixmap.fill()
+            val file = File.createTempFile("kotile-s5h-throw", ".png").apply { deleteOnExit() }
+            PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), tilePixmap)
+            tilePixmap.dispose()
+
+            val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
+            val canvas = KotileCanvas(8, 8)
+            val exploding = object : TileRenderer(canvas) {
+                override fun regionFor(staticTile: StaticSpriteTile): TextureRegion =
+                    error("boom -- a consumer's region lookup failed mid-recomposite")
+            }
+            exploding.drawTile(0, 0, z = 0, tile = StaticSpriteTile(0, 0))
+
+            val query = BufferUtils.newIntBuffer(16)
+            fun binding(): Int {
+                query.clear()
+                Gdx.gl.glGetIntegerv(GL20.GL_FRAMEBUFFER_BINDING, query)
+                return query.get(0)
+            }
+
+            boundBeforeThrow = binding()
+            try {
+                exploding.render()
+            } catch (expected: IllegalStateException) {
+                threw = true
+            }
+            boundAfterThrow = binding()
+
+            exploding.dispose()
+            canvas.dispose()
+            sheet.dispose()
+        }.dispose()
+
+        threw shouldBe true // the consumer's exception propagated, as it should
+        // ...and whatever was bound before is bound after, rather than kotile's cache FBO being
+        // left behind. This is the assertion the old `if (handle != 0)` skip would have failed.
+        boundAfterThrow shouldBe boundBeforeThrow
     }
 
     // -------------------------------------------------------------------------

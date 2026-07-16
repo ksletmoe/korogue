@@ -219,9 +219,13 @@ internal class GridCompositeCache(
         try {
             return block()
         } finally {
-            // Rebinding 0 is what libGDX already did; skip the redundant call in the common case
-            // where the consumer had no FrameBuffer of their own bound.
-            if (handle != 0) Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, handle)
+            // Always rebind, including handle 0. Skipping the "redundant" zero case would only be
+            // safe on the happy path, where FrameBuffer.end() has already bound 0 for us. If block()
+            // throws between fbo.begin() and fbo.end() -- a consumer's regionFor(), a draw callback,
+            // an allocation failure -- our internal cache FBO is still bound, and skipping the
+            // rebind would leave it bound for good, silently redirecting every later draw into the
+            // cache. One redundant GL call per recomposite is the right price for that.
+            Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, handle)
             Gdx.gl.glViewport(viewport[0], viewport[1], viewport[2], viewport[3])
         }
     }
