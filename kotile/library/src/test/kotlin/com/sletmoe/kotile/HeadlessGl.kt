@@ -80,6 +80,17 @@ object HeadlessGl {
         ensureApp()
         resizeWindowTo(width, height)
         return onGlThread {
+            // Clear the window's default framebuffer too, not just our capture FBO. libGDX
+            // framebuffers do not nest: GridCompositeCache's fbo.end() rebinds framebuffer 0,
+            // so any render that goes through the composite cache actually finishes drawing on
+            // the window's back buffer -- and that is what gets captured below. When every
+            // render had its own application that buffer was always brand new, so this was
+            // invisible; with one shared (double-buffered) application it still holds an earlier
+            // frame, and the capture would read those stale pixels instead (krogue-8lo).
+            Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, 0)
+            Gdx.gl.glClearColor(clear.r, clear.g, clear.b, clear.a)
+            Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
+
             val fbo = FrameBuffer(Pixmap.Format.RGBA8888, width, height, false)
             fbo.begin()
             Gdx.gl.glClearColor(clear.r, clear.g, clear.b, clear.a)

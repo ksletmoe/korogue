@@ -180,6 +180,7 @@ class ViewportIntegrationTest : FunSpec({
             world.setCell(2, 1, 0, StaticSpriteTile(0, 0))
 
             renderer.render(world, TileViewport(originX = 2, originY = 1))
+            renderer.dispose()
             canvas.dispose()
             sheet.dispose()
         }
@@ -216,6 +217,7 @@ class ViewportIntegrationTest : FunSpec({
             world.setCell(0, 0, 0, StaticSpriteTile(0, 0))
 
             renderer.render(world, TileViewport(originX = 4, originY = 0))
+            renderer.dispose()
             canvas.dispose()
             sheet.dispose()
         }
