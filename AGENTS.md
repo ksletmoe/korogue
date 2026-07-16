@@ -69,11 +69,15 @@ workflow and sync details are in the "Beads Issue Tracker" section below and via
 
   So mirror the committed test's **geometry and GL state**, not just its steps:
   same window size, same bound framebuffer, same call order, same points where
-  values are captured. **When harness and test disagree, assume the harness is
-  wrong** — it is the one with no CI behind it. Prove a regression test red/green
-  in the *test's* shape, not the harness's: a test that cannot fail against the
-  un-fixed code is worse than no test, because it reads as coverage. And never
-  report a harness result as though it were the test's.
+  values are captured. **When harness and test disagree, treat the result as
+  unresolved and investigate both** — the harness may be wrong, but the
+  committed test may also be stale or defective. Don't report a verification
+  claim, red or green, until you've reconciled the two and exercised the
+  committed test's actual shape. A regression test must fail against the
+  un-fixed code and pass after the fix, proven in the *test's* shape, not the
+  harness's: a test that cannot fail against the un-fixed code is worse than
+  no test, because it reads as coverage. And never report a harness result as
+  though it were the test's.
 - **The Rogue example is a faithful recreation — don't deviate on gameplay.**
   Reproduce original Rogue's behavior, rules, and data exactly (the canonical
   BSD 5.4.4 C source is at `~/Downloads/rogue5.4.4`; transcribe tables and port
