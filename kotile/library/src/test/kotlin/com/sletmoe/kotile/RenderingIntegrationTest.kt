@@ -137,6 +137,7 @@ class RenderingIntegrationTest : FunSpec({
             )
             renderer.drawTile(0, 0, z = 0, tile = shimmering)
             renderer.render(elapsedMs = 0)
+            renderer.dispose()
             canvas.dispose()
             sheet.dispose()
         }
@@ -167,6 +168,7 @@ class RenderingIntegrationTest : FunSpec({
             )
             renderer.drawTile(0, 0, z = 0, tile = shimmering)
             renderer.render(elapsedMs = 150) // into frame 1: green override
+            renderer.dispose()
             canvas.dispose()
             sheet.dispose()
         }
@@ -371,6 +373,7 @@ class RenderingIntegrationTest : FunSpec({
             val renderer = SpriteTileRenderer(canvas, sheet)
             renderer.drawTile(0, 0, z = 0, tile = StaticSpriteTile(0, 0, flipX = true))
             renderer.render()
+            renderer.dispose()
             canvas.dispose()
             sheet.dispose()
         }
@@ -401,6 +404,7 @@ class RenderingIntegrationTest : FunSpec({
             )
             renderer.drawTile(0, 0, z = 0, tile = tile)
             renderer.render()
+            renderer.dispose()
             canvas.dispose()
             sheet.dispose()
         }
@@ -1125,6 +1129,7 @@ private fun maxEdgeBlend(policy: ScalePolicy, windowPx: Int): Float {
         val renderer = SpriteTileRenderer(canvas, sheet)
         renderer.drawTile(0, 0, z = 0, tile = StaticSpriteTile(0, 0))
         renderer.render()
+        renderer.dispose()
         canvas.dispose()
         sheet.dispose()
     }
@@ -1160,6 +1165,7 @@ private fun renderSpriteTile(tileColor: Color, tint: Color): Color {
             }
         }
         renderer.render()
+        renderer.dispose()
         canvas.dispose()
         sheet.dispose()
     }
@@ -1196,6 +1202,7 @@ private fun renderLayered(background: Color, foreground: Color): Color {
             }
         }
         renderer.render()
+        renderer.dispose()
         canvas.dispose()
         sheet.dispose()
     }

@@ -55,6 +55,15 @@ tasks.test {
     environment("LIBGL_ALWAYS_SOFTWARE", "1")
     environment("GALLIUM_DRIVER", "llvmpipe")
     System.getenv("DISPLAY")?.let { environment("DISPLAY", it) }
+    // Full stack traces for failures. The GL tests only ever run on CI, so its log is
+    // the only place their failures can be read -- and Gradle's default output shows
+    // just "GdxRuntimeException at HeadlessGl.kt:NN" with no message, which turned
+    // diagnosing krogue-8lo into guesswork.
+    testLogging {
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        showStackTraces = true
+        showCauses = true
+    }
     // Forward -Pkotile.benchmark=true to the test JVM so the benchmark spec
     // can opt in via assumeTrue. Usage:
     //   ./gradlew :library:test --tests "*.LayeredTilemapBenchmark" -Pkotile.benchmark=true

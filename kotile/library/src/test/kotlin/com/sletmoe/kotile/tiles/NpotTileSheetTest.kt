@@ -79,6 +79,7 @@ class NpotTileSheetTest : FunSpec({
                         }
                     }
                     renderer.render()
+                    renderer.dispose()
                     canvas.dispose()
                     sheet.dispose()
                 }

@@ -221,6 +221,16 @@ then given a tested ECS foundation:
   design. Watch: alpha-keyed tiles packed adjacently and downscaled hard can halo/bleed at
   coarse mip levels — use `TileSheet` `spacing`/padding or `useMipMaps=false` for such sheets
   (see `:demo:spriteHarness` bottom row for the downscaled layering check).
+- **GL tests were flaky; the harness was the cause (fixed — krogue-8lo).** `HeadlessGl` booted
+  a fresh `Lwjgl3Application` per render (~60 per JVM). On a loaded CI runner, context creation
+  eventually failed and then *every* GL test from that point on failed, across all specs — so a
+  green build was luck and a red one said nothing about the change under test. Proven by
+  re-running: one commit flipped red→green, the commit before it flipped green→red. Now one
+  application is booted per JVM and reused. Two things this makes load-bearing: **tests must
+  dispose what they create** (the context outlives them now), and **renders share the window**,
+  so `HeadlessGl` clears framebuffer 0 as well as its capture FBO — libGDX FBOs don't nest, so
+  anything drawn via `GridCompositeCache` lands on the window's back buffer, which is also a
+  live constraint on consumers (krogue-s5h).
 - **macOS NPOT glyph gotcha (fixed, but watch for regressions):** `TileSheet` uploaded the
   font atlas as a non-power-of-two texture; Apple's GL driver mishandles sampling
   *sub-regions* of NPOT textures → garbled glyphs on **macOS only**. Fixed by padding the

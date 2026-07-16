@@ -58,7 +58,28 @@ Tests use **Kotest** (`FunSpec`) and live in `:library`. Two kinds:
   ```
 
   The `test` task forwards `DISPLAY` and forces Mesa software GL
-  (`LIBGL_ALWAYS_SOFTWARE=1`, `GALLIUM_DRIVER=llvmpipe`).
+  (`LIBGL_ALWAYS_SOFTWARE=1`, `GALLIUM_DRIVER=llvmpipe`), and logs full stack
+  traces — CI is the only place these tests run, so its log is the only place
+  their failures can be read.
+
+  **One GL application per JVM (krogue-8lo).** `HeadlessGl` boots a single
+  `Lwjgl3Application` lazily and reuses it for every render, on its own daemon
+  thread. It used to boot one *per render* (~60 per JVM), which made the whole GL
+  suite flaky: context creation eventually failed on a loaded runner and then
+  every later GL test failed, in every spec. Two consequences for anyone writing
+  these tests:
+  - **Dispose what you create.** Renders share a GL context now, so a leaked
+    renderer outlives its test instead of dying with its application.
+  - **Renders share the window.** `HeadlessGl` resizes it per render and clears
+    both the capture FBO *and* framebuffer 0 — libGDX FBOs do not nest, so
+    anything drawn through `GridCompositeCache` actually lands on the window's
+    back buffer (see krogue-s5h).
+
+  These tests cannot run on macOS at all: GLFW must own the first thread and
+  Gradle's test workers do not, which is what the `DISPLAY` check really gates.
+  To drive GL locally on macOS, use the `JavaExec` + `-XstartOnFirstThread`
+  harness pattern in `kotile/demo/build.gradle.kts` (`renderHarness`,
+  `spriteHarness`) — a `main()` owns the first thread, so GLFW is happy.
 
 ## Running headless (no display / CI / agents)
 
