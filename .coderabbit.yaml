@@ -3,11 +3,18 @@
 # CodeRabbit is the PR reviewer for this repo (the Claude auto-review workflow was
 # retired in favour of it; `@claude` on-demand still works via .github/workflows/claude.yml).
 #
-# NOTE: `inheritance` is false by default, so this file is the WHOLE picture — anything not
-# set here falls back to CodeRabbit's own defaults, NOT to the Organization UI settings.
-# That is deliberate: reviews were previously running with different settings depending on
-# where the config was read from (one PR reported "Organization UI" and assertive, the next
-# reported "defaults" and chill). Pinning it here makes reviews reproducible and reviewable.
+# NOTE: `inheritance` is false, so this repo-level file is NOT merged with any inherited
+# Organization/Workspace UI settings — anything left unset here falls back to CodeRabbit's
+# own schema defaults, not to the Organization UI. That is deliberate: reviews were
+# previously running with different settings depending on where the config was read from
+# (one PR reported "Organization UI" and assertive, the next reported "defaults" and chill).
+# Pinning it here makes reviews reproducible and reviewable.
+#
+# This is still only the repo-level view, though: Workspace/Organization "Global Overrides"
+# (an admin-configured layer with higher priority than repo YAML) take precedence over this
+# file regardless of `inheritance`. None are known to be configured for this org, but this
+# file can't see or guarantee that — if reviews ever drift from what's written here, check
+# for one.
 language: en-US
 inheritance: false
 
@@ -122,11 +129,11 @@ chat:
   # No ASCII art in review threads.
   art: false
 
-  # auto_reply is left at its default (true), i.e. CodeRabbit may answer in a thread without
-  # being @-tagged. It was briefly set false here on the theory that chat had opened PR #8 on
-  # its own initiative — but that PR was triggered by a checkbox, so the theory was wrong and
-  # the setting was addressing nothing. Not worth losing "reply to me without ceremony" for.
+  # auto_reply is left at its default (true), i.e. CodeRabbit chat may reply in a thread
+  # without being @-tagged. It was briefly set false here on the theory that chat had opened
+  # PR #8 on its own initiative — but that PR was triggered by a checkbox, so the theory was
+  # wrong and the setting was addressing nothing. Not worth losing "reply to me without
+  # ceremony" for.
   #
-  # If a genuinely unprompted PR ever appears, `auto_reply: false` is the nearest lever
-  # (chat then only engages when explicitly tagged) — and it would not affect
-  # `@coderabbitai autofix`, since that is a mention.
+  # `auto_reply` only gates whether chat replies without being tagged; it does not control PR
+  # creation, and it does not affect `@coderabbitai autofix`, since that is a mention.
