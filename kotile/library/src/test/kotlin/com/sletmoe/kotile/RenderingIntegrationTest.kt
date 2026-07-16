@@ -799,6 +799,9 @@ class RenderingIntegrationTest : FunSpec({
         // a caller-owned FBO and read that FBO back -- if the cache steals the binding, the content
         // goes to the window and this reads an empty buffer.
         var boundAfter = -1
+        var boundAfterFirst = -1
+        var boundAfterCacheHit = -1
+        var boundAfterRealloc = -1
         var callerHandle = -1
         var viewportBefore = intArrayOf()
         var viewportAfter = intArrayOf()
@@ -831,12 +834,26 @@ class RenderingIntegrationTest : FunSpec({
             val window = AsciiTileWindow.create {
                 widthInTiles = 2
                 heightInTiles = 2
+                fitToWindow = false // so resize() below reallocates rather than reflowing to nothing
             }
             window.fill(StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
             viewportBefore = viewport()
-            window.render() // recomposites -> fbo.begin()/end() inside the consumer's FBO
 
-            // Still the consumer's FBO, not the window's back buffer?
+            // Three passes, because they hit different code: the first ALLOCATES the cache's
+            // FrameBuffer (whose constructor leaves 0 bound), the second is a pure cache hit
+            // (nothing dirty, so no FBO pass at all), and the resize DISPOSES and reallocates.
+            // Each must leave the caller's binding untouched.
+            window.render()
+            boundAfterFirst = frameBufferBinding()
+
+            window.render()
+            boundAfterCacheHit = frameBufferBinding()
+
+            window.resize(40, 40)
+            window.fill(StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
+            window.render()
+            boundAfterRealloc = frameBufferBinding()
+
             boundAfter = frameBufferBinding()
             // The fix restores the viewport as well as the binding; pin both rather than leaning on
             // pixel content as an indirect proxy for the viewport being right.
@@ -855,8 +872,11 @@ class RenderingIntegrationTest : FunSpec({
             consumerFbo.dispose()
         }.dispose()
 
-        boundAfter shouldBe callerHandle // the binding survived the recomposite
-        viewportAfter.toList() shouldBe viewportBefore.toList() // ...and so did the viewport
+        boundAfterFirst shouldBe callerHandle // survived the allocating first render...
+        boundAfterCacheHit shouldBe callerHandle // ...the cache hit that does no FBO work...
+        boundAfterRealloc shouldBe callerHandle // ...and the resize that disposes and reallocates
+        boundAfter shouldBe callerHandle
+        viewportAfter.toList() shouldBe viewportBefore.toList() // the viewport survived too
         pixelsInCallerFbo!!.b.toDouble() shouldBe (1.0 plusOrMinus 0.15) // the frame went where the caller asked
     }
 
@@ -895,6 +915,12 @@ class RenderingIntegrationTest : FunSpec({
                 return query.get(0)
             }
 
+            // Bind framebuffer 0 explicitly. This is the whole point of the test: the bug lived in
+            // an `if (handle != 0)` skip, so it only ever bit when nothing of the caller's was
+            // bound. HeadlessGl.render has its own capture FBO bound around draw(), which would
+            // make handle non-zero and let the buggy code restore correctly -- the test would pass
+            // against the very code it exists to catch.
+            Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, 0)
             boundBeforeThrow = binding()
             try {
                 exploding.render()
@@ -909,8 +935,10 @@ class RenderingIntegrationTest : FunSpec({
         }.dispose()
 
         threw shouldBe true // the consumer's exception propagated, as it should
-        // ...and whatever was bound before is bound after, rather than kotile's cache FBO being
-        // left behind. This is the assertion the old `if (handle != 0)` skip would have failed.
+        boundBeforeThrow shouldBe 0 // guards the guard: if this is ever non-zero the test is toothless
+        // ...and framebuffer 0 is bound again afterwards, rather than kotile's cache FBO being left
+        // behind. This is the assertion the old `if (handle != 0)` skip fails: it leaves the cache
+        // FBO bound (measured: 0 -> 1), silently redirecting every later draw into the cache.
         boundAfterThrow shouldBe boundBeforeThrow
     }
 
