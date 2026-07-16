@@ -38,14 +38,17 @@ workflow and sync details are in the "Beads Issue Tracker" section below and via
   every `gh pr comment` / `gh issue comment` / `gh pr review` / `gh pr create`
   body with an attribution line:
 
-  ```
-  🤖 Written by Claude Opus 4.8 via Claude Code, posted by @<owner>'s gh CLI.
+  ```text
+  🤖 Written by <actual model name> via Claude Code, posted by @<owner>'s gh CLI.
   ```
 
-  Name the actual model you are, not a generic "an AI". If you rewrite a comment
-  (`--edit-last`) the line must survive the rewrite. This is not the same as the
-  commit trailer: that covers what landed in git, this covers what was said about
-  it — and review threads are where the unverified claims live.
+  `<actual model name>` and `<owner>` are placeholders — replace both with the
+  real values (e.g. `Claude Opus 4.8`) before posting; never submit the literal
+  placeholder text. Name the actual model you are, not a generic "an AI". If you
+  rewrite a comment (`--edit-last`) the line must survive the rewrite. This is
+  not the same as the commit trailer: that covers what landed in git, this
+  covers what was said about it — and review threads are where the unverified
+  claims live.
 - **Do not state a verification you did not run.** Say what you actually ran and
   what it printed, and keep the artifacts straight — "I verified it" is false if
   a throwaway harness passed and the committed test never exercised the same path.
