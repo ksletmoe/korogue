@@ -41,13 +41,25 @@ reviews:
     base_branches:
       - "krogue-.*"
 
-  # Review, don't author. CodeRabbit opening its own PR with fixes was not wanted (#8 was
-  # closed on sight), and unrequested generated tests/docstrings are noise on a repo where
-  # tests are expected to be verified against real GL output before they land. Re-enable any
-  # of these individually if that changes.
   finishing_touches:
+    # ON. Autofix is opt-in per use — it never runs on its own, only when you tick the 🪄
+    # checkbox or say `@coderabbitai autofix`, and only against unresolved review threads.
+    # `@coderabbitai autofix` pushes a commit to the PR's own branch, which is the wanted
+    # shape for small suggestions. (`@coderabbitai autofix stacked pr`, or the "Create a new
+    # PR with the fixes" checkbox, is the opt-in that makes a separate PR — just don't use it.)
+    #
+    # Note this is NOT what opened the unwanted PR #8: that came from CodeRabbit *chat*
+    # (branch `coderabbitai/chat/…`), a different mechanism. Turning autofix off would remove
+    # `@coderabbitai autofix` entirely — the schema is explicit that a disabled autofix means
+    # "the command is removed from help, and CodeRabbit declines @coderabbitai autofix
+    # requests" — i.e. it would cost the feature we want and not fix the thing that annoyed us.
     autofix:
-      enabled: false
+      enabled: true
+
+    # Off: also opt-in (checkbox / `@coderabbitai generate …`), so they cost nothing but
+    # checkbox clutter on every review. Generated tests are a poor fit here specifically —
+    # a test in this repo only means something once it has been run against real GL output,
+    # which CodeRabbit cannot do. Flip either on if you want them.
     unit_tests:
       enabled: false
     docstrings:
@@ -109,3 +121,15 @@ reviews:
 chat:
   # No ASCII art in review threads.
   art: false
+
+  # Act when asked, not on your own initiative. The unwanted PR #8 came from chat (branch
+  # `coderabbitai/chat/…`), where CodeRabbit replied to its own review thread and implemented
+  # the change unprompted. There is no documented setting for "chat must not open PRs", and
+  # auto_reply is the closest lever: with it off, chat only engages when explicitly tagged.
+  #
+  # Honest caveat: this is inference, not documented cause-and-effect — the docs only say
+  # auto_reply lets CodeRabbit "reply automatically without requiring a mention/tag". If a
+  # surprise PR shows up anyway, this was the wrong lever.
+  #
+  # This does NOT affect `@coderabbitai autofix`: that is a mention, so it still works.
+  auto_reply: false
