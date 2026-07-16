@@ -33,6 +33,7 @@ import com.sletmoe.kotile.tiles.StaticSpriteTile
 import com.sletmoe.kotile.tiles.TileSheet
 import com.sletmoe.kotile.utilities.Vector2Int
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.doubles.plusOrMinus
 import io.kotest.matchers.shouldBe
@@ -798,13 +799,12 @@ class RenderingIntegrationTest : FunSpec({
         // render to a texture, do a transition, take a screenshot. Drive an AsciiTileWindow inside
         // a caller-owned FBO and read that FBO back -- if the cache steals the binding, the content
         // goes to the window and this reads an empty buffer.
-        var boundAfter = -1
         var boundAfterFirst = -1
         var boundAfterCacheHit = -1
         var boundAfterRealloc = -1
         var callerHandle = -1
-        var viewportBefore = intArrayOf()
-        var viewportAfter = intArrayOf()
+        // (before, after) of the GL viewport around each render call.
+        var viewportsAroundRenders = listOf<Pair<List<Int>, List<Int>>>()
         var pixelsInCallerFbo: Color? = null
 
         // The Pixmap HeadlessGl returns is deliberately unused here (hence the bare dispose): this
@@ -840,15 +840,20 @@ class RenderingIntegrationTest : FunSpec({
             // Three passes, because they hit different code: the first ALLOCATES the cache's
             // FrameBuffer (whose constructor leaves 0 bound), the second is a pure cache hit
             // (nothing dirty, so no FBO pass at all), and the resize DISPOSES and reallocates.
-            // Each must leave the caller's binding untouched.
+            // Each must leave the caller's binding and viewport exactly as it found them.
             //
-            // The viewport is only asserted across the first render. A resize is *supposed* to
-            // change the viewport -- that is what resize means -- so comparing across it would
-            // assert the opposite of the intended behaviour.
-            viewportBefore = viewport()
-            window.render()
-            viewportAfter = viewport()
-            boundAfterFirst = frameBufferBinding()
+            // Note what is compared: the viewport around EACH render, not every render against
+            // the original. A resize is *supposed* to change the viewport -- that is what resize
+            // means -- so asserting pass 3 against the pre-resize value would assert the opposite
+            // of the intended behaviour (and did, briefly: CI caught it).
+            fun renderPreservingState(): Int {
+                val before = viewport().toList()
+                window.render()
+                viewportsAroundRenders += before to viewport().toList()
+                return frameBufferBinding()
+            }
+
+            boundAfterFirst = renderPreservingState()
 
             // Did the blue actually land in the caller's buffer? Read it explicitly:
             // createFromFrameBuffer reads whatever is bound, so reading blind would happily report
@@ -859,14 +864,11 @@ class RenderingIntegrationTest : FunSpec({
             pixelsInCallerFbo = inside.averageColor(0, 0, 20, 20)
             inside.dispose()
 
-            window.render()
-            boundAfterCacheHit = frameBufferBinding()
+            boundAfterCacheHit = renderPreservingState()
 
             window.resize(40, 40)
             window.fill(StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
-            window.render()
-            boundAfterRealloc = frameBufferBinding()
-            boundAfter = frameBufferBinding()
+            boundAfterRealloc = renderPreservingState()
 
             consumerFbo.end()
             window.dispose()
@@ -876,8 +878,10 @@ class RenderingIntegrationTest : FunSpec({
         boundAfterFirst shouldBe callerHandle // survived the allocating first render...
         boundAfterCacheHit shouldBe callerHandle // ...the cache hit that does no FBO work...
         boundAfterRealloc shouldBe callerHandle // ...and the resize that disposes and reallocates
-        boundAfter shouldBe callerHandle
-        viewportAfter.toList() shouldBe viewportBefore.toList() // the viewport survived too
+        // Every render left the viewport as it found it -- checked per render, so a pass that
+        // transiently clobbers it can't hide behind a later pass that happens to look right.
+        viewportsAroundRenders shouldHaveSize 3
+        viewportsAroundRenders.forEach { (before, after) -> after shouldBe before }
         pixelsInCallerFbo!!.b.toDouble() shouldBe (1.0 plusOrMinus 0.15) // the frame went where the caller asked
     }
 
