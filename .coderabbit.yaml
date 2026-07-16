@@ -1,0 +1,139 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+#
+# CodeRabbit is the PR reviewer for this repo (the Claude auto-review workflow was
+# retired in favour of it; `@claude` on-demand still works via .github/workflows/claude.yml).
+#
+# NOTE: `inheritance` is false, so this repo-level file is NOT merged with any inherited
+# Organization/Workspace UI settings — anything left unset here falls back to CodeRabbit's
+# own schema defaults, not to the Organization UI. That is deliberate: reviews were
+# previously running with different settings depending on where the config was read from
+# (one PR reported "Organization UI" and assertive, the next reported "defaults" and chill).
+# Pinning it here makes reviews reproducible and reviewable.
+#
+# This is still only the repo-level view, though: Workspace/Organization "Global Overrides"
+# (an admin-configured layer with higher priority than repo YAML) take precedence over this
+# file regardless of `inheritance`. None are known to be configured for this org, but this
+# file can't see or guarantee that — if reviews ever drift from what's written here, check
+# for one.
+language: en-US
+inheritance: false
+
+reviews:
+  # Assertive over chill: this is now the only automatic reviewer, and the assertive pass is
+  # the one that caught a real GL state-leak bug (krogue-s5h) that a chill pass on a sibling
+  # PR did not. Drop to `chill` if the nitpick volume outweighs that.
+  profile: assertive
+
+  # A reviewer that cannot block is a suggestion box. This matches what was already happening
+  # via the org UI, so it is not a behaviour change — flip to false if it gets in the way of
+  # merging your own PRs.
+  request_changes_workflow: true
+
+  high_level_summary: true
+  estimate_code_review_effort: true
+  sequence_diagrams: true
+  related_issues: true
+  related_prs: true
+
+  # Signal only. The poem/fortune/ASCII-art flourishes are noise in a review thread.
+  poem: false
+  in_progress_fortune: false
+
+  auto_review:
+    enabled: true
+    drafts: false
+    # `base_branches` is for branches OTHER than the default one. mainline is the default and
+    # is always reviewed; this covers PRs stacked onto another feature branch, which happens
+    # here when one change depends on another (see #7 stacked on #6).
+    base_branches:
+      - "krogue-.*"
+
+  finishing_touches:
+    # ON. Autofix is opt-in per use — it never runs on its own, only when you tick the 🪄
+    # checkbox or say `@coderabbitai autofix`, and only against unresolved review threads.
+    # `@coderabbitai autofix` pushes a commit to the PR's own branch, which is the wanted
+    # shape for small suggestions. (`@coderabbitai autofix stacked pr`, or the "Create a new
+    # PR with the fixes" checkbox, is the opt-in that makes a separate PR — just don't use it.)
+    #
+    # Note this is NOT what opened the unwanted PR #8: that came from CodeRabbit *chat*
+    # (branch `coderabbitai/chat/…`), a different mechanism. Turning autofix off would remove
+    # `@coderabbitai autofix` entirely — the schema is explicit that a disabled autofix means
+    # "the command is removed from help, and CodeRabbit declines @coderabbitai autofix
+    # requests" — i.e. it would cost the feature we want and not fix the thing that annoyed us.
+    autofix:
+      enabled: true
+
+    # Off: also opt-in (checkbox / `@coderabbitai generate …`), so they cost nothing but
+    # checkbox clutter on every review. Generated tests are a poor fit here specifically —
+    # a test in this repo only means something once it has been run against real GL output,
+    # which CodeRabbit cannot do. Flip either on if you want them.
+    unit_tests:
+      enabled: false
+    docstrings:
+      enabled: false
+
+  path_instructions:
+    - path: "**/*.kt"
+      instructions: |
+        Kotlin, formatted by ktlint (run via Gradle) — do not raise pure formatting nits,
+        the build fails on them anyway.
+
+        korogue is a reusable roguelike ENGINE plus kotile, a general-purpose libGDX tile
+        renderer (`kotile/`). Public API changes matter: kotile publishes as
+        `com.sletmoe:kotile` and is pre-1.0, so a breaking rename is cheap NOW and expensive
+        after release. Flag anything that bakes in an awkward name or shape that would be
+        painful to change post-1.0.
+
+        kotile has two deliberately parallel render paths — `rendering/TileRenderer` (sprite)
+        and `display/ascii/AsciiTileWindow` (ascii). They are required to stay symmetric in
+        vocabulary (ADR-0028), enforced by RenderPathParityTest. If a change adds a member to
+        one path, ask whether the sibling needs it. They deliberately DIFFER on compositing
+        (ADR-0029/0030) — that asymmetry is intentional and measured, not an oversight.
+
+        Prefer flagging: silently swallowed errors, state left mutated on an exception path,
+        and per-frame allocation in render/composite code (it runs per cell, per frame).
+
+    - path: "kotile/library/src/test/**/*.kt"
+      instructions: |
+        IMPORTANT: the GL-gated tests here (`.config(enabled = HeadlessGl.available)`) only
+        ever execute on Linux CI under xvfb. They are SKIPPED on macOS, where contributors
+        develop — GLFW must own the first thread and Gradle's test workers do not. So "it
+        compiles" and "it is verified" are very different claims about this directory, and a
+        test that cannot fail is worse than no test because it reads as coverage.
+
+        When reviewing a regression test, ask specifically: would this test actually FAIL
+        against the un-fixed code? Watch for tests whose setup accidentally avoids the buggy
+        condition — e.g. `HeadlessGl.render` has its own capture framebuffer bound around
+        `draw()`, so a test about framebuffer-0 handling must bind 0 explicitly or it proves
+        nothing (this exact bug shipped once; see krogue-s5h).
+
+        `HeadlessGl` boots ONE Lwjgl3Application per JVM and reuses it (krogue-8lo), so the
+        GL context outlives each test: tests must dispose what they create, and must not
+        assume fresh GL state.
+
+    - path: "docs/adr/*.md"
+      instructions: |
+        Architecture Decision Records are append-only. Do not suggest rewriting or deleting a
+        past ADR — a later ADR supersedes or amends an earlier one instead. Do check that a
+        claim an ADR makes about behaviour is actually true of the code in the same PR;
+        ADR-0029 and ADR-0030 both shipped with a factual error about layer compositing that
+        a careful read would have caught.
+
+    - path: "**/*.md"
+      instructions: |
+        Check documented examples against the code they describe. A KDoc or ADR example that
+        does not work is worse than none — this repo has shipped an advertised layer ordering
+        that silently erased the thing it claimed to preserve.
+
+chat:
+  # No ASCII art in review threads.
+  art: false
+
+  # auto_reply is left at its default (true), i.e. CodeRabbit chat may reply in a thread
+  # without being @-tagged. It was briefly set false here on the theory that chat had opened
+  # PR #8 on its own initiative — but that PR was triggered by a checkbox, so the theory was
+  # wrong and the setting was addressing nothing. Not worth losing "reply to me without
+  # ceremony" for.
+  #
+  # `auto_reply` only gates whether chat replies without being tagged; it does not control PR
+  # creation, and it does not affect `@coderabbitai autofix`, since that is a mention.
