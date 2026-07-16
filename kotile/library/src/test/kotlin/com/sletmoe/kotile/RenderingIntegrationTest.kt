@@ -799,9 +799,28 @@ class RenderingIntegrationTest : FunSpec({
         // goes to the window and this reads an empty buffer.
         var boundAfter = -1
         var callerHandle = -1
+        var viewportBefore = intArrayOf()
+        var viewportAfter = intArrayOf()
         var pixelsInCallerFbo: Color? = null
 
+        // The Pixmap HeadlessGl returns is deliberately unused here (hence the bare dispose): this
+        // test's own `consumerFbo.end()` binds framebuffer 0, so that capture reads the shared
+        // window rather than HeadlessGl's capture FBO. Harmless -- every assertion below comes from
+        // the closure vars, captured while the right buffer was bound -- but don't add an assertion
+        // on the returned pixmap here without rebinding first.
         HeadlessGl.render(20, 20, Color.BLACK) {
+            val query = BufferUtils.newIntBuffer(16)
+            fun frameBufferBinding(): Int {
+                query.clear()
+                Gdx.gl.glGetIntegerv(GL20.GL_FRAMEBUFFER_BINDING, query)
+                return query.get(0)
+            }
+            fun viewport(): IntArray {
+                query.clear()
+                Gdx.gl.glGetIntegerv(GL20.GL_VIEWPORT, query)
+                return IntArray(4) { query.get(it) }
+            }
+
             val consumerFbo = FrameBuffer(Pixmap.Format.RGBA8888, 20, 20, false)
             consumerFbo.begin()
             Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
@@ -813,12 +832,14 @@ class RenderingIntegrationTest : FunSpec({
                 heightInTiles = 2
             }
             window.fill(StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
+            viewportBefore = viewport()
             window.render() // recomposites -> fbo.begin()/end() inside the consumer's FBO
 
             // Still the consumer's FBO, not the window's back buffer?
-            val query = BufferUtils.newIntBuffer(16)
-            Gdx.gl.glGetIntegerv(GL20.GL_FRAMEBUFFER_BINDING, query)
-            boundAfter = query.get(0)
+            boundAfter = frameBufferBinding()
+            // The fix restores the viewport as well as the binding; pin both rather than leaning on
+            // pixel content as an indirect proxy for the viewport being right.
+            viewportAfter = viewport()
 
             // ...and did the blue actually land in it? Bind the caller's FBO explicitly before
             // reading: createFromFrameBuffer reads whatever is bound, so reading blind would
@@ -834,6 +855,7 @@ class RenderingIntegrationTest : FunSpec({
         }.dispose()
 
         boundAfter shouldBe callerHandle // the binding survived the recomposite
+        viewportAfter.toList() shouldBe viewportBefore.toList() // ...and so did the viewport
         pixelsInCallerFbo!!.b.toDouble() shouldBe (1.0 plusOrMinus 0.15) // the frame went where the caller asked
     }
 

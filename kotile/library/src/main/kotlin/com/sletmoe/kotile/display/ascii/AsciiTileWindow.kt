@@ -474,8 +474,12 @@ class AsciiTileWindow private constructor(
         compositeCache.ensureSize(widthInTiles, heightInTiles)
         for (position in animatedPositions) compositeCache.markCellDirty(position.x, position.y)
         compositeCache.recompositeIfDirty { x, y, drawer -> drawCell(x, y, elapsedMs, drawer) }
-        // The FBO pass above (if it ran) clobbered the global GL viewport; restore this canvas's own
-        // before drawing the blit below, or it lands at the wrong offset/scale (ADR-0024).
+        // Re-assert this canvas's own viewport + projection before the blit below. The FBO pass
+        // above no longer clobbers the viewport -- GridCompositeCache restores what it found
+        // (krogue-s5h), so this is now a cheap idempotent re-assert rather than the repair ADR-0024
+        // originally needed it to be. Kept deliberately: the blit's correctness shouldn't depend on
+        // a guarantee made by a collaborator, and reapplyViewport also restores the batch's
+        // projection matrix, which the cache never promised anything about.
         canvas.reapplyViewport()
         compositeCache.cachedRegion?.let { region ->
             // On-screen (possibly scaled/letterboxed) size, matching how KotileCanvas.drawTile

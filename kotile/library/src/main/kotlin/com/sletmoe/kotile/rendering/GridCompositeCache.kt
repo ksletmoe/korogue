@@ -60,6 +60,14 @@ internal class GridCompositeCache(
     // Scratch buffer for glGetIntegerv. Reused rather than allocated per recomposite, which runs
     // every frame that anything changed. glGetIntegerv wants room for the largest query it serves
     // (GL_VIEWPORT: 4 ints); 16 is libGDX's own habit and costs nothing.
+    //
+    // Shared mutable state, so the invariant matters: preservingFrameBuffer copies everything it
+    // reads out of this buffer into locals *before* running its block, and never touches it again
+    // afterwards. That is what makes nesting one preservingFrameBuffer inside another safe -- the
+    // inner call can clear and reuse the buffer freely, because the outer call is already done with
+    // it. Keep it that way: reading from this buffer after the block would silently see the inner
+    // call's values instead of its own. (Single-threaded by construction -- all of this runs on the
+    // GL thread.)
     private val glQueryBuffer = BufferUtils.newIntBuffer(16)
 
     private var frameBuffer: FrameBuffer? = null
@@ -94,24 +102,30 @@ internal class GridCompositeCache(
      */
     fun ensureSize(widthInTiles: Int, heightInTiles: Int) {
         if (widthInTiles == gridWidth && heightInTiles == gridHeight && frameBuffer != null) return
-        disposeGpuResources()
-        gridWidth = widthInTiles
-        gridHeight = heightInTiles
-        pxWidth = (widthInTiles * tileWidthPx).coerceAtLeast(1)
-        pxHeight = (heightInTiles * tileHeightPx).coerceAtLeast(1)
-        // The FrameBuffer constructor leaves framebuffer 0 bound once it has built -- on a consumer
-        // who had their own bound, that is a silent theft on the very first render (krogue-s5h).
-        frameBuffer = preservingFrameBuffer { FrameBuffer(Pixmap.Format.RGBA8888, pxWidth, pxHeight, false) }
-        // FrameBuffer color attachments default to linear filtering (unlike a plain Texture, which
-        // defaults to nearest) -- left alone, blitting this 1:1-native cache back at a >1x on-screen
-        // scale comes out blurred instead of crisp. Force nearest so IntegerScale stays pixel-perfect;
-        // the outer KotileCanvas.drawSprite call still switches to sharp-bilinear on top of this when
-        // the final on-screen scale is fractional (that shader wants Linear, set per-draw, separately).
-        frameBuffer!!.colorBufferTexture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
-        batch = SpriteBatch()
-        camera = OrthographicCamera().apply {
-            setToOrtho(false, pxWidth.toFloat(), pxHeight.toFloat())
-            update()
+        // The whole (re)allocation runs under the guard, not just the FrameBuffer constructor:
+        // that constructor leaves framebuffer 0 bound once it has built, and deleting a framebuffer
+        // that happens to be bound also reverts the binding to 0 per the GL spec. The old cache
+        // buffer should never be the bound one by the time we get here, but "should never" is the
+        // kind of assumption that quietly stops being true, and guarding the whole block costs one
+        // pair of GL queries on a resize (krogue-s5h).
+        preservingFrameBuffer {
+            disposeGpuResources()
+            gridWidth = widthInTiles
+            gridHeight = heightInTiles
+            pxWidth = (widthInTiles * tileWidthPx).coerceAtLeast(1)
+            pxHeight = (heightInTiles * tileHeightPx).coerceAtLeast(1)
+            frameBuffer = FrameBuffer(Pixmap.Format.RGBA8888, pxWidth, pxHeight, false)
+            // FrameBuffer color attachments default to linear filtering (unlike a plain Texture, which
+            // defaults to nearest) -- left alone, blitting this 1:1-native cache back at a >1x on-screen
+            // scale comes out blurred instead of crisp. Force nearest so IntegerScale stays pixel-perfect;
+            // the outer KotileCanvas.drawSprite call still switches to sharp-bilinear on top of this when
+            // the final on-screen scale is fractional (that shader wants Linear, set per-draw, separately).
+            frameBuffer!!.colorBufferTexture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
+            batch = SpriteBatch()
+            camera = OrthographicCamera().apply {
+                setToOrtho(false, pxWidth.toFloat(), pxHeight.toFloat())
+                update()
+            }
         }
         markAllDirty()
     }
