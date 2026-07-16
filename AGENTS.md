@@ -50,10 +50,30 @@ workflow and sync details are in the "Beads Issue Tracker" section below and via
   covers what was said about it — and review threads are where the unverified
   claims live.
 - **Do not state a verification you did not run.** Say what you actually ran and
-  what it printed, and keep the artifacts straight — "I verified it" is false if
-  a throwaway harness passed and the committed test never exercised the same path.
-  If something is unverified, say that instead; on this project GL tests only run
-  on Linux CI, so "compiles clean" and "verified" are very different claims.
+  what it printed. If something is unverified, say so — the GL tests only execute
+  on Linux CI, so "compiles clean" and "verified" are very different claims here.
+- **Verify the artifact you are shipping, in the shape you are shipping it.**
+  Because the GL suite is skipped on macOS, the usual move is a throwaway harness
+  (`JavaExec` + `-XstartOnFirstThread`, see `kotile/demo`) that renders real pixels
+  locally. That harness is *not* the thing being shipped, and it drifts from the
+  committed test silently. It has produced a wrong claim to a reviewer three times
+  in one session, each time because the harness reproduced the **logic** but not
+  the **environment**:
+  - the harness rendered against framebuffer 0 while the committed test ran inside
+    `HeadlessGl`'s capture FBO, so the bug's `handle != 0` condition never held and
+    the shipped test could not fail at all;
+  - the harness snapshotted the viewport around a single render while the test
+    compared across a `resize`, so CI failed on an assertion the harness liked;
+  - the harness used a 40x40 window, making the `resize(40, 40)` under test a
+    no-op, and nearly produced a confidently wrong rebuttal to a reviewer.
+
+  So mirror the committed test's **geometry and GL state**, not just its steps:
+  same window size, same bound framebuffer, same call order, same points where
+  values are captured. **When harness and test disagree, assume the harness is
+  wrong** — it is the one with no CI behind it. Prove a regression test red/green
+  in the *test's* shape, not the harness's: a test that cannot fail against the
+  un-fixed code is worse than no test, because it reads as coverage. And never
+  report a harness result as though it were the test's.
 - **The Rogue example is a faithful recreation — don't deviate on gameplay.**
   Reproduce original Rogue's behavior, rules, and data exactly (the canonical
   BSD 5.4.4 C source is at `~/Downloads/rogue5.4.4`; transcribe tables and port
