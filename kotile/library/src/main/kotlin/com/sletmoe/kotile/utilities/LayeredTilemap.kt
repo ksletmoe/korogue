@@ -184,8 +184,29 @@ class LayeredTilemap<T : Any>(val width: Int, val height: Int) {
      * Returns the set of z-indices for which a layer has been created.
      *
      * The set is unordered; use [topCellAt] for composited rendering.
+     *
+     * Allocates a defensive copy on every access, so do not call it in a loop —
+     * for "does any layer have a cell like this here?", use [anyCellAt], which
+     * allocates nothing and skips the per-layer map lookup.
      */
     val layerKeys: Set<Int> get() = layers.keys.toSet()
+
+    /**
+     * Returns whether any layer holds a cell at column [x], row [y] satisfying
+     * [predicate]. Empty cells are skipped; `false` if no layer has one.
+     *
+     * The allocation-free form of `layerKeys.any { cellAt(x, y, it)... }`, which
+     * copies the key set *and* does a map lookup per layer on every call. Both
+     * matter here: the renderers ask this once per cell per frame to decide
+     * whether a cell holds time-varying content and must be repainted.
+     */
+    inline fun anyCellAt(x: Int, y: Int, predicate: (T) -> Boolean): Boolean {
+        for (layer in layersTopDown) {
+            val cell = layer[x, y] ?: continue
+            if (predicate(cell)) return true
+        }
+        return false
+    }
 
     /**
      * The populated layers ordered from the lowest z (drawn first) to the

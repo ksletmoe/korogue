@@ -272,7 +272,7 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) : Disposable {
      * used to make this position animated.
      */
     private fun refreshAnimatedTrackingAt(x: Int, y: Int) {
-        val stillAnimated = tilemap.layerKeys.any { z -> tilemap.cellAt(x, y, z) is DynamicSpriteTile }
+        val stillAnimated = tilemap.anyCellAt(x, y) { it is DynamicSpriteTile }
         val position = Vector2Int(x, y)
         if (stillAnimated) animatedPositions.add(position) else animatedPositions.remove(position)
     }
@@ -384,7 +384,7 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) : Disposable {
         canvas.begin()
         viewportCache.ensureSize(widthInTiles, heightInTiles)
         viewportDirtyTracker.markDirtyCells(source, viewport, widthInTiles, heightInTiles) { logicalX, logicalY ->
-            source.layerKeys.any { z -> source.cellAt(logicalX, logicalY, z) is DynamicSpriteTile }
+            source.anyCellAt(logicalX, logicalY) { it is DynamicSpriteTile }
         }
         viewportCache.recompositeIfDirty { x, y, drawer -> drawViewportCell(source, viewport, x, y, elapsedMs, drawer) }
         viewportDirtyTracker.recordRenderedVersions(source, viewport, widthInTiles, heightInTiles)

@@ -76,9 +76,17 @@ position, which is also what the sprite path already did.
 ## Consequences
 
 - The documented roguelike layering now works as it reads: only the terrain need
-  supply a background; a creature on `CLEAR` keeps the floor's color without
-  knowing it; a highlight layer can tint a background while the creature's glyph
-  still shows.
+  supply a background, and a creature on `CLEAR` keeps the floor's color without
+  knowing it.
+- A background-only overlay must sit **below** the thing it tints, not above it:
+  terrain z=0, highlight z=1 (opaque background, blank glyph), creature z=2 (on
+  `CLEAR`). Then the creature wins the glyph channel and the highlight wins the
+  background, which is the effect people actually want. Putting the highlight on
+  *top* does not work — the glyph channel is still top-cell-wins, and a
+  `StaticAsciiTile` always carries a character, so even a space suppresses the
+  creature's glyph. Measured: highlight-on-top renders the cell entirely green
+  with no `'@'` at all (r=0.00); highlight-below renders the tint *and* the
+  creature (r=0.28, g=0.72).
 - `backgroundColor`'s alpha means something for the first time, and `CLEAR` is no
   longer a synonym for `BLACK`. The KDoc ADR-0029 corrected is corrected again —
   this time to describe a capability that exists.

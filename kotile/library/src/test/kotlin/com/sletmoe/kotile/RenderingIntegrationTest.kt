@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.sletmoe.kotile.display.KotileCanvas
 import com.sletmoe.kotile.display.ascii.AnimatedAsciiTile
+import com.sletmoe.kotile.display.ascii.AsciiTile
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
 import com.sletmoe.kotile.display.ascii.DynamicAsciiTile
 import com.sletmoe.kotile.display.ascii.Fonts
@@ -27,6 +28,7 @@ import com.sletmoe.kotile.tiles.AnimatedSpriteTile
 import com.sletmoe.kotile.tiles.AnimationFrame
 import com.sletmoe.kotile.tiles.StaticSpriteTile
 import com.sletmoe.kotile.tiles.TileSheet
+import com.sletmoe.kotile.utilities.LayeredTilemap
 import com.sletmoe.kotile.utilities.Vector2Int
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.comparables.shouldBeGreaterThan
@@ -779,6 +781,84 @@ class RenderingIntegrationTest : FunSpec({
         val blanked = asciiOverlayCell(StaticAsciiTile(' ', Color.WHITE, Color.CLEAR))
         blanked.b.toDouble() shouldBe (1.0 plusOrMinus 0.15) // z=0's background survives in full...
         blanked.r.toDouble() shouldBe (0.0 plusOrMinus 0.1) // ...but z=0's white '#' is not drawn
+    }
+
+    test("krogue-7va: a background-only overlay must sit below what it tints, not above").config(
+        enabled = HeadlessGl.available,
+    ) {
+        // Pins the layer ordering the KDoc and ADR-0030 recommend, because the first draft of both
+        // claimed the opposite and was wrong: a highlight ABOVE a creature still wins the glyph
+        // channel (a space is a glyph, just a keyed-out one) and erases it.
+        fun cellOf(vararg layers: StaticAsciiTile): Color {
+            val pixels = HeadlessGl.render(10, 10, Color.BLACK) {
+                val window = AsciiTileWindow.create {
+                    widthInTiles = 1
+                    heightInTiles = 1
+                }
+                layers.forEachIndexed { z, tile -> window.drawTile(0, 0, z = z, tile = tile) }
+                window.render()
+                window.dispose()
+            }
+            val avg = pixels.averageColor(0, 0, 10, 10)
+            pixels.dispose()
+            return avg
+        }
+
+        val terrain = StaticAsciiTile('#', Color.WHITE, Color.BLUE)
+        val creature = StaticAsciiTile('@', Color.RED, Color.CLEAR)
+        val highlight = StaticAsciiTile(' ', Color.WHITE, Color.GREEN)
+
+        // Recommended: terrain, highlight, creature. Creature keeps the glyph, highlight the bg.
+        val correct = cellOf(terrain, highlight, creature)
+        correct.r.toDouble() shouldBeGreaterThan 0.1 // the creature is visible...
+        correct.g.toDouble() shouldBeGreaterThan 0.4 // ...on the highlight's tint...
+        correct.b.toDouble() shouldBe (0.0 plusOrMinus 0.1) // ...which replaced the terrain's blue
+
+        // The tempting-but-wrong order: highlight on top blanks the creature entirely.
+        val wrong = cellOf(terrain, creature, highlight)
+        wrong.r.toDouble() shouldBe (0.0 plusOrMinus 0.1) // no creature at all
+    }
+
+    test("krogue-7va: a dynamic background under a static glyph keeps animating through a viewport").config(
+        enabled = HeadlessGl.available,
+    ) {
+        // The regression guard for this PR's other half. render(source, viewport) decides a cell is
+        // animated by asking whether ANY layer there holds a DynamicAsciiTile -- it used to ask only
+        // about the top cell. Now that a background can come from underneath, a dynamic cell below a
+        // static glyph changes the cell every frame while never being the top cell: under the old
+        // predicate it would be marked clean and freeze. Two renders at different elapsed times must
+        // therefore produce different backgrounds.
+        val flickering = AnimatedAsciiTile(
+            frames = listOf(
+                AnimationFrame(StaticAsciiTile(' ', Color.WHITE, Color.BLUE), durationMs = 100),
+                AnimationFrame(StaticAsciiTile(' ', Color.WHITE, Color.GREEN), durationMs = 100),
+            ),
+        )
+
+        fun frameAt(elapsedMs: Long): Color {
+            val pixels = HeadlessGl.render(10, 10, Color.BLACK) {
+                val window = AsciiTileWindow.create {
+                    widthInTiles = 1
+                    heightInTiles = 1
+                }
+                val source = LayeredTilemap<AsciiTile>(1, 1)
+                source.setCell(0, 0, 0, flickering) // dynamic BACKGROUND, underneath...
+                source.setCell(0, 0, 1, StaticAsciiTile('@', Color.RED, Color.CLEAR)) // ...a static glyph
+                window.render(source, elapsedMs = 0) // first paint establishes the cache
+                window.render(source, elapsedMs = elapsedMs)
+                window.dispose()
+            }
+            val avg = pixels.averageColor(0, 0, 10, 10)
+            pixels.dispose()
+            return avg
+        }
+
+        val frame0 = frameAt(0) // blue frame
+        val frame1 = frameAt(150) // green frame
+
+        frame0.b.toDouble() shouldBeGreaterThan 0.5 // the dynamic background is showing...
+        frame1.g.toDouble() shouldBeGreaterThan 0.5 // ...and it advanced rather than freezing
+        frame1.b.toDouble() shouldBe (0.0 plusOrMinus 0.15)
     }
 
     test("krogue-7va: both paths let an upper layer that paints nothing reveal the one beneath").config(

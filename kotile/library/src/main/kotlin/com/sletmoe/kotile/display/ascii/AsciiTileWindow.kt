@@ -67,15 +67,16 @@ import com.sletmoe.kotile.utilities.Vector3Int
  *   cell below supply it.
  *
  * That split is what lets an overlay sit *on* the terrain instead of erasing it:
- * a creature on `CLEAR` keeps the floor's color without having to know it, and a
- * highlight layer can tint a cell's background while the creature's glyph still
- * shows through. Alpha is not blended between layers — the first cell that paints
- * a background wins outright and its color is used as-is.
+ * a creature on `CLEAR` keeps the floor's color without having to know it. Alpha
+ * is not blended between layers — the first cell that paints a background wins
+ * outright and its color is used as-is.
  *
- * One consequence still worth knowing: a cell whose glyph renders as nothing (a
- * space, which is keyed out) still wins the *glyph* channel and so hides the
- * glyph beneath it, even though the background below still shows. To let a lower
- * cell through entirely, [clearTile] rather than writing a blank one.
+ * One consequence drives how you order layers: a cell whose glyph renders as
+ * nothing (a space, which is keyed out) still wins the *glyph* channel, so it
+ * hides the glyph beneath it even though the background below still shows. To let
+ * a lower cell through entirely, [clearTile] rather than writing a blank one —
+ * and put a **background-only overlay below** whatever it tints, never above it,
+ * or it will blank that glyph.
  *
  * The sprite path ([com.sletmoe.kotile.rendering.TileRenderer]) still differs
  * deliberately: it draws every populated layer bottom-up and alpha-blends them,
@@ -83,12 +84,17 @@ import com.sletmoe.kotile.utilities.Vector3Int
  * matching that literally here would be wrong; ADR-0030 covers why resolving per
  * channel is the useful middle ground.
  *
- * Typical usage for a roguelike — only the terrain need supply a background:
+ * Typical usage for a roguelike — only the terrain and the highlight paint a
+ * background, and the highlight sits *under* the creature so the creature keeps
+ * the glyph:
  * ```
- * window.drawTile(x, y, z = 0, tile = groundTile)   // terrain: opaque background
- * window.drawTile(x, y, z = 1, tile = creatureTile) // creature: CLEAR bg -> keeps the floor's
- * window.drawTile(x, y, z = 2, tile = effectTile)   // highlight: tints the bg, glyph still shows
+ * window.drawTile(x, y, z = 0, tile = groundTile)    // terrain: opaque background
+ * window.drawTile(x, y, z = 1, tile = highlightTile) // effect: opaque bg, blank glyph
+ * window.drawTile(x, y, z = 2, tile = creatureTile)  // creature: CLEAR bg, keeps the tint below
  * ```
+ * The creature supplies the glyph; the highlight supplies the background; the
+ * terrain supplies it when there is no highlight. Swap the last two and the
+ * highlight's blank glyph erases the creature.
  *
  * ## clear / fill semantics
  *
@@ -256,7 +262,7 @@ class AsciiTileWindow private constructor(
      * per-frame redraw, including consumer-supplied implementations.
      */
     private fun refreshAnimatedTrackingAt(x: Int, y: Int) {
-        val stillAnimated = layeredTiles.layerKeys.any { z -> layeredTiles.cellAt(x, y, z) is DynamicAsciiTile }
+        val stillAnimated = layeredTiles.anyCellAt(x, y) { it is DynamicAsciiTile }
         val position = Vector2Int(x, y)
         if (stillAnimated) animatedPositions.add(position) else animatedPositions.remove(position)
     }
@@ -499,6 +505,11 @@ class AsciiTileWindow private constructor(
      * Draws [map]'s cell at ([logicalX], [logicalY]) to screen cell ([screenX], [screenY]),
      * resolving its two channels independently (ADR-0030): the glyph and foreground come from the
      * top-most non-null cell, the background from the top-most cell that actually paints one.
+     *
+     * One top-down pass, resolving each cell at most once. [AsciiTile.resolveAt] is
+     * consumer-supplied for a [DynamicAsciiTile] and is not promised to be cheap or side-effect
+     * free, and this runs for every dirty cell every frame — so resolving the top cell once for its
+     * glyph and again while scanning for a background would be both wasteful and rude.
      */
     private fun drawResolvedCell(
         map: LayeredTilemap<AsciiTile>,
@@ -509,33 +520,26 @@ class AsciiTileWindow private constructor(
         elapsedMs: Long,
         drawer: GridCompositeCache.TileDrawer,
     ) {
-        // No cell anywhere in the stack means no background either -- nothing to draw.
-        val top = map.topCellAt(logicalX, logicalY) ?: return
-        backgroundAt(map, logicalX, logicalY, elapsedMs)?.let { background ->
-            drawer.drawTile(screenX, screenY, backgroundRegion, background)
+        var glyphSource: StaticAsciiTile? = null
+        var background: Color? = null
+        for (layer in map.layersTopDown) {
+            val descriptor = (layer[logicalX, logicalY] ?: continue).resolveAt(elapsedMs)
+            // First cell found is the top-most one, so it wins the glyph channel.
+            if (glyphSource == null) glyphSource = descriptor
+            // A fully transparent background means "I do not paint one" -- keep walking down and let
+            // a lower cell supply it. Alpha is not blended between layers: the first cell that does
+            // paint wins outright and its color is used as-is (ADR-0030).
+            if (descriptor.backgroundColor.a > 0f) {
+                background = descriptor.backgroundColor
+                break // glyphSource was set on the first iteration, so both channels are resolved
+            }
         }
-        val descriptor = top.resolveAt(elapsedMs)
+        // Nothing anywhere in the stack -- no glyph and no background, so nothing to draw.
+        val descriptor = glyphSource ?: return
+        background?.let { drawer.drawTile(screenX, screenY, backgroundRegion, it) }
         font.glyph(descriptor.character)?.let { glyph ->
             drawer.drawTile(screenX, screenY, glyph, descriptor.foregroundColor)
         }
-    }
-
-    /**
-     * The background color for ([x], [y]): the first one found walking the stack down from the
-     * top that is not fully transparent, or `null` if every cell there declines to paint one.
-     *
-     * A fully transparent background means "I do not paint a background", letting the cell below
-     * supply it — which is what lets an overlay (a creature, a highlight) sit on the terrain's
-     * color without restating it (ADR-0030). Alpha is not blended between layers: the first cell
-     * that paints wins outright, and its color is used as-is.
-     */
-    private fun backgroundAt(map: LayeredTilemap<AsciiTile>, x: Int, y: Int, elapsedMs: Long): Color? {
-        for (layer in map.layersTopDown) {
-            val cell = layer[x, y] ?: continue
-            val background = cell.resolveAt(elapsedMs).backgroundColor
-            if (background.a > 0f) return background
-        }
-        return null
     }
 
     /**
@@ -574,7 +578,7 @@ class AsciiTileWindow private constructor(
             // this cell's appearance frame to frame without ever being the top cell. Checking only
             // the top would freeze a dynamic background under a static glyph. Matches how the sprite
             // path tracks the same thing.
-            source.layerKeys.any { z -> source.cellAt(logicalX, logicalY, z) is DynamicAsciiTile }
+            source.anyCellAt(logicalX, logicalY) { it is DynamicAsciiTile }
         }
         viewportCache.recompositeIfDirty { x, y, drawer -> drawViewportCell(source, viewport, x, y, elapsedMs, drawer) }
         viewportDirtyTracker.recordRenderedVersions(source, viewport, widthInTiles, heightInTiles)
