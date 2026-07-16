@@ -837,14 +837,27 @@ class RenderingIntegrationTest : FunSpec({
                 fitToWindow = false // so resize() below reallocates rather than reflowing to nothing
             }
             window.fill(StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
-            viewportBefore = viewport()
-
             // Three passes, because they hit different code: the first ALLOCATES the cache's
             // FrameBuffer (whose constructor leaves 0 bound), the second is a pure cache hit
             // (nothing dirty, so no FBO pass at all), and the resize DISPOSES and reallocates.
             // Each must leave the caller's binding untouched.
+            //
+            // The viewport is only asserted across the first render. A resize is *supposed* to
+            // change the viewport -- that is what resize means -- so comparing across it would
+            // assert the opposite of the intended behaviour.
+            viewportBefore = viewport()
             window.render()
+            viewportAfter = viewport()
             boundAfterFirst = frameBufferBinding()
+
+            // Did the blue actually land in the caller's buffer? Read it explicitly:
+            // createFromFrameBuffer reads whatever is bound, so reading blind would happily report
+            // the window's contents and pass even when the binding was stolen. Checked here, after
+            // the first render, while the grid still matches this 20x20 buffer.
+            Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, callerHandle)
+            val inside = Pixmap.createFromFrameBuffer(0, 0, 20, 20)
+            pixelsInCallerFbo = inside.averageColor(0, 0, 20, 20)
+            inside.dispose()
 
             window.render()
             boundAfterCacheHit = frameBufferBinding()
@@ -853,19 +866,7 @@ class RenderingIntegrationTest : FunSpec({
             window.fill(StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
             window.render()
             boundAfterRealloc = frameBufferBinding()
-
             boundAfter = frameBufferBinding()
-            // The fix restores the viewport as well as the binding; pin both rather than leaning on
-            // pixel content as an indirect proxy for the viewport being right.
-            viewportAfter = viewport()
-
-            // ...and did the blue actually land in it? Bind the caller's FBO explicitly before
-            // reading: createFromFrameBuffer reads whatever is bound, so reading blind would
-            // happily report the window's contents and pass even when the binding was stolen.
-            Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, callerHandle)
-            val inside = Pixmap.createFromFrameBuffer(0, 0, 20, 20)
-            pixelsInCallerFbo = inside.averageColor(0, 0, 20, 20)
-            inside.dispose()
 
             consumerFbo.end()
             window.dispose()
