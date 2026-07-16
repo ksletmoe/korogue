@@ -707,6 +707,147 @@ class RenderingIntegrationTest : FunSpec({
         pixels.dispose()
     }
 
+    // -------------------------------------------------------------------------
+    // krogue-8mr (ADR-0029): the ASCII path composites top-cell-wins, deliberately, and
+    // the sprite path does not. That asymmetry is a decision, so pin it -- a future change
+    // to either policy should fail here rather than surprise a consumer.
+    // -------------------------------------------------------------------------
+
+    /** Renders one 10x10 ASCII cell: z=0 is always '#' white on blue; [overlay] goes on z=1. */
+    fun asciiOverlayCell(overlay: StaticAsciiTile?): Color {
+        val pixels = HeadlessGl.render(10, 10, Color.BLACK) {
+            val window = AsciiTileWindow.create {
+                widthInTiles = 1
+                heightInTiles = 1
+            }
+            window.drawTile(0, 0, z = 0, tile = StaticAsciiTile('#', Color.WHITE, Color.BLUE))
+            if (overlay != null) window.drawTile(0, 0, z = 1, tile = overlay)
+            window.render()
+            window.dispose()
+        }
+        val avg = pixels.averageColor(0, 0, 10, 10)
+        pixels.dispose()
+        return avg
+    }
+
+    test("krogue-8mr: an upper ASCII cell replaces the one beneath it, transparent background and all").config(
+        enabled = HeadlessGl.available,
+    ) {
+        // The ASCII policy in one assertion: a CLEAR background does NOT reveal z=0. It reveals
+        // the canvas clear color. StaticAsciiTile's KDoc used to promise the opposite (ADR-0029).
+        val baseline = asciiOverlayCell(null)
+        baseline.b.toDouble() shouldBe (1.0 plusOrMinus 0.1) // z=0's blue is there to be hidden
+
+        val overlaid = asciiOverlayCell(StaticAsciiTile('@', Color.RED, Color.CLEAR))
+        overlaid.b.toDouble() shouldBe (0.0 plusOrMinus 0.1) // ...and it is gone, not blended
+        overlaid.r.toDouble() shouldBeGreaterThan 0.1 // the '@' itself did draw
+    }
+
+    test("krogue-8mr: a transparent ASCII background is indistinguishable from an opaque black one").config(
+        enabled = HeadlessGl.available,
+    ) {
+        // The sharpest statement of top-cell-wins: alpha in a layered cell's background buys
+        // nothing at all. If per-channel compositing ever lands (krogue-7va) this must change.
+        val clear = asciiOverlayCell(StaticAsciiTile('@', Color.RED, Color.CLEAR))
+        val black = asciiOverlayCell(StaticAsciiTile('@', Color.RED, Color.BLACK))
+        clear.r.toDouble() shouldBe (black.r.toDouble() plusOrMinus 0.02)
+        clear.g.toDouble() shouldBe (black.g.toDouble() plusOrMinus 0.02)
+        clear.b.toDouble() shouldBe (black.b.toDouble() plusOrMinus 0.02)
+    }
+
+    test("krogue-8mr: a blank ASCII cell still occupies its position and hides the layer below").config(
+        enabled = HeadlessGl.available,
+    ) {
+        // The footgun the KDoc now warns about: a space is keyed out, so this cell draws nothing
+        // whatsoever -- yet it still wins its position and blanks the terrain under it. Use
+        // clearTile, not a space, to let a lower layer through.
+        val blanked = asciiOverlayCell(StaticAsciiTile(' ', Color.WHITE, Color.CLEAR))
+        blanked.r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+        blanked.g.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+        blanked.b.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+    }
+
+    test("krogue-8mr: the sprite path composites bottom-up, the ASCII path does not").config(
+        enabled = HeadlessGl.available,
+    ) {
+        // Both paths, same setup -- an upper layer that draws nothing over an opaque lower one --
+        // asserted side by side, so the divergence is stated once rather than inferred from two
+        // tests in different files. Sprite: fully transparent foreground reveals the background.
+        // ASCII: a blank cell hides it. See ADR-0029 for why matching them would be wrong.
+        val sprite = renderLayered(background = Color.BLUE, foreground = Color(1f, 0f, 0f, 0f))
+        sprite.b.toDouble() shouldBe (1.0 plusOrMinus 0.1) // lower layer survives
+
+        val ascii = asciiOverlayCell(StaticAsciiTile(' ', Color.WHITE, Color.CLEAR))
+        ascii.b.toDouble() shouldBe (0.0 plusOrMinus 0.1) // lower layer does not
+    }
+
+    // -------------------------------------------------------------------------
+    // krogue-1qb: pixel coverage for AsciiTileWindow.clear/clearLayer -- the mirrors of the
+    // sprite cases added in krogue-0y8. Both carry the same "collect the vacated cells, then
+    // mark them dirty" bookkeeping, and it was only pixel-tested on the sprite side.
+    // -------------------------------------------------------------------------
+
+    test("krogue-1qb: AsciiTileWindow.clear drops every layer, leaving no stale cache content").config(
+        enabled = HeadlessGl.available,
+    ) {
+        val pixels = HeadlessGl.render(10, 10, Color.BLACK) {
+            val window = AsciiTileWindow.create {
+                widthInTiles = 1
+                heightInTiles = 1
+            }
+            window.drawTile(0, 0, z = 0, tile = StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
+            window.drawTile(0, 0, z = 1, tile = StaticAsciiTile(' ', Color.WHITE, Color.RED))
+            window.render() // first paint: both layers, red on top
+            window.clear()
+            window.render() // recomposite must drop both, not retain them from the cache
+            window.dispose()
+        }
+        val avg = pixels.averageColor(0, 0, 10, 10)
+        avg.r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+        avg.b.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+        pixels.dispose()
+    }
+
+    test("krogue-1qb: AsciiTileWindow.clearLayer clears only its own layer and reveals the one beneath").config(
+        enabled = HeadlessGl.available,
+    ) {
+        // The sharpest test of clearLayer's bookkeeping: it must dirty the cells it vacated (or
+        // the red stays, stale) without disturbing z=0 (or the blue vanishes too).
+        val pixels = HeadlessGl.render(10, 10, Color.BLACK) {
+            val window = AsciiTileWindow.create {
+                widthInTiles = 1
+                heightInTiles = 1
+            }
+            window.drawTile(0, 0, z = 0, tile = StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
+            window.drawTile(0, 0, z = 1, tile = StaticAsciiTile(' ', Color.WHITE, Color.RED))
+            window.render() // first paint: red hides blue (top-cell-wins)
+            window.clearLayer(1)
+            window.render()
+            window.dispose()
+        }
+        val avg = pixels.averageColor(0, 0, 10, 10)
+        avg.b.toDouble() shouldBe (1.0 plusOrMinus 0.1) // z=0 survived
+        avg.r.toDouble() shouldBe (0.0 plusOrMinus 0.1) // z=1 is gone, not stale
+        pixels.dispose()
+    }
+
+    test("krogue-1qb: AsciiTileWindow.clearLayer on a never-written layer is a no-op").config(
+        enabled = HeadlessGl.available,
+    ) {
+        val pixels = HeadlessGl.render(10, 10, Color.BLACK) {
+            val window = AsciiTileWindow.create {
+                widthInTiles = 1
+                heightInTiles = 1
+            }
+            window.drawTile(0, 0, z = 0, tile = StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
+            window.clearLayer(99) // must not throw, and must not disturb z=0
+            window.render()
+            window.dispose()
+        }
+        pixels.averageColor(0, 0, 10, 10).b.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        pixels.dispose()
+    }
+
     test("krogue-drk: AsciiTileWindow renders identical output across repeated render calls with no writes between them").config(
         enabled = HeadlessGl.available,
     ) {

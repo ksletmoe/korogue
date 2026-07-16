@@ -57,16 +57,33 @@ import com.sletmoe.kotile.utilities.Vector3Int
  *
  * Layers are identified by an integer z-index. A higher z value draws on top.
  * Layers are created on demand the first time a cell is written to them.
- * Per-cell compositing: the highest-z layer that has a non-null cell at
- * (x, y) wins; lower layers show through where higher layers are empty. This
- * mirrors the permissive policy of
- * [com.sletmoe.kotile.utilities.LayeredTilemap] used by the sprite path.
  *
- * Typical usage for a roguelike:
+ * **Compositing is top-cell-wins** (ADR-0029): the highest-z layer holding a
+ * non-null cell at (x, y) is drawn and the layers beneath it are not. Lower
+ * layers show through only where the higher ones are *empty* (null) — never
+ * through a cell that exists. A cell is an atomic glyph/foreground/background
+ * triple, and two glyphs cannot share one cell, so the top one takes it whole.
+ *
+ * Two consequences worth knowing before you reach for layers:
+ * - A transparent [StaticAsciiTile.backgroundColor] does **not** reveal the
+ *   layer below; it reveals the canvas clear color. `CLEAR` and `BLACK`
+ *   backgrounds are indistinguishable in the output.
+ * - A cell that renders as nothing — a space, whose glyph is keyed out — still
+ *   occupies its position and so hides the layers under it. To let lower layers
+ *   through, [clearTile] the cell rather than writing a blank one.
+ *
+ * This is where the two render paths deliberately diverge: the sprite path
+ * ([com.sletmoe.kotile.rendering.TileRenderer]) draws every populated layer
+ * bottom-up and alpha-blends them, because sprites are images and blending them
+ * is the point. See ADR-0029 for why matching that here would be wrong rather
+ * than merely different.
+ *
+ * Typical usage for a roguelike — note each layer supplies the whole cell,
+ * including the background it wants:
  * ```
- * window.drawTile(x, y, z = 0, tile = groundDescriptor)   // terrain layer
- * window.drawTile(x, y, z = 1, tile = creatureDescriptor) // creature layer
- * window.drawTile(x, y, z = 2, tile = effectDescriptor)   // effect/highlight
+ * window.drawTile(x, y, z = 0, tile = groundTile)   // terrain layer
+ * window.drawTile(x, y, z = 1, tile = creatureTile) // creature layer, own bg
+ * window.drawTile(x, y, z = 2, tile = effectTile)   // effect/highlight
  * ```
  *
  * ## clear / fill semantics

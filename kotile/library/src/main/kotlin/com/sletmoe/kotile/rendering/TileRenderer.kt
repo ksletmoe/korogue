@@ -40,10 +40,17 @@ import com.sletmoe.kotile.utilities.Vector3Int
  * ## Layer semantics
  *
  * Layers are identified by an integer z-index; a higher z draws on top, and
- * layers are created on demand the first time a cell is written to them. Unlike
- * the ASCII path (where the highest-z non-null cell wins outright), every
- * populated layer here is drawn, so alpha in an upper sprite reveals what is
- * beneath it.
+ * layers are created on demand the first time a cell is written to them.
+ *
+ * **Compositing is bottom-up** (ADR-0029): every populated layer at a cell is
+ * drawn, lowest z first, and alpha-blended — so a transparent pixel in an upper
+ * sprite reveals the sprite beneath it. This is the deliberate opposite of the
+ * ASCII path
+ * ([AsciiTileWindow][com.sletmoe.kotile.display.ascii.AsciiTileWindow]), where
+ * the highest-z cell wins outright and hides the rest. The paths differ because
+ * their content does: sprites are images, and blending them is the whole point,
+ * whereas an ASCII cell is an atomic glyph/fg/bg triple that two layers cannot
+ * meaningfully share.
  *
  * ## clear / fill semantics
  *
