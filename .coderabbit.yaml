@@ -122,14 +122,11 @@ chat:
   # No ASCII art in review threads.
   art: false
 
-  # Act when asked, not on your own initiative. The unwanted PR #8 came from chat (branch
-  # `coderabbitai/chat/…`), where CodeRabbit replied to its own review thread and implemented
-  # the change unprompted. There is no documented setting for "chat must not open PRs", and
-  # auto_reply is the closest lever: with it off, chat only engages when explicitly tagged.
+  # auto_reply is left at its default (true), i.e. CodeRabbit may answer in a thread without
+  # being @-tagged. It was briefly set false here on the theory that chat had opened PR #8 on
+  # its own initiative — but that PR was triggered by a checkbox, so the theory was wrong and
+  # the setting was addressing nothing. Not worth losing "reply to me without ceremony" for.
   #
-  # Honest caveat: this is inference, not documented cause-and-effect — the docs only say
-  # auto_reply lets CodeRabbit "reply automatically without requiring a mention/tag". If a
-  # surprise PR shows up anyway, this was the wrong lever.
-  #
-  # This does NOT affect `@coderabbitai autofix`: that is a mention, so it still works.
-  auto_reply: false
+  # If a genuinely unprompted PR ever appears, `auto_reply: false` is the nearest lever
+  # (chat then only engages when explicitly tagged) — and it would not affect
+  # `@coderabbitai autofix`, since that is a mention.
