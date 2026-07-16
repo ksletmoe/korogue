@@ -499,6 +499,10 @@ class AsciiTileWindow private constructor(
      * Draws [map]'s cell at ([logicalX], [logicalY]) to screen cell ([screenX], [screenY]),
      * resolving its two channels independently (ADR-0030): the glyph and foreground come from the
      * top-most non-null cell, the background from the top-most cell that actually paints one.
+     *
+     * A single top-down pass resolves each layer's cell at most once, since [AsciiTile.resolveAt]
+     * is not guaranteed cheap for a consumer-supplied [DynamicAsciiTile] — resolving the top cell
+     * separately for its glyph and again while scanning for a background would call it twice.
      */
     private fun drawResolvedCell(
         map: LayeredTilemap<AsciiTile>,
@@ -509,33 +513,23 @@ class AsciiTileWindow private constructor(
         elapsedMs: Long,
         drawer: GridCompositeCache.TileDrawer,
     ) {
-        // No cell anywhere in the stack means no background either -- nothing to draw.
-        val top = map.topCellAt(logicalX, logicalY) ?: return
-        backgroundAt(map, logicalX, logicalY, elapsedMs)?.let { background ->
-            drawer.drawTile(screenX, screenY, backgroundRegion, background)
+        var topDescriptor: StaticAsciiTile? = null
+        var background: Color? = null
+        for (layer in map.layersTopDown) {
+            val cell = layer[logicalX, logicalY] ?: continue
+            val descriptor = cell.resolveAt(elapsedMs)
+            if (topDescriptor == null) topDescriptor = descriptor
+            // Alpha is not blended between layers (ADR-0030): the first cell that paints a
+            // background wins outright and its color is used as-is.
+            if (background == null && descriptor.backgroundColor.a > 0f) background = descriptor.backgroundColor
+            if (topDescriptor != null && background != null) break
         }
-        val descriptor = top.resolveAt(elapsedMs)
+        // No cell anywhere in the stack means no background either -- nothing to draw.
+        val descriptor = topDescriptor ?: return
+        background?.let { drawer.drawTile(screenX, screenY, backgroundRegion, it) }
         font.glyph(descriptor.character)?.let { glyph ->
             drawer.drawTile(screenX, screenY, glyph, descriptor.foregroundColor)
         }
-    }
-
-    /**
-     * The background color for ([x], [y]): the first one found walking the stack down from the
-     * top that is not fully transparent, or `null` if every cell there declines to paint one.
-     *
-     * A fully transparent background means "I do not paint a background", letting the cell below
-     * supply it — which is what lets an overlay (a creature, a highlight) sit on the terrain's
-     * color without restating it (ADR-0030). Alpha is not blended between layers: the first cell
-     * that paints wins outright, and its color is used as-is.
-     */
-    private fun backgroundAt(map: LayeredTilemap<AsciiTile>, x: Int, y: Int, elapsedMs: Long): Color? {
-        for (layer in map.layersTopDown) {
-            val cell = layer[x, y] ?: continue
-            val background = cell.resolveAt(elapsedMs).backgroundColor
-            if (background.a > 0f) return background
-        }
-        return null
     }
 
     /**
@@ -568,13 +562,17 @@ class AsciiTileWindow private constructor(
     ) {
         canvas.begin()
         viewportCache.ensureSize(widthInTiles, heightInTiles)
+        // Hoisted out of the per-cell lambda below: layerKeys allocates a new Set on each access,
+        // and the lambda runs once per visible cell every frame in the (common) unchanged-viewport
+        // case.
+        val layerKeys = source.layerKeys
         viewportDirtyTracker.markDirtyCells(source, viewport, widthInTiles, heightInTiles) { logicalX, logicalY ->
             // Any layer, not just the top one: since a cell's background is resolved from whichever
             // layer paints it (ADR-0030), a DynamicAsciiTile *underneath* the top cell can change
             // this cell's appearance frame to frame without ever being the top cell. Checking only
             // the top would freeze a dynamic background under a static glyph. Matches how the sprite
             // path tracks the same thing.
-            source.layerKeys.any { z -> source.cellAt(logicalX, logicalY, z) is DynamicAsciiTile }
+            layerKeys.any { z -> source.cellAt(logicalX, logicalY, z) is DynamicAsciiTile }
         }
         viewportCache.recompositeIfDirty { x, y, drawer -> drawViewportCell(source, viewport, x, y, elapsedMs, drawer) }
         viewportDirtyTracker.recordRenderedVersions(source, viewport, widthInTiles, heightInTiles)
