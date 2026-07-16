@@ -31,6 +31,26 @@ workflow and sync details are in the "Beads Issue Tracker" section below and via
 - Keep files focused (~500 lines).
 - Commits use a `Co-Authored-By: Claude …` trailer (Claude Code's default
   attribution, which includes the current model version).
+- **Anything an agent posts to GitHub must say so.** `gh` authenticates as the
+  repo owner, so an agent-written PR body, PR/issue comment, or review reads as
+  if a human typed it. Anyone reading the thread — a human, or another review bot
+  weighing how much to trust a claim — deserves to know a model wrote it. So end
+  every `gh pr comment` / `gh issue comment` / `gh pr review` / `gh pr create`
+  body with an attribution line:
+
+  ```
+  🤖 Written by Claude Opus 4.8 via Claude Code, posted by @<owner>'s gh CLI.
+  ```
+
+  Name the actual model you are, not a generic "an AI". If you rewrite a comment
+  (`--edit-last`) the line must survive the rewrite. This is not the same as the
+  commit trailer: that covers what landed in git, this covers what was said about
+  it — and review threads are where the unverified claims live.
+- **Do not state a verification you did not run.** Say what you actually ran and
+  what it printed, and keep the artifacts straight — "I verified it" is false if
+  a throwaway harness passed and the committed test never exercised the same path.
+  If something is unverified, say that instead; on this project GL tests only run
+  on Linux CI, so "compiles clean" and "verified" are very different claims.
 - **The Rogue example is a faithful recreation — don't deviate on gameplay.**
   Reproduce original Rogue's behavior, rules, and data exactly (the canonical
   BSD 5.4.4 C source is at `~/Downloads/rogue5.4.4`; transcribe tables and port
