@@ -46,3 +46,4 @@ Point-in-time records of **why** significant or hard-to-reverse decisions were m
 | [0030](0030-per-channel-ascii-compositing.md) | An ASCII cell's glyph and background resolve per channel | Accepted |
 | [0031](0031-engine-package-homes-app-and-perception.md) | `app.Game` and `perception.ZoneFog` — retiring the `korogue.kotile` package | Accepted |
 | [0032](0032-system-construction-and-the-standard-pipeline.md) | One system-construction convention, and a validated standard pipeline | Accepted |
+| [0033](0033-tilesurface-carries-the-dynamic-tile-branch.md) | `TileSurface` carries kotile's dynamic-tile branch, with a static fallback | Accepted |
