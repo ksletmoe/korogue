@@ -142,6 +142,13 @@ $dokka.location:com.sletmoe.korogue.algorithms.zonegen/ZoneGenerator///PointingT
 $dokka.location:com.sletmoe.korogue.algorithms.zonegen/ZoneGenerator/generate/#com.sletmoe.korogue.algorithms.zonegen.ZoneGenContext/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.zonegen/-zone-generator/generate.html
 $dokka.location:com.sletmoe.korogue.algorithms.zonegen/ZoneGeneratorTest///PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.zonegen/-zone-generator-test/index.html
 $dokka.location:com.sletmoe.korogue.algorithms.zonegen/ZoneGeneratorTest/ZoneGeneratorTest/#/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.zonegen/-zone-generator-test/-zone-generator-test.html
+$dokka.location:com.sletmoe.korogue.app////PointingToDeclaration/engine/com.sletmoe.korogue.app/index.html
+$dokka.location:com.sletmoe.korogue.app/Game///PointingToDeclaration/engine/com.sletmoe.korogue.app/-game/index.html
+$dokka.location:com.sletmoe.korogue.app/Game/Game/#kotlin.Boolean/PointingToDeclaration/engine/com.sletmoe.korogue.app/-game/-game.html
+$dokka.location:com.sletmoe.korogue.app/Game/create/#/PointingToDeclaration/engine/com.sletmoe.korogue.app/-game/create.html
+$dokka.location:com.sletmoe.korogue.app/Game/dispose/#/PointingToDeclaration/engine/com.sletmoe.korogue.app/-game/dispose.html
+$dokka.location:com.sletmoe.korogue.app/Game/render/#/PointingToDeclaration/engine/com.sletmoe.korogue.app/-game/render.html
+$dokka.location:com.sletmoe.korogue.app/Game/resize/#kotlin.Int#kotlin.Int/PointingToDeclaration/engine/com.sletmoe.korogue.app/-game/resize.html
 $dokka.location:com.sletmoe.korogue.components////PointingToDeclaration/engine/com.sletmoe.korogue.components/index.html
 $dokka.location:com.sletmoe.korogue.components/AttackIntent///PointingToDeclaration/engine/com.sletmoe.korogue.components/-attack-intent/index.html
 $dokka.location:com.sletmoe.korogue.components/AttackIntent/AttackIntent/#com.sletmoe.korogue.ecs.EntityId/PointingToDeclaration/engine/com.sletmoe.korogue.components/-attack-intent/-attack-intent.html
@@ -261,6 +268,13 @@ $dokka.location:com.sletmoe.korogue.ecs/EventBus/subscribe/#kotlin.reflect.KClas
 $dokka.location:com.sletmoe.korogue.ecs/EventBus/subscribeAll/#kotlin.Function1[com.sletmoe.korogue.ecs.Event,kotlin.Unit]/PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-event-bus/subscribe-all.html
 $dokka.location:com.sletmoe.korogue.ecs/EventBusTest///PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-event-bus-test/index.html
 $dokka.location:com.sletmoe.korogue.ecs/EventBusTest/EventBusTest/#/PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-event-bus-test/-event-bus-test.html
+$dokka.location:com.sletmoe.korogue.ecs/PipelineOrderException///PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-pipeline-order-exception/index.html
+$dokka.location:com.sletmoe.korogue.ecs/PipelineOrderException/PipelineOrderException/#kotlin.String/PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-pipeline-order-exception/-pipeline-order-exception.html
+$dokka.location:com.sletmoe.korogue.ecs/PipelineStage///PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-pipeline-stage/index.html
+$dokka.location:com.sletmoe.korogue.ecs/PipelineStage/id/#/PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-pipeline-stage/id.html
+$dokka.location:com.sletmoe.korogue.ecs/PipelineStage/runsAfter/#/PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-pipeline-stage/runs-after.html
+$dokka.location:com.sletmoe.korogue.ecs/Staged///PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-staged/index.html
+$dokka.location:com.sletmoe.korogue.ecs/Staged/stage/#/PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-staged/stage.html
 $dokka.location:com.sletmoe.korogue.ecs/Subscription///PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-subscription/index.html
 $dokka.location:com.sletmoe.korogue.ecs/Subscription/cancel/#/PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-subscription/cancel.html
 $dokka.location:com.sletmoe.korogue.ecs/System///PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-system/index.html
@@ -290,6 +304,7 @@ $dokka.location:com.sletmoe.korogue.ecs/World/systems/#/PointingToDeclaration/e
 $dokka.location:com.sletmoe.korogue.ecs/World/tick/#kotlin.Long/PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-world/tick.html
 $dokka.location:com.sletmoe.korogue.ecs/World/tickContext/#kotlin.Long/PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-world/tick-context.html
 $dokka.location:com.sletmoe.korogue.ecs/World/update/#com.sletmoe.korogue.ecs.EntityId#kotlin.Function1[TypeParam(bounds=[com.sletmoe.korogue.ecs.Component]),TypeParam(bounds=[com.sletmoe.korogue.ecs.Component])]/PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-world/update.html
+$dokka.location:com.sletmoe.korogue.ecs/World/validateSystemOrder/#/PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-world/validate-system-order.html
 $dokka.location:com.sletmoe.korogue.ecs/WorldTest///PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-world-test/index.html
 $dokka.location:com.sletmoe.korogue.ecs/WorldTest/WorldTest/#/PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-world-test/-world-test.html
 $dokka.location:com.sletmoe.korogue.events////PointingToDeclaration/engine/com.sletmoe.korogue.events/index.html
@@ -322,21 +337,6 @@ $dokka.location:com.sletmoe.korogue.events/ZoneChanged/ZoneChanged/#com.sletmoe.
 $dokka.location:com.sletmoe.korogue.events/ZoneChanged/entity/#/PointingToDeclaration/engine/com.sletmoe.korogue.events/-zone-changed/entity.html
 $dokka.location:com.sletmoe.korogue.events/ZoneChanged/from/#/PointingToDeclaration/engine/com.sletmoe.korogue.events/-zone-changed/from.html
 $dokka.location:com.sletmoe.korogue.events/ZoneChanged/to/#/PointingToDeclaration/engine/com.sletmoe.korogue.events/-zone-changed/to.html
-$dokka.location:com.sletmoe.korogue.kotile////PointingToDeclaration/engine/com.sletmoe.korogue.kotile/index.html
-$dokka.location:com.sletmoe.korogue.kotile/Game///PointingToDeclaration/engine/com.sletmoe.korogue.kotile/-game/index.html
-$dokka.location:com.sletmoe.korogue.kotile/Game/Game/#kotlin.Boolean/PointingToDeclaration/engine/com.sletmoe.korogue.kotile/-game/-game.html
-$dokka.location:com.sletmoe.korogue.kotile/Game/create/#/PointingToDeclaration/engine/com.sletmoe.korogue.kotile/-game/create.html
-$dokka.location:com.sletmoe.korogue.kotile/Game/dispose/#/PointingToDeclaration/engine/com.sletmoe.korogue.kotile/-game/dispose.html
-$dokka.location:com.sletmoe.korogue.kotile/Game/render/#/PointingToDeclaration/engine/com.sletmoe.korogue.kotile/-game/render.html
-$dokka.location:com.sletmoe.korogue.kotile/Game/resize/#kotlin.Int#kotlin.Int/PointingToDeclaration/engine/com.sletmoe.korogue.kotile/-game/resize.html
-$dokka.location:com.sletmoe.korogue.kotile/ZoneFog///PointingToDeclaration/engine/com.sletmoe.korogue.kotile/-zone-fog/index.html
-$dokka.location:com.sletmoe.korogue.kotile/ZoneFog/ZoneFog/#/PointingToDeclaration/engine/com.sletmoe.korogue.kotile/-zone-fog/-zone-fog.html
-$dokka.location:com.sletmoe.korogue.kotile/ZoneFog/forZone/#kotlin.String#kotlin.Int#kotlin.Int/PointingToDeclaration/engine/com.sletmoe.korogue.kotile/-zone-fog/for-zone.html
-$dokka.location:com.sletmoe.korogue.kotile/ZoneFog/forget/#kotlin.String/PointingToDeclaration/engine/com.sletmoe.korogue.kotile/-zone-fog/forget.html
-$dokka.location:com.sletmoe.korogue.kotile/ZoneFog/restore/#kotlin.collections.Map[kotlin.String,com.sletmoe.kotile.utilities.Grid[kotlin.Boolean]]/PointingToDeclaration/engine/com.sletmoe.korogue.kotile/-zone-fog/restore.html
-$dokka.location:com.sletmoe.korogue.kotile/ZoneFog/snapshot/#/PointingToDeclaration/engine/com.sletmoe.korogue.kotile/-zone-fog/snapshot.html
-$dokka.location:com.sletmoe.korogue.kotile/ZoneFogTest///PointingToDeclaration/engine/com.sletmoe.korogue.kotile/-zone-fog-test/index.html
-$dokka.location:com.sletmoe.korogue.kotile/ZoneFogTest/ZoneFogTest/#/PointingToDeclaration/engine/com.sletmoe.korogue.kotile/-zone-fog-test/-zone-fog-test.html
 $dokka.location:com.sletmoe.korogue.loop////PointingToDeclaration/engine/com.sletmoe.korogue.loop/index.html
 $dokka.location:com.sletmoe.korogue.loop/GameLoop///PointingToDeclaration/engine/com.sletmoe.korogue.loop/-game-loop/index.html
 $dokka.location:com.sletmoe.korogue.loop/GameLoop/advance/#kotlin.Long#kotlin.Function0[kotlin.Unit]/PointingToDeclaration/engine/com.sletmoe.korogue.loop/-game-loop/advance.html
@@ -389,6 +389,12 @@ $dokka.location:com.sletmoe.korogue.perception/PerceptionModel///PointingToDecla
 $dokka.location:com.sletmoe.korogue.perception/PerceptionModel/perceive/#com.sletmoe.korogue.ecs.Entity#com.sletmoe.korogue.world.GameWorld/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-perception-model/perceive.html
 $dokka.location:com.sletmoe.korogue.perception/PerceptionScenarioTest///PointingToDeclaration/engine/com.sletmoe.korogue.perception/-perception-scenario-test/index.html
 $dokka.location:com.sletmoe.korogue.perception/PerceptionScenarioTest/PerceptionScenarioTest/#/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-perception-scenario-test/-perception-scenario-test.html
+$dokka.location:com.sletmoe.korogue.perception/PerceptionSystem///PointingToDeclaration/engine/com.sletmoe.korogue.perception/-perception-system/index.html
+$dokka.location:com.sletmoe.korogue.perception/PerceptionSystem/PerceptionSystem/#com.sletmoe.korogue.world.GameWorld#com.sletmoe.korogue.perception.PerceptionModel/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-perception-system/-perception-system.html
+$dokka.location:com.sletmoe.korogue.perception/PerceptionSystem/stage/#/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-perception-system/stage.html
+$dokka.location:com.sletmoe.korogue.perception/PerceptionSystem/update/#com.sletmoe.korogue.ecs.World#com.sletmoe.korogue.ecs.TickContext/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-perception-system/update.html
+$dokka.location:com.sletmoe.korogue.perception/PerceptionSystemTest///PointingToDeclaration/engine/com.sletmoe.korogue.perception/-perception-system-test/index.html
+$dokka.location:com.sletmoe.korogue.perception/PerceptionSystemTest/PerceptionSystemTest/#/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-perception-system-test/-perception-system-test.html
 $dokka.location:com.sletmoe.korogue.perception/PerceptionTags///PointingToDeclaration/engine/com.sletmoe.korogue.perception/-perception-tags/index.html
 $dokka.location:com.sletmoe.korogue.perception/PerceptionTags/LIGHT_DEPENDENT/#/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-perception-tags/-l-i-g-h-t_-d-e-p-e-n-d-e-n-t.html
 $dokka.location:com.sletmoe.korogue.perception/PerceptionTags/MENTAL/#/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-perception-tags/-m-e-n-t-a-l.html
@@ -450,6 +456,45 @@ $dokka.location:com.sletmoe.korogue.perception/TrueSightSense/TrueSightSense/#co
 $dokka.location:com.sletmoe.korogue.perception/TrueSightSense/pierces/#/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-true-sight-sense/pierces.html
 $dokka.location:com.sletmoe.korogue.perception/TrueSightSense/reveal/#com.sletmoe.korogue.ecs.Entity#com.sletmoe.korogue.perception.SenseComponent#com.sletmoe.korogue.world.GameWorld/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-true-sight-sense/reveal.html
 $dokka.location:com.sletmoe.korogue.perception/TrueSightSense/tags/#/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-true-sight-sense/tags.html
+$dokka.location:com.sletmoe.korogue.perception/ZoneFog///PointingToDeclaration/engine/com.sletmoe.korogue.perception/-zone-fog/index.html
+$dokka.location:com.sletmoe.korogue.perception/ZoneFog/ZoneFog/#/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-zone-fog/-zone-fog.html
+$dokka.location:com.sletmoe.korogue.perception/ZoneFog/forZone/#kotlin.String#kotlin.Int#kotlin.Int/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-zone-fog/for-zone.html
+$dokka.location:com.sletmoe.korogue.perception/ZoneFog/forget/#kotlin.String/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-zone-fog/forget.html
+$dokka.location:com.sletmoe.korogue.perception/ZoneFog/restore/#kotlin.collections.Map[kotlin.String,com.sletmoe.kotile.utilities.Grid[kotlin.Boolean]]/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-zone-fog/restore.html
+$dokka.location:com.sletmoe.korogue.perception/ZoneFog/snapshot/#/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-zone-fog/snapshot.html
+$dokka.location:com.sletmoe.korogue.perception/ZoneFogTest///PointingToDeclaration/engine/com.sletmoe.korogue.perception/-zone-fog-test/index.html
+$dokka.location:com.sletmoe.korogue.perception/ZoneFogTest/ZoneFogTest/#/PointingToDeclaration/engine/com.sletmoe.korogue.perception/-zone-fog-test/-zone-fog-test.html
+$dokka.location:com.sletmoe.korogue.pipeline////PointingToDeclaration/engine/com.sletmoe.korogue.pipeline/index.html
+$dokka.location:com.sletmoe.korogue.pipeline//installStandardSystems/com.sletmoe.korogue.world.GameWorld#com.sletmoe.korogue.registry.GameModule#com.sletmoe.korogue.perception.PerceptionModel#com.sletmoe.korogue.schedule.Scheduler?#com.sletmoe.korogue.algorithms.lighting.LightValue?#kotlin.Int/PointingToDeclaration/engine/com.sletmoe.korogue.pipeline/install-standard-systems.html
+$dokka.location:com.sletmoe.korogue.pipeline/PipelineOrderTest///PointingToDeclaration/engine/com.sletmoe.korogue.pipeline/-pipeline-order-test/index.html
+$dokka.location:com.sletmoe.korogue.pipeline/PipelineOrderTest/PipelineOrderTest/#/PointingToDeclaration/engine/com.sletmoe.korogue.pipeline/-pipeline-order-test/-pipeline-order-test.html
+$dokka.location:com.sletmoe.korogue.pipeline/StandardStage.BEHAVIOR///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}engine/com.sletmoe.korogue.pipeline/-standard-stage/-b-e-h-a-v-i-o-r/index.html
+$dokka.location:com.sletmoe.korogue.pipeline/StandardStage.COMBAT///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}engine/com.sletmoe.korogue.pipeline/-standard-stage/-c-o-m-b-a-t/index.html
+$dokka.location:com.sletmoe.korogue.pipeline/StandardStage.LIGHTING///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}engine/com.sletmoe.korogue.pipeline/-standard-stage/-l-i-g-h-t-i-n-g/index.html
+$dokka.location:com.sletmoe.korogue.pipeline/StandardStage.MOVEMENT///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}engine/com.sletmoe.korogue.pipeline/-standard-stage/-m-o-v-e-m-e-n-t/index.html
+$dokka.location:com.sletmoe.korogue.pipeline/StandardStage.PERCEPTION///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}engine/com.sletmoe.korogue.pipeline/-standard-stage/-p-e-r-c-e-p-t-i-o-n/index.html
+$dokka.location:com.sletmoe.korogue.pipeline/StandardStage.PICKUP///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}engine/com.sletmoe.korogue.pipeline/-standard-stage/-p-i-c-k-u-p/index.html
+$dokka.location:com.sletmoe.korogue.pipeline/StandardStage.PORTAL///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}engine/com.sletmoe.korogue.pipeline/-standard-stage/-p-o-r-t-a-l/index.html
+$dokka.location:com.sletmoe.korogue.pipeline/StandardStage.RANGED_ATTACK///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}engine/com.sletmoe.korogue.pipeline/-standard-stage/-r-a-n-g-e-d_-a-t-t-a-c-k/index.html
+$dokka.location:com.sletmoe.korogue.pipeline/StandardStage.SCHEDULE///PointingToDeclaration/{"org.jetbrains.dokka.links.EnumEntryDRIExtra":{"key":"org.jetbrains.dokka.links.EnumEntryDRIExtra"}}engine/com.sletmoe.korogue.pipeline/-standard-stage/-s-c-h-e-d-u-l-e/index.html
+$dokka.location:com.sletmoe.korogue.pipeline/StandardStage///PointingToDeclaration/engine/com.sletmoe.korogue.pipeline/-standard-stage/index.html
+$dokka.location:com.sletmoe.korogue.pipeline/StandardStage/entries/#/PointingToDeclaration/engine/com.sletmoe.korogue.pipeline/-standard-stage/entries.html
+$dokka.location:com.sletmoe.korogue.pipeline/StandardStage/id/#/PointingToDeclaration/engine/com.sletmoe.korogue.pipeline/-standard-stage/id.html
+$dokka.location:com.sletmoe.korogue.pipeline/StandardStage/valueOf/#kotlin.String/PointingToDeclaration/engine/com.sletmoe.korogue.pipeline/-standard-stage/value-of.html
+$dokka.location:com.sletmoe.korogue.pipeline/StandardStage/values/#/PointingToDeclaration/engine/com.sletmoe.korogue.pipeline/-standard-stage/values.html
+$dokka.location:com.sletmoe.korogue.pipeline/StandardSystems///PointingToDeclaration/engine/com.sletmoe.korogue.pipeline/-standard-systems/index.html
+$dokka.location:com.sletmoe.korogue.pipeline/StandardSystems/StandardSystems/#com.sletmoe.korogue.schedule.SchedulerSystem?#com.sletmoe.korogue.systems.RangedAttackSystem#com.sletmoe.korogue.systems.BehaviorSystem#com.sletmoe.korogue.systems.MovementSystem#com.sletmoe.korogue.systems.PortalSystem#com.sletmoe.korogue.systems.PickupSystem#com.sletmoe.korogue.systems.CombatSystem#com.sletmoe.korogue.systems.LightingSystem#com.sletmoe.korogue.perception.PerceptionSystem/PointingToDeclaration/engine/com.sletmoe.korogue.pipeline/-standard-systems/-standard-systems.html
+$dokka.location:com.sletmoe.korogue.pipeline/StandardSystems/behavior/#/PointingToDeclaration/engine/com.sletmoe.korogue.pipeline/-standard-systems/behavior.html
+$dokka.location:com.sletmoe.korogue.pipeline/StandardSystems/combat/#/PointingToDeclaration/engine/com.sletmoe.korogue.pipeline/-standard-systems/combat.html
+$dokka.location:com.sletmoe.korogue.pipeline/StandardSystems/lighting/#/PointingToDeclaration/engine/com.sletmoe.korogue.pipeline/-standard-systems/lighting.html
+$dokka.location:com.sletmoe.korogue.pipeline/StandardSystems/movement/#/PointingToDeclaration/engine/com.sletmoe.korogue.pipeline/-standard-systems/movement.html
+$dokka.location:com.sletmoe.korogue.pipeline/StandardSystems/perception/#/PointingToDeclaration/engine/com.sletmoe.korogue.pipeline/-standard-systems/perception.html
+$dokka.location:com.sletmoe.korogue.pipeline/StandardSystems/pickup/#/PointingToDeclaration/engine/com.sletmoe.korogue.pipeline/-standard-systems/pickup.html
+$dokka.location:com.sletmoe.korogue.pipeline/StandardSystems/portal/#/PointingToDeclaration/engine/com.sletmoe.korogue.pipeline/-standard-systems/portal.html
+$dokka.location:com.sletmoe.korogue.pipeline/StandardSystems/rangedAttack/#/PointingToDeclaration/engine/com.sletmoe.korogue.pipeline/-standard-systems/ranged-attack.html
+$dokka.location:com.sletmoe.korogue.pipeline/StandardSystems/scheduler/#/PointingToDeclaration/engine/com.sletmoe.korogue.pipeline/-standard-systems/scheduler.html
+$dokka.location:com.sletmoe.korogue.pipeline/StandardSystemsTest///PointingToDeclaration/engine/com.sletmoe.korogue.pipeline/-standard-systems-test/index.html
+$dokka.location:com.sletmoe.korogue.pipeline/StandardSystemsTest/StandardSystemsTest/#/PointingToDeclaration/engine/com.sletmoe.korogue.pipeline/-standard-systems-test/-standard-systems-test.html
 $dokka.location:com.sletmoe.korogue.presentation////PointingToDeclaration/engine/com.sletmoe.korogue.presentation/index.html
 $dokka.location:com.sletmoe.korogue.presentation/EventAnimationQueue///PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-event-animation-queue/index.html
 $dokka.location:com.sletmoe.korogue.presentation/EventAnimationQueue/EventAnimationQueue/#/PointingToDeclaration/engine/com.sletmoe.korogue.presentation/-event-animation-queue/-event-animation-queue.html
@@ -593,10 +638,15 @@ $dokka.location:com.sletmoe.korogue.registry/GameModule/senses/#/PointingToDecla
 $dokka.location:com.sletmoe.korogue.registry/GameModule/strategies/#/PointingToDeclaration/engine/com.sletmoe.korogue.registry/-game-module/strategies.html
 $dokka.location:com.sletmoe.korogue.registry/GameModuleTest///PointingToDeclaration/engine/com.sletmoe.korogue.registry/-game-module-test/index.html
 $dokka.location:com.sletmoe.korogue.registry/GameModuleTest/GameModuleTest/#/PointingToDeclaration/engine/com.sletmoe.korogue.registry/-game-module-test/-game-module-test.html
+$dokka.location:com.sletmoe.korogue.registry/Registry.Companion///PointingToDeclaration/engine/com.sletmoe.korogue.registry/-registry/-companion/index.html
+$dokka.location:com.sletmoe.korogue.registry/Registry.Companion/of/#kotlin.collections.Map[kotlin.String,TypeParam(bounds=[kotlin.Any?])]/PointingToDeclaration/engine/com.sletmoe.korogue.registry/-registry/-companion/of.html
+$dokka.location:com.sletmoe.korogue.registry/Registry.Companion/of/#vararg(kotlin.Pair[kotlin.String,TypeParam(bounds=[kotlin.Any?])])/PointingToDeclaration/engine/com.sletmoe.korogue.registry/-registry/-companion/of.html
 $dokka.location:com.sletmoe.korogue.registry/Registry///PointingToDeclaration/engine/com.sletmoe.korogue.registry/-registry/index.html
 $dokka.location:com.sletmoe.korogue.registry/Registry/contains/#kotlin.String/PointingToDeclaration/engine/com.sletmoe.korogue.registry/-registry/contains.html
 $dokka.location:com.sletmoe.korogue.registry/Registry/ids/#/PointingToDeclaration/engine/com.sletmoe.korogue.registry/-registry/ids.html
 $dokka.location:com.sletmoe.korogue.registry/Registry/resolve/#kotlin.String/PointingToDeclaration/engine/com.sletmoe.korogue.registry/-registry/resolve.html
+$dokka.location:com.sletmoe.korogue.registry/RegistryTest///PointingToDeclaration/engine/com.sletmoe.korogue.registry/-registry-test/index.html
+$dokka.location:com.sletmoe.korogue.registry/RegistryTest/RegistryTest/#/PointingToDeclaration/engine/com.sletmoe.korogue.registry/-registry-test/-registry-test.html
 $dokka.location:com.sletmoe.korogue.save////PointingToDeclaration/engine/com.sletmoe.korogue.save/index.html
 $dokka.location:com.sletmoe.korogue.save/LoadedGame///PointingToDeclaration/engine/com.sletmoe.korogue.save/-loaded-game/index.html
 $dokka.location:com.sletmoe.korogue.save/LoadedGame/LoadedGame/#com.sletmoe.korogue.world.GameWorld#kotlin.collections.Map[kotlin.String,com.sletmoe.kotile.utilities.Grid[kotlin.Boolean]]#com.sletmoe.korogue.schedule.SchedulerState/PointingToDeclaration/engine/com.sletmoe.korogue.save/-loaded-game/-loaded-game.html
@@ -675,7 +725,8 @@ $dokka.location:com.sletmoe.korogue.schedule/SchedulerState/currentTurn/#/Pointi
 $dokka.location:com.sletmoe.korogue.schedule/SchedulerState/effects/#/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler-state/effects.html
 $dokka.location:com.sletmoe.korogue.schedule/SchedulerState/nextHandle/#/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler-state/next-handle.html
 $dokka.location:com.sletmoe.korogue.schedule/SchedulerSystem///PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler-system/index.html
-$dokka.location:com.sletmoe.korogue.schedule/SchedulerSystem/SchedulerSystem/#com.sletmoe.korogue.schedule.Scheduler#kotlin.Function1[kotlin.String,com.sletmoe.korogue.schedule.TimedEffect]/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler-system/-scheduler-system.html
+$dokka.location:com.sletmoe.korogue.schedule/SchedulerSystem/SchedulerSystem/#com.sletmoe.korogue.schedule.Scheduler#com.sletmoe.korogue.registry.Registry[com.sletmoe.korogue.schedule.TimedEffect]/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler-system/-scheduler-system.html
+$dokka.location:com.sletmoe.korogue.schedule/SchedulerSystem/stage/#/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler-system/stage.html
 $dokka.location:com.sletmoe.korogue.schedule/SchedulerSystem/update/#com.sletmoe.korogue.ecs.World#com.sletmoe.korogue.ecs.TickContext/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler-system/update.html
 $dokka.location:com.sletmoe.korogue.schedule/SchedulerSystemTest///PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler-system-test/index.html
 $dokka.location:com.sletmoe.korogue.schedule/SchedulerSystemTest/SchedulerSystemTest/#/PointingToDeclaration/engine/com.sletmoe.korogue.schedule/-scheduler-system-test/-scheduler-system-test.html
@@ -687,12 +738,16 @@ $dokka.location:com.sletmoe.korogue.systems////PointingToDeclaration/engine/com
 $dokka.location:com.sletmoe.korogue.systems/BehaviorStrategy///PointingToDeclaration/engine/com.sletmoe.korogue.systems/-behavior-strategy/index.html
 $dokka.location:com.sletmoe.korogue.systems/BehaviorStrategy/decide/#com.sletmoe.korogue.ecs.World#com.sletmoe.korogue.ecs.Entity#com.sletmoe.korogue.ecs.TickContext/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-behavior-strategy/decide.html
 $dokka.location:com.sletmoe.korogue.systems/BehaviorSystem///PointingToDeclaration/engine/com.sletmoe.korogue.systems/-behavior-system/index.html
-$dokka.location:com.sletmoe.korogue.systems/BehaviorSystem/BehaviorSystem/#kotlin.Function1[kotlin.String,com.sletmoe.korogue.systems.BehaviorStrategy]#kotlin.Function0[kotlin.collections.Set[kotlin.String]]?/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-behavior-system/-behavior-system.html
+$dokka.location:com.sletmoe.korogue.systems/BehaviorSystem/BehaviorSystem/#com.sletmoe.korogue.world.GameWorld#com.sletmoe.korogue.registry.Registry[com.sletmoe.korogue.systems.BehaviorStrategy]/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-behavior-system/-behavior-system.html
+$dokka.location:com.sletmoe.korogue.systems/BehaviorSystem/stage/#/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-behavior-system/stage.html
 $dokka.location:com.sletmoe.korogue.systems/BehaviorSystem/update/#com.sletmoe.korogue.ecs.World#com.sletmoe.korogue.ecs.TickContext/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-behavior-system/update.html
 $dokka.location:com.sletmoe.korogue.systems/BehaviorSystemTest///PointingToDeclaration/engine/com.sletmoe.korogue.systems/-behavior-system-test/index.html
 $dokka.location:com.sletmoe.korogue.systems/BehaviorSystemTest/BehaviorSystemTest/#/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-behavior-system-test/-behavior-system-test.html
+$dokka.location:com.sletmoe.korogue.systems/CombatSystem.Companion///PointingToDeclaration/engine/com.sletmoe.korogue.systems/-combat-system/-companion/index.html
+$dokka.location:com.sletmoe.korogue.systems/CombatSystem.Companion/DEFAULT_DAMAGE/#/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-combat-system/-companion/-d-e-f-a-u-l-t_-d-a-m-a-g-e.html
 $dokka.location:com.sletmoe.korogue.systems/CombatSystem///PointingToDeclaration/engine/com.sletmoe.korogue.systems/-combat-system/index.html
 $dokka.location:com.sletmoe.korogue.systems/CombatSystem/CombatSystem/#kotlin.Int/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-combat-system/-combat-system.html
+$dokka.location:com.sletmoe.korogue.systems/CombatSystem/stage/#/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-combat-system/stage.html
 $dokka.location:com.sletmoe.korogue.systems/CombatSystem/update/#com.sletmoe.korogue.ecs.World#com.sletmoe.korogue.ecs.TickContext/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-combat-system/update.html
 $dokka.location:com.sletmoe.korogue.systems/CombatSystemTest///PointingToDeclaration/engine/com.sletmoe.korogue.systems/-combat-system-test/index.html
 $dokka.location:com.sletmoe.korogue.systems/CombatSystemTest/CombatSystemTest/#/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-combat-system-test/-combat-system-test.html
@@ -707,32 +762,32 @@ $dokka.location:com.sletmoe.korogue.systems/HuntPlayerStrategy///PointingToDecla
 $dokka.location:com.sletmoe.korogue.systems/HuntPlayerStrategy/HuntPlayerStrategy/#kotlin.Int#kotlin.Double/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-hunt-player-strategy/-hunt-player-strategy.html
 $dokka.location:com.sletmoe.korogue.systems/HuntPlayerStrategy/decide/#com.sletmoe.korogue.ecs.World#com.sletmoe.korogue.ecs.Entity#com.sletmoe.korogue.ecs.TickContext/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-hunt-player-strategy/decide.html
 $dokka.location:com.sletmoe.korogue.systems/LightingSystem///PointingToDeclaration/engine/com.sletmoe.korogue.systems/-lighting-system/index.html
-$dokka.location:com.sletmoe.korogue.systems/LightingSystem/LightingSystem/#kotlin.collections.Map[kotlin.String,com.sletmoe.korogue.world.Zone]#kotlin.Function1[kotlin.String,com.sletmoe.korogue.algorithms.lighting.LightValueCalculator]#kotlin.Function0[kotlin.collections.Set[kotlin.String]]?#com.sletmoe.korogue.algorithms.lighting.LightValue?/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-lighting-system/-lighting-system.html
+$dokka.location:com.sletmoe.korogue.systems/LightingSystem/LightingSystem/#com.sletmoe.korogue.world.GameWorld#com.sletmoe.korogue.registry.Registry[com.sletmoe.korogue.algorithms.lighting.LightValueCalculator]#com.sletmoe.korogue.algorithms.lighting.LightValue?/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-lighting-system/-lighting-system.html
+$dokka.location:com.sletmoe.korogue.systems/LightingSystem/stage/#/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-lighting-system/stage.html
 $dokka.location:com.sletmoe.korogue.systems/LightingSystem/update/#com.sletmoe.korogue.ecs.World#com.sletmoe.korogue.ecs.TickContext/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-lighting-system/update.html
 $dokka.location:com.sletmoe.korogue.systems/LightingSystemTest///PointingToDeclaration/engine/com.sletmoe.korogue.systems/-lighting-system-test/index.html
 $dokka.location:com.sletmoe.korogue.systems/LightingSystemTest/LightingSystemTest/#/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-lighting-system-test/-lighting-system-test.html
 $dokka.location:com.sletmoe.korogue.systems/MovementSystem///PointingToDeclaration/engine/com.sletmoe.korogue.systems/-movement-system/index.html
-$dokka.location:com.sletmoe.korogue.systems/MovementSystem/MovementSystem/#kotlin.collections.Map[kotlin.String,com.sletmoe.korogue.world.Zone]/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-movement-system/-movement-system.html
+$dokka.location:com.sletmoe.korogue.systems/MovementSystem/MovementSystem/#com.sletmoe.korogue.world.GameWorld/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-movement-system/-movement-system.html
+$dokka.location:com.sletmoe.korogue.systems/MovementSystem/stage/#/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-movement-system/stage.html
 $dokka.location:com.sletmoe.korogue.systems/MovementSystem/update/#com.sletmoe.korogue.ecs.World#com.sletmoe.korogue.ecs.TickContext/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-movement-system/update.html
 $dokka.location:com.sletmoe.korogue.systems/MovementSystemTest///PointingToDeclaration/engine/com.sletmoe.korogue.systems/-movement-system-test/index.html
 $dokka.location:com.sletmoe.korogue.systems/MovementSystemTest/MovementSystemTest/#/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-movement-system-test/-movement-system-test.html
-$dokka.location:com.sletmoe.korogue.systems/PerceptionSystem///PointingToDeclaration/engine/com.sletmoe.korogue.systems/-perception-system/index.html
-$dokka.location:com.sletmoe.korogue.systems/PerceptionSystem/PerceptionSystem/#com.sletmoe.korogue.world.GameWorld#com.sletmoe.korogue.perception.PerceptionModel#kotlin.Function0[kotlin.collections.Set[kotlin.String]]?/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-perception-system/-perception-system.html
-$dokka.location:com.sletmoe.korogue.systems/PerceptionSystem/update/#com.sletmoe.korogue.ecs.World#com.sletmoe.korogue.ecs.TickContext/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-perception-system/update.html
-$dokka.location:com.sletmoe.korogue.systems/PerceptionSystemTest///PointingToDeclaration/engine/com.sletmoe.korogue.systems/-perception-system-test/index.html
-$dokka.location:com.sletmoe.korogue.systems/PerceptionSystemTest/PerceptionSystemTest/#/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-perception-system-test/-perception-system-test.html
 $dokka.location:com.sletmoe.korogue.systems/PickupSystem///PointingToDeclaration/engine/com.sletmoe.korogue.systems/-pickup-system/index.html
 $dokka.location:com.sletmoe.korogue.systems/PickupSystem/PickupSystem/#/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-pickup-system/-pickup-system.html
+$dokka.location:com.sletmoe.korogue.systems/PickupSystem/stage/#/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-pickup-system/stage.html
 $dokka.location:com.sletmoe.korogue.systems/PickupSystem/update/#com.sletmoe.korogue.ecs.World#com.sletmoe.korogue.ecs.TickContext/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-pickup-system/update.html
 $dokka.location:com.sletmoe.korogue.systems/PickupSystemTest///PointingToDeclaration/engine/com.sletmoe.korogue.systems/-pickup-system-test/index.html
 $dokka.location:com.sletmoe.korogue.systems/PickupSystemTest/PickupSystemTest/#/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-pickup-system-test/-pickup-system-test.html
 $dokka.location:com.sletmoe.korogue.systems/PortalSystem///PointingToDeclaration/engine/com.sletmoe.korogue.systems/-portal-system/index.html
 $dokka.location:com.sletmoe.korogue.systems/PortalSystem/PortalSystem/#com.sletmoe.korogue.world.GameWorld/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-portal-system/-portal-system.html
+$dokka.location:com.sletmoe.korogue.systems/PortalSystem/stage/#/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-portal-system/stage.html
 $dokka.location:com.sletmoe.korogue.systems/PortalSystem/update/#com.sletmoe.korogue.ecs.World#com.sletmoe.korogue.ecs.TickContext/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-portal-system/update.html
 $dokka.location:com.sletmoe.korogue.systems/PortalSystemTest///PointingToDeclaration/engine/com.sletmoe.korogue.systems/-portal-system-test/index.html
 $dokka.location:com.sletmoe.korogue.systems/PortalSystemTest/PortalSystemTest/#/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-portal-system-test/-portal-system-test.html
 $dokka.location:com.sletmoe.korogue.systems/RangedAttackSystem///PointingToDeclaration/engine/com.sletmoe.korogue.systems/-ranged-attack-system/index.html
-$dokka.location:com.sletmoe.korogue.systems/RangedAttackSystem/RangedAttackSystem/#kotlin.collections.Map[kotlin.String,com.sletmoe.korogue.world.Zone]/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-ranged-attack-system/-ranged-attack-system.html
+$dokka.location:com.sletmoe.korogue.systems/RangedAttackSystem/RangedAttackSystem/#com.sletmoe.korogue.world.GameWorld/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-ranged-attack-system/-ranged-attack-system.html
+$dokka.location:com.sletmoe.korogue.systems/RangedAttackSystem/stage/#/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-ranged-attack-system/stage.html
 $dokka.location:com.sletmoe.korogue.systems/RangedAttackSystem/update/#com.sletmoe.korogue.ecs.World#com.sletmoe.korogue.ecs.TickContext/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-ranged-attack-system/update.html
 $dokka.location:com.sletmoe.korogue.systems/RangedAttackSystemTest///PointingToDeclaration/engine/com.sletmoe.korogue.systems/-ranged-attack-system-test/index.html
 $dokka.location:com.sletmoe.korogue.systems/RangedAttackSystemTest/RangedAttackSystemTest/#/PointingToDeclaration/engine/com.sletmoe.korogue.systems/-ranged-attack-system-test/-ranged-attack-system-test.html
@@ -1089,12 +1144,13 @@ com.sletmoe.korogue.algorithms.geometry
 com.sletmoe.korogue.algorithms.lighting
 com.sletmoe.korogue.algorithms.los
 com.sletmoe.korogue.algorithms.zonegen
+com.sletmoe.korogue.app
 com.sletmoe.korogue.components
 com.sletmoe.korogue.ecs
 com.sletmoe.korogue.events
-com.sletmoe.korogue.kotile
 com.sletmoe.korogue.loop
 com.sletmoe.korogue.perception
+com.sletmoe.korogue.pipeline
 com.sletmoe.korogue.presentation
 com.sletmoe.korogue.random
 com.sletmoe.korogue.registry

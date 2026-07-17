@@ -43,7 +43,7 @@
         </button>
         <div class="navigation-controls--break ui-kit_mobile-only"></div>
         <div class="library-version" id="library-version">
-1.0.0.72-SNAPSHOT        </div>
+1.0.0.73-SNAPSHOT        </div>
         <div class="navigation-controls">
         <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
                 <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true"
@@ -388,6 +388,21 @@
               <div>
                 <div class="title">
                   <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="update.html">T</a><span class="token operator"> : </span><a href="../-component/index.html">Component</a><span class="token operator">&gt; </span><a href="update.html"><span class="token function">update</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">id<span class="token operator">: </span><a href="../-entity-id/index.html">EntityId</a><span class="token punctuation">, </span></span><span class="parameter ">transform<span class="token operator">: </span><span class="token punctuation">(</span><a href="update.html">T</a><span class="token punctuation">)</span><span class="token operator"> -&gt; </span><a href="update.html">T</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="update.html">T</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">Reads the component of type <a href="update.html">T</a> on <a href="update.html">id</a>, applies <a href="update.html">transform</a>, and stores the result <strong>under </strong><a href="update.html"><strong>T</strong></a><strong>'s key</strong> (not the returned value's runtime class, so a transform returning a subtype can't orphan the entry). Returns the new value, or null if the entity or the component was absent (a no-op). Canonical way to &quot;change&quot; immutable component state:</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-115159357%2FFunctions%2F-56654334" anchor-label="validateSystemOrder" id="-115159357%2FFunctions%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="validate-system-order.html"><span>validate</span><wbr></wbr><span>System</span><wbr></wbr><span><span>Order</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-115159357%2FFunctions%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="validate-system-order.html"><span class="token function">validateSystemOrder</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Checks the registered <a href="../-staged/index.html">Staged</a> systems against their <a href="../-pipeline-stage/runs-after.html">PipelineStage.runsAfter</a> constraints, throwing <a href="../-pipeline-order-exception/index.html">PipelineOrderException</a> on the first violation (krogue-32d). <a href="tick.html">tick</a> calls this itself before the first tick after any registration, so a mis-ordered pipeline fails loudly on turn one instead of producing quietly wrong results forever; call it directly to fail at build time instead.</p></div></div></div>
                 </div>
               </div>
             </div>

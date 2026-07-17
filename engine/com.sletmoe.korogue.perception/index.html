@@ -43,7 +43,7 @@
         </button>
         <div class="navigation-controls--break ui-kit_mobile-only"></div>
         <div class="library-version" id="library-version">
-1.0.0.72-SNAPSHOT        </div>
+1.0.0.73-SNAPSHOT        </div>
         <div class="navigation-controls">
         <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
                 <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true"
@@ -278,6 +278,36 @@
               </div>
             </div>
           </div>
+<a data-name="968265867%2FClasslikes%2F-56654334" anchor-label="PerceptionSystem" id="968265867%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-perception-system/index.html"><span>Perception</span><wbr></wbr><span><span>System</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="968265867%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-perception-system/index.html">PerceptionSystem</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">gameWorld<span class="token operator">: </span><a href="../com.sletmoe.korogue.world/-game-world/index.html">GameWorld</a><span class="token punctuation">, </span></span><span class="parameter ">model<span class="token operator">: </span><a href="-perception-model/index.html">PerceptionModel</a></span></span><span class="token punctuation">)</span> : <a href="../com.sletmoe.korogue.ecs/-staged/index.html">Staged</a></div><div class="brief "><p class="paragraph">Caches each observer's <a href="-perceived/index.html">Perceived</a> once per tick (ADR-0015), the per-observer analogue of <a href="../com.sletmoe.korogue.systems/-lighting-system/index.html">com.sletmoe.korogue.systems.LightingSystem</a> rewriting <code class="lang-kotlin">Zone.lightMap</code>: perception only changes on a tick, but the renderer and tick-by-tick AI sample it ~60×/sec, so computing it once per tick and storing it pays off.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-795810023%2FClasslikes%2F-56654334" anchor-label="PerceptionSystemTest" id="-795810023%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-perception-system-test/index.html"><span>Perception</span><wbr></wbr><span>System</span><wbr></wbr><span><span>Test</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-795810023%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-perception-system-test/index.html">PerceptionSystemTest</a> : <span data-unresolved-link="/&amp;lt;ERROR CLASS&amp;gt; ERROR CLASS: Symbol not found for DescribeSpec///PointingToDeclaration/">&lt;ERROR CLASS&gt; ERROR CLASS: Symbol not found for DescribeSpec</span></div><div class="brief "><p class="paragraph">Integration tests for <a href="-perception-system/index.html">PerceptionSystem</a> — the per-observer cache for <a href="-perceived/index.html">Perceived</a>, the perception analogue of <a href="../com.sletmoe.korogue.systems/-lighting-system/index.html">com.sletmoe.korogue.systems.LightingSystem</a> rewriting <code class="lang-kotlin">lightMap</code> (ADR-0015). Uses a counting fake <a href="-perception-model/index.html">PerceptionModel</a> so a refresh is observable across ticks without depending on a real sense pipeline.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
 <a data-name="-1733410783%2FClasslikes%2F-56654334" anchor-label="PerceptionTags" id="-1733410783%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
           <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
             <div class="main-subrow keyValue ">
@@ -484,6 +514,36 @@
               <div>
                 <div class="title">
                   <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-true-sight-sense/index.html">TrueSightSense</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">los<span class="token operator">: </span><a href="../com.sletmoe.korogue.algorithms.los/-line-of-sight-calculator/index.html">LineOfSightCalculator</a></span></span><span class="token punctuation">)</span> : <a href="-sense/index.html">Sense</a></div><div class="brief "><p class="paragraph"><code class="lang-kotlin">{visual}</code> line-of-sight that <strong>pierces </strong><code class="strong lang-kotlin"><strong>{visual}</strong></code><strong> concealment</strong> — see-invisible / true-sight. Reveals like <a href="-darkvision-sense/index.html">DarkvisionSense</a> (line-of-sight to <a href="-true-sight/radius.html">TrueSight.radius</a> regardless of lighting), but because it <a href="-sense/pierces.html">Sense.pierces</a> <code class="lang-kotlin">visual</code> it perceives <a href="-invisible/index.html">Invisible</a> targets. Piercing defeats concealment only, not suppression (ADR-0015), so true-sight is <strong>still blinded by </strong><a href="-blind/index.html"><strong>Blind</strong></a><strong>/</strong><a href="-dazzled/index.html"><strong>Dazzled</strong></a> — it is better eyesight, not a non-visual sense. Surviving blindness is a job for a different channel.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="888416817%2FClasslikes%2F-56654334" anchor-label="ZoneFog" id="888416817%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-zone-fog/index.html"><span>Zone</span><wbr></wbr><span><span>Fog</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="888416817%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-zone-fog/index.html">ZoneFog</a></div><div class="brief "><p class="paragraph">Fog-of-war memory kept per zone, owned by the host (not the renderer). The renderer is rebuilt on every zone change, so its &quot;previously viewed&quot; grid would reset on each transition; holding the grids here and handing the right one back keeps explored areas remembered when the player returns to a zone (krogue-ro8).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1518157247%2FClasslikes%2F-56654334" anchor-label="ZoneFogTest" id="1518157247%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-zone-fog-test/index.html"><span>Zone</span><wbr></wbr><span>Fog</span><wbr></wbr><span><span>Test</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1518157247%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-zone-fog-test/index.html">ZoneFogTest</a> : <span data-unresolved-link="/&amp;lt;ERROR CLASS&amp;gt; ERROR CLASS: Symbol not found for FunSpec///PointingToDeclaration/">&lt;ERROR CLASS&gt; ERROR CLASS: Symbol not found for FunSpec</span></div></div></div>
                 </div>
               </div>
             </div>

@@ -43,7 +43,7 @@
         </button>
         <div class="navigation-controls--break ui-kit_mobile-only"></div>
         <div class="library-version" id="library-version">
-1.0.0.72-SNAPSHOT        </div>
+1.0.0.73-SNAPSHOT        </div>
         <div class="navigation-controls">
         <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
                 <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true"
@@ -214,6 +214,51 @@
               <div>
                 <div class="title">
                   <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-event-bus-test/index.html">EventBusTest</a> : <span data-unresolved-link="/&amp;lt;ERROR CLASS&amp;gt; ERROR CLASS: Symbol not found for FunSpec///PointingToDeclaration/">&lt;ERROR CLASS&gt; ERROR CLASS: Symbol not found for FunSpec</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1804233212%2FClasslikes%2F-56654334" anchor-label="PipelineOrderException" id="1804233212%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-pipeline-order-exception/index.html"><span>Pipeline</span><wbr></wbr><span>Order</span><wbr></wbr><span><span>Exception</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1804233212%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="-pipeline-order-exception/index.html">PipelineOrderException</a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">message<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span> : <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/IllegalStateException.html">IllegalStateException</a></div><div class="brief "><p class="paragraph">Thrown when the registered systems violate a <a href="-pipeline-stage/runs-after.html">PipelineStage.runsAfter</a> constraint — i.e. a pipeline that would produce silently wrong results (stale visibility, dropped intents) rather than an obvious crash. Raised by <a href="-world/validate-system-order.html">World.validateSystemOrder</a>, which <a href="-world/tick.html">World.tick</a> calls itself.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="594827815%2FClasslikes%2F-56654334" anchor-label="PipelineStage" id="594827815%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-pipeline-stage/index.html"><span>Pipeline</span><wbr></wbr><span><span>Stage</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="594827815%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-pipeline-stage/index.html">PipelineStage</a></div><div class="brief "><p class="paragraph">A named stage a <a href="-system/index.html">System</a> may occupy, and the stages that must already have run when it does (krogue-32d). The ECS core defines the <i>mechanism</i> only — it knows nothing about which stages exist; a game (or the engine's own <code class="lang-kotlin">pipeline.StandardStage</code>) supplies the vocabulary and the constraints between them.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1005453799%2FClasslikes%2F-56654334" anchor-label="Staged" id="-1005453799%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-staged/index.html"><span><span>Staged</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1005453799%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">interface </span><a href="-staged/index.html">Staged</a> : <a href="-system/index.html">System</a></div><div class="brief "><p class="paragraph">A <a href="-system/index.html">System</a> that declares the <a href="-staged/stage.html">stage</a> it occupies, opting in to registration-order validation (see <a href="-world/validate-system-order.html">World.validateSystemOrder</a>). Systems that don't implement this are unconstrained and never cause a violation — <a href="-system/index.html">System</a> stays a <code class="lang-kotlin">fun interface</code>, so a lambda system remains legal.</p></div></div></div>
                 </div>
               </div>
             </div>

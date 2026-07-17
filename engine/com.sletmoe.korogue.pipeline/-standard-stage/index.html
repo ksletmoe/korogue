@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>StandardStage</title>
+    <link href="../../../images/logo-icon.svg" rel="icon" type="image/svg">
+        <script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async="async"></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer="defer"></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async="async"></script>
+<script type="text/javascript" src="../../../ui-kit/ui-kit.min.js" defer="defer"></script>
+</head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+            <a class="library-name--link" href="../../../index.html" tabindex="1">
+                    engine
+            </a>
+        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle"
+                type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+1.0.0.73-SNAPSHOT        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true"
+                        data-filter=":engine/main">jvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox"
+                        data-role="dropdown-toggle"
+                        aria-controls="platform-tags-listbox"
+                        aria-haspopup="listbox"
+                        aria-expanded="false"
+                        aria-label="Toggle source sets"
+                ></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":engine/main"
+                                       data-filter=":engine/main"/>
+                                <span class="checkbox--icon"></span>
+                                jvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button"
+                    type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config='{"defaultSize": 280, "minSize": 200, "maxSize": 400}'>
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list"
+                    data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    engine
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageIds="engine::com.sletmoe.korogue.pipeline/StandardStage///PointingToDeclaration//-56654334">
+  <div class="breadcrumbs"><a href="../../../index.html">engine</a><span class="delimiter">/</span><a href="../index.html">com.sletmoe.korogue.pipeline</a><span class="delimiter">/</span><span class="current">StandardStage</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Standard</span><wbr></wbr><span><span>Stage</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">enum </span><a href="index.html">StandardStage</a> : <a href="../../com.sletmoe.korogue.ecs/-pipeline-stage/index.html">PipelineStage</a>, <a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-enum/index.html">Enum</a><span class="token operator">&lt;</span><a href="index.html">StandardStage</a><span class="token operator">&gt; </span><span class="source-link-wrapper"><span class="source-link" data-element-type="source-link">(<a href="https://github.com/ksletmoe/korogue/tree/mainline/engine/src/main/kotlin/com/sletmoe/korogue/pipeline/StandardStage.kt#L33">source</a>)</span></span></div><p class="paragraph">The stages of korogue's standard turn pipeline, and the ordering constraints between them (krogue-32d). Each built-in system declares one; a game that replaces a built-in declares the same stage on its stand-in and inherits the same checks.</p><p class="paragraph">Only genuine data dependencies are encoded. A same-tick write/read is <i>necessary</i> for an edge but not sufficient: the missed read must change <strong>behavior</strong> — not leave merely inert-stale data, and not just shift timing by a tick. Anything absent is deliberately unordered: <a href="-p-i-c-k-u-p/index.html">PICKUP</a> and <a href="-c-o-m-b-a-t/index.html">COMBAT</a> carry no constraint between them because they touch different state, which is why the demo can pick up before resolving combat while the Rogue port does the reverse and both are correct. Adding a constraint that merely reflects one game's habit would reject the other's legitimate pipeline.</p><p class="paragraph">Two same-tick relationships are therefore left as documented <i>non-edges</i> rather than constraints:</p><ul><li><p class="paragraph"><a href="-c-o-m-b-a-t/index.html">COMBAT</a> consumes the <code class="lang-kotlin">AttackIntent</code> <a href="-r-a-n-g-e-d_-a-t-t-a-c-k/index.html">RANGED_ATTACK</a> produces, but that is ordered transitively in the standard pipeline via <a href="-m-o-v-e-m-e-n-t/index.html">MOVEMENT</a>; a partial pipeline lacking that chain would resolve a ranged hit one tick late — a timing wobble, not a wrong result.</p></li><li><p class="paragraph"><a href="-p-e-r-c-e-p-t-i-o-n/index.html">PERCEPTION</a> reads the entity set <a href="-c-o-m-b-a-t/index.html">COMBAT</a> prunes (a slain monster it would otherwise reveal), but a just-killed id left in <code class="lang-kotlin">Perceived.entities</code> for one tick is inert: consumers ask &quot;is this <i>live</i> entity perceived?&quot; (the renderer iterates live entities and calls <code class="lang-kotlin">Perceived.sees</code>), so a despawned id is never queried. Both shipped pipelines order these the safe way regardless; encoding either would risk rejecting a legitimate pipeline for no behavioral gain.</p></li></ul><p class="paragraph"><a href="-s-c-h-e-d-u-l-e/index.html">SCHEDULE</a> is likewise unconstrained despite both consumers registering it first. &quot;Timed effects resolve at the top of the turn&quot; is a design convention, not a dependency — a game that wants fuses to burn down <i>after</i> the player's move is unusual, not wrong, and the engine has no business failing it.</p></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button><button class="section-tab" data-togglable="ENTRY">Entries</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="ENTRY">
+        <h2 class="tableheader">Entries</h2>
+        <div class="table"><a data-name="-969555827%2FClasslikes%2F-56654334" anchor-label="SCHEDULE" id="-969555827%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-togglable="ENTRY" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-s-c-h-e-d-u-l-e/index.html">SCHEDULE</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-969555827%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><div class="block"><a href="-s-c-h-e-d-u-l-e/index.html">SCHEDULE</a></div></div><div class="brief "><p class="paragraph">Timed effects fire (regen, hunger, fuses). Unconstrained — see the class doc.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-578654478%2FClasslikes%2F-56654334" anchor-label="RANGED_ATTACK" id="-578654478%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-togglable="ENTRY" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-r-a-n-g-e-d_-a-t-t-a-c-k/index.html">RANGED_ATTACK</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-578654478%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><div class="block"><a href="-r-a-n-g-e-d_-a-t-t-a-c-k/index.html">RANGED_ATTACK</a></div></div><div class="brief "><p class="paragraph">Ranged attackers commit to an <code class="lang-kotlin">AttackIntent</code> before AI decides moves, so <a href="-b-e-h-a-v-i-o-r/index.html">BEHAVIOR</a> can see the intent and skip moving that entity (krogue-4tn).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="820372232%2FClasslikes%2F-56654334" anchor-label="BEHAVIOR" id="820372232%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-togglable="ENTRY" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-b-e-h-a-v-i-o-r/index.html">BEHAVIOR</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="820372232%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><div class="block"><a href="-b-e-h-a-v-i-o-r/index.html">BEHAVIOR</a></div></div><div class="brief "><p class="paragraph">AI resolves each <code class="lang-kotlin">Behavior</code> to a <code class="lang-kotlin">MoveIntent</code>. Must see <a href="-r-a-n-g-e-d_-a-t-t-a-c-k/index.html">RANGED_ATTACK</a>'s intents first.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1979471013%2FClasslikes%2F-56654334" anchor-label="MOVEMENT" id="1979471013%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-togglable="ENTRY" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-m-o-v-e-m-e-n-t/index.html">MOVEMENT</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1979471013%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><div class="block"><a href="-m-o-v-e-m-e-n-t/index.html">MOVEMENT</a></div></div><div class="brief "><p class="paragraph"><code class="lang-kotlin">MoveIntent</code>s resolve into actual movement, raising <code class="lang-kotlin">AttackIntent</code> on a blocked bump.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-165831646%2FClasslikes%2F-56654334" anchor-label="PORTAL" id="-165831646%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-togglable="ENTRY" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-p-o-r-t-a-l/index.html">PORTAL</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-165831646%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><div class="block"><a href="-p-o-r-t-a-l/index.html">PORTAL</a></div></div><div class="brief "><p class="paragraph">An entity standing on a <code class="lang-kotlin">Portal</code> is sent through it — after it has had a chance to move.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="397042226%2FClasslikes%2F-56654334" anchor-label="PICKUP" id="397042226%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-togglable="ENTRY" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-p-i-c-k-u-p/index.html">PICKUP</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="397042226%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><div class="block"><a href="-p-i-c-k-u-p/index.html">PICKUP</a></div></div><div class="brief "><p class="paragraph">Items on the tile the mover just stepped onto are taken — so, after it stepped.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="915903658%2FClasslikes%2F-56654334" anchor-label="COMBAT" id="915903658%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-togglable="ENTRY" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-c-o-m-b-a-t/index.html">COMBAT</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="915903658%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><div class="block"><a href="-c-o-m-b-a-t/index.html">COMBAT</a></div></div><div class="brief "><p class="paragraph"><code class="lang-kotlin">AttackIntent</code>s resolve into damage. Consumes what <a href="-m-o-v-e-m-e-n-t/index.html">MOVEMENT</a>'s bumps raised.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-141903294%2FClasslikes%2F-56654334" anchor-label="LIGHTING" id="-141903294%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-togglable="ENTRY" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-l-i-g-h-t-i-n-g/index.html">LIGHTING</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-141903294%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><div class="block"><a href="-l-i-g-h-t-i-n-g/index.html">LIGHTING</a></div></div><div class="brief "><p class="paragraph">Each active zone's <code class="lang-kotlin">lightMap</code> is recomputed from its emitters. Runs after <a href="-m-o-v-e-m-e-n-t/index.html">MOVEMENT</a> and <a href="-p-o-r-t-a-l/index.html">PORTAL</a> because it reads <i>moved</i> state in the same tick: an emitter's Position is its light origin (the player's carried lantern moves every turn), and the set of zones lit tracks <code class="lang-kotlin">simulatedZones()</code>, which <a href="-p-o-r-t-a-l/index.html">PORTAL</a> shifts when the player changes level. Register lighting before movement and the light lags the player by a tick, every turn, with no error — the same silent staleness <a href="-p-e-r-c-e-p-t-i-o-n/index.html">PERCEPTION</a> guards against, one layer earlier.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1058739611%2FClasslikes%2F-56654334" anchor-label="PERCEPTION" id="1058739611%2FClasslikes%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-togglable="ENTRY" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-p-e-r-c-e-p-t-i-o-n/index.html">PERCEPTION</a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1058739611%2FClasslikes%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><div class="block"><a href="-p-e-r-c-e-p-t-i-o-n/index.html">PERCEPTION</a></div></div><div class="brief "><p class="paragraph">Each observer's <code class="lang-kotlin">Perceived</code> is cached. Depends on three same-tick writes: <a href="-l-i-g-h-t-i-n-g/index.html">LIGHTING</a>'s <code class="lang-kotlin">lightMap</code> (ADR-0015 — the <code class="lang-kotlin">Sight</code> sense reveals only lit cells), the observer's Position that <a href="-m-o-v-e-m-e-n-t/index.html">MOVEMENT</a> writes (line-of-sight is cast from it), and the zone membership <a href="-p-o-r-t-a-l/index.html">PORTAL</a> changes. The <a href="-l-i-g-h-t-i-n-g/index.html">LIGHTING</a> edge is the one that motivated the whole check; the <a href="-m-o-v-e-m-e-n-t/index.html">MOVEMENT</a>/<a href="-p-o-r-t-a-l/index.html">PORTAL</a> edges are named directly rather than left to ride transitively through <a href="-l-i-g-h-t-i-n-g/index.html">LIGHTING</a>, so a game with perception but no lighting stage still gets them. It is deliberately <i>not</i> ordered after <a href="-c-o-m-b-a-t/index.html">COMBAT</a> even though it also reads the entity set combat prunes — that staleness is inert (see the class doc).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="tableheader">Properties</h2>
+        <div class="table"><a data-name="1079741264%2FProperties%2F-56654334" anchor-label="entries" id="1079741264%2FProperties%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="entries.html"><span><span>entries</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1079741264%2FProperties%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="entries.html">entries</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.enums/-enum-entries/index.html">EnumEntries</a><span class="token operator">&lt;</span><a href="index.html">StandardStage</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Returns a representation of an immutable list of all enum entries, in the order they're declared.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1699858175%2FProperties%2F-56654334" anchor-label="id" id="1699858175%2FProperties%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="id.html"><span><span>id</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1699858175%2FProperties%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">val </span><a href="id.html">id</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div><div class="brief "><p class="paragraph">Stable identifier, used in violation messages.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-372974862%2FProperties%2F-56654334" anchor-label="name" id="-372974862%2FProperties%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../com.sletmoe.korogue.utilities/-direction/-n-o-r-t-h-w-e-s-t/index.html#-372974862%2FProperties%2F-56654334"><span><span>name</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-372974862%2FProperties%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="../../com.sletmoe.korogue.utilities/-direction/-n-o-r-t-h-w-e-s-t/index.html#-372974862%2FProperties%2F-56654334">name</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-739389684%2FProperties%2F-56654334" anchor-label="ordinal" id="-739389684%2FProperties%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../com.sletmoe.korogue.utilities/-direction/-n-o-r-t-h-w-e-s-t/index.html#-739389684%2FProperties%2F-56654334"><span><span>ordinal</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-739389684%2FProperties%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">val </span><a href="../../com.sletmoe.korogue.utilities/-direction/-n-o-r-t-h-w-e-s-t/index.html#-739389684%2FProperties%2F-56654334">ordinal</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-int/index.html">Int</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-407167058%2FProperties%2F-56654334" anchor-label="runsAfter" id="-407167058%2FProperties%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../com.sletmoe.korogue.ecs/-pipeline-stage/runs-after.html"><span>runs</span><wbr></wbr><span><span>After</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-407167058%2FProperties%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">val </span><a href="../../com.sletmoe.korogue.ecs/-pipeline-stage/runs-after.html">runsAfter</a><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin.collections/-set/index.html">Set</a><span class="token operator">&lt;</span><a href="../../com.sletmoe.korogue.ecs/-pipeline-stage/index.html">PipelineStage</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Stages that must be registered <i>before</i> any system in this stage. Empty = unconstrained.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="1796813900%2FFunctions%2F-56654334" anchor-label="valueOf" id="1796813900%2FFunctions%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="value-of.html"><span>value</span><wbr></wbr><span><span>Of</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1796813900%2FFunctions%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="value-of.html"><span class="token function">valueOf</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">value<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">StandardStage</a></div><div class="brief "><p class="paragraph">Returns the enum constant of this type with the specified name. The string must match exactly an identifier used to declare an enum constant in this type. (Extraneous whitespace characters are not permitted.)</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="97465944%2FFunctions%2F-56654334" anchor-label="values" id="97465944%2FFunctions%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="values.html"><span><span>values</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="97465944%2FFunctions%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="values.html"><span class="token function">values</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-array/index.html">Array</a><span class="token operator">&lt;</span><a href="index.html">StandardStage</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Returns an array containing the constants of this enum type, in the order they're declared.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
