@@ -12,6 +12,7 @@ import com.sletmoe.korogue.components.Position
 import com.sletmoe.korogue.components.ZoneMember
 import com.sletmoe.korogue.ecs.World
 import com.sletmoe.korogue.world.BLANK_TILE
+import com.sletmoe.korogue.world.GameWorld
 import com.sletmoe.korogue.world.Tile
 import com.sletmoe.korogue.world.Zone
 import com.sletmoe.kotile.utilities.Grid
@@ -35,7 +36,10 @@ private val WATER =
 
 class MovementSystemTest : FunSpec({
 
-    fun worldFor(zone: Zone): World = World().addSystem(MovementSystem(mapOf(zone.zoneId to zone)))
+    fun worldFor(zone: Zone): World {
+        val gw = GameWorld(World(), mapOf(zone.zoneId to zone), zone.zoneId)
+        return gw.ecs.addSystem(MovementSystem(gw))
+    }
 
     test("a MoveIntent onto walkable, empty terrain moves the entity and is consumed") {
         val zone = Zone("z", Grid(5, 5, BLANK_TILE))

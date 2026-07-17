@@ -41,11 +41,12 @@ then given a tested ECS foundation:
 
 ## korogue current state
 
-- Renders via `com.sletmoe.korogue.kotile.*`: `Game` (ApplicationAdapter loop,
-  `render()`→`onTick()`), `MyGame` (demo: player + lantern, two zones linked by `>`/`<`
+- Renders via `com.sletmoe.korogue.app.Game` (ApplicationAdapter loop, `render()`→`onTick()`),
+  `MyGame` (demo: player + lantern, two zones linked by `>`/`<`
   stairs), `Main` (Lwjgl3 entry), `KotileZoneRenderer` (FOV + lighting tints + viewport +
   previously-seen dimming; reads ECS entities; rebuilt on zone change but handed the zone's
-  retained fog grid, so exploration persists — see `ZoneFog`, krogue-ro8). Run with `./gradlew :demo:run`.
+  retained fog grid, so exploration persists — see `perception.ZoneFog`, krogue-ro8). Run with
+  `./gradlew :demo:run`.
 - **100% `java.awt`-free.** Colors are GDX `Color`; geometry is kotile `Vector2Int`
   + `com.sletmoe.korogue.utilities.IntRect` (helpers in `utilities/Geometry.kt`).
 - **ECS-based (Phase 4b done).** `GameWorld` composes `ecs.World` + a zone registry
@@ -55,6 +56,15 @@ then given a tested ECS foundation:
   and AI both emit `MoveIntent`s. The `world/` package is now just `GameWorld`, `Zone`,
   `Tile` — all legacy entity classes (`Creature`/`LightSource`/`MovableEntity`/`Entity`/
   `ZonalPosition`/`Pointer`) are deleted.
+- **System API + standard pipeline (ADR-0032).** The built-in system constructors share one
+  convention: a zone-scoped system takes the `GameWorld` (reading terrain + `simulatedZones()`
+  from it, no per-system `activeZones` knob) and resolves ids through a typed `Registry<T>`.
+  `GameWorld.installStandardSystems(module, …)` registers the built-ins in a known-good order
+  for a game that wants the default simulation. Order is enforced: `Staged` systems declare a
+  `pipeline.StandardStage`, and `World.tick()` throws `PipelineOrderException` on a violated
+  ordering constraint (e.g. perception before lighting) — previously a silent bug. Keys on the
+  stage not the class, so a game replacing a built-in keeps the check for its hand-built
+  pipeline. `PerceptionSystem` now lives in `perception/` beside its model (krogue-elm).
 - **Multi-zone (Phase 4e).** Only the player's zone is simulated/rendered; others freeze
   and persist. Transitions are `Portal` entities resolved by `PortalSystem`. The simulated
   set is a seam (`GameWorld.simulatedZones()`) so "current + adjacent" later is config, not
@@ -180,8 +190,6 @@ then given a tested ECS foundation:
   because each `Tile` serializes its full state (name string, colors) per cell, with no interning
   or RLE (walls are tiles too — only ~6k of 40k cells per zone are carved floor). Functionally
   fine; compaction is a follow-up — krogue-yox.
-- Package `com.sletmoe.korogue.kotile.*` is an odd home for korogue's own classes
-  (consider `.rendering`).
 - README is still a TODO.
 
 ## kotile current state (in-repo subprojects `:kotile:library` / `:kotile:demo`, under `kotile/`)

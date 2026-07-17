@@ -1,11 +1,9 @@
-package com.sletmoe.korogue.systems
+package com.sletmoe.korogue.perception
 
 import com.sletmoe.korogue.components.ZoneMember
 import com.sletmoe.korogue.ecs.Entity
 import com.sletmoe.korogue.ecs.EntityId
 import com.sletmoe.korogue.ecs.World
-import com.sletmoe.korogue.perception.Perceived
-import com.sletmoe.korogue.perception.PerceptionModel
 import com.sletmoe.korogue.world.BLANK_TILE
 import com.sletmoe.korogue.world.GameWorld
 import com.sletmoe.korogue.world.Zone
@@ -16,7 +14,7 @@ import io.kotest.matchers.shouldBe
 
 /**
  * Integration tests for [PerceptionSystem] — the per-observer cache for [Perceived], the perception
- * analogue of [LightingSystem] rewriting `lightMap` (ADR-0015). Uses a counting fake [PerceptionModel]
+ * analogue of [com.sletmoe.korogue.systems.LightingSystem] rewriting `lightMap` (ADR-0015). Uses a counting fake [PerceptionModel]
  * so a refresh is observable across ticks without depending on a real sense pipeline.
  */
 class PerceptionSystemTest : DescribeSpec({
@@ -79,13 +77,13 @@ class PerceptionSystemTest : DescribeSpec({
             model.calls shouldBe 0
         }
 
-        it("only refreshes observers in an active zone; a dormant observer keeps its prior Perceived") {
+        it("only refreshes observers in a simulated zone; a dormant observer keeps its prior Perceived") {
             val gw = gameWorld(listOf("active", "dormant"))
             val model = CountingModel()
             val stale = Perceived(zoneId = "stale")
             val dormantObserver = gw.ecs.spawn(ZoneMember("dormant"), stale)
             val activeObserver = gw.ecs.spawn(ZoneMember("active"), Perceived())
-            gw.ecs.addSystem(PerceptionSystem(gw, model, activeZones = { setOf("active") }))
+            gw.ecs.addSystem(PerceptionSystem(gw, model))
 
             gw.ecs.tick()
 

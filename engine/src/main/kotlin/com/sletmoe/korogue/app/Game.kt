@@ -1,4 +1,4 @@
-package com.sletmoe.korogue.kotile
+package com.sletmoe.korogue.app
 
 import com.badlogic.gdx.ApplicationAdapter
 import com.badlogic.gdx.Gdx

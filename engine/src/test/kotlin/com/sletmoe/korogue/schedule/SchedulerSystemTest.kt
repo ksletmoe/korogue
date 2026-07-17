@@ -1,6 +1,7 @@
 package com.sletmoe.korogue.schedule
 
 import com.sletmoe.korogue.ecs.World
+import com.sletmoe.korogue.registry.Registry
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 
@@ -12,7 +13,7 @@ class SchedulerSystemTest : FunSpec({
         val effects = mapOf("tick" to TimedEffect { _, _, ctx -> fired += ctx.turn })
 
         val world = World()
-        world.addSystem(SchedulerSystem(scheduler) { effects.getValue(it) })
+        world.addSystem(SchedulerSystem(scheduler, Registry.of(effects)))
         scheduler.daemon("tick", everyTurns = 2) // due turns 2, 4, ...
 
         repeat(6) { world.tick() } // turns 0..5
@@ -28,7 +29,7 @@ class SchedulerSystemTest : FunSpec({
             )
 
         val world = World()
-        world.addSystem(SchedulerSystem(scheduler) { effects.getValue(it) })
+        world.addSystem(SchedulerSystem(scheduler, Registry.of(effects)))
         scheduler.fuse("spawn", afterTurns = 1)
 
         world.entityCount shouldBe 0

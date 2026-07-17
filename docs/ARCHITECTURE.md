@@ -91,18 +91,24 @@ components (transient, consumed by systems each tick): `MoveIntent(dx, dy)`,
 `AttackIntent(targetId)`. Colors are `NormalizedRgb` (immutable), not GDX `Color`; the
 renderer converts at the draw boundary.
 
-### Systems (`com.sletmoe.korogue.systems`)
+### Systems (`com.sletmoe.korogue.systems`, `.schedule`, `.perception`)
 
-Registered on the ECS `World` and run in order each `tick`: behavior → movement → portal
-→ combat → lighting. Zone-scoped systems (`BehaviorSystem`, `LightingSystem`) take an
-`activeZones` provider — `GameWorld.simulatedZones()`, default `{ currentZoneId }` — so
-only the active zone(s) are simulated (ADR-0008); dormant zones freeze.
+Registered on the ECS `World` and run in registration order each `tick`. **One
+construction convention** (ADR-0032, krogue-cjv): a zone-scoped system takes the
+`GameWorld` and reads terrain (`.zones`) and active-zone scope (`.simulatedZones()`,
+default `{ currentZoneId }`, ADR-0008/0021) from it — there is no per-system `activeZones`
+knob; a system that resolves ids takes the typed `Registry<T>` it resolves through. Read
+one built-in's constructor and you can predict the others'.
 
-- **`BehaviorSystem(resolveStrategy, activeZones?)`** — resolves each `Behavior` entity's
-  `strategyId` to a `BehaviorStrategy` (the AI extension point — see "Extending the engine")
-  and runs it to emit a `MoveIntent`. Built-ins (`BehaviorStrategies.kt`): `wander`,
-  `hunt-player`. The resolver is injectable for testing (4b-s7).
-- **`MovementSystem(zones)`** — consumes `MoveIntent`s: step onto walkable, unoccupied
+Feature packages own their whole slice (model + components + system), so `PerceptionSystem`
+lives in `perception/` and `SchedulerSystem` in `schedule/`, while the general-purpose
+built-ins stay in `systems/` (krogue-elm).
+
+- **`BehaviorSystem(gameWorld, strategies)`** — resolves each `Behavior` entity's
+  `strategyId` through the `Registry<BehaviorStrategy>` (the AI extension point — see
+  "Extending the engine") and runs it to emit a `MoveIntent`. Built-ins
+  (`BehaviorStrategies.kt`): `wander`, `hunt-player`.
+- **`MovementSystem(gameWorld)`** — consumes `MoveIntent`s: step onto walkable, unoccupied
   terrain; bump into a (non-portal) occupant → emit `AttackIntent`; into a wall → no-op (4b-s6).
 - **`PortalSystem(gameWorld)`** — sends the player through a `Portal` it stands on: moves
   it to the target zone/position and switches `currentZoneId` so the active zone follows
@@ -110,10 +116,31 @@ only the active zone(s) are simulated (ADR-0008); dormant zones freeze.
 - **`CombatSystem(damage)`** — consumes `AttackIntent`s, applies damage to the target's
   `Health`, then despawns dead non-player entities (player death is out of scope —
   krogue-4zi) (4b-s6).
-- **`LightingSystem(zones, activeZones?)`** — recomputes each active zone's `lightMap` from
-  its `LightEmitter` entities (replaced `Zone.recalculateLightMap`; 4b-s5). `calculatorId`
-  is resolved via `LightCalculators` — the minimal stand-in for the component registry
-  deferred to save/load (4f).
+- **`LightingSystem(gameWorld, calculators, ambientLight?)`** — recomputes each simulated
+  zone's `lightMap` from its `LightEmitter` entities (replaced `Zone.recalculateLightMap`;
+  4b-s5); resolves `calculatorId` through the `Registry<LightValueCalculator>`.
+- **`PerceptionSystem(gameWorld, model)`** (`perception/`) — caches each observer's
+  `Perceived` (ADR-0015); must run after lighting.
+- **`SchedulerSystem(scheduler, effects)`** (`schedule/`) — fires the timers due this turn,
+  resolving effect ids through the `Registry<TimedEffect>`.
+
+**The standard pipeline as one call** (ADR-0032, krogue-32d):
+`GameWorld.installStandardSystems(module, …)` registers the built-ins in a known-good order
+and returns the instances (a host drives lighting/perception once at startup so the first
+frame isn't black). It is a baseline for a game that wants korogue's default simulation, not
+a mandate — a game that diverges (the Rogue port uses four built-ins and interleaves ~17 of
+its own) builds its pipeline by hand.
+
+**Order is enforced.** A `Staged` system declares a `pipeline.StandardStage`, each stage
+naming the stages that must precede it (only real same-tick data dependencies —
+`MOVEMENT` after `BEHAVIOR`; `COMBAT`/`PICKUP` after `MOVEMENT`; `LIGHTING` after
+`MOVEMENT`/`PORTAL` (it reads the moving lantern's position and the current zone);
+`PERCEPTION` after `LIGHTING`/`MOVEMENT`/`PORTAL`; the order is *partial*, so independent
+stages like `PICKUP`/`COMBAT` may go either way). `World.tick()` calls `validateSystemOrder()` on the first tick after any
+registration and throws `PipelineOrderException` on a violation — a mis-order was previously
+a *silent* correctness bug. The check keys on the stage, not the class, so a game replacing
+a built-in (Rogue's `RogueCombatSystem` declares `COMBAT`) keeps the guarantee for its
+hand-built pipeline.
 
 ### Events (`ecs.EventBus`, `com.sletmoe.korogue.events`) — 4c, ADR-0010
 

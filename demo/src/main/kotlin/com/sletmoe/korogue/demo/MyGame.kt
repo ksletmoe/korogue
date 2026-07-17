@@ -10,6 +10,7 @@ import com.sletmoe.korogue.algorithms.los.LineOfSightCalculator
 import com.sletmoe.korogue.algorithms.los.OmnicientLineOfSightCalculator
 import com.sletmoe.korogue.algorithms.los.SymmetricShadowCaster
 import com.sletmoe.korogue.algorithms.zonegen.randomWalkCave
+import com.sletmoe.korogue.app.Game
 import com.sletmoe.korogue.components.Behavior
 import com.sletmoe.korogue.components.Collision
 import com.sletmoe.korogue.components.Health
@@ -30,31 +31,24 @@ import com.sletmoe.korogue.events.EntityDamaged
 import com.sletmoe.korogue.events.EntityDied
 import com.sletmoe.korogue.events.ItemPickedUp
 import com.sletmoe.korogue.events.RangedAttackFired
-import com.sletmoe.korogue.kotile.Game
-import com.sletmoe.korogue.kotile.ZoneFog
 import com.sletmoe.korogue.loop.GameLoop
 import com.sletmoe.korogue.loop.RealTimeLoop
 import com.sletmoe.korogue.loop.TurnBasedLoop
 import com.sletmoe.korogue.perception.Perceived
+import com.sletmoe.korogue.perception.PerceptionSystem
 import com.sletmoe.korogue.perception.Sight
 import com.sletmoe.korogue.perception.SightSense
 import com.sletmoe.korogue.perception.StandardPerception
+import com.sletmoe.korogue.perception.ZoneFog
+import com.sletmoe.korogue.pipeline.installStandardSystems
 import com.sletmoe.korogue.presentation.EventAnimationQueue
 import com.sletmoe.korogue.presentation.VisualEvent
 import com.sletmoe.korogue.random.GameRandom
 import com.sletmoe.korogue.registry.GameModule
 import com.sletmoe.korogue.save.SaveCodec
 import com.sletmoe.korogue.schedule.Scheduler
-import com.sletmoe.korogue.schedule.SchedulerSystem
-import com.sletmoe.korogue.systems.BehaviorSystem
-import com.sletmoe.korogue.systems.CombatSystem
 import com.sletmoe.korogue.systems.HuntPlayerStrategy
 import com.sletmoe.korogue.systems.LightingSystem
-import com.sletmoe.korogue.systems.MovementSystem
-import com.sletmoe.korogue.systems.PerceptionSystem
-import com.sletmoe.korogue.systems.PickupSystem
-import com.sletmoe.korogue.systems.PortalSystem
-import com.sletmoe.korogue.systems.RangedAttackSystem
 import com.sletmoe.korogue.systems.WanderStrategy
 import com.sletmoe.korogue.ui.BarValue
 import com.sletmoe.korogue.ui.BarWidget
@@ -96,9 +90,9 @@ import kotlin.random.Random
  * continuous behavior). See the constructor.
  *
  * Occupants are ECS entities in [GameWorld.ecs] (ADR-0007), driven by systems each tick:
- * [BehaviorSystem] (AI) and player input emit [MoveIntent]s; [MovementSystem] resolves
- * them; [PortalSystem] applies zone transitions; [CombatSystem] applies attacks and clears
- * the dead; [LightingSystem] renders the lanterns.
+ * the standard pipeline (`installStandardSystems`): AI and player input emit [MoveIntent]s,
+ * movement resolves them, portals apply zone transitions, combat applies attacks and clears
+ * the dead, and [LightingSystem] renders the lanterns.
  *
  * The demo has two zones linked by stairs (`>`/`<`). Only the player's zone is simulated
  * and rendered (ADR-0008); the other freezes in place and is restored on return. The [MapPanel]
@@ -206,30 +200,21 @@ class MyGame(
     }
 
     /**
-     * Registers the gameplay systems on [world]'s ECS, in run order: resolve ranged attacks, decide
-     * AI moves, resolve movement, apply zone transitions, pick up items, resolve combat, then
-     * recompute lighting. Called for the initial world and again after [load] swaps in a fresh
+     * Registers the gameplay systems on [world]'s ECS. This game wants korogue's standard simulation
+     * exactly as the engine ships it, so it takes the whole pipeline in one call (krogue-32d) instead
+     * of restating a load-bearing order by hand: the engine owns that order and now enforces it (see
+     * `StandardStage`). Called for the initial world and again after [load] swaps in a fresh
      * (system-less) world.
+     *
+     * A game that diverges builds its pipeline itself and still gets the same checks — the Rogue
+     * example uses only a few of these systems and interleaves its own.
      */
     private fun registerSystems() {
-        lightingSystem =
-            LightingSystem(world.zones, gameModule.calculators::resolve, activeZones = world::simulatedZones)
-        // Perception caches each observer's Perceived (ADR-0015) and runs *after* lighting, since the
-        // `Sight` sense reveals only lit cells — so it reads the light map this same tick produced.
-        perceptionSystem = PerceptionSystem(world, perceptionModel, activeZones = world::simulatedZones)
-        world.ecs
-            // First in the pipeline: timed effects (regen/hunger/spawns) resolve at the top of the turn.
-            .addSystem(SchedulerSystem(scheduler, gameModule.effects::resolve))
-            // Before BehaviorSystem (krogue-4tn): a RangedAttacker in range+LOS commits to an
-            // AttackIntent here, which BehaviorSystem then sees and skips moving that entity for.
-            .addSystem(RangedAttackSystem(world.zones))
-            .addSystem(BehaviorSystem(gameModule.strategies::resolve, activeZones = world::simulatedZones))
-            .addSystem(MovementSystem(world.zones))
-            .addSystem(PortalSystem(world))
-            .addSystem(PickupSystem())
-            .addSystem(CombatSystem())
-            .addSystem(lightingSystem)
-            .addSystem(perceptionSystem)
+        val standard = world.installStandardSystems(gameModule, perceptionModel, scheduler = scheduler)
+        // Held because both are also driven once at startup, outside the tick loop, so the first
+        // frame isn't black before any turn has been taken.
+        lightingSystem = standard.lighting
+        perceptionSystem = standard.perception
     }
 
     /**

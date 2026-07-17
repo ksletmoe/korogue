@@ -11,6 +11,7 @@ import com.sletmoe.korogue.ecs.EntityId
 import com.sletmoe.korogue.ecs.World
 import com.sletmoe.korogue.registry.GameModule
 import com.sletmoe.korogue.world.BLANK_TILE
+import com.sletmoe.korogue.world.GameWorld
 import com.sletmoe.korogue.world.Zone
 import com.sletmoe.kotile.utilities.Grid
 import io.kotest.core.spec.style.DescribeSpec
@@ -33,8 +34,8 @@ class LightingSystemTest : DescribeSpec({
 
     fun setup(size: Int): Pair<World, Zone> {
         val zone = Zone("test", Grid(size, size, BLANK_TILE))
-        val world = World().addSystem(LightingSystem(mapOf(zone.zoneId to zone), calculators::resolve))
-        return world to zone
+        val gw = GameWorld(World(), mapOf(zone.zoneId to zone), zone.zoneId)
+        return gw.ecs.addSystem(LightingSystem(gw, calculators)) to zone
     }
 
     fun World.addLightAt(
@@ -106,14 +107,8 @@ class LightingSystemTest : DescribeSpec({
 
         it("with a fullbright ambient, every cell is lit even with no emitters (global illumination)") {
             val zone = Zone("test", Grid(21, 21, BLANK_TILE))
-            val world =
-                World().addSystem(
-                    LightingSystem(
-                        mapOf(zone.zoneId to zone),
-                        calculators::resolve,
-                        ambientLight = LightValue.FULLBRIGHT,
-                    ),
-                )
+            val gw = GameWorld(World(), mapOf(zone.zoneId to zone), zone.zoneId)
+            val world = gw.ecs.addSystem(LightingSystem(gw, calculators, ambientLight = LightValue.FULLBRIGHT))
 
             world.tick()
 
@@ -125,11 +120,12 @@ class LightingSystemTest : DescribeSpec({
 
         it("ambient is a baseline emitters still blend on top of") {
             val zone = Zone("test", Grid(21, 21, BLANK_TILE))
+            val gw = GameWorld(World(), mapOf(zone.zoneId to zone), zone.zoneId)
             val world =
-                World().addSystem(
+                gw.ecs.addSystem(
                     LightingSystem(
-                        mapOf(zone.zoneId to zone),
-                        calculators::resolve,
+                        gw,
+                        calculators,
                         // A dim ambient so an emitter visibly raises intensity above it.
                         ambientLight = LightValue(Color.WHITE.toNormalizedRgb(), 0.2),
                     ),
@@ -146,14 +142,15 @@ class LightingSystemTest : DescribeSpec({
         it("only recomputes active zones; a dormant zone keeps its prior light (ADR-0008)") {
             val active = Zone("active", Grid(21, 21, BLANK_TILE))
             val dormant = Zone("dormant", Grid(21, 21, BLANK_TILE))
-            val world =
-                World().addSystem(
-                    LightingSystem(
-                        mapOf(active.zoneId to active, dormant.zoneId to dormant),
-                        calculators::resolve,
-                        activeZones = { setOf("active") },
-                    ),
+            val gw =
+                GameWorld(
+                    World(),
+                    mapOf(active.zoneId to active, dormant.zoneId to dormant),
+                    // Scope comes from the world's policy (krogue-cjv); the default CurrentZoneOnly
+                    // makes "active" the only simulated zone.
+                    "active",
                 )
+            val world = gw.ecs.addSystem(LightingSystem(gw, calculators))
 
             fun World.lightIn(
                 zoneId: String,

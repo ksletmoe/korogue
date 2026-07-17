@@ -6,11 +6,13 @@ import com.sletmoe.korogue.components.Player
 import com.sletmoe.korogue.components.Position
 import com.sletmoe.korogue.components.RangedAttacker
 import com.sletmoe.korogue.components.ZoneMember
-import com.sletmoe.korogue.ecs.System
+import com.sletmoe.korogue.ecs.PipelineStage
+import com.sletmoe.korogue.ecs.Staged
 import com.sletmoe.korogue.ecs.TickContext
 import com.sletmoe.korogue.ecs.World
 import com.sletmoe.korogue.events.RangedAttackFired
-import com.sletmoe.korogue.world.Zone
+import com.sletmoe.korogue.pipeline.StandardStage
+import com.sletmoe.korogue.world.GameWorld
 import kotlin.math.abs
 import kotlin.math.max
 
@@ -28,8 +30,10 @@ import kotlin.math.max
  * instead of also stepping it — one action per tick, not both.
  */
 class RangedAttackSystem(
-    private val zones: Map<String, Zone>,
-) : System {
+    private val gameWorld: GameWorld,
+) : Staged {
+    override val stage: PipelineStage get() = StandardStage.RANGED_ATTACK
+
     override fun update(
         world: World,
         ctx: TickContext,
@@ -45,7 +49,7 @@ class RangedAttackSystem(
             val distance = chebyshev(pos, playerPos)
             if (distance <= 1 || distance > range) continue
 
-            val zone = zones[playerZoneId] ?: continue
+            val zone = gameWorld.zones[playerZoneId] ?: continue
             val path =
                 lineOfCellsStoppingAtBlocker(pos.point, playerPos.point) { cell ->
                     zone.tiles[cell.x, cell.y].blocksLineOfSight

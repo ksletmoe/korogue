@@ -11,10 +11,12 @@ import com.sletmoe.korogue.components.Position
 import com.sletmoe.korogue.components.ZoneMember
 import com.sletmoe.korogue.ecs.Entity
 import com.sletmoe.korogue.ecs.EntityId
-import com.sletmoe.korogue.ecs.System
+import com.sletmoe.korogue.ecs.PipelineStage
+import com.sletmoe.korogue.ecs.Staged
 import com.sletmoe.korogue.ecs.TickContext
 import com.sletmoe.korogue.ecs.World
-import com.sletmoe.korogue.world.Zone
+import com.sletmoe.korogue.pipeline.StandardStage
+import com.sletmoe.korogue.world.GameWorld
 
 /**
  * Resolves [MoveIntent]s into actual movement. For each entity with a [MoveIntent] +
@@ -38,8 +40,10 @@ import com.sletmoe.korogue.world.Zone
  * it last moved or attacked, even while standing still.
  */
 class MovementSystem(
-    private val zones: Map<String, Zone>,
-) : System {
+    private val gameWorld: GameWorld,
+) : Staged {
+    override val stage: PipelineStage get() = StandardStage.MOVEMENT
+
     override fun update(
         world: World,
         ctx: TickContext,
@@ -68,7 +72,7 @@ class MovementSystem(
                     if (collisionOf(blocker).bump == BumpResponse.ATTACK) {
                         world.set(entity.id, AttackIntent(blocker.id))
                     }
-                zones[zoneId]?.isPassable(destX, destY, moverModes) == true ->
+                gameWorld.zones[zoneId]?.isPassable(destX, destY, moverModes) == true ->
                     world.set(
                         entity.id,
                         Position(destX, destY),
