@@ -190,6 +190,32 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
     private val spriteProjectileQueue = EventAnimationQueue()
     private val glyphProjectileQueue = EventAnimationQueue()
 
+    // Shared AnimatedAsciiTile for all glyph torches (krogue-2co) — created once and reused,
+    // not per-frame allocation. Each torch wraps it in its own PhaseOffsetTile (below) so they
+    // each run at a different phase.
+    private val torchFlame =
+        AnimatedAsciiTile(
+            frames =
+                listOf(
+                    AnimationFrame(
+                        StaticAsciiTile('!', Color.ORANGE, Color(0.5f, 0.25f, 0f, 1f)),
+                        ANIMATION_FRAME_MS,
+                    ),
+                    AnimationFrame(
+                        StaticAsciiTile('!', Color.YELLOW, Color(0.4f, 0.2f, 0f, 1f)),
+                        ANIMATION_FRAME_MS,
+                    ),
+                ),
+            mode = PlaybackMode.LOOP,
+        )
+
+    // Per-torch PhaseOffsetTile instances wrapping the shared torchFlame — one per torch,
+    // cached for reuse instead of being allocated per frame.
+    private val glyphTorchTiles =
+        GLYPH_TORCH_POSITIONS.associateWith { torch ->
+            PhaseOffsetTile(torchFlame, torchSeed(torch))
+        }
+
     // Impact effects (hit-flash, floating damage number) are cosmetic and must render
     // simultaneously with each other and with the projectile-in-flight -- exactly what
     // EventAnimationQueue's own doc comment says it isn't for (one sequence at a time, for
@@ -633,24 +659,11 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
         // to hand-compute the bright/dim StaticAsciiTile each frame and bypass the engine via
         // `asciiWindow.drawTile`. `AnimatedAsciiTile` carries no per-cell phase, so each torch wraps
         // it in a [PhaseOffsetTile] keyed on the same torchSeed the surrounding light reads, keeping
-        // the bright flame in lockstep with this torch's own light exactly as before.
-        val torchFlame =
-            AnimatedAsciiTile(
-                frames =
-                    listOf(
-                        AnimationFrame(
-                            StaticAsciiTile('!', Color.ORANGE, Color(0.5f, 0.25f, 0f, 1f)),
-                            ANIMATION_FRAME_MS,
-                        ),
-                        AnimationFrame(
-                            StaticAsciiTile('!', Color.YELLOW, Color(0.4f, 0.2f, 0f, 1f)),
-                            ANIMATION_FRAME_MS,
-                        ),
-                    ),
-                mode = PlaybackMode.LOOP,
-            )
+        // the bright flame in lockstep with this torch's own light exactly as before. The shared
+        // torchFlame and per-torch PhaseOffsetTile wrappers are now cached (glyphTorchTiles) and
+        // reused each frame, instead of being allocated per frame.
         for (torch in GLYPH_TORCH_POSITIONS) {
-            glyphSurface.put(torch.x, torch.y, z = 0, tile = PhaseOffsetTile(torchFlame, torchSeed(torch)))
+            glyphSurface.put(torch.x, torch.y, z = 0, tile = glyphTorchTiles.getValue(torch))
         }
 
         // Placeholder combatants — specific glyph/color choices are provisional until

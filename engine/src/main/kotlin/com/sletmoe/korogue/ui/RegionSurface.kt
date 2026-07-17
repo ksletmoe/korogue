@@ -79,10 +79,29 @@ class RegionSurface(
     /**
      * Wraps a [DynamicAsciiTile] so it stays dynamic (the window keeps resolving it per frame) but
      * every resolved frame comes back dimmed by [dim]. Used only for the dim-behind-modal path.
+     * Caches the dimmed result when the underlying frame identity hasn't changed (by reference
+     * equality), avoiding per-call Color/StaticAsciiTile allocation when the inner tile's frame
+     * is stable across consecutive resolveAt calls.
      */
     private inner class DimmingAsciiTile(
         private val inner: DynamicAsciiTile,
     ) : DynamicAsciiTile {
-        override fun resolveAt(elapsedMs: Long): StaticAsciiTile = dimmed(inner.resolveAt(elapsedMs))
+        private var cachedSourceFrame: StaticAsciiTile? = null
+        private var cachedDimmedFrame: StaticAsciiTile? = null
+
+        override fun resolveAt(elapsedMs: Long): StaticAsciiTile {
+            val sourceFrame = inner.resolveAt(elapsedMs)
+            // Cache hit: the inner tile resolved to the same frame instance as last time (common
+            // when an AnimatedAsciiTile sits mid-frame, or a static tile is wrapped), so reuse
+            // the previously dimmed result instead of allocating fresh Color/StaticAsciiTile.
+            if (sourceFrame === cachedSourceFrame) {
+                return cachedDimmedFrame!!
+            }
+            // Cache miss: compute the dimmed frame and cache both the source identity and result.
+            val dimmedFrame = dimmed(sourceFrame)
+            cachedSourceFrame = sourceFrame
+            cachedDimmedFrame = dimmedFrame
+            return dimmedFrame
+        }
     }
 }

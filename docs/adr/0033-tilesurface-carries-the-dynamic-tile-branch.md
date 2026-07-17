@@ -59,8 +59,10 @@ no clock state.
 ## Consequences
 
 - A korogue widget can place a `DynamicAsciiTile` declaratively; the window plays
-  it, so animation survives `continuousRendering = false`. The showcase no longer
-  *needs* to bypass the engine (rewiring it is follow-up, not part of this ADR).
+  it, so animation survives `continuousRendering = false`. The showcase has been
+  rewired to route animated tiles (glyph torches) through the engine seam via
+  `TileSurface.put(tile)`, demonstrating that declarative animation now works
+  end-to-end.
 - The seam widens by exactly one method that generalises the existing one; it adds
   no renderer coupling and the fake stays headless, so ADR-0011's testability
   holds. `TileSurface.text`/`fill` and every existing caller are untouched.
