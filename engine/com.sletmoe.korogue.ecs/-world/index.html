@@ -43,7 +43,7 @@
         </button>
         <div class="navigation-controls--break ui-kit_mobile-only"></div>
         <div class="library-version" id="library-version">
-1.0.0.73-SNAPSHOT        </div>
+1.0.0.74-SNAPSHOT        </div>
         <div class="navigation-controls">
         <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
                 <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true"
@@ -207,7 +207,22 @@
                   </span></span></div>
               <div>
                 <div class="title">
-                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="add-system.html"><span class="token function">addSystem</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">system<span class="token operator">: </span><a href="../-system/index.html">System</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">World</a></div><div class="brief "><p class="paragraph">Registers <a href="add-system.html">system</a>; systems run in registration order. Returns this for chaining.</p></div></div></div>
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="add-system.html"><span class="token function">addSystem</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">system<span class="token operator">: </span><a href="../-system/index.html">System</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">World</a></div><div class="brief "><p class="paragraph">Registers <a href="add-system.html">system</a>; systems run in registration order. Returns this for chaining, so a whole pipeline reads as one <code class="lang-kotlin">addSystem(a).addSystem(b)...</code> builder expression (see <code class="lang-kotlin">pipeline.installStandardSystems</code>). This deliberately differs from <a href="spawn.html">spawn</a>, which returns the new <a href="../-entity/index.html">Entity</a>: an entity's id is needed the instant it exists, whereas systems are wired in bulk at setup and referenced by the instance the caller already holds — so <code class="lang-kotlin">add</code>/<a href="remove-system.html">removeSystem</a> pair on that instance, the way <a href="../../com.sletmoe.korogue.world/-game-world/add-zone.html">addZone</a> / <a href="../../com.sletmoe.korogue.world/-game-world/remove-zone.html">removeZone</a> pair on a zone id.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-706662633%2FFunctions%2F-56654334" anchor-label="clearSystems" id="-706662633%2FFunctions%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="clear-systems.html"><span>clear</span><wbr></wbr><span><span>Systems</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-706662633%2FFunctions%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="clear-systems.html"><span class="token function">clearSystems</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div><div class="brief "><p class="paragraph">Unregisters every system, leaving entities, components, and the <a href="events.html">events</a> bus untouched — the bulk counterpart to <a href="remove-system.html">removeSystem</a>, for tearing a pipeline down to re-install a different one on the same world (the <span data-unresolved-link="com.sletmoe.korogue.ecs/World/restore/#kotlin.Long#kotlin.Long#kotlin.collections.List[com.sletmoe.korogue.ecs.Entity]/PointingToDeclaration/">restore</span> path keeps systems, but a caller reusing a world across a mode switch may want a clean slate). A subsequent <a href="tick.html">tick</a> with no systems is a no-op that still drains events and advances the turn.</p></div></div></div>
                 </div>
               </div>
             </div>
@@ -298,6 +313,21 @@
               <div>
                 <div class="title">
                   <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">inline </span><span class="token keyword">fun </span><span class="token operator">&lt;</span><a href="remove.html">T</a><span class="token operator"> : </span><a href="../-component/index.html">Component</a><span class="token operator">&gt; </span><a href="remove.html"><span class="token function">remove</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">id<span class="token operator">: </span><a href="../-entity-id/index.html">EntityId</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="remove.html">T</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">Removes the component of type <a href="remove.html">T</a> from <a href="remove.html">id</a>; returns it if present, else null.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1546499451%2FFunctions%2F-56654334" anchor-label="removeSystem" id="1546499451%2FFunctions%2F-56654334" data-filterable-set=":engine/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":engine/main" data-filterable-set=":engine/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="remove-system.html"><span>remove</span><wbr></wbr><span><span>System</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1546499451%2FFunctions%2F-56654334"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":engine/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="remove-system.html"><span class="token function">removeSystem</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">system<span class="token operator">: </span><a href="../-system/index.html">System</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Unregisters the first occurrence of <a href="remove-system.html">system</a> (matched by reference — the instance <a href="add-system.html">addSystem</a> took), so a game can hot-swap or retire a system on a running world without rebuilding it — the systems counterpart to <a href="despawn.html">despawn</a>. Returns true if it was registered. The remaining pipeline is re-validated before the next <a href="tick.html">tick</a>, so if the removal leaves a <a href="../-pipeline-stage/runs-after.html">PipelineStage.runsAfter</a> constraint unsatisfiable it still fails loudly rather than running mis-ordered; a constraint whose target is simply gone is vacuous, not a violation.</p></div></div></div>
                 </div>
               </div>
             </div>

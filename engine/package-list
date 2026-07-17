@@ -287,6 +287,7 @@ $dokka.location:com.sletmoe.korogue.ecs/TickContext/turn/#/PointingToDeclaration
 $dokka.location:com.sletmoe.korogue.ecs/World///PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-world/index.html
 $dokka.location:com.sletmoe.korogue.ecs/World/World/#com.sletmoe.korogue.random.GameRandom/PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-world/-world.html
 $dokka.location:com.sletmoe.korogue.ecs/World/addSystem/#com.sletmoe.korogue.ecs.System/PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-world/add-system.html
+$dokka.location:com.sletmoe.korogue.ecs/World/clearSystems/#/PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-world/clear-systems.html
 $dokka.location:com.sletmoe.korogue.ecs/World/contains/#com.sletmoe.korogue.ecs.EntityId/PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-world/contains.html
 $dokka.location:com.sletmoe.korogue.ecs/World/currentTurn/#/PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-world/current-turn.html
 $dokka.location:com.sletmoe.korogue.ecs/World/despawn/#com.sletmoe.korogue.ecs.EntityId/PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-world/despawn.html
@@ -297,6 +298,7 @@ $dokka.location:com.sletmoe.korogue.ecs/World/events/#/PointingToDeclaration/en
 $dokka.location:com.sletmoe.korogue.ecs/World/get/#com.sletmoe.korogue.ecs.EntityId/PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-world/get.html
 $dokka.location:com.sletmoe.korogue.ecs/World/random/#/PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-world/random.html
 $dokka.location:com.sletmoe.korogue.ecs/World/remove/#com.sletmoe.korogue.ecs.EntityId/PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-world/remove.html
+$dokka.location:com.sletmoe.korogue.ecs/World/removeSystem/#com.sletmoe.korogue.ecs.System/PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-world/remove-system.html
 $dokka.location:com.sletmoe.korogue.ecs/World/set/#com.sletmoe.korogue.ecs.EntityId#com.sletmoe.korogue.ecs.Component/PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-world/set.html
 $dokka.location:com.sletmoe.korogue.ecs/World/spawn/#kotlin.collections.List[com.sletmoe.korogue.ecs.Component]/PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-world/spawn.html
 $dokka.location:com.sletmoe.korogue.ecs/World/spawn/#vararg(com.sletmoe.korogue.ecs.Component)/PointingToDeclaration/engine/com.sletmoe.korogue.ecs/-world/spawn.html
