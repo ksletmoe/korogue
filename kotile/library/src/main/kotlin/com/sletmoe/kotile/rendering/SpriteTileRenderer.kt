@@ -19,7 +19,11 @@ import com.sletmoe.kotile.tiles.TileSheet
  * @param canvas the canvas tiles are drawn to
  * @param tileSheet the sheet that backs every [StaticSpriteTile]'s `(sheetX, sheetY)`
  */
-public class SpriteTileRenderer(canvas: KotileCanvas, private val tileSheet: TileSheet) : TileRenderer(canvas) {
+public class SpriteTileRenderer(
+    canvas: KotileCanvas,
+    private val tileSheet: TileSheet,
+    sharesCanvas: Boolean = false,
+) : TileRenderer(canvas, sharesCanvas) {
     override fun regionFor(staticTile: StaticSpriteTile): TextureRegion =
         tileSheet.region(staticTile.sheetX, staticTile.sheetY)
 }

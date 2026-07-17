@@ -229,6 +229,11 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
                 heightInTiles = ROWS
                 fitToWindow = false
                 scalePolicy = IntegerScale
+                // This window shares one canvas with the sprite renderers below (glyph half on the
+                // right, sprites on the left), so it must composite over them, not REPLACE-erase the
+                // cells it leaves empty (krogue-a24). The scene is redrawn fresh every frame, which
+                // is what makes NORMAL compositing correct here.
+                sharesCanvas = true
             }
 
         wallSheet = sheet("Objects/Wall.png")
@@ -241,9 +246,12 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
         pest0Sheet = sheet("Characters/Pest0.png")
         pest1Sheet = sheet("Characters/Pest1.png")
 
-        floorRenderer = SpriteTileRenderer(canvas, floorSheet)
-        wallRenderer = SpriteTileRenderer(canvas, wallSheet)
-        overlayRenderer = SpriteTileRenderer(canvas, ammoSheet)
+        // All three sprite renderers and the glyph window share one canvas, and their content
+        // overlaps by bounding box (the wall ring's box encloses the floor), so each must composite
+        // over its neighbors rather than REPLACE-erase them (krogue-a24) — see sharesCanvas.
+        floorRenderer = SpriteTileRenderer(canvas, floorSheet, sharesCanvas = true)
+        wallRenderer = SpriteTileRenderer(canvas, wallSheet, sharesCanvas = true)
+        overlayRenderer = SpriteTileRenderer(canvas, ammoSheet, sharesCanvas = true)
         // Room content (tint included) is (re)built every frame in render() now that lighting
         // flickers — see buildSpriteRoom/buildGlyphRoom's doc comments.
 

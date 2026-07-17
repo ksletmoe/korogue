@@ -3,7 +3,17 @@
 > Current-state snapshots. Design rationale is in [ARCHITECTURE.md](ARCHITECTURE.md);
 > the live task backlog is in **beads** — run `bd list` / `bd ready`.
 
-_Last updated: 2026-06-13 (after concealment/piercing/suppressors, krogue-1my.3 — perception epic complete / ADR-0015)._
+_Last updated: 2026-07-17 (kotile shared-canvas composite blend fix, krogue-a24)._
+
+## Recent (2026-07-17)
+
+- **kotile: shared-canvas composite blend (krogue-a24).** `GridCompositeCache`'s blit is
+  `BlendMode.REPLACE` (authoritative — erases a cell's own stale pixel; krogue-asz), which erased
+  *neighbor panes* on a shared canvas because a window's unpopulated cells overwrote them. New
+  `sharesCanvas` flag on `SpriteTileRenderer`/`TileRenderer` and `AsciiTileWindowConfig` blits
+  `NORMAL` instead for multi-pane layouts (default stays REPLACE, so single-owner windows are
+  unaffected). This was a pre-existing regression (bisected to `3bff9b4f1`) that had left the
+  split-screen animation showcase's sprite half blank.
 
 ## Migration arc (done)
 

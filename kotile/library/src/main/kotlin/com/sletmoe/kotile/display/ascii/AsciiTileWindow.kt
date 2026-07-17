@@ -143,7 +143,15 @@ class AsciiTileWindow private constructor(
     private val ownsCanvas: Boolean = true,
     /** When `false` the font was supplied externally and [dispose] must not release it. */
     private val ownsFont: Boolean = true,
+    /**
+     * When `true`, this window composites into a canvas shared with other panes, so its cached
+     * composite is blitted with [BlendMode.NORMAL] rather than the default authoritative
+     * [BlendMode.REPLACE] — the REPLACE blit of an unpopulated (transparent) cell would otherwise
+     * erase whatever a neighbor pane drew there (krogue-a24). See [AsciiTileWindowConfig.sharesCanvas].
+     */
+    sharesCanvas: Boolean = false,
 ) : Disposable {
+    private val compositeBlend: BlendMode = if (sharesCanvas) BlendMode.NORMAL else BlendMode.REPLACE
     /** Current grid width in cells. Updated by [resize] when [fitToWindow] is `true`. */
     var widthInTiles: Int = widthInTiles
         private set
@@ -499,7 +507,7 @@ class AsciiTileWindow private constructor(
             // cell cleared since the last paint (fully transparent in the cache) must overwrite the
             // canvas's stale pixel there rather than alpha-blend and leave it untouched (krogue-drk).
             val l = canvas.layout
-            canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = l.contentWidthPx, h = l.contentHeightPx, blend = BlendMode.REPLACE)
+            canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = l.contentWidthPx, h = l.contentHeightPx, blend = compositeBlend)
         }
     }
 
@@ -598,7 +606,7 @@ class AsciiTileWindow private constructor(
         canvas.reapplyViewport()
         viewportCache.cachedRegion?.let { region ->
             val l = canvas.layout
-            canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = l.contentWidthPx, h = l.contentHeightPx, blend = BlendMode.REPLACE)
+            canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = l.contentWidthPx, h = l.contentHeightPx, blend = compositeBlend)
         }
         canvas.end()
     }
@@ -740,6 +748,7 @@ class AsciiTileWindow private constructor(
                 config.heightInTiles,
                 config.fitToWindow,
                 config.scalePolicy,
+                sharesCanvas = config.sharesCanvas,
             )
         }
 
@@ -811,6 +820,7 @@ class AsciiTileWindow private constructor(
                 scalePolicy = config.scalePolicy,
                 ownsCanvas = false,
                 ownsFont = false,
+                sharesCanvas = config.sharesCanvas,
             )
         }
     }
@@ -834,6 +844,14 @@ class AsciiTileWindow private constructor(
  * @property scalePolicy how the fixed grid is scaled to the window when
  *   [fitToWindow] is `false`; defaults to [IntegerScale] (crisp, pixel-perfect).
  *   Ignored when [fitToWindow] is `true`.
+ * @property sharesCanvas set `true` when this window composites into a
+ *   [KotileCanvas] shared with other panes (other windows or
+ *   [com.sletmoe.kotile.rendering.TileRenderer]s drawing into the same canvas).
+ *   Its composite is then blitted with [BlendMode.NORMAL] instead of the default
+ *   authoritative [BlendMode.REPLACE], so this window's unpopulated cells don't
+ *   erase a neighbor pane's pixels (krogue-a24). Correct as long as the frame is
+ *   composited fresh each time (every pane redrawn, or the canvas cleared first).
+ *   Leave `false` for a window that owns its whole canvas.
  */
 data class AsciiTileWindowConfig(
     var font: Font? = null,
@@ -841,4 +859,5 @@ data class AsciiTileWindowConfig(
     var heightInTiles: Int = 30,
     var fitToWindow: Boolean = true,
     var scalePolicy: ScalePolicy = IntegerScale,
+    var sharesCanvas: Boolean = false,
 )

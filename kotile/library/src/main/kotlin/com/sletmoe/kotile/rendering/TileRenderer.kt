@@ -80,9 +80,34 @@ import com.sletmoe.kotile.utilities.Vector3Int
  * [LayeredTilemap] and a [TileViewport] describing the top-left origin.
  * Logical cells outside the source bounds are skipped silently.
  *
+ * ## Sharing a canvas with other renderers
+ *
+ * By default this renderer's cached composite is blitted to the canvas with
+ * [BlendMode.REPLACE]: it authoritatively overwrites its whole grid rectangle,
+ * so a cell cleared since the last paint erases its own stale pixel even when the
+ * canvas is never cleared between frames (the incremental single-owner case the
+ * composite cache exists for; krogue-drk/krogue-asz). That is wrong when this
+ * renderer shares one [KotileCanvas] with other panes (several
+ * `TileRenderer`s and/or an
+ * [com.sletmoe.kotile.display.ascii.AsciiTileWindow] compositing into disjoint or
+ * overlapping regions of the same canvas): a REPLACE blit writes this renderer's
+ * *transparent* (unpopulated) cells over whatever a neighbor pane already drew
+ * there, erasing it. Pass [sharesCanvas] `= true` for that layout (krogue-a24):
+ * the composite is blitted with [BlendMode.NORMAL] instead, so transparent cells
+ * leave neighbors intact — correct as long as the frame is composited fresh each
+ * time (every pane redrawn, or the canvas cleared first), which a multi-pane draw
+ * loop does anyway.
+ *
  * @param canvas the canvas tiles are drawn to
+ * @param sharesCanvas `true` when this renderer composites into a canvas shared
+ *   with other panes; blits with [BlendMode.NORMAL] rather than the default
+ *   authoritative [BlendMode.REPLACE]. See "Sharing a canvas with other renderers".
  */
-abstract class TileRenderer(protected val canvas: KotileCanvas) : Disposable {
+abstract class TileRenderer(
+    protected val canvas: KotileCanvas,
+    sharesCanvas: Boolean = false,
+) : Disposable {
+    private val compositeBlend: BlendMode = if (sharesCanvas) BlendMode.NORMAL else BlendMode.REPLACE
     /**
      * Current grid width in tiles. Reflects the canvas at construction time
      * and is updated by [resize].
@@ -340,7 +365,7 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) : Disposable {
             // cell cleared since the last paint (fully transparent in the cache) must overwrite the
             // canvas's stale pixel there rather than alpha-blend and leave it untouched (krogue-drk).
             val l = canvas.layout
-            canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = l.contentWidthPx, h = l.contentHeightPx, blend = BlendMode.REPLACE)
+            canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = l.contentWidthPx, h = l.contentHeightPx, blend = compositeBlend)
         }
     }
 
@@ -404,7 +429,7 @@ abstract class TileRenderer(protected val canvas: KotileCanvas) : Disposable {
         canvas.reapplyViewport()
         viewportCache.cachedRegion?.let { region ->
             val l = canvas.layout
-            canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = l.contentWidthPx, h = l.contentHeightPx, blend = BlendMode.REPLACE)
+            canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = l.contentWidthPx, h = l.contentHeightPx, blend = compositeBlend)
         }
         canvas.end()
     }
