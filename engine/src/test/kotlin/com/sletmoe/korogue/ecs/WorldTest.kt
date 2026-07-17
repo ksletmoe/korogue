@@ -1,9 +1,11 @@
 package com.sletmoe.korogue.ecs
 
 import com.sletmoe.korogue.random.GameRandom
+import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.booleans.shouldBeFalse
 import io.kotest.matchers.booleans.shouldBeTrue
+import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
@@ -11,6 +13,26 @@ import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 
 // Test components live in TestComponents.kt.
+
+// Two stages with a real dependency (SECOND runsAfter FIRST), for exercising the pipeline
+// re-validation that removeSystem/clearSystems trigger without pulling in the built-in stages.
+internal enum class TestStage : PipelineStage {
+    FIRST,
+    SECOND,
+    ;
+
+    override val id: String get() = name
+    override val runsAfter: Set<PipelineStage> get() = if (this == SECOND) setOf(FIRST) else emptySet()
+}
+
+internal class StagedSystem(override val stage: PipelineStage) : Staged {
+    override fun update(
+        world: World,
+        ctx: TickContext,
+    ) = Unit
+}
+
+internal object WorldTestPing : Event
 
 class WorldTest : DescribeSpec({
 
@@ -216,6 +238,57 @@ class WorldTest : DescribeSpec({
             val s2 = System { _, _ -> }
             world.addSystem(s1).addSystem(s2)
             world.systems() shouldContainExactly listOf(s1, s2)
+        }
+
+        it("removeSystem drops a system by reference and stops it running") {
+            val world = World()
+            val log = mutableListOf<String>()
+            val a = System { _, _ -> log.add("a") }
+            val b = System { _, _ -> log.add("b") }
+            world.addSystem(a).addSystem(b)
+
+            world.removeSystem(a) shouldBe true
+            world.systems() shouldContainExactly listOf(b)
+            world.tick()
+            log shouldContainExactly listOf("b")
+        }
+
+        it("removeSystem returns false for a system that was never registered") {
+            val world = World()
+            world.addSystem { _, _ -> }
+            world.removeSystem { _, _ -> } shouldBe false
+        }
+
+        it("removeSystem re-validates the surviving pipeline before the next tick") {
+            // Removing the stage a survivor depends on makes that constraint vacuous, not violated:
+            // the world must still tick cleanly rather than reject the now-shorter pipeline.
+            val world = World()
+            val dependency = StagedSystem(TestStage.FIRST)
+            val dependent = StagedSystem(TestStage.SECOND) // SECOND runsAfter FIRST
+            world.addSystem(dependency).addSystem(dependent)
+            world.validateSystemOrder() // legal as wired
+
+            world.removeSystem(dependency) shouldBe true
+            shouldNotThrowAny { world.tick() }
+        }
+
+        it("clearSystems removes every system but leaves entities and events intact") {
+            val world = World()
+            val entity = world.spawn(Health(100, 100))
+            var delivered = false
+            world.events.subscribe<WorldTestPing> { delivered = true }
+            world.addSystem { _, _ -> }
+            world.addSystem { _, _ -> }
+
+            world.clearSystems()
+            world.systems().shouldBeEmpty()
+
+            // A tick with no systems is still a real turn: it drains events and advances the counter.
+            world.events.publish(WorldTestPing)
+            world.tick()
+            delivered shouldBe true
+            world.currentTurn shouldBe 1L
+            world.get(entity.id) shouldNotBe null
         }
     }
 
