@@ -171,13 +171,49 @@ class World(
     // Systems
     // -------------------------------------------------------------------------
 
-    /** Registers [system]; systems run in registration order. Returns this for chaining. */
+    /**
+     * Registers [system]; systems run in registration order. Returns this for chaining, so a whole
+     * pipeline reads as one `addSystem(a).addSystem(b)...` builder expression (see
+     * `pipeline.installStandardSystems`). This deliberately differs from [spawn], which returns the
+     * new [Entity]: an entity's id is needed the instant it exists, whereas systems are wired in bulk
+     * at setup and referenced by the instance the caller already holds — so `add`/[removeSystem] pair
+     * on that instance, the way [addZone][com.sletmoe.korogue.world.GameWorld.addZone] /
+     * [removeZone][com.sletmoe.korogue.world.GameWorld.removeZone] pair on a zone id.
+     */
     fun addSystem(system: System): World {
         systems.add(system)
         // The order is only meaningful once registration finishes, so don't validate here --
         // a pipeline is legitimately invalid half-built. [tick] re-checks instead.
         orderValidated = false
         return this
+    }
+
+    /**
+     * Unregisters the first occurrence of [system] (matched by reference — the instance [addSystem]
+     * took), so a game can hot-swap or retire a system on a running world without rebuilding it —
+     * the systems counterpart to [despawn]. Returns true if it was registered. The remaining
+     * pipeline is re-validated before the next [tick], so if the removal leaves a
+     * [PipelineStage.runsAfter] constraint unsatisfiable it still fails loudly rather than running
+     * mis-ordered; a constraint whose target is simply gone is vacuous, not a violation.
+     */
+    fun removeSystem(system: System): Boolean {
+        val removed = systems.remove(system)
+        if (removed) orderValidated = false
+        return removed
+    }
+
+    /**
+     * Unregisters every system, leaving entities, components, and the [events] bus untouched — the
+     * bulk counterpart to [removeSystem], for tearing a pipeline down to re-install a different one
+     * on the same world (the [restore] path keeps systems, but a caller reusing a world across a
+     * mode switch may want a clean slate). A subsequent [tick] with no systems is a no-op that still
+     * drains events and advances the turn.
+     */
+    fun clearSystems() {
+        if (systems.isNotEmpty()) {
+            systems.clear()
+            orderValidated = false
+        }
     }
 
     /** The registered systems, in execution order. */
