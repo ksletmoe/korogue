@@ -23,7 +23,7 @@ class Registry<T> internal constructor(
          * testing one in isolation needs a way to make a small stub registry — standing up a whole
          * module for two entries would be the wrong tax, and the primary constructor is `internal`.
          */
-        fun <T> of(entries: Map<String, T>): Registry<T> = Registry(entries)
+        fun <T> of(entries: Map<String, T>): Registry<T> = Registry(entries.toMap())
 
         /** A standalone registry over [entries], as `Registry.of("wander" to strategy)`. */
         fun <T> of(vararg entries: Pair<String, T>): Registry<T> = Registry(entries.toMap())

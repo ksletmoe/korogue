@@ -110,9 +110,9 @@ built-ins stay in `systems/` (krogue-elm).
   (`BehaviorStrategies.kt`): `wander`, `hunt-player`.
 - **`MovementSystem(gameWorld)`** — consumes `MoveIntent`s: step onto walkable, unoccupied
   terrain; bump into a (non-portal) occupant → emit `AttackIntent`; into a wall → no-op (4b-s6).
-- **`PortalSystem(gameWorld)`** — sends the player through a `Portal` it stands on: moves
-  it to the target zone/position and switches `currentZoneId` so the active zone follows
-  the player (4e, ADR-0008).
+- **`PortalSystem(gameWorld)`** — sends an entity through a `Portal` it stands on, moving
+  it to the target zone/position; when the player traverses, it also switches `currentZoneId`
+  so the active zone follows the player (4e, ADR-0008).
 - **`CombatSystem(damage)`** — consumes `AttackIntent`s, applies damage to the target's
   `Health`, then despawns dead non-player entities (player death is out of scope —
   krogue-4zi) (4b-s6).
