@@ -39,8 +39,8 @@ class DeterminismTest : FunSpec({
     // the same thing a consuming game does after SaveCodec.load (see the demo's registerSystems).
     fun wire(world: GameWorld) {
         world.ecs
-            .addSystem(BehaviorSystem(module.strategies::resolve))
-            .addSystem(MovementSystem(world.zones))
+            .addSystem(BehaviorSystem(world, module.strategies))
+            .addSystem(MovementSystem(world))
     }
 
     /**

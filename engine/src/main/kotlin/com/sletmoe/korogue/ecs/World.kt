@@ -38,6 +38,7 @@ class World(
     private var nextId = 0L
     private val entitiesById = LinkedHashMap<EntityId, Entity>()
     private val systems = ArrayList<System>()
+    private var orderValidated = false
     private var turn = 0L
 
     /**
@@ -173,11 +174,46 @@ class World(
     /** Registers [system]; systems run in registration order. Returns this for chaining. */
     fun addSystem(system: System): World {
         systems.add(system)
+        // The order is only meaningful once registration finishes, so don't validate here --
+        // a pipeline is legitimately invalid half-built. [tick] re-checks instead.
+        orderValidated = false
         return this
     }
 
     /** The registered systems, in execution order. */
     fun systems(): List<System> = systems.toList()
+
+    /**
+     * Checks the registered [Staged] systems against their [PipelineStage.runsAfter] constraints,
+     * throwing [PipelineOrderException] on the first violation (krogue-32d). [tick] calls this
+     * itself before the first tick after any registration, so a mis-ordered pipeline fails loudly
+     * on turn one instead of producing quietly wrong results forever; call it directly to fail at
+     * build time instead.
+     *
+     * Unconstrained systems (anything not implementing [Staged]) are ignored, and a constraint on
+     * a stage that isn't registered at all is vacuous — a game that omits a built-in stage, as the
+     * Rogue port omits `BEHAVIOR`, is not thereby broken.
+     */
+    fun validateSystemOrder() {
+        val staged = systems.withIndex().filter { it.value is Staged }
+        for ((index, system) in staged) {
+            val stage = (system as Staged).stage
+            if (stage.runsAfter.isEmpty()) continue
+            for ((otherIndex, other) in staged) {
+                val otherStage = (other as Staged).stage
+                if (otherStage !in stage.runsAfter) continue
+                if (otherIndex > index) {
+                    throw PipelineOrderException(
+                        "${system::class.simpleName} (stage ${stage.id}) must run after " +
+                            "${other::class.simpleName} (stage ${otherStage.id}), but was registered " +
+                            "before it (position $index vs $otherIndex). Registration order is " +
+                            "execution order; re-order the addSystem calls.",
+                    )
+                }
+            }
+        }
+        orderValidated = true
+    }
 
     /** The current turn counter (number of completed [tick]s). */
     val currentTurn: Long
@@ -192,6 +228,7 @@ class World(
      * tick is reproducible from the master seed with nothing for the caller to remember.
      */
     fun tick(elapsedMs: Long = 0L) {
+        if (!orderValidated) validateSystemOrder()
         val ctx = tickContext(elapsedMs)
         for (system in systems) system.update(this, ctx)
         events.dispatch()

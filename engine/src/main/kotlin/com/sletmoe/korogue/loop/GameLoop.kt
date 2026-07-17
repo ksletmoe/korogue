@@ -8,7 +8,7 @@ package com.sletmoe.korogue.loop
  * - [TurnBasedLoop] — the world ticks once per committed player action and is otherwise frozen
  *   (classic roguelike turn-on-input; pair with AI that acts every turn).
  *
- * Distinct from `com.sletmoe.korogue.kotile.Game`, which is the libGDX app shell that drives frames;
+ * Distinct from `com.sletmoe.korogue.app.Game`, which is the libGDX app shell that drives frames;
  * a `GameLoop` only decides whether a frame should advance the *world*.
  */
 interface GameLoop {

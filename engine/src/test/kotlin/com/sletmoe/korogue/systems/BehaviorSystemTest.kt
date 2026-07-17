@@ -12,6 +12,7 @@ import com.sletmoe.korogue.ecs.EntityId
 import com.sletmoe.korogue.ecs.TickContext
 import com.sletmoe.korogue.ecs.World
 import com.sletmoe.korogue.registry.GameModule
+import com.sletmoe.korogue.registry.Registry
 import com.sletmoe.korogue.world.CurrentPlusAdjacent
 import com.sletmoe.korogue.world.GameWorld
 import com.sletmoe.korogue.world.PortalZoneAdjacency
@@ -25,17 +26,10 @@ class BehaviorSystemTest : FunSpec({
     fun ctx() = TickContext(turn = 0L, elapsedMs = 0L, random = Random(0))
 
     test("applies the resolved strategy's move as a MoveIntent") {
+        val gw = GameWorld(World(), emptyMap(), "z")
         val world =
-            World().addSystem(
-                BehaviorSystem(resolveStrategy = {
-                    BehaviorStrategy {
-                            _,
-                            _,
-                            _,
-                        ->
-                        MoveIntent(1, 0)
-                    }
-                }),
+            gw.ecs.addSystem(
+                BehaviorSystem(gw, Registry.of("x" to BehaviorStrategy { _, _, _ -> MoveIntent(1, 0) })),
             )
         val id = world.spawn(Behavior("x"), Position(2, 2), ZoneMember("z")).id
 
@@ -45,7 +39,8 @@ class BehaviorSystemTest : FunSpec({
     }
 
     test("attaches no MoveIntent when the strategy returns null") {
-        val world = World().addSystem(BehaviorSystem(resolveStrategy = { BehaviorStrategy { _, _, _ -> null } }))
+        val gw = GameWorld(World(), emptyMap(), "z")
+        val world = gw.ecs.addSystem(BehaviorSystem(gw, Registry.of("x" to BehaviorStrategy { _, _, _ -> null })))
         val id = world.spawn(Behavior("x"), Position(2, 2), ZoneMember("z")).id
 
         world.tick()
@@ -54,9 +49,10 @@ class BehaviorSystemTest : FunSpec({
     }
 
     test("skips an entity that already carries an AttackIntent this tick (krogue-4tn)") {
+        val gw = GameWorld(World(), emptyMap(), "z")
         val world =
-            World().addSystem(
-                BehaviorSystem(resolveStrategy = { BehaviorStrategy { _, _, _ -> MoveIntent(1, 0) } }),
+            gw.ecs.addSystem(
+                BehaviorSystem(gw, Registry.of("x" to BehaviorStrategy { _, _, _ -> MoveIntent(1, 0) })),
             )
         val id = world.spawn(Behavior("x"), Position(2, 2), ZoneMember("z"), AttackIntent(EntityId(99))).id
 
@@ -65,13 +61,13 @@ class BehaviorSystemTest : FunSpec({
         world.get(id)!!.get<MoveIntent>().shouldBeNull()
     }
 
-    test("only acts on entities in the active zones (ADR-0008 scoping)") {
+    // Scope is now the world's SimulatedZonePolicy rather than a per-system activeZones lambda
+    // (krogue-cjv): the default CurrentZoneOnly makes "active" the only simulated zone here.
+    test("only acts on entities in the world's simulated zones (ADR-0008 scoping)") {
+        val gw = GameWorld(World(), emptyMap(), "active")
         val world =
-            World().addSystem(
-                BehaviorSystem(
-                    resolveStrategy = { BehaviorStrategy { _, _, _ -> MoveIntent(1, 0) } },
-                    activeZones = { setOf("active") },
-                ),
+            gw.ecs.addSystem(
+                BehaviorSystem(gw, Registry.of("x" to BehaviorStrategy { _, _, _ -> MoveIntent(1, 0) })),
             )
         val here = world.spawn(Behavior("x"), Position(2, 2), ZoneMember("active")).id
         val dormant = world.spawn(Behavior("x"), Position(2, 2), ZoneMember("dormant")).id
@@ -108,7 +104,8 @@ class BehaviorSystemTest : FunSpec({
     test("a custom strategy registered on a GameModule drives BehaviorSystem by id") {
         val patrol = BehaviorStrategy { _, _, _ -> MoveIntent(0, 1) }
         val module = GameModule.engineDefaults().strategy("patrol", patrol).build()
-        val world = World().addSystem(BehaviorSystem(resolveStrategy = module.strategies::resolve))
+        val gw = GameWorld(World(), emptyMap(), "z")
+        val world = gw.ecs.addSystem(BehaviorSystem(gw, module.strategies))
         val id = world.spawn(Behavior("patrol"), Position(2, 2), ZoneMember("z")).id
 
         world.tick()
@@ -194,8 +191,8 @@ class BehaviorSystemTest : FunSpec({
                 .engineDefaults()
                 .strategy(CrossZoneHuntPlayerStrategy.ID, CrossZoneHuntPlayerStrategy(actChance = 1.0))
                 .build()
-        gw.ecs.addSystem(BehaviorSystem(resolveStrategy = module.strategies::resolve, activeZones = gw::simulatedZones))
-        gw.ecs.addSystem(MovementSystem(gw.zones))
+        gw.ecs.addSystem(BehaviorSystem(gw, module.strategies))
+        gw.ecs.addSystem(MovementSystem(gw))
         gw.ecs.addSystem(PortalSystem(gw))
         val monster = gw.ecs.spawn(Behavior(CrossZoneHuntPlayerStrategy.ID), Position(1, 1), ZoneMember("b")).id
 

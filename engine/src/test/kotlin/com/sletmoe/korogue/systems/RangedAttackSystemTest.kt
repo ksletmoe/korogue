@@ -10,7 +10,9 @@ import com.sletmoe.korogue.components.RangedAttacker
 import com.sletmoe.korogue.components.ZoneMember
 import com.sletmoe.korogue.ecs.World
 import com.sletmoe.korogue.events.RangedAttackFired
+import com.sletmoe.korogue.registry.Registry
 import com.sletmoe.korogue.world.BLANK_TILE
+import com.sletmoe.korogue.world.GameWorld
 import com.sletmoe.korogue.world.Tile
 import com.sletmoe.korogue.world.Zone
 import com.sletmoe.kotile.utilities.Grid
@@ -22,7 +24,10 @@ private val WALL = Tile("wall", '#', Color.GRAY, Color.BLACK, isWalkable = false
 
 class RangedAttackSystemTest : FunSpec({
 
-    fun worldFor(zone: Zone): World = World().addSystem(RangedAttackSystem(mapOf(zone.zoneId to zone)))
+    fun worldFor(zone: Zone): World {
+        val gw = GameWorld(World(), mapOf(zone.zoneId to zone), zone.zoneId)
+        return gw.ecs.addSystem(RangedAttackSystem(gw))
+    }
 
     test("fires at a distant player in a clear line of sight") {
         val zone = Zone("z", Grid(10, 10, BLANK_TILE))
@@ -89,13 +94,12 @@ class RangedAttackSystemTest : FunSpec({
 
     test("BehaviorSystem does not also move an entity RangedAttackSystem just fired") {
         val zone = Zone("z", Grid(10, 10, BLANK_TILE))
+        val gw = GameWorld(World(), mapOf(zone.zoneId to zone), zone.zoneId)
         val world =
-            World()
-                .addSystem(RangedAttackSystem(mapOf(zone.zoneId to zone)))
+            gw.ecs
+                .addSystem(RangedAttackSystem(gw))
                 .addSystem(
-                    BehaviorSystem(resolveStrategy = {
-                        BehaviorStrategy { _, _, _ -> MoveIntent(1, 0) }
-                    }),
+                    BehaviorSystem(gw, Registry.of("x" to BehaviorStrategy { _, _, _ -> MoveIntent(1, 0) })),
                 )
         world.spawn(Player, Position(6, 2), ZoneMember("z"))
         val archer =

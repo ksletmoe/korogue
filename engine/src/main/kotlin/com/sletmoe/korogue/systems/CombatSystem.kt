@@ -6,11 +6,13 @@ import com.sletmoe.korogue.components.Named
 import com.sletmoe.korogue.components.Player
 import com.sletmoe.korogue.components.Position
 import com.sletmoe.korogue.components.Renderable
-import com.sletmoe.korogue.ecs.System
+import com.sletmoe.korogue.ecs.PipelineStage
+import com.sletmoe.korogue.ecs.Staged
 import com.sletmoe.korogue.ecs.TickContext
 import com.sletmoe.korogue.ecs.World
 import com.sletmoe.korogue.events.EntityDamaged
 import com.sletmoe.korogue.events.EntityDied
+import com.sletmoe.korogue.pipeline.StandardStage
 
 /**
  * Resolves [AttackIntent]s into damage, then clears the dead. Each attacker's intent is
@@ -23,7 +25,9 @@ import com.sletmoe.korogue.events.EntityDied
  */
 class CombatSystem(
     private val damage: Int = DEFAULT_DAMAGE,
-) : System {
+) : Staged {
+    override val stage: PipelineStage get() = StandardStage.COMBAT
+
     override fun update(
         world: World,
         ctx: TickContext,
@@ -56,7 +60,8 @@ class CombatSystem(
             }
     }
 
-    private companion object {
+    companion object {
+        /** The flat per-hit damage applied when no [damage] is given. */
         const val DEFAULT_DAMAGE = 20
     }
 }

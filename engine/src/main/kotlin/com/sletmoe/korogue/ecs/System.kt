@@ -18,6 +18,49 @@ fun interface System {
 }
 
 /**
+ * A named stage a [System] may occupy, and the stages that must already have run when it does
+ * (krogue-32d). The ECS core defines the *mechanism* only — it knows nothing about which stages
+ * exist; a game (or the engine's own `pipeline.StandardStage`) supplies the vocabulary and the
+ * constraints between them.
+ *
+ * Ordering is a **partial** order, deliberately: only real data dependencies belong in [runsAfter].
+ * Two stages with no path between them may be registered in either order, and the engine's own
+ * consumers rely on that — the demo picks up items before resolving combat while the Rogue port
+ * does the reverse, and both are correct because pickup and combat never touch the same state.
+ * Encoding a constraint that isn't a genuine dependency would reject a legitimate pipeline.
+ *
+ * Tagging a stage rather than naming a class is what lets a game *replace* a built-in and keep its
+ * ordering guarantees: the Rogue port's `RogueCombatSystem` stands in for `CombatSystem`, declares
+ * the same [StandardStage.COMBAT], and is checked against the same constraints.
+ */
+interface PipelineStage {
+    /** Stable identifier, used in violation messages. */
+    val id: String
+
+    /** Stages that must be registered *before* any system in this stage. Empty = unconstrained. */
+    val runsAfter: Set<PipelineStage>
+        get() = emptySet()
+}
+
+/**
+ * A [System] that declares the [stage] it occupies, opting in to registration-order validation
+ * (see [World.validateSystemOrder]). Systems that don't implement this are unconstrained and never
+ * cause a violation — [System] stays a `fun interface`, so a lambda system remains legal.
+ */
+interface Staged : System {
+    val stage: PipelineStage
+}
+
+/**
+ * Thrown when the registered systems violate a [PipelineStage.runsAfter] constraint — i.e. a
+ * pipeline that would produce silently wrong results (stale visibility, dropped intents) rather
+ * than an obvious crash. Raised by [World.validateSystemOrder], which [World.tick] calls itself.
+ */
+class PipelineOrderException(
+    message: String,
+) : IllegalStateException(message)
+
+/**
  * Ambient inputs handed to every [System] each tick. Adding fields here extends
  * what systems can observe without changing the [System.update] signature.
  *

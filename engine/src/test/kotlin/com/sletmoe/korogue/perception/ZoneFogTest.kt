@@ -1,4 +1,4 @@
-package com.sletmoe.korogue.kotile
+package com.sletmoe.korogue.perception
 
 import com.sletmoe.kotile.utilities.Grid
 import io.kotest.core.spec.style.FunSpec

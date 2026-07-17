@@ -4,10 +4,12 @@ import com.sletmoe.korogue.components.Player
 import com.sletmoe.korogue.components.Portal
 import com.sletmoe.korogue.components.Position
 import com.sletmoe.korogue.components.ZoneMember
-import com.sletmoe.korogue.ecs.System
+import com.sletmoe.korogue.ecs.PipelineStage
+import com.sletmoe.korogue.ecs.Staged
 import com.sletmoe.korogue.ecs.TickContext
 import com.sletmoe.korogue.ecs.World
 import com.sletmoe.korogue.events.ZoneChanged
+import com.sletmoe.korogue.pipeline.StandardStage
 import com.sletmoe.korogue.world.GameWorld
 
 /**
@@ -28,7 +30,9 @@ import com.sletmoe.korogue.world.GameWorld
  */
 class PortalSystem(
     private val gameWorld: GameWorld,
-) : System {
+) : Staged {
+    override val stage: PipelineStage get() = StandardStage.PORTAL
+
     override fun update(
         world: World,
         ctx: TickContext,

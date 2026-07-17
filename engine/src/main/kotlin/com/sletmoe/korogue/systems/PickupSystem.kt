@@ -5,10 +5,12 @@ import com.sletmoe.korogue.components.Item
 import com.sletmoe.korogue.components.Player
 import com.sletmoe.korogue.components.Position
 import com.sletmoe.korogue.components.ZoneMember
-import com.sletmoe.korogue.ecs.System
+import com.sletmoe.korogue.ecs.PipelineStage
+import com.sletmoe.korogue.ecs.Staged
 import com.sletmoe.korogue.ecs.TickContext
 import com.sletmoe.korogue.ecs.World
 import com.sletmoe.korogue.events.ItemPickedUp
+import com.sletmoe.korogue.pipeline.StandardStage
 
 /**
  * Picks up [Item] entities the player is standing on: each is despawned, its name appended to the
@@ -16,7 +18,9 @@ import com.sletmoe.korogue.events.ItemPickedUp
  * non-blocking (the player walks onto them — see `MovementSystem`), so this runs after movement.
  * No-op unless the player has an [Inventory] component.
  */
-class PickupSystem : System {
+class PickupSystem : Staged {
+    override val stage: PipelineStage get() = StandardStage.PICKUP
+
     override fun update(
         world: World,
         ctx: TickContext,

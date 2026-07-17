@@ -41,3 +41,8 @@ Point-in-time records of **why** significant or hard-to-reverse decisions were m
 | [0025](0025-world-owns-its-rng.md) | The world owns its RNG — determinism by construction | Accepted |
 | [0026](0026-single-canonical-grid.md) | One canonical Grid — kotile owns the 2D grid type | Accepted |
 | [0027](0027-symmetric-tile-hierarchies.md) | Symmetric sprite and ASCII tile hierarchies | Accepted |
+| [0028](0028-symmetric-render-path-apis.md) | The sprite and ASCII render paths share one vocabulary | Accepted |
+| [0029](0029-ascii-composites-top-cell-wins.md) | The ASCII path composites top-cell-wins, and that is not a defect | Accepted |
+| [0030](0030-per-channel-ascii-compositing.md) | An ASCII cell's glyph and background resolve per channel | Accepted |
+| [0031](0031-engine-package-homes-app-and-perception.md) | `app.Game` and `perception.ZoneFog` — retiring the `korogue.kotile` package | Accepted |
+| [0032](0032-system-construction-and-the-standard-pipeline.md) | One system-construction convention, and a validated standard pipeline | Accepted |
