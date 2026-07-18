@@ -455,8 +455,11 @@ class AsciiTileWindow private constructor(
      *
      * This never clears [canvas] itself — when [AsciiTileWindowConfig.sharesCanvas] is `true` (blit
      * mode [BlendMode.NORMAL], see there), a cell this window has since stopped populating leaves a
-     * stale pixel behind unless the caller clears the canvas, or every sharing pane fully redraws,
-     * each frame (krogue-a24).
+     * stale pixel behind (krogue-a24). That happens because [BlendMode.NORMAL] uses alpha blending:
+     * transparent texels in the composite cache leave the destination pixels unchanged rather than
+     * overwriting them, so opaque content from a previous frame persists. Callers sharing a canvas
+     * must either clear it each frame, or explicitly repaint any cell that may become empty with
+     * opaque pixels — a redraw of only currently-populated cells is not sufficient.
      *
      * @param elapsedMs monotonically increasing wall-clock time in milliseconds
      *   used to determine the current frame of any [AnimatedAsciiTile] cells.
