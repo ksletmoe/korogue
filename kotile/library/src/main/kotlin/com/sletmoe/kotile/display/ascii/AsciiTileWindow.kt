@@ -453,6 +453,11 @@ class AsciiTileWindow private constructor(
      * Composites all layers and draws every populated cell to the canvas for
      * this frame.
      *
+     * This never clears [canvas] itself — when [AsciiTileWindowConfig.sharesCanvas] is `true` (blit
+     * mode [BlendMode.NORMAL], see there), a cell this window has since stopped populating leaves a
+     * stale pixel behind unless the caller clears the canvas, or every sharing pane fully redraws,
+     * each frame (krogue-a24).
+     *
      * @param elapsedMs monotonically increasing wall-clock time in milliseconds
      *   used to determine the current frame of any [AnimatedAsciiTile] cells.
      *   Defaults to `0`, which always shows the first frame — suitable for

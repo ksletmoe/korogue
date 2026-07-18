@@ -315,6 +315,11 @@ abstract class TileRenderer(
      * Composites every populated layer of the internal tilemap (bottom-up) to
      * the canvas for this frame.
      *
+     * This never clears [canvas] itself — when the constructor's `sharesCanvas` was `true`
+     * ([compositeBlend] is then [BlendMode.NORMAL], see "Sharing a canvas with other renderers"
+     * above), a cell this renderer has since stopped populating leaves a stale pixel behind unless
+     * the caller clears the canvas, or every sharing pane fully redraws, each frame (krogue-a24).
+     *
      * @param elapsedMs monotonically increasing wall-clock time in milliseconds
      *   used to determine the current frame of any [DynamicSpriteTile] (animated) entries.
      *   Defaults to `0`, which always shows the first frame — suitable for
