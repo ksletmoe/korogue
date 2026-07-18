@@ -22,7 +22,10 @@ import com.sletmoe.korogue.ui.MapCamera
 import com.sletmoe.korogue.ui.WindowSurface
 import com.sletmoe.kotile.display.BlendMode
 import com.sletmoe.kotile.display.KotileCanvas
+import com.sletmoe.kotile.display.ascii.AnimatedAsciiTile
+import com.sletmoe.kotile.display.ascii.AsciiTile
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
+import com.sletmoe.kotile.display.ascii.DynamicAsciiTile
 import com.sletmoe.kotile.display.ascii.Font
 import com.sletmoe.kotile.display.ascii.Fonts
 import com.sletmoe.kotile.display.ascii.StaticAsciiTile
@@ -187,6 +190,32 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
     private val spriteProjectileQueue = EventAnimationQueue()
     private val glyphProjectileQueue = EventAnimationQueue()
 
+    // Shared AnimatedAsciiTile for all glyph torches (krogue-2co) — created once and reused,
+    // not per-frame allocation. Each torch wraps it in its own PhaseOffsetTile (below) so they
+    // each run at a different phase.
+    private val torchFlame =
+        AnimatedAsciiTile(
+            frames =
+                listOf(
+                    AnimationFrame(
+                        StaticAsciiTile('!', Color.ORANGE, Color(0.5f, 0.25f, 0f, 1f)),
+                        ANIMATION_FRAME_MS,
+                    ),
+                    AnimationFrame(
+                        StaticAsciiTile('!', Color.YELLOW, Color(0.4f, 0.2f, 0f, 1f)),
+                        ANIMATION_FRAME_MS,
+                    ),
+                ),
+            mode = PlaybackMode.LOOP,
+        )
+
+    // Per-torch PhaseOffsetTile instances wrapping the shared torchFlame — one per torch,
+    // cached for reuse instead of being allocated per frame.
+    private val glyphTorchTiles =
+        GLYPH_TORCH_POSITIONS.associateWith { torch ->
+            PhaseOffsetTile(torchFlame, torchSeed(torch))
+        }
+
     // Impact effects (hit-flash, floating damage number) are cosmetic and must render
     // simultaneously with each other and with the projectile-in-flight -- exactly what
     // EventAnimationQueue's own doc comment says it isn't for (one sequence at a time, for
@@ -231,8 +260,8 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
                 scalePolicy = IntegerScale
                 // This window shares one canvas with the sprite renderers below (glyph half on the
                 // right, sprites on the left), so it must composite over them, not REPLACE-erase the
-                // cells it leaves empty (krogue-a24). The scene is redrawn fresh every frame, which
-                // is what makes NORMAL compositing correct here.
+                // cells it leaves empty (krogue-a24/ADR-0033-adjacent). The scene is redrawn fresh
+                // every frame, which is what makes NORMAL compositing correct here.
                 sharesCanvas = true
             }
 
@@ -623,17 +652,18 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
             asciiWindow.drawTile(TOTAL_COLS - 1, y, StaticAsciiTile('#', lit, Color.BLACK))
         }
 
-        // Brogue-style torch flicker: background color shifts to simulate an unsteady flame; no
-        // sprite art needed for this side. Reads the same torchFrameIndex (torchSeed-offset)
-        // clock as this torch's own light and the sprite side's Decor0/Decor1 pick, so a bright
-        // background here always coincides with this torch's own light being on its bright phase
-        // — a single-descriptor draw per frame (not AnimatedAsciiTile's own clock) keeps that in
-        // lockstep, the same reasoning as [torchTile] on the sprite side.
+        // Brogue-style torch flicker: the background shifts to simulate an unsteady flame; no sprite
+        // art needed for this side. This is now a *native* animated cell placed through the engine
+        // seam (krogue-2co / ADR-0033): `glyphSurface.put(..., tile)` hands the window an
+        // `AnimatedAsciiTile` and the window resolves the frame from its own clock — where this used
+        // to hand-compute the bright/dim StaticAsciiTile each frame and bypass the engine via
+        // `asciiWindow.drawTile`. `AnimatedAsciiTile` carries no per-cell phase, so each torch wraps
+        // it in a [PhaseOffsetTile] keyed on the same torchSeed the surrounding light reads, keeping
+        // the bright flame in lockstep with this torch's own light exactly as before. The shared
+        // torchFlame and per-torch PhaseOffsetTile wrappers are now cached (glyphTorchTiles) and
+        // reused each frame, instead of being allocated per frame.
         for (torch in GLYPH_TORCH_POSITIONS) {
-            val bright = torchFrameIndex(torch, elapsedMs) == 0
-            val fg = if (bright) Color.ORANGE else Color.YELLOW
-            val bg = if (bright) Color(0.5f, 0.25f, 0f, 1f) else Color(0.4f, 0.2f, 0f, 1f)
-            asciiWindow.drawTile(torch.x, torch.y, StaticAsciiTile('!', fg, bg))
+            glyphSurface.put(torch.x, torch.y, z = 0, tile = glyphTorchTiles.getValue(torch))
         }
 
         // Placeholder combatants — specific glyph/color choices are provisional until
@@ -734,6 +764,20 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
         pest0Sheet.dispose()
         pest1Sheet.dispose()
     }
+}
+
+/**
+ * A consumer-supplied [DynamicAsciiTile] (ADR-0033's open extension point): wraps [base] and shifts
+ * its clock by [offsetMs], so several cells backed by one shared animation can each run at their own
+ * phase. Here it gives each torch its own flicker offset (the same `torchSeed` the light uses) from a
+ * single shared [AnimatedAsciiTile], instead of the built-in — which resolves every cell at the same
+ * wall-clock time — flickering all torches in lockstep.
+ */
+private class PhaseOffsetTile(
+    private val base: AsciiTile,
+    private val offsetMs: Long,
+) : DynamicAsciiTile {
+    override fun resolveAt(elapsedMs: Long): StaticAsciiTile = base.resolveAt(elapsedMs + offsetMs)
 }
 
 fun main() {
