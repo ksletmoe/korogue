@@ -760,7 +760,9 @@ class AsciiTileWindow private constructor(
          *
          * Use this factory when multiple windows must share a single render
          * batch — for example, a multi-pane layout where a map pane and a HUD
-         * pane both draw into the same [KotileCanvas]:
+         * pane both draw into the same [KotileCanvas]. Both panes must set
+         * [AsciiTileWindowConfig.sharesCanvas] `= true`, or each one's REPLACE
+         * blit will erase whatever the other already drew (krogue-a24):
          *
          * ```kotlin
          * val font   = Fonts.cp437_10x10()
@@ -769,10 +771,12 @@ class AsciiTileWindow private constructor(
          * val mapPane = AsciiTileWindow.createWithCanvas(canvas, font) {
          *     widthInTiles  = 60
          *     heightInTiles = 30
+         *     sharesCanvas  = true
          * }
          * val hudPane = AsciiTileWindow.createWithCanvas(canvas, font) {
          *     widthInTiles  = 20
          *     heightInTiles = 30
+         *     sharesCanvas  = true
          * }
          *
          * // Later — dispose order: windows first, then shared resources.
