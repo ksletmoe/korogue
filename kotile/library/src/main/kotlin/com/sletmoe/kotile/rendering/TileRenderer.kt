@@ -360,10 +360,12 @@ abstract class TileRenderer(
         compositeCache.cachedRegion?.let { region ->
             // On-screen (possibly scaled/letterboxed) size, matching how KotileCanvas.drawTile
             // places individual cells — the cache is captured at native resolution but blitted at
-            // whatever size/offset the current GridLayout dictates. REPLACE, not the default NORMAL
-            // blend: the cache is already the complete authoritative composite for this region, so a
-            // cell cleared since the last paint (fully transparent in the cache) must overwrite the
-            // canvas's stale pixel there rather than alpha-blend and leave it untouched (krogue-drk).
+            // whatever size/offset the current GridLayout dictates. The blend is REPLACE by default
+            // (the cache is the complete authoritative composite for this region, so a cell cleared
+            // since the last paint — fully transparent in the cache — must overwrite the canvas's
+            // stale pixel there rather than alpha-blend and leave it untouched; krogue-drk), but
+            // NORMAL when sharesCanvas is true so a shared-canvas renderer's empty cells don't erase
+            // a neighbor's pixels (krogue-a24).
             val l = canvas.layout
             canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = l.contentWidthPx, h = l.contentHeightPx, blend = compositeBlend)
         }
