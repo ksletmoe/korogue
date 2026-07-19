@@ -126,8 +126,10 @@ $dokka.location:com.sletmoe.korogue.algorithms.zonegen/RandomWalkCaveTest/Random
 $dokka.location:com.sletmoe.korogue.algorithms.zonegen/ShackStamperIntegrationTest///PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.zonegen/-shack-stamper-integration-test/index.html
 $dokka.location:com.sletmoe.korogue.algorithms.zonegen/ShackStamperIntegrationTest/ShackStamperIntegrationTest/#/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.zonegen/-shack-stamper-integration-test/-shack-stamper-integration-test.html
 $dokka.location:com.sletmoe.korogue.algorithms.zonegen/SpawnRequest///PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.zonegen/-spawn-request/index.html
+$dokka.location:com.sletmoe.korogue.algorithms.zonegen/SpawnRequest/SpawnRequest/#com.sletmoe.kotile.utilities.Vector2Int#kotlin.collections.List[com.sletmoe.korogue.ecs.Component]/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.zonegen/-spawn-request/-spawn-request.html
 $dokka.location:com.sletmoe.korogue.algorithms.zonegen/SpawnRequest/SpawnRequest/#kotlin.Int#kotlin.Int#kotlin.collections.List[com.sletmoe.korogue.ecs.Component]/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.zonegen/-spawn-request/-spawn-request.html
 $dokka.location:com.sletmoe.korogue.algorithms.zonegen/SpawnRequest/components/#/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.zonegen/-spawn-request/components.html
+$dokka.location:com.sletmoe.korogue.algorithms.zonegen/SpawnRequest/point/#/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.zonegen/-spawn-request/point.html
 $dokka.location:com.sletmoe.korogue.algorithms.zonegen/SpawnRequest/x/#/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.zonegen/-spawn-request/x.html
 $dokka.location:com.sletmoe.korogue.algorithms.zonegen/SpawnRequest/y/#/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.zonegen/-spawn-request/y.html
 $dokka.location:com.sletmoe.korogue.algorithms.zonegen/ZoneFeatureGenerator///PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.zonegen/-zone-feature-generator/index.html
@@ -135,6 +137,8 @@ $dokka.location:com.sletmoe.korogue.algorithms.zonegen/ZoneGenContext///Pointing
 $dokka.location:com.sletmoe.korogue.algorithms.zonegen/ZoneGenContext/ZoneGenContext/#com.sletmoe.kotile.utilities.Grid[com.sletmoe.korogue.world.Tile]#kotlin.random.Random/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.zonegen/-zone-gen-context/-zone-gen-context.html
 $dokka.location:com.sletmoe.korogue.algorithms.zonegen/ZoneGenContext/pendingSpawns/#/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.zonegen/-zone-gen-context/pending-spawns.html
 $dokka.location:com.sletmoe.korogue.algorithms.zonegen/ZoneGenContext/random/#/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.zonegen/-zone-gen-context/random.html
+$dokka.location:com.sletmoe.korogue.algorithms.zonegen/ZoneGenContext/spawn/#com.sletmoe.kotile.utilities.Vector2Int#kotlin.collections.List[com.sletmoe.korogue.ecs.Component]/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.zonegen/-zone-gen-context/spawn.html
+$dokka.location:com.sletmoe.korogue.algorithms.zonegen/ZoneGenContext/spawn/#com.sletmoe.kotile.utilities.Vector2Int#vararg(com.sletmoe.korogue.ecs.Component)/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.zonegen/-zone-gen-context/spawn.html
 $dokka.location:com.sletmoe.korogue.algorithms.zonegen/ZoneGenContext/spawn/#kotlin.Int#kotlin.Int#kotlin.collections.List[com.sletmoe.korogue.ecs.Component]/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.zonegen/-zone-gen-context/spawn.html
 $dokka.location:com.sletmoe.korogue.algorithms.zonegen/ZoneGenContext/spawn/#kotlin.Int#kotlin.Int#vararg(com.sletmoe.korogue.ecs.Component)/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.zonegen/-zone-gen-context/spawn.html
 $dokka.location:com.sletmoe.korogue.algorithms.zonegen/ZoneGenContext/tiles/#/PointingToDeclaration/engine/com.sletmoe.korogue.algorithms.zonegen/-zone-gen-context/tiles.html
@@ -199,7 +203,9 @@ $dokka.location:com.sletmoe.korogue.components/Locomotion/Locomotion/#kotlin.col
 $dokka.location:com.sletmoe.korogue.components/Locomotion/modes/#/PointingToDeclaration/engine/com.sletmoe.korogue.components/-locomotion/modes.html
 $dokka.location:com.sletmoe.korogue.components/MoveIntent///PointingToDeclaration/engine/com.sletmoe.korogue.components/-move-intent/index.html
 $dokka.location:com.sletmoe.korogue.components/MoveIntent/MoveIntent/#com.sletmoe.korogue.utilities.Direction/PointingToDeclaration/engine/com.sletmoe.korogue.components/-move-intent/-move-intent.html
+$dokka.location:com.sletmoe.korogue.components/MoveIntent/MoveIntent/#com.sletmoe.kotile.utilities.Vector2Int/PointingToDeclaration/engine/com.sletmoe.korogue.components/-move-intent/-move-intent.html
 $dokka.location:com.sletmoe.korogue.components/MoveIntent/MoveIntent/#kotlin.Int#kotlin.Int/PointingToDeclaration/engine/com.sletmoe.korogue.components/-move-intent/-move-intent.html
+$dokka.location:com.sletmoe.korogue.components/MoveIntent/delta/#/PointingToDeclaration/engine/com.sletmoe.korogue.components/-move-intent/delta.html
 $dokka.location:com.sletmoe.korogue.components/MoveIntent/dx/#/PointingToDeclaration/engine/com.sletmoe.korogue.components/-move-intent/dx.html
 $dokka.location:com.sletmoe.korogue.components/MoveIntent/dy/#/PointingToDeclaration/engine/com.sletmoe.korogue.components/-move-intent/dy.html
 $dokka.location:com.sletmoe.korogue.components/MovementTags///PointingToDeclaration/engine/com.sletmoe.korogue.components/-movement-tags/index.html
@@ -213,11 +219,14 @@ $dokka.location:com.sletmoe.korogue.components/Named/description/#/PointingToDec
 $dokka.location:com.sletmoe.korogue.components/Named/name/#/PointingToDeclaration/engine/com.sletmoe.korogue.components/-named/name.html
 $dokka.location:com.sletmoe.korogue.components/Player///PointingToDeclaration/engine/com.sletmoe.korogue.components/-player/index.html
 $dokka.location:com.sletmoe.korogue.components/Portal///PointingToDeclaration/engine/com.sletmoe.korogue.components/-portal/index.html
+$dokka.location:com.sletmoe.korogue.components/Portal/Portal/#kotlin.String#com.sletmoe.kotile.utilities.Vector2Int/PointingToDeclaration/engine/com.sletmoe.korogue.components/-portal/-portal.html
 $dokka.location:com.sletmoe.korogue.components/Portal/Portal/#kotlin.String#kotlin.Int#kotlin.Int/PointingToDeclaration/engine/com.sletmoe.korogue.components/-portal/-portal.html
+$dokka.location:com.sletmoe.korogue.components/Portal/target/#/PointingToDeclaration/engine/com.sletmoe.korogue.components/-portal/target.html
 $dokka.location:com.sletmoe.korogue.components/Portal/targetX/#/PointingToDeclaration/engine/com.sletmoe.korogue.components/-portal/target-x.html
 $dokka.location:com.sletmoe.korogue.components/Portal/targetY/#/PointingToDeclaration/engine/com.sletmoe.korogue.components/-portal/target-y.html
 $dokka.location:com.sletmoe.korogue.components/Portal/targetZoneId/#/PointingToDeclaration/engine/com.sletmoe.korogue.components/-portal/target-zone-id.html
 $dokka.location:com.sletmoe.korogue.components/Position///PointingToDeclaration/engine/com.sletmoe.korogue.components/-position/index.html
+$dokka.location:com.sletmoe.korogue.components/Position/Position/#com.sletmoe.kotile.utilities.Vector2Int/PointingToDeclaration/engine/com.sletmoe.korogue.components/-position/-position.html
 $dokka.location:com.sletmoe.korogue.components/Position/Position/#kotlin.Int#kotlin.Int/PointingToDeclaration/engine/com.sletmoe.korogue.components/-position/-position.html
 $dokka.location:com.sletmoe.korogue.components/Position/point/#/PointingToDeclaration/engine/com.sletmoe.korogue.components/-position/point.html
 $dokka.location:com.sletmoe.korogue.components/Position/x/#/PointingToDeclaration/engine/com.sletmoe.korogue.components/-position/x.html
@@ -1091,9 +1100,12 @@ $dokka.location:com.sletmoe.korogue.world/GameWorld/addZone/#com.sletmoe.korogue
 $dokka.location:com.sletmoe.korogue.world/GameWorld/currentZone/#/PointingToDeclaration/engine/com.sletmoe.korogue.world/-game-world/current-zone.html
 $dokka.location:com.sletmoe.korogue.world/GameWorld/currentZoneId/#/PointingToDeclaration/engine/com.sletmoe.korogue.world/-game-world/current-zone-id.html
 $dokka.location:com.sletmoe.korogue.world/GameWorld/ecs/#/PointingToDeclaration/engine/com.sletmoe.korogue.world/-game-world/ecs.html
+$dokka.location:com.sletmoe.korogue.world/GameWorld/entityAt/#kotlin.String#com.sletmoe.kotile.utilities.Vector2Int/PointingToDeclaration/engine/com.sletmoe.korogue.world/-game-world/entity-at.html
 $dokka.location:com.sletmoe.korogue.world/GameWorld/entityAt/#kotlin.String#kotlin.Int#kotlin.Int/PointingToDeclaration/engine/com.sletmoe.korogue.world/-game-world/entity-at.html
+$dokka.location:com.sletmoe.korogue.world/GameWorld/isWalkable/#kotlin.String#com.sletmoe.kotile.utilities.Vector2Int/PointingToDeclaration/engine/com.sletmoe.korogue.world/-game-world/is-walkable.html
 $dokka.location:com.sletmoe.korogue.world/GameWorld/isWalkable/#kotlin.String#kotlin.Int#kotlin.Int/PointingToDeclaration/engine/com.sletmoe.korogue.world/-game-world/is-walkable.html
 $dokka.location:com.sletmoe.korogue.world/GameWorld/random/#/PointingToDeclaration/engine/com.sletmoe.korogue.world/-game-world/random.html
+$dokka.location:com.sletmoe.korogue.world/GameWorld/relocate/#com.sletmoe.korogue.ecs.EntityId#kotlin.String#com.sletmoe.kotile.utilities.Vector2Int/PointingToDeclaration/engine/com.sletmoe.korogue.world/-game-world/relocate.html
 $dokka.location:com.sletmoe.korogue.world/GameWorld/relocate/#com.sletmoe.korogue.ecs.EntityId#kotlin.String#kotlin.Int#kotlin.Int/PointingToDeclaration/engine/com.sletmoe.korogue.world/-game-world/relocate.html
 $dokka.location:com.sletmoe.korogue.world/GameWorld/removeZone/#kotlin.String/PointingToDeclaration/engine/com.sletmoe.korogue.world/-game-world/remove-zone.html
 $dokka.location:com.sletmoe.korogue.world/GameWorld/simulatedZonePolicy/#/PointingToDeclaration/engine/com.sletmoe.korogue.world/-game-world/simulated-zone-policy.html
@@ -1129,6 +1141,7 @@ $dokka.location:com.sletmoe.korogue.world/Zone.Builder/addFeature/#kotlin.Functi
 $dokka.location:com.sletmoe.korogue.world/Zone.Builder/build/#/PointingToDeclaration/engine/com.sletmoe.korogue.world/-zone/-builder/build.html
 $dokka.location:com.sletmoe.korogue.world/Zone.Builder/fill/#com.sletmoe.korogue.world.Tile/PointingToDeclaration/engine/com.sletmoe.korogue.world/-zone/-builder/fill.html
 $dokka.location:com.sletmoe.korogue.world/Zone.Builder/pendingSpawns/#/PointingToDeclaration/engine/com.sletmoe.korogue.world/-zone/-builder/pending-spawns.html
+$dokka.location:com.sletmoe.korogue.world/Zone.Builder/setTile/#com.sletmoe.kotile.utilities.Vector2Int#com.sletmoe.korogue.world.Tile/PointingToDeclaration/engine/com.sletmoe.korogue.world/-zone/-builder/set-tile.html
 $dokka.location:com.sletmoe.korogue.world/Zone.Builder/setTile/#kotlin.Int#kotlin.Int#com.sletmoe.korogue.world.Tile/PointingToDeclaration/engine/com.sletmoe.korogue.world/-zone/-builder/set-tile.html
 $dokka.location:com.sletmoe.korogue.world/Zone.Companion///PointingToDeclaration/engine/com.sletmoe.korogue.world/-zone/-companion/index.html
 $dokka.location:com.sletmoe.korogue.world/Zone.Companion/create/#kotlin.String#kotlin.Int#kotlin.Int#kotlin.random.Random#kotlin.Function1[com.sletmoe.korogue.world.Zone.Builder,kotlin.Unit]/PointingToDeclaration/engine/com.sletmoe.korogue.world/-zone/-companion/create.html
@@ -1137,7 +1150,9 @@ $dokka.location:com.sletmoe.korogue.world/Zone/Zone/#kotlin.String#com.sletmoe.k
 $dokka.location:com.sletmoe.korogue.world/Zone/bounds/#/PointingToDeclaration/engine/com.sletmoe.korogue.world/-zone/bounds.html
 $dokka.location:com.sletmoe.korogue.world/Zone/concealment/#/PointingToDeclaration/engine/com.sletmoe.korogue.world/-zone/concealment.html
 $dokka.location:com.sletmoe.korogue.world/Zone/height/#/PointingToDeclaration/engine/com.sletmoe.korogue.world/-zone/height.html
+$dokka.location:com.sletmoe.korogue.world/Zone/isPassable/#com.sletmoe.kotile.utilities.Vector2Int#kotlin.collections.Set[kotlin.String]/PointingToDeclaration/engine/com.sletmoe.korogue.world/-zone/is-passable.html
 $dokka.location:com.sletmoe.korogue.world/Zone/isPassable/#kotlin.Int#kotlin.Int#kotlin.collections.Set[kotlin.String]/PointingToDeclaration/engine/com.sletmoe.korogue.world/-zone/is-passable.html
+$dokka.location:com.sletmoe.korogue.world/Zone/isWalkable/#com.sletmoe.kotile.utilities.Vector2Int/PointingToDeclaration/engine/com.sletmoe.korogue.world/-zone/is-walkable.html
 $dokka.location:com.sletmoe.korogue.world/Zone/isWalkable/#kotlin.Int#kotlin.Int/PointingToDeclaration/engine/com.sletmoe.korogue.world/-zone/is-walkable.html
 $dokka.location:com.sletmoe.korogue.world/Zone/lightMap/#/PointingToDeclaration/engine/com.sletmoe.korogue.world/-zone/light-map.html
 $dokka.location:com.sletmoe.korogue.world/Zone/tiles/#/PointingToDeclaration/engine/com.sletmoe.korogue.world/-zone/tiles.html
