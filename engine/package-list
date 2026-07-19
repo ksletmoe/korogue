@@ -932,16 +932,19 @@ $dokka.location:com.sletmoe.korogue.ui/PagedTextList/pages/#/PointingToDeclarati
 $dokka.location:com.sletmoe.korogue.ui/PagedTextListTest///PointingToDeclaration/engine/com.sletmoe.korogue.ui/-paged-text-list-test/index.html
 $dokka.location:com.sletmoe.korogue.ui/PagedTextListTest/PagedTextListTest/#/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-paged-text-list-test/-paged-text-list-test.html
 $dokka.location:com.sletmoe.korogue.ui/RecordingSurface.Cell///PointingToDeclaration/engine/com.sletmoe.korogue.ui/-recording-surface/-cell/index.html
-$dokka.location:com.sletmoe.korogue.ui/RecordingSurface.Cell/Cell/#kotlin.Int#kotlin.Int#kotlin.Int#kotlin.Char#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-recording-surface/-cell/-cell.html
+$dokka.location:com.sletmoe.korogue.ui/RecordingSurface.Cell/Cell/#kotlin.Int#kotlin.Int#kotlin.Int#com.sletmoe.kotile.display.ascii.AsciiTile/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-recording-surface/-cell/-cell.html
 $dokka.location:com.sletmoe.korogue.ui/RecordingSurface.Cell/bg/#/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-recording-surface/-cell/bg.html
 $dokka.location:com.sletmoe.korogue.ui/RecordingSurface.Cell/fg/#/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-recording-surface/-cell/fg.html
 $dokka.location:com.sletmoe.korogue.ui/RecordingSurface.Cell/glyph/#/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-recording-surface/-cell/glyph.html
+$dokka.location:com.sletmoe.korogue.ui/RecordingSurface.Cell/resolveAt/#kotlin.Long/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-recording-surface/-cell/resolve-at.html
+$dokka.location:com.sletmoe.korogue.ui/RecordingSurface.Cell/tile/#/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-recording-surface/-cell/tile.html
 $dokka.location:com.sletmoe.korogue.ui/RecordingSurface.Cell/x/#/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-recording-surface/-cell/x.html
 $dokka.location:com.sletmoe.korogue.ui/RecordingSurface.Cell/y/#/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-recording-surface/-cell/y.html
 $dokka.location:com.sletmoe.korogue.ui/RecordingSurface.Cell/z/#/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-recording-surface/-cell/z.html
 $dokka.location:com.sletmoe.korogue.ui/RecordingSurface///PointingToDeclaration/engine/com.sletmoe.korogue.ui/-recording-surface/index.html
 $dokka.location:com.sletmoe.korogue.ui/RecordingSurface/RecordingSurface/#kotlin.Int#kotlin.Int/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-recording-surface/-recording-surface.html
 $dokka.location:com.sletmoe.korogue.ui/RecordingSurface/height/#/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-recording-surface/height.html
+$dokka.location:com.sletmoe.korogue.ui/RecordingSurface/put/#kotlin.Int#kotlin.Int#kotlin.Int#com.sletmoe.kotile.display.ascii.AsciiTile/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-recording-surface/put.html
 $dokka.location:com.sletmoe.korogue.ui/RecordingSurface/put/#kotlin.Int#kotlin.Int#kotlin.Int#kotlin.Char#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-recording-surface/put.html
 $dokka.location:com.sletmoe.korogue.ui/RecordingSurface/puts/#/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-recording-surface/puts.html
 $dokka.location:com.sletmoe.korogue.ui/RecordingSurface/top/#kotlin.Int#kotlin.Int/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-recording-surface/top.html
@@ -949,6 +952,7 @@ $dokka.location:com.sletmoe.korogue.ui/RecordingSurface/width/#/PointingToDeclar
 $dokka.location:com.sletmoe.korogue.ui/RegionSurface///PointingToDeclaration/engine/com.sletmoe.korogue.ui/-region-surface/index.html
 $dokka.location:com.sletmoe.korogue.ui/RegionSurface/RegionSurface/#com.sletmoe.korogue.ui.TileSurface#com.sletmoe.korogue.utilities.IntRect#kotlin.Int#kotlin.Float/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-region-surface/-region-surface.html
 $dokka.location:com.sletmoe.korogue.ui/RegionSurface/height/#/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-region-surface/height.html
+$dokka.location:com.sletmoe.korogue.ui/RegionSurface/put/#kotlin.Int#kotlin.Int#kotlin.Int#com.sletmoe.kotile.display.ascii.AsciiTile/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-region-surface/put.html
 $dokka.location:com.sletmoe.korogue.ui/RegionSurface/put/#kotlin.Int#kotlin.Int#kotlin.Int#kotlin.Char#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-region-surface/put.html
 $dokka.location:com.sletmoe.korogue.ui/RegionSurface/width/#/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-region-surface/width.html
 $dokka.location:com.sletmoe.korogue.ui/RegionSurfaceTest///PointingToDeclaration/engine/com.sletmoe.korogue.ui/-region-surface-test/index.html
@@ -970,6 +974,7 @@ $dokka.location:com.sletmoe.korogue.ui/TextOverlayTest///PointingToDeclaration/
 $dokka.location:com.sletmoe.korogue.ui/TextOverlayTest/TextOverlayTest/#/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-text-overlay-test/-text-overlay-test.html
 $dokka.location:com.sletmoe.korogue.ui/TileSurface///PointingToDeclaration/engine/com.sletmoe.korogue.ui/-tile-surface/index.html
 $dokka.location:com.sletmoe.korogue.ui/TileSurface/height/#/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-tile-surface/height.html
+$dokka.location:com.sletmoe.korogue.ui/TileSurface/put/#kotlin.Int#kotlin.Int#kotlin.Int#com.sletmoe.kotile.display.ascii.AsciiTile/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-tile-surface/put.html
 $dokka.location:com.sletmoe.korogue.ui/TileSurface/put/#kotlin.Int#kotlin.Int#kotlin.Int#kotlin.Char#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-tile-surface/put.html
 $dokka.location:com.sletmoe.korogue.ui/TileSurface/width/#/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-tile-surface/width.html
 $dokka.location:com.sletmoe.korogue.ui/TileSurfaceTest///PointingToDeclaration/engine/com.sletmoe.korogue.ui/-tile-surface-test/index.html
@@ -996,6 +1001,7 @@ $dokka.location:com.sletmoe.korogue.ui/Widget/handleKey/#kotlin.Int/PointingToDe
 $dokka.location:com.sletmoe.korogue.ui/WindowSurface///PointingToDeclaration/engine/com.sletmoe.korogue.ui/-window-surface/index.html
 $dokka.location:com.sletmoe.korogue.ui/WindowSurface/WindowSurface/#com.sletmoe.kotile.display.ascii.AsciiTileWindow/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-window-surface/-window-surface.html
 $dokka.location:com.sletmoe.korogue.ui/WindowSurface/height/#/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-window-surface/height.html
+$dokka.location:com.sletmoe.korogue.ui/WindowSurface/put/#kotlin.Int#kotlin.Int#kotlin.Int#com.sletmoe.kotile.display.ascii.AsciiTile/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-window-surface/put.html
 $dokka.location:com.sletmoe.korogue.ui/WindowSurface/put/#kotlin.Int#kotlin.Int#kotlin.Int#kotlin.Char#com.badlogic.gdx.graphics.Color#com.badlogic.gdx.graphics.Color/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-window-surface/put.html
 $dokka.location:com.sletmoe.korogue.ui/WindowSurface/width/#/PointingToDeclaration/engine/com.sletmoe.korogue.ui/-window-surface/width.html
 $dokka.location:com.sletmoe.korogue.utilities////PointingToDeclaration/engine/com.sletmoe.korogue.utilities/index.html
