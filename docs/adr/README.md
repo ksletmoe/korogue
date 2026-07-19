@@ -47,3 +47,5 @@ Point-in-time records of **why** significant or hard-to-reverse decisions were m
 | [0031](0031-engine-package-homes-app-and-perception.md) | `app.Game` and `perception.ZoneFog` — retiring the `korogue.kotile` package | Accepted |
 | [0032](0032-system-construction-and-the-standard-pipeline.md) | One system-construction convention, and a validated standard pipeline | Accepted |
 | [0033](0033-tilesurface-carries-the-dynamic-tile-branch.md) | `TileSurface` carries kotile's dynamic-tile branch, with a static fallback | Accepted |
+| [0034](0034-vector2int-canonical-coordinate.md) | `Vector2Int` is the canonical 2D coordinate across the public API | Accepted |
+| [0035](0035-model-and-presentation-colour-types.md) | Two colour types — `NormalizedRgb` is the model, GDX `Color` is the presentation | Accepted |

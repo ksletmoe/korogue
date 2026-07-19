@@ -3,7 +3,7 @@ package com.sletmoe.korogue.demo
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Color
-import com.sletmoe.korogue.algorithms.color.toNormalizedRgb
+import com.sletmoe.korogue.algorithms.color.NormalizedRgb
 import com.sletmoe.korogue.algorithms.geometry.directionalMissileGlyph
 import com.sletmoe.korogue.algorithms.lighting.DiminishingLightValueCalculator
 import com.sletmoe.korogue.algorithms.los.LineOfSightCalculator
@@ -592,7 +592,7 @@ class MyGame(
         world.ecs.spawn(
             Position(cell.x, cell.y),
             ZoneMember(zoneId),
-            Renderable(glyph, Color.CYAN.toNormalizedRgb(), RenderLayer.CREATURE),
+            Renderable(glyph, NormalizedRgb.CYAN, RenderLayer.CREATURE),
             Portal(target, startPoint.x, startPoint.y),
             // step onto the portal, don't bump into it
             Collision.PASSABLE,
@@ -618,14 +618,14 @@ class MyGame(
             .spawn(
                 Position(startPoint.x, startPoint.y),
                 ZoneMember(world.currentZoneId),
-                Renderable('@', Color.YELLOW.toNormalizedRgb(), RenderLayer.PLAYER),
+                Renderable('@', NormalizedRgb.YELLOW, RenderLayer.PLAYER),
                 Health(100, 100),
                 Named("You"),
                 Player,
                 Inventory(),
                 // The player carries a lantern; LightingSystem renders it each tick.
                 LightEmitter(
-                    Color(1f, 1f, 150f / 255f, 1f).toNormalizedRgb(),
+                    NormalizedRgb(1.0, 1.0, 150.0 / 255.0),
                     15.0,
                     DiminishingLightValueCalculator.ID,
                 ),
@@ -653,7 +653,7 @@ class MyGame(
                     world.ecs.spawn(
                         Position(rx, ry),
                         ZoneMember(zone.zoneId),
-                        Renderable('s', Color.WHITE.toNormalizedRgb(), RenderLayer.CREATURE),
+                        Renderable('s', NormalizedRgb.WHITE, RenderLayer.CREATURE),
                         Health(100, 100),
                         Named("sheep", "docile"),
                         Behavior(WanderStrategy.ID),
@@ -662,7 +662,7 @@ class MyGame(
                     world.ecs.spawn(
                         Position(rx, ry),
                         ZoneMember(zone.zoneId),
-                        Renderable('z', Color.GREEN.toNormalizedRgb(), RenderLayer.CREATURE),
+                        Renderable('z', NormalizedRgb.GREEN, RenderLayer.CREATURE),
                         Health(100, 100),
                         Named("zombie", "aggressive"),
                         Behavior(HuntPlayerStrategy.ID),
@@ -675,7 +675,7 @@ class MyGame(
                     world.ecs.spawn(
                         Position(rx, ry),
                         ZoneMember(zone.zoneId),
-                        Renderable('a', Color.ORANGE.toNormalizedRgb(), RenderLayer.CREATURE),
+                        Renderable('a', NormalizedRgb.ORANGE, RenderLayer.CREATURE),
                         Health(100, 100),
                         Named("archer", "aggressive"),
                         Behavior(HuntPlayerStrategy.ID),
@@ -696,7 +696,7 @@ class MyGame(
             world.ecs.spawn(
                 Position(cell.x, cell.y),
                 ZoneMember(zone.zoneId),
-                Renderable(glyph, Color.GOLD.toNormalizedRgb(), RenderLayer.CREATURE),
+                Renderable(glyph, NormalizedRgb.GOLD, RenderLayer.CREATURE),
                 Item(name),
                 // step onto the item to pick it up
                 Collision.PASSABLE,
