@@ -9,6 +9,7 @@ import com.sletmoe.korogue.components.MovementTags
 import com.sletmoe.korogue.utilities.IntRect
 import com.sletmoe.korogue.utilities.initialize
 import com.sletmoe.kotile.utilities.Grid
+import com.sletmoe.kotile.utilities.Vector2Int
 import kotlin.random.Random
 
 /**
@@ -63,11 +64,20 @@ open class Zone(
         return moverModes.any { it !in blocks }
     }
 
+    /** [isPassable] at the canonical [Vector2Int] cell [at] (ADR-0034). */
+    fun isPassable(
+        at: Vector2Int,
+        moverModes: Set<String>,
+    ): Boolean = isPassable(at.x, at.y, moverModes)
+
     /** Terrain-only walkability: the walk-mode special case of [isPassable]. */
     fun isWalkable(
         x: Int,
         y: Int,
     ): Boolean = isPassable(x, y, setOf(MovementTags.WALK))
+
+    /** [isWalkable] at the canonical [Vector2Int] cell [at] (ADR-0034). */
+    fun isWalkable(at: Vector2Int): Boolean = isWalkable(at.x, at.y)
 
     /**
      * @property random the stream feature generators draw from. Required, and deliberately
@@ -106,6 +116,12 @@ open class Zone(
         ) {
             tiles[x, y] = tile
         }
+
+        /** [setTile] at the canonical [Vector2Int] cell [at] (ADR-0034). */
+        fun setTile(
+            at: Vector2Int,
+            tile: Tile,
+        ) = setTile(at.x, at.y, tile)
 
         /** Runs a terrain-only feature generator (mutates tiles; places no entities). */
         fun addFeature(featureGenerator: ZoneFeatureGenerator) {

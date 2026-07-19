@@ -13,6 +13,20 @@ class ComponentsTest : FunSpec({
         Position(3, 4).point shouldBe Vector2Int(3, 4)
     }
 
+    test("Position constructs from a Vector2Int equivalently to its Int pair (ADR-0034)") {
+        Position(Vector2Int(3, 4)) shouldBe Position(3, 4)
+    }
+
+    test("MoveIntent round-trips through its Vector2Int delta form (ADR-0034)") {
+        MoveIntent(Vector2Int(-1, 2)) shouldBe MoveIntent(-1, 2)
+        MoveIntent(-1, 2).delta shouldBe Vector2Int(-1, 2)
+    }
+
+    test("Portal constructs from and exposes a Vector2Int target (ADR-0034)") {
+        Portal("cave", Vector2Int(7, 8)) shouldBe Portal("cave", 7, 8)
+        Portal("cave", 7, 8).target shouldBe Vector2Int(7, 8)
+    }
+
     test("Health reports alive/dead from current") {
         Health(5, 10).alive.shouldBeTrue()
         Health(0, 10).alive.shouldBeFalse()

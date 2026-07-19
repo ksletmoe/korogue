@@ -1,6 +1,7 @@
 package com.sletmoe.korogue.components
 
 import com.sletmoe.korogue.ecs.Component
+import com.sletmoe.kotile.utilities.Vector2Int
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -15,4 +16,11 @@ data class Portal(
     val targetZoneId: String,
     val targetX: Int,
     val targetY: Int,
-) : Component
+) : Component {
+    /** Construct from a [Vector2Int] target — the canonical coordinate form (ADR-0034). */
+    constructor(targetZoneId: String, target: Vector2Int) : this(targetZoneId, target.x, target.y)
+
+    /** The destination cell as a [Vector2Int]. */
+    val target: Vector2Int
+        get() = Vector2Int(targetX, targetY)
+}

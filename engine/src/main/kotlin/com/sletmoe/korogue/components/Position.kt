@@ -9,6 +9,9 @@ import kotlinx.serialization.Serializable
 @Serializable
 @SerialName("position")
 data class Position(val x: Int, val y: Int) : Component {
+    /** Construct from a [Vector2Int] — the canonical coordinate form (ADR-0034). */
+    constructor(point: Vector2Int) : this(point.x, point.y)
+
     val point: Vector2Int
         get() = Vector2Int(x, y)
 }
