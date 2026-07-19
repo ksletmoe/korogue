@@ -48,18 +48,25 @@ tasks.register<Exec>("fetchDawnlikeAssets") {
     val args = mutableListOf("demo/scripts/fetch-dawnlike.sh")
     if (project.hasProperty("force")) args.add("--force")
     commandLine(args)
+    // Up-to-date tracking so a showcase run doesn't re-invoke the fetch script once the tileset is
+    // present: the marker the script itself checks is our declared output, so Gradle skips the task
+    // when it exists and is unchanged. `-Pforce` (re-download) always re-runs.
+    outputs.file(layout.projectDirectory.file("assets/dawnlike/Characters/Player0.png"))
+    outputs.upToDateWhen { !project.hasProperty("force") }
 }
 
 // Standalone showcase for animation work (krogue-aqo): a split sprite/glyph room, following
 // kotile:demo's *Harness convention (a JavaExec task dumps a PNG via the kotile.harness.out
 // system property, so the scene can be inspected without an interactive window). Requires
-// demo/assets/dawnlike/ — run fetchDawnlikeAssets first.
+// demo/assets/dawnlike/, fetched automatically via the fetchDawnlikeAssets dependency below.
 //
 //   ./gradlew :demo:animationShowcaseHarness                     # -> demo/build/animation-showcase.png
 //   ./gradlew :demo:animationShowcaseHarness -PoutFile=/tmp/a.png
 tasks.register<JavaExec>("animationShowcaseHarness") {
     group = "verification"
     description = "Renders the split sprite/glyph animation showcase room to a PNG."
+    // The scene reads demo/assets/dawnlike/; fetch it first (a no-op once present).
+    dependsOn("fetchDawnlikeAssets")
     mainClass.set("AnimationShowcaseHarnessKt")
     classpath = sourceSets["main"].runtimeClasspath
     workingDir = rootDir
@@ -76,12 +83,14 @@ tasks.register<JavaExec>("animationShowcaseHarness") {
 
 // Same scene, live and interactive: no kotile.harness.out means no auto-snapshot-and-exit, so
 // the window stays open (animated at real speed) until you close it. Requires
-// demo/assets/dawnlike/ — run fetchDawnlikeAssets first.
+// demo/assets/dawnlike/, fetched automatically via the fetchDawnlikeAssets dependency below.
 //
 //   ./gradlew :demo:runAnimationShowcase
 tasks.register<JavaExec>("runAnimationShowcase") {
     group = "application"
     description = "Runs the split sprite/glyph animation showcase room live, until the window is closed."
+    // The scene reads demo/assets/dawnlike/; fetch it first (a no-op once present).
+    dependsOn("fetchDawnlikeAssets")
     mainClass.set("AnimationShowcaseHarnessKt")
     classpath = sourceSets["main"].runtimeClasspath
     workingDir = rootDir

@@ -83,12 +83,19 @@ _Rationale and alternatives for each are in the ADRs: 0002 (entity model), 0003
 
 ### Standard components (`com.sletmoe.korogue.components`)
 
-`Position(x,y)`, `ZoneMember(zoneId)`, `Named(name, description?)`,
+Spatial + identity: `Position(x,y)`, `ZoneMember(zoneId)`, `Named(name, description?)`,
 `Health(current, max)` (with `alive`/`dead`), `Renderable(glyph, color: NormalizedRgb,
-layer: RenderLayer)`, `Player` (marker), `LightEmitter(color: NormalizedRgb, radius,
-calculatorId)`, `Behavior(strategyId)`, `Portal(targetZoneId, targetX, targetY)`. Intent
-components (transient, consumed by systems each tick): `MoveIntent(dx, dy)`,
-`AttackIntent(targetId)`. Colors are `NormalizedRgb` (immutable), not GDX `Color`; the
+layer: RenderLayer)`, `Player` (marker). Occupancy/movement (**ADR-0022**, tag-based rather than
+type-based): `Collision(blocks, bump)` — which `MovementTags` an occupant obstructs and whether a
+blocked mover attacks or no-ops (*absent* means solid + attackable, the fail-closed default;
+`Collision.PASSABLE` means step *onto* it — portals, floor items, traps); `Locomotion(modes)` — how
+a mover travels (absent = a plain `{walk}`er; tag flyers/swimmers). Behaviour + light:
+`Behavior(strategyId)`, `LightEmitter(color: NormalizedRgb, radius, calculatorId)`. Traversal +
+combat: `Portal(targetZoneId, targetX, targetY)`, `RangedAttacker(range)`. Items: `Item(name)`,
+`Inventory(items)`. Perception opt-in components (sense/concealment/suppressor types) live in the
+`perception` package — see [Perception & senses](#perception--senses-adr-0015). Intent components
+(transient, consumed by systems each tick): `MoveIntent(dx, dy)`, `AttackIntent(targetId)`. Colors
+are `NormalizedRgb` (immutable), not GDX `Color`; the
 renderer converts at the draw boundary (ADR-0035). `NormalizedRgb` is the **model** colour a
 consumer authors into components and light values — use its palette (`NormalizedRgb.YELLOW`,
 `.WHITE`, …) or `fromColor`/`fromHex`, not `Color.X.toNormalizedRgb()`. GDX `Color` is the
@@ -111,8 +118,17 @@ built-ins stay in `systems/` (krogue-elm).
   `strategyId` through the `Registry<BehaviorStrategy>` (the AI extension point — see
   "Extending the engine") and runs it to emit a `MoveIntent`. Built-ins
   (`BehaviorStrategies.kt`): `wander`, `hunt-player`.
-- **`MovementSystem(gameWorld)`** — consumes `MoveIntent`s: step onto walkable, unoccupied
-  terrain; bump into a (non-portal) occupant → emit `AttackIntent`; into a wall → no-op (4b-s6).
+- **`MovementSystem(gameWorld)`** — consumes `MoveIntent`s: step onto walkable terrain when no
+  occupant *blocks* the mover (a passable occupant — item, portal, trap — is stepped onto); a blocked
+  mover with a `bump`-to-attack occupant emits `AttackIntent`, a solid one is a no-op; occupancy is
+  resolved via `Collision`/`Locomotion` tags, not entity types (ADR-0022).
+- **`RangedAttackSystem(gameWorld, …)`** — lets a `RangedAttacker` fire on the player from a
+  distance (Chebyshev range, unbroken line of sight) instead of only chasing; emits `AttackIntent`
+  and a `RangedAttackFired` event (krogue-4tn). Runs before `MovementSystem` so a shot preempts the
+  move.
+- **`PickupSystem()`** — the **player** stepping onto a passable `Item` despawns it, adds it to the
+  player's `Inventory`, and emits `ItemPickedUp` (player-only, and a no-op unless the player has an
+  `Inventory`; krogue-sgs).
 - **`PortalSystem(gameWorld)`** — sends an entity through a `Portal` it stands on, moving
   it to the target zone/position; when the player traverses, it also switches `currentZoneId`
   so the active zone follows the player (4e, ADR-0008).
@@ -194,6 +210,64 @@ register with `.calculator(id, impl)`, reference via `LightEmitter.calculatorId`
 and register it with `.component<Foo>()` so the CBOR save codec can round-trip it. Resolving an
 unknown id fails loudly (a programmer error), and `GameModule` is the one place to check
 cross-registry coherence (e.g. a `strategyId` with no registered strategy).
+
+## Perception & senses (ADR-0015)
+
+Visibility is a third layer beyond terrain and lighting, in `com.sletmoe.korogue.perception`. A
+`PerceptionModel` answers `perceive(observer, world) -> Perceived` (perceived cells + entities),
+resolved by id through `GameModule.perceptionModels`. The engine default `StandardPerception` runs a
+**two-phase reveal/suppress** model: phase 1 unions every sense component the observer carries (each
+resolved to a registered `Sense` via `GameModule.senses`); phase 2 drops a contribution when a
+target `Concealment` negates it or an observer `Suppressor` blocks its channel, unless the sense
+`pierces` that tag. Built-in senses are their own components (the ECS keys by class): `Sight` (LOS,
+light-gated), `Darkvision` (LOS, ignores light), `Tremorsense`/`Telepathy` (living creatures through
+walls), `TrueSight` (pierces `{visual}` concealment); built-in effects are `Invisible` (concealment),
+`Blind`/`Dazzled` (suppressors). `Perceived` doubles as a per-observer **cache component**: attach an
+empty one and `PerceptionSystem` rewrites it each tick (the `lightMap` pattern, active-zone-scoped),
+while the query stays callable directly for AI. Per-observer sight radius lives on `Sight.radius`;
+per-zone "previously seen" fog is host-owned (`ZoneFog`), not part of `Perceived`.
+
+## Time — the game loop and the scheduler
+
+Two orthogonal clocks, both save-safe:
+
+- **When the world advances** is a pluggable `GameLoop` (`com.sletmoe.korogue.loop`, krogue-lhw):
+  `TurnBasedLoop` ticks once per committed player action; `RealTimeLoop` ticks continuously at a
+  fixed timestep (accumulating each frame's `deltaMs`, with a catch-up cap) so game speed is
+  independent of render FPS. A game picks one; the demo defaults to turn-based.
+- **What fires on which turn** is a turn-keyed `Scheduler` (`com.sletmoe.korogue.schedule`,
+  krogue-6uq, modelled on Rogue's `daemons.c`): **fuses** (one-shot after N turns) and **daemons**
+  (recurring every N turns), cancel/lengthen by handle. Effects are `TimedEffect`s registered by id
+  on the `GameModule` (`effects` registry), so the schedule serializes; `SchedulerSystem` advances
+  it once per world turn.
+
+Both assume today that one `tick()` is one round in which every active creature acts once.
+**ADR-0023 (Proposed)** sketches a future variable-action-cost (energy) model layered on this seam —
+it is a direction, not current behaviour.
+
+## Save/load & determinism (ADR-0009, ADR-0025)
+
+The world owns a **seeded, serializable RNG** (xoshiro256** with named streams), so a shared seed
+reproduces a run and a save resumes it mid-stream (ADR-0025). `SaveCodec` (`com.sletmoe.korogue.save`)
+round-trips a **versioned CBOR envelope** over entities + terrain + RNG + per-zone fog + scheduler
+state. New sections are additive/defaulted, so an older payload of the *same* `formatVersion` still
+decodes; a top-level `formatVersion` mismatch fails fast (a `check` in `SaveCodec.load`) rather than
+attempting a partial read. Components serialize by the
+registration convention (see [Extending the engine](#extending-the-engine--pluggable-strategies-calculators-components-4d-adr-0009)):
+a `@Serializable` component is registered with `.component<T>()`, and non-serializable behaviour is
+referenced by a stable id resolved through the module's registries at load.
+
+## UI toolkit (ADR-0011)
+
+A korogue-side, **retained-mode TUI widget layer** in `com.sletmoe.korogue.ui`, on top of kotile's
+z-layered `AsciiTileWindow` (no kotile changes). `TileSurface` is the draw seam — fakeable, so the
+whole UI (the map included) is headlessly testable; `UiRoot` composites a widget-layer stack in one
+pass and routes input to the topmost modal (dimming behind via `RegionSurface`). Widgets include
+`MapPanel` (renders a chosen observer's `Perceived`), `Frame`, `Label`, `BarWidget`, `Menu`,
+`Dialog`, `LogPanel`, `InventoryPanel`, and `HotkeyMenu`. The `app.Game` base class (a libGDX
+`ApplicationAdapter`) hosts the window and drives input -> `onTick` -> `drawFrame`. This is the
+ASCII/text UI path; kotile's pixel-space `UiLayer` (ADR-0018) is the separate choice for *graphical*
+tile UIs.
 
 ## Kotlin gotchas encountered (relevant to ongoing ECS work)
 
