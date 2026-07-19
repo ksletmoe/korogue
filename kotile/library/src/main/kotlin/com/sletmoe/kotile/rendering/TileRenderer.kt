@@ -317,8 +317,12 @@ abstract class TileRenderer(
      *
      * This never clears [canvas] itself — when the constructor's `sharesCanvas` was `true`
      * ([compositeBlend] is then [BlendMode.NORMAL], see "Sharing a canvas with other renderers"
-     * above), a cell this renderer has since stopped populating leaves a stale pixel behind unless
-     * the caller clears the canvas, or every sharing pane fully redraws, each frame (krogue-a24).
+     * above), a cell this renderer has since stopped populating leaves a stale pixel behind
+     * (krogue-a24). That happens because [BlendMode.NORMAL] uses alpha blending: transparent texels
+     * in the composite cache leave the destination pixels unchanged rather than overwriting them, so
+     * opaque content from a previous frame persists. Callers sharing a canvas must either clear it
+     * each frame, or explicitly repaint any cell that may become empty with opaque pixels — a redraw
+     * of only currently-populated cells is not sufficient.
      *
      * @param elapsedMs monotonically increasing wall-clock time in milliseconds
      *   used to determine the current frame of any [DynamicSpriteTile] (animated) entries.
