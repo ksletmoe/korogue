@@ -54,12 +54,22 @@ class GameWorldTest : FunSpec({
 
     test("the current zone cannot be removed") {
         val world = world()
-        shouldThrow<RuntimeException> { world.removeZone("start") }
+        shouldThrow<IllegalArgumentException> { world.removeZone("start") }
     }
 
     test("switching to an unregistered zone is rejected") {
         val world = world()
-        shouldThrow<RuntimeException> { world.currentZoneId = "ghost" }
+        shouldThrow<IllegalArgumentException> { world.currentZoneId = "ghost" }
+    }
+
+    test("Builder.build rejects a world with no zones") {
+        shouldThrow<IllegalStateException> { GameWorld.create { } }
+    }
+
+    test("Builder.build rejects a world with no current zone set") {
+        shouldThrow<IllegalStateException> {
+            GameWorld.create { zone("start", 4, 4) } // no isCurrentZone
+        }
     }
 
     test("relocate sets ZoneMember and Position together, atomically (ADR-0021 Mechanic B)") {
