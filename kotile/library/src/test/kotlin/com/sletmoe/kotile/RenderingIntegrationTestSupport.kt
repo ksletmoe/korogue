@@ -38,8 +38,11 @@ internal class SolidWidget(
     private val texture: Texture,
     override var visible: Boolean = true,
 ) : Widget {
+    // Built once, not per render (mirrors the ButtonWidget fix in krogue-eea).
+    private val region = TextureRegion(texture)
+
     override fun render(canvas: KotileCanvas) {
-        canvas.drawSprite(bounds.x, bounds.y, TextureRegion(texture), bounds.width, bounds.height)
+        canvas.drawSprite(bounds.x, bounds.y, region, bounds.width, bounds.height)
     }
 }
 
