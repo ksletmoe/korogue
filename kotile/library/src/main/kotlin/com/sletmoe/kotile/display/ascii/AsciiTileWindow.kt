@@ -755,6 +755,13 @@ class AsciiTileWindow private constructor(
     // -------------------------------------------------------------------------
 
     /**
+     * The [KotileCanvas] this window renders into. Exposed (module-internal) as an
+     * ownership-observation seam: a [create]-built window allocates this canvas
+     * itself, so a test cannot otherwise reach it to confirm [dispose] released it.
+     */
+    internal val backingCanvas: KotileCanvas get() = canvas
+
+    /**
      * Releases GPU resources owned by this window.
      *
      * ## Ownership rules

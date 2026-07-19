@@ -45,15 +45,21 @@ class AsciiTileWindowSharedCanvasTest : FunSpec({
 
     test("create (DSL): disposing the window disposes its own canvas")
         .config(enabled = HeadlessGl.available) {
-            // Regression guard: the existing create {} path must still dispose its canvas.
-            // We verify indirectly: the window is created and disposed without error.
+            // Regression guard: the existing create {} path must dispose the canvas it owns.
+            // Observe it directly via the canvas's disposed flag (the window allocates this
+            // canvas internally, so backingCanvas is the only handle a test has on it) — a
+            // test that merely created and disposed the window without error would pass even
+            // if the owned canvas leaked.
             HeadlessGl.render(80, 40, com.badlogic.gdx.graphics.Color.BLACK) {
                 val window =
                     AsciiTileWindow.create {
                         widthInTiles = 8
                         heightInTiles = 4
                     }
-                window.dispose() // must not throw
+                val ownedCanvas = window.backingCanvas
+                ownedCanvas.disposed shouldBe false
+                window.dispose()
+                ownedCanvas.disposed shouldBe true // window owns it, so dispose() must release it
             }.dispose()
         }
 

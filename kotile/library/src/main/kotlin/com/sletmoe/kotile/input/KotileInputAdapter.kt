@@ -16,31 +16,31 @@ package com.sletmoe.kotile.input
  * ```
  */
 open class KotileInputAdapter : KotileInputListener {
-    override fun onKeyDown(keycode: Int) {}
+    override fun onKeyDown(keycode: Int) = Unit
 
-    override fun onKeyUp(keycode: Int) {}
+    override fun onKeyUp(keycode: Int) = Unit
 
-    override fun onKeyTyped(character: Char) {}
+    override fun onKeyTyped(character: Char) = Unit
 
     override fun onTileClicked(
         tileX: Int,
         tileY: Int,
         button: Int,
-    ) {}
+    ) = Unit
 
     override fun onTileHovered(
         tileX: Int,
         tileY: Int,
-    ) {}
+    ) = Unit
 
     override fun onTileDragged(
         tileX: Int,
         tileY: Int,
         button: Int,
-    ) {}
+    ) = Unit
 
     override fun onScrolled(
         amountX: Float,
         amountY: Float,
-    ) {}
+    ) = Unit
 }

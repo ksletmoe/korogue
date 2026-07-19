@@ -38,7 +38,7 @@ class RenderingLifecycleIntegrationTest : FunSpec({
             window.render()
             window.dispose()
             window.dispose() // must not throw or double-free GPU resources
-        }
+        }.dispose() // this test ignores the pixels; free the captured Pixmap
     }
 
     test("SpriteTileRenderer: a second dispose() call is a clean no-op").config(enabled = HeadlessGl.available) {
@@ -59,7 +59,7 @@ class RenderingLifecycleIntegrationTest : FunSpec({
             renderer.dispose() // must not throw or double-free GPU resources
             canvas.dispose()
             sheet.dispose()
-        }
+        }.dispose() // this test ignores the pixels; free the captured Pixmap
     }
 
     // -------------------------------------------------------------------------
