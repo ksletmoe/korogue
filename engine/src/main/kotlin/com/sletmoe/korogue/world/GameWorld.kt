@@ -8,6 +8,7 @@ import com.sletmoe.korogue.ecs.EntityId
 import com.sletmoe.korogue.ecs.World
 import com.sletmoe.korogue.random.GameRandom
 import com.sletmoe.korogue.utilities.initialize
+import com.sletmoe.kotile.utilities.Vector2Int
 import kotlin.random.Random
 
 /**
@@ -112,6 +113,13 @@ open class GameWorld(
         return zoneSet && positionSet
     }
 
+    /** [relocate] to the canonical [Vector2Int] cell [to] (ADR-0034). */
+    fun relocate(
+        entityId: EntityId,
+        zoneId: String,
+        to: Vector2Int,
+    ): Boolean = relocate(entityId, zoneId, to.x, to.y)
+
     /** The entity occupying ([x], [y]) in zone [zoneId], or null. Occupancy lives in the ECS now. */
     fun entityAt(
         zoneId: String,
@@ -123,6 +131,12 @@ open class GameWorld(
             pos.x == x && pos.y == y && it.require<ZoneMember>().zoneId == zoneId
         }
 
+    /** The entity occupying the canonical [Vector2Int] cell [at] in [zoneId], or null (ADR-0034). */
+    fun entityAt(
+        zoneId: String,
+        at: Vector2Int,
+    ): Entity? = entityAt(zoneId, at.x, at.y)
+
     /** True if ([x], [y]) in [zoneId] is walkable terrain *and* unoccupied. */
     fun isWalkable(
         zoneId: String,
@@ -132,6 +146,12 @@ open class GameWorld(
         val zone = zones[zoneId] ?: return false
         return zone.isWalkable(x, y) && entityAt(zoneId, x, y) == null
     }
+
+    /** True if the canonical [Vector2Int] cell [at] in [zoneId] is walkable and unoccupied (ADR-0034). */
+    fun isWalkable(
+        zoneId: String,
+        at: Vector2Int,
+    ): Boolean = isWalkable(zoneId, at.x, at.y)
 
     /**
      * @property random the master RNG for the world being built. It seeds zone generation here
@@ -192,7 +212,7 @@ open class GameWorld(
             // Materialize buffered zone-gen spawns now that the ECS world exists (ADR-0019),
             // adding Position (the cell) and ZoneMember (the zone) to each entity's own components.
             pendingSpawns.forEach { (zoneId, request) ->
-                gameWorld.ecs.spawn(request.components + Position(request.x, request.y) + ZoneMember(zoneId))
+                gameWorld.ecs.spawn(request.components + Position(request.point) + ZoneMember(zoneId))
             }
 
             return gameWorld

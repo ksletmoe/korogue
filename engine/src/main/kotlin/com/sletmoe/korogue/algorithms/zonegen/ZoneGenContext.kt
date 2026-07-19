@@ -3,6 +3,7 @@ package com.sletmoe.korogue.algorithms.zonegen
 import com.sletmoe.korogue.ecs.Component
 import com.sletmoe.korogue.world.Tile
 import com.sletmoe.kotile.utilities.Grid
+import com.sletmoe.kotile.utilities.Vector2Int
 import kotlin.random.Random
 
 /**
@@ -48,6 +49,18 @@ class ZoneGenContext(
         y: Int,
         vararg components: Component,
     ) = spawn(x, y, components.asList())
+
+    /** [spawn] at the canonical [Vector2Int] cell [at] carrying [components] (ADR-0034). */
+    fun spawn(
+        at: Vector2Int,
+        components: List<Component>,
+    ) = spawn(at.x, at.y, components)
+
+    /** [spawn] at the canonical [Vector2Int] cell [at] carrying [components] (vararg form). */
+    fun spawn(
+        at: Vector2Int,
+        vararg components: Component,
+    ) = spawn(at.x, at.y, components.asList())
 }
 
 /**
@@ -59,4 +72,11 @@ data class SpawnRequest(
     val x: Int,
     val y: Int,
     val components: List<Component>,
-)
+) {
+    /** Construct from the canonical [Vector2Int] cell [point] (ADR-0034). */
+    constructor(point: Vector2Int, components: List<Component>) : this(point.x, point.y, components)
+
+    /** This request's cell as a [Vector2Int]. */
+    val point: Vector2Int
+        get() = Vector2Int(x, y)
+}

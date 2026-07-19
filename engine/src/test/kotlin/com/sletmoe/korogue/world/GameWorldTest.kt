@@ -2,6 +2,7 @@ package com.sletmoe.korogue.world
 
 import com.sletmoe.korogue.components.Position
 import com.sletmoe.korogue.components.ZoneMember
+import com.sletmoe.kotile.utilities.Vector2Int
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.booleans.shouldBeFalse
@@ -81,5 +82,23 @@ class GameWorldTest : FunSpec({
         // Signals the missing id rather than dropping the write silently — mirrors World.set.
         world.relocate(entity, "next", 2, 2).shouldBeFalse()
         world.ecs.contains(entity).shouldBeFalse()
+    }
+
+    test("the Vector2Int overloads agree with the (x, y) forms (ADR-0034)") {
+        val world = world()
+        world.addZone(Zone.create("next", 3, 3, Random(0)))
+        val entity = world.ecs.spawn(Position(1, 1), ZoneMember("start")).id
+
+        // Asymmetric cell throughout: a swapped-axis overload would target (1, 2) and fail every assertion.
+        world.relocate(entity, "next", Vector2Int(2, 1)).shouldBeTrue()
+        world.ecs.get(entity)!!.require<Position>() shouldBe Position(2, 1)
+        world.ecs.get(entity)!!.require<ZoneMember>().zoneId shouldBe "next"
+
+        world.entityAt("next", Vector2Int(2, 1))!!.id shouldBe entity
+        world.entityAt("next", Vector2Int(2, 1)) shouldBe world.entityAt("next", 2, 1)
+        world.entityAt("next", Vector2Int(1, 2)) shouldBe null // the transposed cell is empty
+
+        world.isWalkable("next", Vector2Int(0, 1)) shouldBe world.isWalkable("next", 0, 1)
+        world.isWalkable("next", Vector2Int(2, 1)).shouldBeFalse() // occupied
     }
 })
