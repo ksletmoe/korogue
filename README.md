@@ -112,7 +112,8 @@ class HelloRogue : Game() {
     // Terrain + entities. The world owns its RNG, seeded here (a seed reproduces the run).
     private val world = GameWorld.create(GameRandom.random()) {
         zone("cave", width = 80, height = 40, isCurrentZone = true) {
-            fill(wallTile); addFeature(randomWalkCave(startX, startY, length, floorTile))
+            fill(wallTile)
+            addFeature(randomWalkCave(startX, startY, length, floorTile))
         }
     }
 
@@ -129,7 +130,11 @@ class HelloRogue : Game() {
     private val zoneFog = ZoneFog()   // per-zone "previously seen" memory, so explored areas stay drawn
     private lateinit var ui: UiRoot
 
-    override fun buildWindow() = AsciiTileWindow.create { widthInTiles = 80; heightInTiles = 40 }
+    override fun buildWindow() =
+        AsciiTileWindow.create {
+            widthInTiles = 80
+            heightInTiles = 40
+        }
 
     override fun create() {
         super.create()
@@ -141,7 +146,11 @@ class HelloRogue : Game() {
     }
 
     override fun onKeyDown(keycode: Int) { /* set MoveIntent on the player, then world.ecs.tick() */ }
-    override fun drawFrame(elapsedMs: Long) { window.clear(); ui.render(); window.render(elapsedMs) }
+    override fun drawFrame(elapsedMs: Long) {
+        window.clear()
+        ui.render()
+        window.render(elapsedMs)
+    }
 }
 ```
 
