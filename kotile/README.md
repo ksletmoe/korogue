@@ -18,20 +18,26 @@ and redraw the visible grid each frame via a `SpriteBatch`.
 > tile recolored with a per-tile hue tint (middle), an untinted row, and ASCII
 > labels — all in one frame.
 
+## Where this lives
+
+kotile is developed **inside the [korogue](../README.md) monorepo** as the Gradle subprojects
+`:kotile:library` and `:kotile:demo` (ADR-0013 in the korogue repo). It keeps its own maven
+coordinates (`com.sletmoe:kotile`) and stays independently reusable by any libGDX tile game — the
+engine and renderer are just co-developed in one repo now, so the module paths below are
+`:kotile:library` / `:kotile:demo` rather than a standalone `:library` / `:demo`.
+
 ## Project layout
 
-A Gradle multi-module build:
-
-- **`:library`** — the published artifact `com.sletmoe:kotile`. Depends only on
+- **`:kotile:library`** — the published artifact `com.sletmoe:kotile`. Depends only on
   **gdx core**, so you bring your own gdx backend.
-- **`:demo`** — a runnable LWJGL3 application showcasing both tile styles.
+- **`:kotile:demo`** — a runnable LWJGL3 application showcasing both tile styles.
 
 ## Using the library
 
-Publish it to your local Maven repository:
+Publish it to your local Maven repository (from the korogue repo root):
 
 ```bash
-./gradlew :library:publishToMavenLocal
+./gradlew :kotile:library:publishToMavenLocal
 ```
 
 Then depend on it, adding a gdx backend for your target platform (desktop shown):
@@ -52,18 +58,18 @@ dependencies {
 
 ### Consuming kotile via composite build
 
-If you are developing kotile alongside your project and want to use
-`includeBuild` instead of publishing to Maven Local, add a
-`dependencySubstitution` block. Without it Gradle reports
-"No variants exist" because kotile's root project is a container — the
-publishable artifact is in the `:library` sub-project.
+If you are co-developing against kotile and want to use `includeBuild` instead of publishing to
+Maven Local, include the **korogue** build (which contains kotile) and add a
+`dependencySubstitution` block mapping the coordinate onto the `:kotile:library` sub-project.
+Without the substitution Gradle reports "No variants exist" because korogue's root project is a
+pure aggregator — the publishable kotile artifact is in `:kotile:library`.
 
 In your consumer's `settings.gradle.kts`:
 
 ```kotlin
-includeBuild("../kotile") {
+includeBuild("../korogue") {
     dependencySubstitution {
-        substitute(module("com.sletmoe:kotile")).using(project(":library"))
+        substitute(module("com.sletmoe:kotile")).using(project(":kotile:library"))
     }
 }
 ```
@@ -150,27 +156,32 @@ borders and gaps between tiles.
 
 ## Running the demo
 
+Run these from the **korogue repo root** (kotile no longer has its own wrapper — the `:kotile:*`
+task paths and `./gradlew` both belong to the monorepo build):
+
 ```bash
-./gradlew :demo:run
+./gradlew :kotile:demo:run
 ```
 
 In a headless environment you need a virtual display with software OpenGL; the
 demo can render a single frame to a PNG and exit:
 
 ```bash
-./gradlew :demo:installDist -q
+./gradlew :kotile:demo:installDist -q
 LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe \
   KOTILE_OPTS="-Dkotile.snapshot=$PWD/render.png" \
-  xvfb-run -a -s "-screen 0 1024x768x24" demo/build/install/kotile/bin/kotile
+  xvfb-run -a -s "-screen 0 1024x768x24" kotile/demo/build/install/kotile/bin/kotile
 ```
 
 ## Building, testing, docs
 
+Also from the korogue repo root:
+
 ```bash
-./gradlew build                                       # compile, assemble, test
-./gradlew :library:test                               # unit tests
-xvfb-run -a ./gradlew :library:test --no-daemon       # + headless GL integration tests
-./gradlew :library:dokkaGenerate                      # API docs -> library/build/dokka/html
+./gradlew build                                          # compile, assemble, test (whole repo)
+./gradlew :kotile:library:test                           # unit tests
+xvfb-run -a ./gradlew :kotile:library:test --no-daemon   # + headless GL integration tests
+./gradlew :kotile:library:dokkaGenerate                  # API docs -> kotile/library/build/dokka/html
 ```
 
 Built with Gradle 9.5.1, Kotlin 2.3.21 (JDK 21 toolchain), and libGDX 1.14.1.
