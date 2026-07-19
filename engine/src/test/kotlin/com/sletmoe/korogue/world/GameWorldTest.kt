@@ -89,14 +89,16 @@ class GameWorldTest : FunSpec({
         world.addZone(Zone.create("next", 3, 3, Random(0)))
         val entity = world.ecs.spawn(Position(1, 1), ZoneMember("start")).id
 
-        world.relocate(entity, "next", Vector2Int(2, 2)).shouldBeTrue()
-        world.ecs.get(entity)!!.require<Position>() shouldBe Position(2, 2)
+        // Asymmetric cell throughout: a swapped-axis overload would target (1, 2) and fail every assertion.
+        world.relocate(entity, "next", Vector2Int(2, 1)).shouldBeTrue()
+        world.ecs.get(entity)!!.require<Position>() shouldBe Position(2, 1)
         world.ecs.get(entity)!!.require<ZoneMember>().zoneId shouldBe "next"
 
-        world.entityAt("next", Vector2Int(2, 2))!!.id shouldBe entity
-        world.entityAt("next", Vector2Int(2, 2)) shouldBe world.entityAt("next", 2, 2)
+        world.entityAt("next", Vector2Int(2, 1))!!.id shouldBe entity
+        world.entityAt("next", Vector2Int(2, 1)) shouldBe world.entityAt("next", 2, 1)
+        world.entityAt("next", Vector2Int(1, 2)) shouldBe null // the transposed cell is empty
 
-        world.isWalkable("next", Vector2Int(0, 0)) shouldBe world.isWalkable("next", 0, 0)
-        world.isWalkable("next", Vector2Int(2, 2)).shouldBeFalse() // occupied
+        world.isWalkable("next", Vector2Int(0, 1)) shouldBe world.isWalkable("next", 0, 1)
+        world.isWalkable("next", Vector2Int(2, 1)).shouldBeFalse() // occupied
     }
 })
