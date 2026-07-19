@@ -97,17 +97,19 @@ open class GameWorld(
      * half-updated entity with a [ZoneMember] pointing at one zone and a [Position] meant for
      * another. The atomic primitive for any boundary-crossing move (ADR-0021 Mechanic B) — e.g.
      * [com.sletmoe.korogue.systems.PortalSystem] sending an entity through a [com.sletmoe.korogue.components.Portal].
-     * No-op if [entityId] doesn't exist (delegates to [World.set], which is itself a no-op for
-     * unknown ids).
+     * Returns true if [entityId] existed and both writes applied; false — a no-op — if it
+     * doesn't exist, mirroring [World.set], which signals the missing id rather than dropping
+     * the write silently.
      */
     fun relocate(
         entityId: EntityId,
         zoneId: String,
         x: Int,
         y: Int,
-    ) {
-        ecs.set(entityId, ZoneMember(zoneId))
-        ecs.set(entityId, Position(x, y))
+    ): Boolean {
+        val zoneSet = ecs.set(entityId, ZoneMember(zoneId))
+        val positionSet = ecs.set(entityId, Position(x, y))
+        return zoneSet && positionSet
     }
 
     /** The entity occupying ([x], [y]) in zone [zoneId], or null. Occupancy lives in the ECS now. */

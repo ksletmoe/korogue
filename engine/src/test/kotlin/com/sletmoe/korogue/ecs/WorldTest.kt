@@ -85,17 +85,26 @@ class WorldTest : DescribeSpec({
     }
 
     describe("component mutation seam") {
-        it("set attaches and replaces by concrete type") {
+        it("set attaches and replaces by concrete type, reporting the write applied") {
             val world = World()
             val e = world.spawn()
-            world.set(e.id, Health(50, 100))
+            world.set(e.id, Health(50, 100)).shouldBeTrue()
             e.get<Health>() shouldBe Health(50, 100)
-            world.set(e.id, Health(75, 100))
+            world.set(e.id, Health(75, 100)).shouldBeTrue()
             e.get<Health>() shouldBe Health(75, 100)
         }
 
-        it("set is a no-op for an unknown entity") {
-            World().set(EntityId(5), Health(1, 1))
+        it("set returns false and writes nothing for an unknown entity") {
+            val world = World()
+            world.set(EntityId(5), Health(1, 1)).shouldBeFalse()
+            world.contains(EntityId(5)).shouldBeFalse()
+        }
+
+        it("set returns false after the target is despawned — a stray write is signalled") {
+            val world = World()
+            val e = world.spawn(Health(10, 10))
+            world.despawn(e.id)
+            world.set(e.id, Health(1, 1)).shouldBeFalse()
         }
 
         it("update reads, transforms, stores, and returns the new value") {

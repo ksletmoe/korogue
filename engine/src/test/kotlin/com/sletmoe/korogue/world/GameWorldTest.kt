@@ -4,6 +4,8 @@ import com.sletmoe.korogue.components.Position
 import com.sletmoe.korogue.components.ZoneMember
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.booleans.shouldBeFalse
+import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.collections.shouldNotContain
 import io.kotest.matchers.shouldBe
@@ -64,19 +66,20 @@ class GameWorldTest : FunSpec({
         world.addZone(Zone.create("next", 3, 3, Random(0)))
         val entity = world.ecs.spawn(Position(1, 1), ZoneMember("start")).id
 
-        world.relocate(entity, "next", 2, 2)
+        world.relocate(entity, "next", 2, 2).shouldBeTrue()
 
         world.ecs.get(entity)!!.require<ZoneMember>().zoneId shouldBe "next"
         world.ecs.get(entity)!!.require<Position>() shouldBe Position(2, 2)
     }
 
-    test("relocate is a no-op for an unknown entity id") {
+    test("relocate returns false and writes nothing for an unknown entity id") {
         val world = world()
         world.addZone(Zone.create("next", 3, 3, Random(0)))
         val entity = world.ecs.spawn(Position(1, 1), ZoneMember("start")).id
         world.ecs.despawn(entity)
 
-        // Should not throw — matches World.set's no-op-on-unknown-id contract.
-        world.relocate(entity, "next", 2, 2)
+        // Signals the missing id rather than dropping the write silently — mirrors World.set.
+        world.relocate(entity, "next", 2, 2).shouldBeFalse()
+        world.ecs.contains(entity).shouldBeFalse()
     }
 })
