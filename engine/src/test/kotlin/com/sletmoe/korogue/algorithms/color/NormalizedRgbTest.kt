@@ -198,6 +198,13 @@ class NormalizedRgbTest : DescribeSpec({
             rgb.g shouldBe (0.0 plusOrMinus 1e-6)
             rgb.b shouldBe (1.0 plusOrMinus 1e-6)
         }
+
+        it("accepts an optional leading # (as the KDoc documents)") {
+            val rgb = NormalizedRgb.fromHex("#00ff00")
+            rgb.r shouldBe (0.0 plusOrMinus 1e-6)
+            rgb.g shouldBe (1.0 plusOrMinus 1e-6)
+            rgb.b shouldBe (0.0 plusOrMinus 1e-6)
+        }
     }
 
     describe("NormalizedRgb.lerp()") {
