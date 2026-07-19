@@ -46,9 +46,15 @@ class LayeredTilemap<T : Any>(val width: Int, val height: Int) {
      * remembered prior value to detect "this cell changed since I last looked"
      * without consuming a shared signal off the tilemap (krogue-c0q).
      */
-    fun versionAt(x: Int, y: Int): Int = version[x, y]
+    fun versionAt(
+        x: Int,
+        y: Int,
+    ): Int = version[x, y]
 
-    private fun bump(x: Int, y: Int) {
+    private fun bump(
+        x: Int,
+        y: Int,
+    ) {
         version[x, y] = nextVersion++
     }
 
@@ -61,13 +67,21 @@ class LayeredTilemap<T : Any>(val width: Int, val height: Int) {
      *
      * Equivalent to `setCell(position.x, position.y, position.z, cell)`.
      */
-    fun setCell(position: Vector3Int, cell: T) = setCell(position.x, position.y, position.z, cell)
+    fun setCell(
+        position: Vector3Int,
+        cell: T,
+    ) = setCell(position.x, position.y, position.z, cell)
 
     /**
      * Places [cell] at column [x], row [y] on layer [z], creating the layer
      * if it does not yet exist.
      */
-    fun setCell(x: Int, y: Int, z: Int, cell: T) {
+    fun setCell(
+        x: Int,
+        y: Int,
+        z: Int,
+        cell: T,
+    ) {
         layers.getOrPut(z) { Grid(width, height, null) }[x, y] = cell
         bump(x, y)
     }
@@ -84,7 +98,11 @@ class LayeredTilemap<T : Any>(val width: Int, val height: Int) {
      * Clears the cell at column [x], row [y] on layer [z] (sets it to `null`).
      * No-op if layer [z] does not exist.
      */
-    fun removeCell(x: Int, y: Int, z: Int) {
+    fun removeCell(
+        x: Int,
+        y: Int,
+        z: Int,
+    ) {
         val layer = layers[z] ?: return
         layer[x, y] = null
         bump(x, y)
@@ -98,15 +116,24 @@ class LayeredTilemap<T : Any>(val width: Int, val height: Int) {
      * Equivalent to
      * `moveCell(from.x, from.y, from.z, to.x, to.y, to.z)`.
      */
-    fun moveCell(from: Vector3Int, to: Vector3Int) =
-        moveCell(from.x, from.y, from.z, to.x, to.y, to.z)
+    fun moveCell(
+        from: Vector3Int,
+        to: Vector3Int,
+    ) = moveCell(from.x, from.y, from.z, to.x, to.y, to.z)
 
     /**
      * Moves the cell at ([fromX], [fromY]) on layer [fromZ] to ([toX], [toY])
      * on layer [toZ]. No-op if layer [fromZ] does not exist or the source cell
      * is empty. Layer [toZ] is created on demand.
      */
-    fun moveCell(fromX: Int, fromY: Int, fromZ: Int, toX: Int, toY: Int, toZ: Int) {
+    fun moveCell(
+        fromX: Int,
+        fromY: Int,
+        fromZ: Int,
+        toX: Int,
+        toY: Int,
+        toZ: Int,
+    ) {
         val cell = layers[fromZ]?.get(fromX, fromY) ?: return
         layers[fromZ]!![fromX, fromY] = null
         bump(fromX, fromY)
@@ -161,7 +188,10 @@ class LayeredTilemap<T : Any>(val width: Int, val height: Int) {
      * Returns the top-most (highest z) non-null cell at column [x], row [y],
      * or `null` if all layers are empty at that position.
      */
-    fun topCellAt(x: Int, y: Int): T? {
+    fun topCellAt(
+        x: Int,
+        y: Int,
+    ): T? {
         layers.forEach { (_, grid) ->
             val cell = grid[x, y]
             if (cell != null) return cell
@@ -178,7 +208,11 @@ class LayeredTilemap<T : Any>(val width: Int, val height: Int) {
      * from [topCellAt]. Typical use case: preserving layer content across a
      * grid resize.
      */
-    fun cellAt(x: Int, y: Int, z: Int): T? = layers[z]?.get(x, y)
+    fun cellAt(
+        x: Int,
+        y: Int,
+        z: Int,
+    ): T? = layers[z]?.get(x, y)
 
     /**
      * Returns the set of z-indices for which a layer has been created.
@@ -200,7 +234,11 @@ class LayeredTilemap<T : Any>(val width: Int, val height: Int) {
      * matter here: the renderers ask this once per cell per frame to decide
      * whether a cell holds time-varying content and must be repainted.
      */
-    inline fun anyCellAt(x: Int, y: Int, predicate: (T) -> Boolean): Boolean {
+    inline fun anyCellAt(
+        x: Int,
+        y: Int,
+        predicate: (T) -> Boolean,
+    ): Boolean {
         for (layer in layersTopDown) {
             val cell = layer[x, y] ?: continue
             if (predicate(cell)) return true

@@ -52,33 +52,36 @@ class AnimatedAsciiTileTest : FunSpec({
     // -----------------------------------------------------------------------
 
     test("LOOP: returns first frame at elapsedMs = 0") {
-        val tile = AnimatedAsciiTile(
-            listOf(
-                AnimationFrame(dotYellow, durationMs = 120),
-                AnimationFrame(hashGreen, durationMs = 80),
-            ),
-        )
+        val tile =
+            AnimatedAsciiTile(
+                listOf(
+                    AnimationFrame(dotYellow, durationMs = 120),
+                    AnimationFrame(hashGreen, durationMs = 80),
+                ),
+            )
         tile.resolveAt(0) shouldBe dotYellow
     }
 
     test("LOOP: advances at frame boundary") {
-        val tile = AnimatedAsciiTile(
-            listOf(
-                AnimationFrame(dotYellow, durationMs = 120),
-                AnimationFrame(hashGreen, durationMs = 80),
-            ),
-        )
+        val tile =
+            AnimatedAsciiTile(
+                listOf(
+                    AnimationFrame(dotYellow, durationMs = 120),
+                    AnimationFrame(hashGreen, durationMs = 80),
+                ),
+            )
         tile.resolveAt(119) shouldBe dotYellow
         tile.resolveAt(120) shouldBe hashGreen
     }
 
     test("LOOP: wraps after total duration") {
-        val tile = AnimatedAsciiTile(
-            listOf(
-                AnimationFrame(dotYellow, durationMs = 120),
-                AnimationFrame(hashGreen, durationMs = 80),
-            ),
-        )
+        val tile =
+            AnimatedAsciiTile(
+                listOf(
+                    AnimationFrame(dotYellow, durationMs = 120),
+                    AnimationFrame(hashGreen, durationMs = 80),
+                ),
+            )
         // Total = 200 ms
         tile.resolveAt(200) shouldBe dotYellow
         tile.resolveAt(319) shouldBe dotYellow
@@ -94,21 +97,22 @@ class AnimatedAsciiTileTest : FunSpec({
         val mid = StaticAsciiTile('.', Color.YELLOW, Color(0.5f, 0.25f, 0f, 1f))
         val bright = StaticAsciiTile('.', Color.ORANGE, Color(0.55f, 0.28f, 0f, 1f))
 
-        val tile = AnimatedAsciiTile(
-            listOf(
-                AnimationFrame(dark, durationMs = 100),
-                AnimationFrame(mid, durationMs = 100),
-                AnimationFrame(bright, durationMs = 100),
-            ),
-            mode = PlaybackMode.PING_PONG,
-        )
+        val tile =
+            AnimatedAsciiTile(
+                listOf(
+                    AnimationFrame(dark, durationMs = 100),
+                    AnimationFrame(mid, durationMs = 100),
+                    AnimationFrame(bright, durationMs = 100),
+                ),
+                mode = PlaybackMode.PING_PONG,
+            )
         // Forward: dark(0-99) mid(100-199) bright(200-299)
         // Backward: mid(300-399)  → period = 400
         tile.resolveAt(0) shouldBe dark
         tile.resolveAt(100) shouldBe mid
         tile.resolveAt(200) shouldBe bright
         tile.resolveAt(300) shouldBe mid
-        tile.resolveAt(400) shouldBe dark  // wrap
+        tile.resolveAt(400) shouldBe dark // wrap
     }
 
     // -----------------------------------------------------------------------
@@ -116,17 +120,18 @@ class AnimatedAsciiTileTest : FunSpec({
     // -----------------------------------------------------------------------
 
     test("ONCE: holds last frame after sequence ends") {
-        val tile = AnimatedAsciiTile(
-            listOf(
-                AnimationFrame(dotYellow, durationMs = 100),
-                AnimationFrame(hashGreen, durationMs = 100),
-                AnimationFrame(starRed, durationMs = 100),
-            ),
-            mode = PlaybackMode.ONCE,
-        )
+        val tile =
+            AnimatedAsciiTile(
+                listOf(
+                    AnimationFrame(dotYellow, durationMs = 100),
+                    AnimationFrame(hashGreen, durationMs = 100),
+                    AnimationFrame(starRed, durationMs = 100),
+                ),
+                mode = PlaybackMode.ONCE,
+            )
         tile.resolveAt(0) shouldBe dotYellow
         tile.resolveAt(200) shouldBe starRed
-        tile.resolveAt(300) shouldBe starRed     // past end: hold last
+        tile.resolveAt(300) shouldBe starRed // past end: hold last
         tile.resolveAt(99_999) shouldBe starRed
     }
 })

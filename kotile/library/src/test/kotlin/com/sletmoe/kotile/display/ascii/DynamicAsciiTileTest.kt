@@ -49,12 +49,14 @@ class DynamicAsciiTileTest : FunSpec({
     // -------------------------------------------------------------------------
 
     test("AnimatedAsciiTile is a DynamicAsciiTile, so animated cells get per-frame repaints") {
-        val animated = AnimatedAsciiTile(
-            frames = listOf(
-                AnimationFrame(StaticAsciiTile('.', Color.YELLOW, Color.BLACK), durationMs = 100),
-                AnimationFrame(StaticAsciiTile('#', Color.GREEN, Color.BLACK), durationMs = 100),
-            ),
-        )
+        val animated =
+            AnimatedAsciiTile(
+                frames =
+                    listOf(
+                        AnimationFrame(StaticAsciiTile('.', Color.YELLOW, Color.BLACK), durationMs = 100),
+                        AnimationFrame(StaticAsciiTile('#', Color.GREEN, Color.BLACK), durationMs = 100),
+                    ),
+            )
 
         animated.shouldBeInstanceOf<DynamicAsciiTile>()
     }

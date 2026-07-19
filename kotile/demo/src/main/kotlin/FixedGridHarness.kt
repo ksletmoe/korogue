@@ -6,8 +6,8 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.PixmapIO
-import com.sletmoe.kotile.display.ascii.StaticAsciiTile
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
+import com.sletmoe.kotile.display.ascii.StaticAsciiTile
 import com.sletmoe.kotile.rendering.FitScale
 import com.sletmoe.kotile.rendering.IntegerScale
 import java.util.zip.Deflater
@@ -83,7 +83,11 @@ private class FixedGridHarness(
     }
 
     /** Corner cells take a distinct color so orientation and clipping are readable. */
-    private fun edgeColor(x: Int, y: Int, corners: List<Color>): Color =
+    private fun edgeColor(
+        x: Int,
+        y: Int,
+        corners: List<Color>,
+    ): Color =
         when {
             x == 0 && y == 0 -> corners[0]
             x == cols - 1 && y == 0 -> corners[1]
@@ -92,8 +96,11 @@ private class FixedGridHarness(
             else -> Color.GRAY
         }
 
-    private fun block(x: Int, y: Int, color: Color) =
-        window.drawTile(x, y, StaticAsciiTile('Û', color, Color.BLACK))
+    private fun block(
+        x: Int,
+        y: Int,
+        color: Color,
+    ) = window.drawTile(x, y, StaticAsciiTile('Û', color, Color.BLACK))
 
     override fun render() {
         // Distinct dark blue so letterbox bars are unmistakable vs black cells.
@@ -104,10 +111,12 @@ private class FixedGridHarness(
 
         if (++frame >= 2) {
             println(
-                "FIXEDGRID grid=${window.widthInTiles}x${window.heightInTiles} nativeTilePx=${window.tileWidthPx}x${window.tileHeightPx} " +
+                "FIXEDGRID grid=${window.widthInTiles}x${window.heightInTiles} " +
+                    "nativeTilePx=${window.tileWidthPx}x${window.tileHeightPx} " +
                     "onScreenTilePx=${window.layout.tileWidthPx}x${window.layout.tileHeightPx} " +
                     "offsetPx=${window.layout.offsetXPx}x${window.layout.offsetYPx} " +
-                    "logical=${Gdx.graphics.width}x${Gdx.graphics.height} backbuffer=${Gdx.graphics.backBufferWidth}x${Gdx.graphics.backBufferHeight}",
+                    "logical=${Gdx.graphics.width}x${Gdx.graphics.height} " +
+                    "backbuffer=${Gdx.graphics.backBufferWidth}x${Gdx.graphics.backBufferHeight}",
             )
             val pixmap = Pixmap.createFromFrameBuffer(0, 0, Gdx.graphics.backBufferWidth, Gdx.graphics.backBufferHeight)
             PixmapIO.writePNG(Gdx.files.absolute(outPath), pixmap, Deflater.DEFAULT_COMPRESSION, true)
@@ -117,14 +126,18 @@ private class FixedGridHarness(
         }
     }
 
-    override fun resize(width: Int, height: Int) = window.resize(width, height)
+    override fun resize(
+        width: Int,
+        height: Int,
+    ) = window.resize(width, height)
 
     override fun dispose() = window.dispose()
 }
 
 fun main() {
-    val outPath = System.getProperty("kotile.harness.out")
-        ?: "${System.getProperty("user.dir")}/fixed-grid-harness.png"
+    val outPath =
+        System.getProperty("kotile.harness.out")
+            ?: "${System.getProperty("user.dir")}/fixed-grid-harness.png"
     val winW = System.getProperty("kotile.harness.winW")?.toInt() ?: 850
     val winH = System.getProperty("kotile.harness.winH")?.toInt() ?: 430
     val cols = System.getProperty("kotile.harness.cols")?.toInt() ?: 40

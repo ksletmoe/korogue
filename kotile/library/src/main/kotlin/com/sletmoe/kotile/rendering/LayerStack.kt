@@ -38,7 +38,10 @@ class LayerStack(val canvas: KotileCanvas) {
     }
 
     /** Inserts [layer] at [index] in the draw order (0 = bottom). */
-    fun add(index: Int, layer: Layer) {
+    fun add(
+        index: Int,
+        layer: Layer,
+    ) {
         mutableLayers.add(index, layer)
     }
 

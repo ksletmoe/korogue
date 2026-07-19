@@ -108,6 +108,7 @@ abstract class TileRenderer(
     sharesCanvas: Boolean = false,
 ) : Disposable {
     private val compositeBlend: BlendMode = if (sharesCanvas) BlendMode.NORMAL else BlendMode.REPLACE
+
     /**
      * Current grid width in tiles. Reflects the canvas at construction time
      * and is updated by [resize].
@@ -175,7 +176,10 @@ abstract class TileRenderer(
      * outside the new bounds are dropped; those still within bounds are
      * preserved. Call this from the application's resize callback.
      */
-    fun resize(widthPx: Int, heightPx: Int) {
+    fun resize(
+        widthPx: Int,
+        heightPx: Int,
+    ) {
         canvas.resize(widthPx, heightPx)
         tilemap = LayeredTilemap(widthInTiles, heightInTiles)
         animatedPositions.clear()
@@ -190,7 +194,11 @@ abstract class TileRenderer(
      * Places [tile] at column [x], row [y] on z-layer 0. Accepts both
      * [StaticSpriteTile] and [DynamicSpriteTile] content.
      */
-    fun drawTile(x: Int, y: Int, tile: SpriteTile) = drawTile(x, y, z = 0, tile = tile)
+    fun drawTile(
+        x: Int,
+        y: Int,
+        tile: SpriteTile,
+    ) = drawTile(x, y, z = 0, tile = tile)
 
     /**
      * Places [tile] at column [x], row [y] on z-layer [z]. The layer is created
@@ -201,14 +209,22 @@ abstract class TileRenderer(
      * cells sharing the same instance show the same animation frame at the same
      * wall-clock time (stateless time model).
      */
-    fun drawTile(x: Int, y: Int, z: Int, tile: SpriteTile) {
+    fun drawTile(
+        x: Int,
+        y: Int,
+        z: Int,
+        tile: SpriteTile,
+    ) {
         tilemap.setCell(x, y, z, tile)
         refreshAnimatedTrackingAt(x, y)
         compositeCache.markCellDirty(x, y)
     }
 
     /** Places [tile] at [position] (x, y, z-layer). */
-    fun drawTile(position: Vector3Int, tile: SpriteTile) = drawTile(position.x, position.y, position.z, tile)
+    fun drawTile(
+        position: Vector3Int,
+        tile: SpriteTile,
+    ) = drawTile(position.x, position.y, position.z, tile)
 
     // -------------------------------------------------------------------------
     // Write — fill
@@ -221,7 +237,10 @@ abstract class TileRenderer(
      * Sets every cell on layer [z] to [tile]. The layer is created on demand if
      * it does not yet exist.
      */
-    fun fill(z: Int, tile: SpriteTile) {
+    fun fill(
+        z: Int,
+        tile: SpriteTile,
+    ) {
         for (y in 0 until heightInTiles) {
             for (x in 0 until widthInTiles) {
                 tilemap.setCell(x, y, z, tile)
@@ -240,10 +259,17 @@ abstract class TileRenderer(
      * Removes the tile at column [x], row [y] on z-layer 0. No-op if layer 0
      * has never been written to.
      */
-    fun clearTile(x: Int, y: Int) = clearTile(x, y, z = 0)
+    fun clearTile(
+        x: Int,
+        y: Int,
+    ) = clearTile(x, y, z = 0)
 
     /** Removes the tile at column [x], row [y] on z-layer [z]. No-op if layer [z] does not exist. */
-    fun clearTile(x: Int, y: Int, z: Int) {
+    fun clearTile(
+        x: Int,
+        y: Int,
+        z: Int,
+    ) {
         tilemap.removeCell(x, y, z)
         refreshAnimatedTrackingAt(x, y)
         compositeCache.markCellDirty(x, y)
@@ -293,7 +319,10 @@ abstract class TileRenderer(
      * this cell look like" — the latter has no tile-shaped answer on this path,
      * since a [StaticSpriteTile]'s region is resolved by [regionFor].
      */
-    fun topTileAt(x: Int, y: Int): SpriteTile? = tilemap.topCellAt(x, y)
+    fun topTileAt(
+        x: Int,
+        y: Int,
+    ): SpriteTile? = tilemap.topCellAt(x, y)
 
     /** Returns the top-most (highest-z) non-null [SpriteTile] at [position], or `null` if empty. */
     fun topTileAt(position: Vector2Int): SpriteTile? = tilemap.topCellAt(position)
@@ -305,7 +334,10 @@ abstract class TileRenderer(
      * correct even when a write replaces or removes the specific layer that
      * used to make this position animated.
      */
-    private fun refreshAnimatedTrackingAt(x: Int, y: Int) {
+    private fun refreshAnimatedTrackingAt(
+        x: Int,
+        y: Int,
+    ) {
         val stillAnimated = tilemap.anyCellAt(x, y) { it is DynamicSpriteTile }
         val position = Vector2Int(x, y)
         if (stillAnimated) animatedPositions.add(position) else animatedPositions.remove(position)
@@ -345,14 +377,15 @@ abstract class TileRenderer(
      *   [DynamicSpriteTile] frames, sampled once per [Layer.render]; defaults to a constant 0
      *   (first frame) for static grids.
      */
-    fun asLayer(elapsedMs: () -> Long = { 0L }): Layer = object : Layer {
-        override fun render(canvas: KotileCanvas) {
-            check(canvas === this@TileRenderer.canvas) {
-                "TileRenderer.asLayer must be composited on the canvas it was built with"
+    fun asLayer(elapsedMs: () -> Long = { 0L }): Layer =
+        object : Layer {
+            override fun render(canvas: KotileCanvas) {
+                check(canvas === this@TileRenderer.canvas) {
+                    "TileRenderer.asLayer must be composited on the canvas it was built with"
+                }
+                drawCachedGrid(elapsedMs())
             }
-            drawCachedGrid(elapsedMs())
         }
-    }
 
     /** Recomposites dirty cells of [tilemap] into [compositeCache], then blits the cache as one sprite. */
     private fun drawCachedGrid(elapsedMs: Long) {
@@ -376,7 +409,14 @@ abstract class TileRenderer(
             // NORMAL when sharesCanvas is true so a shared-canvas renderer's empty cells don't erase
             // a neighbor's pixels (krogue-a24).
             val l = canvas.layout
-            canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = l.contentWidthPx, h = l.contentHeightPx, blend = compositeBlend)
+            canvas.drawSprite(
+                pxX = 0f,
+                pxY = 0f,
+                region = region,
+                w = l.contentWidthPx,
+                h = l.contentHeightPx,
+                blend = compositeBlend,
+            )
         }
     }
 
@@ -386,11 +426,24 @@ abstract class TileRenderer(
      * scrollable-viewport `render(source, viewport)` overload bypasses this cache entirely), so
      * screen and logical coordinates are identical here.
      */
-    private fun drawCell(x: Int, y: Int, elapsedMs: Long, drawer: GridCompositeCache.TileDrawer) {
+    private fun drawCell(
+        x: Int,
+        y: Int,
+        elapsedMs: Long,
+        drawer: GridCompositeCache.TileDrawer,
+    ) {
         for (layer in tilemap.layersBottomUp) {
             when (val entry = layer[x, y]) {
                 is StaticSpriteTile -> drawer.drawTile(x, y, regionFor(entry), entry.tint, entry.flipX, entry.flipY)
-                is DynamicSpriteTile -> drawer.drawTile(x, y, entry.regionFor(elapsedMs), entry.tintFor(elapsedMs), entry.flipX, entry.flipY)
+                is DynamicSpriteTile ->
+                    drawer.drawTile(
+                        x,
+                        y,
+                        entry.regionFor(elapsedMs),
+                        entry.tintFor(elapsedMs),
+                        entry.flipX,
+                        entry.flipY,
+                    )
                 null -> {}
             }
         }
@@ -440,7 +493,14 @@ abstract class TileRenderer(
         canvas.reapplyViewport()
         viewportCache.cachedRegion?.let { region ->
             val l = canvas.layout
-            canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = l.contentWidthPx, h = l.contentHeightPx, blend = compositeBlend)
+            canvas.drawSprite(
+                pxX = 0f,
+                pxY = 0f,
+                region = region,
+                w = l.contentWidthPx,
+                h = l.contentHeightPx,
+                blend = compositeBlend,
+            )
         }
         canvas.end()
     }
@@ -461,7 +521,15 @@ abstract class TileRenderer(
         for (layer in source.layersBottomUp) {
             when (val entry = layer[logicalX, logicalY]) {
                 is StaticSpriteTile -> drawer.drawTile(x, y, regionFor(entry), entry.tint, entry.flipX, entry.flipY)
-                is DynamicSpriteTile -> drawer.drawTile(x, y, entry.regionFor(elapsedMs), entry.tintFor(elapsedMs), entry.flipX, entry.flipY)
+                is DynamicSpriteTile ->
+                    drawer.drawTile(
+                        x,
+                        y,
+                        entry.regionFor(elapsedMs),
+                        entry.tintFor(elapsedMs),
+                        entry.flipX,
+                        entry.flipY,
+                    )
                 null -> {}
             }
         }

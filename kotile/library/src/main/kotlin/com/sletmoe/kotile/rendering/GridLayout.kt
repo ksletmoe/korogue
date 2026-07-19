@@ -54,7 +54,10 @@ data class GridLayout(
      * @param pixelY window pixel y (0 = top edge, increases down)
      * @return `(column, row)` with a top-left origin, or `null` if out of bounds
      */
-    fun tileAt(pixelX: Float, pixelY: Float): Pair<Int, Int>? {
+    fun tileAt(
+        pixelX: Float,
+        pixelY: Float,
+    ): Pair<Int, Int>? {
         if (tileWidthPx <= 0f || tileHeightPx <= 0f) return null
         val localX = pixelX - offsetXPx
         val localY = pixelY - offsetYPx
@@ -83,7 +86,10 @@ data class GridLayout(
      * @param pixelY window pixel y (0 = top edge, increases down)
      * @return content-pixel `(x, y)` with a top-left origin, or `null` if out of bounds
      */
-    fun contentPixelAt(pixelX: Float, pixelY: Float): Pair<Float, Float>? {
+    fun contentPixelAt(
+        pixelX: Float,
+        pixelY: Float,
+    ): Pair<Float, Float>? {
         if (tileWidthPx <= 0f || tileHeightPx <= 0f) return null
         val localX = pixelX - offsetXPx
         val localY = pixelY - offsetYPx

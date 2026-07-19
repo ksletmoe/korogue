@@ -30,11 +30,12 @@ class RenderPathParityTest : FunSpec({
      * Members that legitimately exist on only one path, with the reason. Anything
      * else that appears on one side and not the other is drift, and fails below.
      */
-    val asciiOnly = setOf(
-        // Glyph-and-color content is the ascii path's whole point; the sprite path
-        // has no character concept to write a string of.
-        "drawText",
-    )
+    val asciiOnly =
+        setOf(
+            // Glyph-and-color content is the ascii path's whole point; the sprite path
+            // has no character concept to write a string of.
+            "drawText",
+        )
     val spriteOnly = emptySet<String>()
 
     /**
@@ -62,11 +63,12 @@ class RenderPathParityTest : FunSpec({
     }
 
     test("both paths carry the shared render-path vocabulary") {
-        val shared = listOf(
-            "widthInTiles", "heightInTiles", "tileWidthPx", "tileHeightPx", "layout",
-            "resize", "drawTile", "fill", "clearTile", "clear", "clearLayer",
-            "topTileAt", "render", "asLayer", "dispose",
-        )
+        val shared =
+            listOf(
+                "widthInTiles", "heightInTiles", "tileWidthPx", "tileHeightPx", "layout",
+                "resize", "drawTile", "fill", "clearTile", "clear", "clearLayer",
+                "topTileAt", "render", "asLayer", "dispose",
+            )
         spriteApi shouldContainAll shared
         asciiApi shouldContainAll shared
     }

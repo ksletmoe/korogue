@@ -30,7 +30,10 @@ class Grid<T>(val width: Int, val height: Int, private val defaultValue: T) {
      * @throws IndexOutOfBoundsException if the coordinates are outside the grid
      */
     @Suppress("UNCHECKED_CAST")
-    operator fun get(x: Int, y: Int): T {
+    operator fun get(
+        x: Int,
+        y: Int,
+    ): T {
         checkIndices(x, y)
         return values[y * width + x] as T
     }
@@ -40,7 +43,11 @@ class Grid<T>(val width: Int, val height: Int, private val defaultValue: T) {
      *
      * @throws IndexOutOfBoundsException if the coordinates are outside the grid
      */
-    operator fun set(x: Int, y: Int, value: T) {
+    operator fun set(
+        x: Int,
+        y: Int,
+        value: T,
+    ) {
         checkIndices(x, y)
         values[y * width + x] = value
     }
@@ -57,7 +64,10 @@ class Grid<T>(val width: Int, val height: Int, private val defaultValue: T) {
      *
      * @throws IndexOutOfBoundsException if the coordinate is outside the grid
      */
-    operator fun set(coordinate: Vector2Int, value: T) = set(coordinate.x, coordinate.y, value)
+    operator fun set(
+        coordinate: Vector2Int,
+        value: T,
+    ) = set(coordinate.x, coordinate.y, value)
 
     /** Sets every cell to [value]. */
     fun fill(value: T) {
@@ -106,7 +116,10 @@ class Grid<T>(val width: Int, val height: Int, private val defaultValue: T) {
         return copy
     }
 
-    private fun checkIndices(x: Int, y: Int) {
+    private fun checkIndices(
+        x: Int,
+        y: Int,
+    ) {
         if (x < 0 || x >= width) {
             throw IndexOutOfBoundsException("x = $x")
         }

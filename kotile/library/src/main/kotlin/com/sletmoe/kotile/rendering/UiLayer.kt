@@ -60,7 +60,11 @@ interface Widget {
      *
      * @param button a libGDX button constant from [com.badlogic.gdx.Input.Buttons]
      */
-    fun onPointerDown(px: Float, py: Float, button: Int): Boolean = false
+    fun onPointerDown(
+        px: Float,
+        py: Float,
+        button: Int,
+    ): Boolean = false
 
     /**
      * A pointer button was released at content-pixel ([px], [py]) over this
@@ -68,13 +72,20 @@ interface Widget {
      * a different widget than the press; a widget completes a click by pairing its
      * own down/up.)
      */
-    fun onPointerUp(px: Float, py: Float, button: Int): Boolean = false
+    fun onPointerUp(
+        px: Float,
+        py: Float,
+        button: Int,
+    ): Boolean = false
 
     /**
      * The cursor moved to content-pixel ([px], [py]) over this widget (hover, no
      * button held). Return `true` to consume. Defaults to `false`.
      */
-    fun onPointerMoved(px: Float, py: Float): Boolean = false
+    fun onPointerMoved(
+        px: Float,
+        py: Float,
+    ): Boolean = false
 }
 
 /**
@@ -130,7 +141,10 @@ class UiLayer : Layer {
     }
 
     /** Inserts [widget] at [index] in the draw order (0 = bottom). */
-    fun add(index: Int, widget: Widget) {
+    fun add(
+        index: Int,
+        widget: Widget,
+    ) {
         mutableWidgets.add(index, widget)
     }
 
@@ -162,7 +176,10 @@ class UiLayer : Layer {
      * [GridLayout.tileAt] for free-positioned UI. Walks widgets front-to-back
      * (last-added first) so the widget the user sees on top is the one returned.
      */
-    fun widgetAt(px: Float, py: Float): Widget? {
+    fun widgetAt(
+        px: Float,
+        py: Float,
+    ): Widget? {
         for (i in mutableWidgets.indices.reversed()) {
             val widget = mutableWidgets[i]
             if (widget.visible && widget.bounds.contains(px, py)) return widget
@@ -182,8 +199,11 @@ class UiLayer : Layer {
      * a dialog) should **consume** the event so dispatch stops before the mutated
      * list is walked further.
      */
-    fun onPointerDown(px: Float, py: Float, button: Int): Boolean =
-        dispatch(px, py) { it.onPointerDown(px, py, button) }
+    fun onPointerDown(
+        px: Float,
+        py: Float,
+        button: Int,
+    ): Boolean = dispatch(px, py) { it.onPointerDown(px, py, button) }
 
     /**
      * Dispatches a pointer release at content-pixel ([px], [py]) to the visible
@@ -191,8 +211,11 @@ class UiLayer : Layer {
      * [Widget.onPointerUp]. Returns whether any widget consumed it. Wire this to
      * [com.sletmoe.kotile.input.KotileInputListener.onPointerUp].
      */
-    fun onPointerUp(px: Float, py: Float, button: Int): Boolean =
-        dispatch(px, py) { it.onPointerUp(px, py, button) }
+    fun onPointerUp(
+        px: Float,
+        py: Float,
+        button: Int,
+    ): Boolean = dispatch(px, py) { it.onPointerUp(px, py, button) }
 
     /**
      * Dispatches a cursor move at content-pixel ([px], [py]) to the visible
@@ -200,8 +223,10 @@ class UiLayer : Layer {
      * [Widget.onPointerMoved]. Returns whether any widget consumed it. Wire this
      * to [com.sletmoe.kotile.input.KotileInputListener.onPointerMoved].
      */
-    fun onPointerMoved(px: Float, py: Float): Boolean =
-        dispatch(px, py) { it.onPointerMoved(px, py) }
+    fun onPointerMoved(
+        px: Float,
+        py: Float,
+    ): Boolean = dispatch(px, py) { it.onPointerMoved(px, py) }
 
     /**
      * Delivers a pointer event to the visible widgets covering ([px], [py]),
@@ -209,7 +234,11 @@ class UiLayer : Layer {
      * the first whose [deliver] consumes it; `false` if none do. Shared by the
      * `onPointer*` dispatchers so they agree on hit order and fall-through.
      */
-    private inline fun dispatch(px: Float, py: Float, deliver: (Widget) -> Boolean): Boolean {
+    private inline fun dispatch(
+        px: Float,
+        py: Float,
+        deliver: (Widget) -> Boolean,
+    ): Boolean {
         for (i in mutableWidgets.indices.reversed()) {
             val widget = mutableWidgets[i]
             if (widget.visible && widget.bounds.contains(px, py) && deliver(widget)) return true

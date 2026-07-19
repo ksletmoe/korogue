@@ -129,7 +129,11 @@ open class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposabl
      * driving fixed grids of *different* dimensions from two panes makes them
      * fight (both then render/hit-test with whichever dimensions were set last).
      */
-    fun useFixedGrid(columns: Int, rows: Int, policy: ScalePolicy = IntegerScale) {
+    fun useFixedGrid(
+        columns: Int,
+        rows: Int,
+        policy: ScalePolicy = IntegerScale,
+    ) {
         viewport.useFixedGrid(columns, rows, policy)
         recomputeLayout()
     }
@@ -150,7 +154,10 @@ open class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposabl
      * **logical** window size (as libGDX delivers to `ApplicationListener.resize`);
      * the [GridViewport] reconciles it to backbuffer pixels on HiDPI displays.
      */
-    fun resize(widthPx: Int, heightPx: Int) {
+    fun resize(
+        widthPx: Int,
+        heightPx: Int,
+    ) {
         viewport.update(widthPx, heightPx, true)
         batch.projectionMatrix = viewport.camera.combined
     }

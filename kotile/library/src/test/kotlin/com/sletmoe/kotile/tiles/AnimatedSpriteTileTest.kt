@@ -78,26 +78,28 @@ class AnimatedSpriteTileTest : FunSpec({
     test("LOOP: returns frame 0 at elapsedMs = 0") {
         val r0 = TextureRegion()
         val r1 = TextureRegion()
-        val tile = AnimatedSpriteTile(
-            listOf(
-                AnimationFrame(r0, durationMs = 100),
-                AnimationFrame(r1, durationMs = 100),
-            ),
-            mode = PlaybackMode.LOOP,
-        )
+        val tile =
+            AnimatedSpriteTile(
+                listOf(
+                    AnimationFrame(r0, durationMs = 100),
+                    AnimationFrame(r1, durationMs = 100),
+                ),
+                mode = PlaybackMode.LOOP,
+            )
         tile.regionFor(0) shouldBe r0
     }
 
     test("LOOP: advances to frame 1 at exactly the first frame boundary") {
         val r0 = TextureRegion()
         val r1 = TextureRegion()
-        val tile = AnimatedSpriteTile(
-            listOf(
-                AnimationFrame(r0, durationMs = 100),
-                AnimationFrame(r1, durationMs = 200),
-            ),
-            mode = PlaybackMode.LOOP,
-        )
+        val tile =
+            AnimatedSpriteTile(
+                listOf(
+                    AnimationFrame(r0, durationMs = 100),
+                    AnimationFrame(r1, durationMs = 200),
+                ),
+                mode = PlaybackMode.LOOP,
+            )
         tile.regionFor(99) shouldBe r0
         tile.regionFor(100) shouldBe r1
     }
@@ -106,14 +108,15 @@ class AnimatedSpriteTileTest : FunSpec({
         val r0 = TextureRegion()
         val r1 = TextureRegion()
         val r2 = TextureRegion()
-        val tile = AnimatedSpriteTile(
-            listOf(
-                AnimationFrame(r0, durationMs = 100),
-                AnimationFrame(r1, durationMs = 100),
-                AnimationFrame(r2, durationMs = 100),
-            ),
-            mode = PlaybackMode.LOOP,
-        )
+        val tile =
+            AnimatedSpriteTile(
+                listOf(
+                    AnimationFrame(r0, durationMs = 100),
+                    AnimationFrame(r1, durationMs = 100),
+                    AnimationFrame(r2, durationMs = 100),
+                ),
+                mode = PlaybackMode.LOOP,
+            )
         // Total duration = 300 ms. At 300 ms we wrap back to frame 0; 350 = 50 into frame 0.
         tile.regionFor(300) shouldBe r0
         tile.regionFor(350) shouldBe r0
@@ -122,11 +125,12 @@ class AnimatedSpriteTileTest : FunSpec({
     }
 
     test("LOOP: works correctly at known elapsed time with unequal frame durations") {
-        val frames = listOf(
-            AnimationFrame(TextureRegion(), durationMs = 200L),
-            AnimationFrame(TextureRegion(), durationMs = 50L),
-            AnimationFrame(TextureRegion(), durationMs = 150L),
-        )
+        val frames =
+            listOf(
+                AnimationFrame(TextureRegion(), durationMs = 200L),
+                AnimationFrame(TextureRegion(), durationMs = 50L),
+                AnimationFrame(TextureRegion(), durationMs = 150L),
+            )
         val tile = AnimatedSpriteTile(frames, mode = PlaybackMode.LOOP)
         // Total = 400 ms
         // Frame 0: [0, 200), Frame 1: [200, 250), Frame 2: [250, 400)
@@ -136,8 +140,8 @@ class AnimatedSpriteTileTest : FunSpec({
         tile.regionFor(249) shouldBe frames[1].content
         tile.regionFor(250) shouldBe frames[2].content
         tile.regionFor(399) shouldBe frames[2].content
-        tile.regionFor(400) shouldBe frames[0].content   // wrap: 400 % 400 = 0 → frame 0
-        tile.regionFor(450) shouldBe frames[0].content   // 450 % 400 = 50 → still in frame 0 ([0, 200))
+        tile.regionFor(400) shouldBe frames[0].content // wrap: 400 % 400 = 0 → frame 0
+        tile.regionFor(450) shouldBe frames[0].content // 450 % 400 = 50 → still in frame 0 ([0, 200))
     }
 
     // -----------------------------------------------------------------------
@@ -148,19 +152,20 @@ class AnimatedSpriteTileTest : FunSpec({
         val r0 = TextureRegion()
         val r1 = TextureRegion()
         val r2 = TextureRegion()
-        val tile = AnimatedSpriteTile(
-            listOf(
-                AnimationFrame(r0, durationMs = 100),
-                AnimationFrame(r1, durationMs = 100),
-                AnimationFrame(r2, durationMs = 100),
-            ),
-            mode = PlaybackMode.ONCE,
-        )
+        val tile =
+            AnimatedSpriteTile(
+                listOf(
+                    AnimationFrame(r0, durationMs = 100),
+                    AnimationFrame(r1, durationMs = 100),
+                    AnimationFrame(r2, durationMs = 100),
+                ),
+                mode = PlaybackMode.ONCE,
+            )
         tile.regionFor(0) shouldBe r0
         tile.regionFor(100) shouldBe r1
         tile.regionFor(200) shouldBe r2
         tile.regionFor(299) shouldBe r2
-        tile.regionFor(300) shouldBe r2   // past end: hold last frame
+        tile.regionFor(300) shouldBe r2 // past end: hold last frame
         tile.regionFor(10_000) shouldBe r2
     }
 
@@ -172,31 +177,33 @@ class AnimatedSpriteTileTest : FunSpec({
         val r0 = TextureRegion()
         val r1 = TextureRegion()
         val r2 = TextureRegion()
-        val tile = AnimatedSpriteTile(
-            listOf(
-                AnimationFrame(r0, durationMs = 100),
-                AnimationFrame(r1, durationMs = 100),
-                AnimationFrame(r2, durationMs = 100),
-            ),
-            mode = PlaybackMode.PING_PONG,
-        )
+        val tile =
+            AnimatedSpriteTile(
+                listOf(
+                    AnimationFrame(r0, durationMs = 100),
+                    AnimationFrame(r1, durationMs = 100),
+                    AnimationFrame(r2, durationMs = 100),
+                ),
+                mode = PlaybackMode.PING_PONG,
+            )
         // Forward: A(0-99) B(100-199) C(200-299)
         // Backward: B(300-399) A(400-499)
         // Period = 2 * (300 - 100) = 400 ms  (last frame not duplicated)
         tile.regionFor(0) shouldBe r0
         tile.regionFor(100) shouldBe r1
         tile.regionFor(200) shouldBe r2
-        tile.regionFor(300) shouldBe r1   // reverse: B
-        tile.regionFor(400) shouldBe r0   // reverse: A → wrap
+        tile.regionFor(300) shouldBe r1 // reverse: B
+        tile.regionFor(400) shouldBe r0 // reverse: A → wrap
         tile.regionFor(400) shouldBe r0
     }
 
     test("PING_PONG: single frame behaves like LOOP") {
         val r0 = TextureRegion()
-        val tile = AnimatedSpriteTile(
-            listOf(AnimationFrame(r0, durationMs = 100)),
-            mode = PlaybackMode.PING_PONG,
-        )
+        val tile =
+            AnimatedSpriteTile(
+                listOf(AnimationFrame(r0, durationMs = 100)),
+                mode = PlaybackMode.PING_PONG,
+            )
         tile.regionFor(0) shouldBe r0
         tile.regionFor(99) shouldBe r0
         tile.regionFor(1000) shouldBe r0
@@ -209,12 +216,13 @@ class AnimatedSpriteTileTest : FunSpec({
     test("negative elapsed time is clamped to first frame") {
         val r0 = TextureRegion()
         val r1 = TextureRegion()
-        val tile = AnimatedSpriteTile(
-            listOf(
-                AnimationFrame(r0, durationMs = 100),
-                AnimationFrame(r1, durationMs = 100),
-            ),
-        )
+        val tile =
+            AnimatedSpriteTile(
+                listOf(
+                    AnimationFrame(r0, durationMs = 100),
+                    AnimationFrame(r1, durationMs = 100),
+                ),
+            )
         tile.regionFor(-1) shouldBe r0
         tile.regionFor(-9999) shouldBe r0
     }
@@ -233,36 +241,39 @@ class AnimatedSpriteTileTest : FunSpec({
     // -----------------------------------------------------------------------
 
     test("tintFor defaults to the tile's constant tint when no frame overrides it") {
-        val tile = AnimatedSpriteTile(
-            listOf(
-                AnimationFrame(TextureRegion(), durationMs = 100),
-                AnimationFrame(TextureRegion(), durationMs = 100),
-            ),
-            tint = Color.RED,
-        )
+        val tile =
+            AnimatedSpriteTile(
+                listOf(
+                    AnimationFrame(TextureRegion(), durationMs = 100),
+                    AnimationFrame(TextureRegion(), durationMs = 100),
+                ),
+                tint = Color.RED,
+            )
         tile.tintFor(0) shouldBe Color.RED
         tile.tintFor(150) shouldBe Color.RED
     }
 
     test("a frame's tint overrides the constant tint when the tile tint is WHITE") {
         val shimmer = Color(0.5f, 0.5f, 1f, 1f)
-        val tile = AnimatedSpriteTile(
-            listOf(
-                AnimationFrame(TextureRegion(), durationMs = 100, tint = Color.WHITE),
-                AnimationFrame(TextureRegion(), durationMs = 100, tint = shimmer),
-            ),
-        )
+        val tile =
+            AnimatedSpriteTile(
+                listOf(
+                    AnimationFrame(TextureRegion(), durationMs = 100, tint = Color.WHITE),
+                    AnimationFrame(TextureRegion(), durationMs = 100, tint = shimmer),
+                ),
+            )
         tile.tintFor(0) shouldBe Color.WHITE
         tile.tintFor(150) shouldBe shimmer
     }
 
     test("a frame's tint multiplies with a non-white constant tint") {
-        val tile = AnimatedSpriteTile(
-            listOf(
-                AnimationFrame(TextureRegion(), durationMs = 100, tint = Color(0.5f, 1f, 1f, 1f)),
-            ),
-            tint = Color(1f, 0.5f, 1f, 1f),
-        )
+        val tile =
+            AnimatedSpriteTile(
+                listOf(
+                    AnimationFrame(TextureRegion(), durationMs = 100, tint = Color(0.5f, 1f, 1f, 1f)),
+                ),
+                tint = Color(1f, 0.5f, 1f, 1f),
+            )
         // (0.5, 1, 1, 1) * (1, 0.5, 1, 1) = (0.5, 0.5, 1, 1)
         val effective = tile.tintFor(0)
         effective.r shouldBe 0.5f
@@ -273,14 +284,15 @@ class AnimatedSpriteTileTest : FunSpec({
 
     test("mixed frames: only the overriding frame changes color, others still show constant tint") {
         val shimmer = Color(0.2f, 0.9f, 0.9f, 1f)
-        val tile = AnimatedSpriteTile(
-            listOf(
-                AnimationFrame(TextureRegion(), durationMs = 100),
-                AnimationFrame(TextureRegion(), durationMs = 100, tint = shimmer),
-                AnimationFrame(TextureRegion(), durationMs = 100),
-            ),
-            tint = Color.WHITE,
-        )
+        val tile =
+            AnimatedSpriteTile(
+                listOf(
+                    AnimationFrame(TextureRegion(), durationMs = 100),
+                    AnimationFrame(TextureRegion(), durationMs = 100, tint = shimmer),
+                    AnimationFrame(TextureRegion(), durationMs = 100),
+                ),
+                tint = Color.WHITE,
+            )
         tile.tintFor(0) shouldBe Color.WHITE
         tile.tintFor(150) shouldBe shimmer
         tile.tintFor(250) shouldBe Color.WHITE
@@ -289,10 +301,11 @@ class AnimatedSpriteTileTest : FunSpec({
     test("tintFor does not mutate the tile's own tint or the frame's tint") {
         val frameTint = Color(0.3f, 0.4f, 0.5f, 1f)
         val tileTint = Color(0.6f, 0.7f, 0.8f, 1f)
-        val tile = AnimatedSpriteTile(
-            listOf(AnimationFrame(TextureRegion(), durationMs = 100, tint = frameTint)),
-            tint = tileTint,
-        )
+        val tile =
+            AnimatedSpriteTile(
+                listOf(AnimationFrame(TextureRegion(), durationMs = 100, tint = frameTint)),
+                tint = tileTint,
+            )
         tile.tintFor(0)
         tile.tint shouldBe tileTint
         tile.frames[0].tint shouldBe frameTint
@@ -309,11 +322,12 @@ class AnimatedSpriteTileTest : FunSpec({
     }
 
     test("an explicit flipX/flipY is retained") {
-        val tile = AnimatedSpriteTile(
-            listOf(AnimationFrame(TextureRegion(), durationMs = 100)),
-            flipX = true,
-            flipY = true,
-        )
+        val tile =
+            AnimatedSpriteTile(
+                listOf(AnimationFrame(TextureRegion(), durationMs = 100)),
+                flipX = true,
+                flipY = true,
+            )
         tile.flipX shouldBe true
         tile.flipY shouldBe true
     }

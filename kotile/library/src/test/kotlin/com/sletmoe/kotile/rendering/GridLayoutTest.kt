@@ -161,7 +161,7 @@ class GridLayoutTest : FunSpec({
     test("tileAt returns null in a centered reflow remainder margin") {
         // 85×45 window at 10px → 8×4 cells (80×40 content), centered: offset (2.5, 2.5).
         val layout = GridLayout.forReflow(85, 45, 10, 10)
-        layout.tileAt(1f, 1f).shouldBeNull()     // top-left margin
+        layout.tileAt(1f, 1f).shouldBeNull() // top-left margin
         layout.tileAt(2.5f, 2.5f) shouldBe (0 to 0) // first cell begins after the margin
         layout.tileAt(82.5f, 20f).shouldBeNull() // right margin (content ends at x=82.5)
     }
@@ -183,17 +183,23 @@ class GridLayoutTest : FunSpec({
 
     test("contentPixelAt returns null in the letterbox margin and past the content edge") {
         val layout = GridLayout.forFixedGrid(1700, 520, 80, 24, 10, 10, IntegerScale)
-        layout.contentPixelAt(10f, 10f).shouldBeNull()   // top-left letterbox
-        layout.contentPixelAt(49f, 20f).shouldBeNull()   // just left of the grid
+        layout.contentPixelAt(10f, 10f).shouldBeNull() // top-left letterbox
+        layout.contentPixelAt(49f, 20f).shouldBeNull() // just left of the grid
         // Content is 1600×480 from origin (50, 20); the far edges are exclusive.
         layout.contentPixelAt(1650f, 100f).shouldBeNull() // x == right edge (50+1600)
-        layout.contentPixelAt(100f, 500f).shouldBeNull()  // y == bottom edge (20+480)
+        layout.contentPixelAt(100f, 500f).shouldBeNull() // y == bottom edge (20+480)
     }
 
     test("contentPixelAt on an exact-fit reflow grid is the identity within content") {
         val layout = GridLayout.forReflow(80, 40, 10, 10) // offset 0
-        layout.contentPixelAt(0f, 0f)!!.let { (x, y) -> x shouldBe 0f; y shouldBe 0f }
-        layout.contentPixelAt(79f, 39f)!!.let { (x, y) -> x shouldBe 79f; y shouldBe 39f }
+        layout.contentPixelAt(0f, 0f)!!.let { (x, y) ->
+            x shouldBe 0f
+            y shouldBe 0f
+        }
+        layout.contentPixelAt(79f, 39f)!!.let { (x, y) ->
+            x shouldBe 79f
+            y shouldBe 39f
+        }
         layout.contentPixelAt(80f, 0f).shouldBeNull() // one past the right edge
         layout.contentPixelAt(-1f, 5f).shouldBeNull()
     }

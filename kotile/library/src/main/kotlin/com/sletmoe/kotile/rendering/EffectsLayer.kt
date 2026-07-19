@@ -12,8 +12,10 @@ import kotlin.math.atan2
  * positive angles rotate clockwise as drawn on screen, matching [KotileCanvas.drawSprite]'s
  * own convention. A zero vector yields `0`.
  */
-fun rotationTowards(velX: Float, velY: Float): Float =
-    if (velX == 0f && velY == 0f) 0f else Math.toDegrees(atan2(velY.toDouble(), velX.toDouble())).toFloat()
+fun rotationTowards(
+    velX: Float,
+    velY: Float,
+): Float = if (velX == 0f && velY == 0f) 0f else Math.toDegrees(atan2(velY.toDouble(), velX.toDouble())).toFloat()
 
 /**
  * A single transient item drawn by an [EffectsLayer]: a sprite/glyph at a float
@@ -129,7 +131,15 @@ class EffectsLayer : Layer {
     /** Draws every active effect via [KotileCanvas.drawSprite], in spawn order. */
     override fun render(canvas: KotileCanvas) {
         for (effect in effects) {
-            canvas.drawSprite(effect.pxX, effect.pxY, effect.region, effect.w, effect.h, effect.tint, effect.rotationDeg)
+            canvas.drawSprite(
+                effect.pxX,
+                effect.pxY,
+                effect.region,
+                effect.w,
+                effect.h,
+                effect.tint,
+                effect.rotationDeg,
+            )
         }
     }
 }

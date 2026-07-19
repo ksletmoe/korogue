@@ -41,9 +41,9 @@ private data class BenchCell(val id: Int)
  * ## Methodology
  *
  * Each scenario builds a [LayeredTilemap] at a fixed size and layer count,
- * populates cells (fully or sparsely), then times [MEASURE_ITERATIONS]
+ * populates cells (fully or sparsely), then times `measureIterations`
  * iterations of iterating every visible cell and calling `topCellAt(x, y)`.
- * The first [WARMUP_ITERATIONS] iterations are discarded to allow JIT
+ * The first `warmupIterations` iterations are discarded to allow JIT
  * compilation. Wall-clock time (System.nanoTime) is used; no GL context is
  * needed. The harness is intentionally lightweight and is suitable for an
  * order-of-magnitude go/no-go decision, not sub-nanosecond precision.
@@ -53,23 +53,24 @@ private data class BenchCell(val id: Int)
  */
 class LayeredTilemapBenchmark : FunSpec({
 
-    val WARMUP_ITERATIONS  = 500
-    val MEASURE_ITERATIONS = 2_000
+    val warmupIterations = 500
+    val measureIterations = 2_000
 
     // Soft assertion: composite path must stay well under 10 % of a 60-fps
     // frame budget (1.66 ms = 1 660 000 ns) at the largest tested scenario.
-    val BUDGET_NS = 1_660_000L
+    val budgetNs = 1_660_000L
 
-    val scenarios = listOf(
-        BenchScenario("80x30 / 1 layer / full",      80,  30, 1, BenchPopMode.FULL),
-        BenchScenario("80x30 / 3 layers / full",     80,  30, 3, BenchPopMode.FULL),
-        BenchScenario("80x30 / 5 layers / full",     80,  30, 5, BenchPopMode.FULL),
-        BenchScenario("80x30 / 5 layers / sparse",   80,  30, 5, BenchPopMode.SPARSE_25),
-        BenchScenario("120x50 / 1 layer / full",    120,  50, 1, BenchPopMode.FULL),
-        BenchScenario("120x50 / 3 layers / full",   120,  50, 3, BenchPopMode.FULL),
-        BenchScenario("120x50 / 5 layers / full",   120,  50, 5, BenchPopMode.FULL),
-        BenchScenario("120x50 / 5 layers / sparse", 120,  50, 5, BenchPopMode.SPARSE_25),
-    )
+    val scenarios =
+        listOf(
+            BenchScenario("80x30 / 1 layer / full", 80, 30, 1, BenchPopMode.FULL),
+            BenchScenario("80x30 / 3 layers / full", 80, 30, 3, BenchPopMode.FULL),
+            BenchScenario("80x30 / 5 layers / full", 80, 30, 5, BenchPopMode.FULL),
+            BenchScenario("80x30 / 5 layers / sparse", 80, 30, 5, BenchPopMode.SPARSE_25),
+            BenchScenario("120x50 / 1 layer / full", 120, 50, 1, BenchPopMode.FULL),
+            BenchScenario("120x50 / 3 layers / full", 120, 50, 3, BenchPopMode.FULL),
+            BenchScenario("120x50 / 5 layers / full", 120, 50, 5, BenchPopMode.FULL),
+            BenchScenario("120x50 / 5 layers / sparse", 120, 50, 5, BenchPopMode.SPARSE_25),
+        )
 
     val sentinel = BenchCell(42)
 
@@ -94,7 +95,11 @@ class LayeredTilemapBenchmark : FunSpec({
         return map
     }
 
-    fun scanOnce(map: LayeredTilemap<BenchCell>, width: Int, height: Int): Int {
+    fun scanOnce(
+        map: LayeredTilemap<BenchCell>,
+        width: Int,
+        height: Int,
+    ): Int {
         var hits = 0
         for (y in 0 until height) {
             for (x in 0 until width) {
@@ -109,34 +114,34 @@ class LayeredTilemapBenchmark : FunSpec({
             // Skip unless explicitly opted-in; this keeps normal CI fast.
             assumeTrue(
                 System.getProperty("kotile.benchmark") == "true",
-                "Skipped: set -Dkotile.benchmark=true to run benchmarks"
+                "Skipped: set -Dkotile.benchmark=true to run benchmarks",
             )
 
             val map = buildMap(scenario)
             var dummy = 0
 
             // Warmup: allow JIT to compile the hot path before timing
-            repeat(WARMUP_ITERATIONS) { dummy += scanOnce(map, scenario.width, scenario.height) }
+            repeat(warmupIterations) { dummy += scanOnce(map, scenario.width, scenario.height) }
 
             // Timed measurement
             val startNs = System.nanoTime()
-            repeat(MEASURE_ITERATIONS) { dummy += scanOnce(map, scenario.width, scenario.height) }
+            repeat(measureIterations) { dummy += scanOnce(map, scenario.width, scenario.height) }
             val elapsedNs = System.nanoTime() - startNs
 
-            val perFrameNs     = elapsedNs / MEASURE_ITERATIONS
+            val perFrameNs = elapsedNs / measureIterations
             val budgetFraction = perFrameNs * 100.0 / 16_600_000.0
 
             println(
                 "BENCH [${scenario.label}]  " +
-                "cells=${scenario.width * scenario.height}  " +
-                "layers=${scenario.layers}  " +
-                "pop=${scenario.pop}  " +
-                "per-frame=${perFrameNs} ns  " +
-                "(%.3f%% of 16.6 ms)  [dummy=$dummy]".format(budgetFraction)
+                    "cells=${scenario.width * scenario.height}  " +
+                    "layers=${scenario.layers}  " +
+                    "pop=${scenario.pop}  " +
+                    "per-frame=$perFrameNs ns  " +
+                    "(%.3f%% of 16.6 ms)  [dummy=$dummy]".format(budgetFraction),
             )
 
             // Guard: composite path must consume < 10 % of a 60-fps frame budget.
-            perFrameNs shouldBeLessThan BUDGET_NS
+            perFrameNs shouldBeLessThan budgetNs
         }
     }
 })

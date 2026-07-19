@@ -3,6 +3,7 @@ plugins {
     `java-library`
     `maven-publish`
     id("org.jetbrains.dokka")
+    id("org.jlleitschuh.gradle.ktlint")
 }
 
 val gdxVersion: String by project

@@ -88,7 +88,12 @@ internal class ViewportDirtyTracker(private val cache: GridCompositeCache) {
      * [markDirtyCells] call can compare against them. Call once per render,
      * after the recomposite (whether or not it actually ran).
      */
-    fun recordRenderedVersions(source: LayeredTilemap<*>, viewport: TileViewport, windowWidth: Int, windowHeight: Int) {
+    fun recordRenderedVersions(
+        source: LayeredTilemap<*>,
+        viewport: TileViewport,
+        windowWidth: Int,
+        windowHeight: Int,
+    ) {
         val versions = lastVersions ?: return
         for (y in 0 until windowHeight) {
             val logicalY = viewport.originY + y

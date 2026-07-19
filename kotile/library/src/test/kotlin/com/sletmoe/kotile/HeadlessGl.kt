@@ -76,7 +76,12 @@ object HeadlessGl {
      * one window out from under each other.
      */
     @Synchronized
-    fun render(width: Int, height: Int, clear: Color, draw: () -> Unit): Pixmap {
+    fun render(
+        width: Int,
+        height: Int,
+        clear: Color,
+        draw: () -> Unit,
+    ): Pixmap {
         ensureApp()
         resizeWindowTo(width, height)
         return onGlThread {
@@ -113,28 +118,31 @@ object HeadlessGl {
 
         val ready = CountDownLatch(1)
         var bootFailure: Throwable? = null
-        val listener = object : ApplicationAdapter() {
-            override fun create() = ready.countDown()
-        }
+        val listener =
+            object : ApplicationAdapter() {
+                override fun create() = ready.countDown()
+            }
         // Start at 1x1 so the first render's resize is unconditional -- there is no
         // size a test could ask for that we would mistake for "already correct".
-        val config = Lwjgl3ApplicationConfiguration().apply {
-            setWindowedMode(1, 1)
-            setInitialVisible(false)
-            disableAudio(true)
-            // The window is never focused (it is hidden), so the idle rate is the one
-            // that governs how fast posted work drains. Keep it at the normal 60.
-            setIdleFPS(60)
-        }
-        val thread = Thread({
-            try {
-                Lwjgl3Application(listener, config)
-            } catch (t: Throwable) {
-                bootFailure = t
-            } finally {
-                ready.countDown()
+        val config =
+            Lwjgl3ApplicationConfiguration().apply {
+                setWindowedMode(1, 1)
+                setInitialVisible(false)
+                disableAudio(true)
+                // The window is never focused (it is hidden), so the idle rate is the one
+                // that governs how fast posted work drains. Keep it at the normal 60.
+                setIdleFPS(60)
             }
-        }, "kotile-headless-gl")
+        val thread =
+            Thread({
+                try {
+                    Lwjgl3Application(listener, config)
+                } catch (t: Throwable) {
+                    bootFailure = t
+                } finally {
+                    ready.countDown()
+                }
+            }, "kotile-headless-gl")
         thread.isDaemon = true
         thread.start()
 
@@ -159,7 +167,10 @@ object HeadlessGl {
      * it is requested, and a canvas built against a stale size would silently
      * render at the wrong scale/offset — so poll across frames rather than assume.
      */
-    private fun resizeWindowTo(width: Int, height: Int) {
+    private fun resizeWindowTo(
+        width: Int,
+        height: Int,
+    ) {
         if (currentWidthPx == width && currentHeightPx == height) return
 
         onGlThread { Gdx.graphics.setWindowedMode(width, height) }
@@ -175,7 +186,9 @@ object HeadlessGl {
                 return
             }
         }
-        error("headless window never resized to ${width}x$height (Gdx.graphics reports ${actual.first}x${actual.second})")
+        error(
+            "headless window never resized to ${width}x$height (Gdx.graphics reports ${actual.first}x${actual.second})",
+        )
     }
 
     /** Runs [block] on the GL thread and returns its result, rethrowing anything it threw. */
@@ -205,7 +218,12 @@ object HeadlessGl {
 }
 
 /** Average color over the half-open pixel rectangle [x0,x1) x [y0,y1). */
-fun Pixmap.averageColor(x0: Int, y0: Int, x1: Int, y1: Int): Color {
+fun Pixmap.averageColor(
+    x0: Int,
+    y0: Int,
+    x1: Int,
+    y1: Int,
+): Color {
     var r = 0L
     var g = 0L
     var b = 0L

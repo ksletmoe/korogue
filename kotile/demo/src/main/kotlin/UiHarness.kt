@@ -9,10 +9,10 @@ import com.badlogic.gdx.graphics.PixmapIO
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.sletmoe.kotile.display.KotileCanvas
-import com.sletmoe.kotile.display.ascii.StaticAsciiTile
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
 import com.sletmoe.kotile.display.ascii.Font
 import com.sletmoe.kotile.display.ascii.Fonts
+import com.sletmoe.kotile.display.ascii.StaticAsciiTile
 import com.sletmoe.kotile.rendering.LayerStack
 import com.sletmoe.kotile.rendering.PixelRect
 import com.sletmoe.kotile.rendering.UiLayer
@@ -58,19 +58,27 @@ private class ButtonWidget(
 
     override fun render(canvas: KotileCanvas) {
         canvas.drawSprite(
-            bounds.x, bounds.y, TextureRegion(texture),
-            bounds.width, bounds.height,
+            bounds.x,
+            bounds.y,
+            TextureRegion(texture),
+            bounds.width,
+            bounds.height,
             tint = if (hovered) hoverTint else idleTint,
         )
     }
 
     // The cursor is over this widget (UiLayer only dispatches hits here).
-    override fun onPointerMoved(px: Float, py: Float): Boolean {
+    override fun onPointerMoved(
+        px: Float,
+        py: Float,
+    ): Boolean {
         hovered = true
         return true
     }
 
-    fun clearHover() { hovered = false }
+    fun clearHover() {
+        hovered = false
+    }
 }
 
 private class UiHarness(private val outPath: String) : ApplicationAdapter() {
@@ -86,11 +94,12 @@ private class UiHarness(private val outPath: String) : ApplicationAdapter() {
     override fun create() {
         font = Fonts.cp437_10x10()
         canvas = KotileCanvas(font.charWidthPx, font.charHeightPx)
-        window = AsciiTileWindow.createWithCanvas(canvas, font) {
-            widthInTiles = COLS
-            heightInTiles = ROWS
-            fitToWindow = false // fixed grid: widget pixel positions stay put across resize
-        }
+        window =
+            AsciiTileWindow.createWithCanvas(canvas, font) {
+                widthInTiles = COLS
+                heightInTiles = ROWS
+                fitToWindow = false // fixed grid: widget pixel positions stay put across resize
+            }
         solid = solidTexture(Color.WHITE)
 
         buildGrid()
@@ -125,27 +134,35 @@ private class UiHarness(private val outPath: String) : ApplicationAdapter() {
     private fun buildWidgets() {
         val tile = font.charWidthPx.toFloat()
         // A backing panel straddling cell boundaries (x from 5.5 cells, etc.).
-        ui.add(object : Widget {
-            override val bounds = PixelRect(5.5f * tile, 8.5f * tile, 20f * tile, 8f * tile)
-            override var visible = true
-            override fun render(canvas: KotileCanvas) {
-                canvas.drawSprite(
-                    bounds.x, bounds.y, TextureRegion(solid), bounds.width, bounds.height,
-                    tint = Color(0.12f, 0.14f, 0.20f, 0.85f),
-                )
-            }
-        })
-        // Two buttons inside the panel, each on a sub-tile offset.
-        buttons = listOf(
-            ButtonWidget(
-                PixelRect(7f * tile, 10f * tile, 7f * tile, 2.5f * tile),
-                solid, idleTint = Color(0.30f, 0.45f, 0.70f, 1f), hoverTint = Color(0.55f, 0.80f, 1.0f, 1f),
-            ),
-            ButtonWidget(
-                PixelRect(17f * tile, 10f * tile, 7f * tile, 2.5f * tile),
-                solid, idleTint = Color(0.30f, 0.45f, 0.70f, 1f), hoverTint = Color(0.55f, 0.80f, 1.0f, 1f),
-            ),
+        ui.add(
+            object : Widget {
+                override val bounds = PixelRect(5.5f * tile, 8.5f * tile, 20f * tile, 8f * tile)
+                override var visible = true
+
+                override fun render(canvas: KotileCanvas) {
+                    canvas.drawSprite(
+                        bounds.x,
+                        bounds.y,
+                        TextureRegion(solid),
+                        bounds.width,
+                        bounds.height,
+                        tint = Color(0.12f, 0.14f, 0.20f, 0.85f),
+                    )
+                }
+            },
         )
+        // Two buttons inside the panel, each on a sub-tile offset.
+        buttons =
+            listOf(
+                ButtonWidget(
+                    PixelRect(7f * tile, 10f * tile, 7f * tile, 2.5f * tile),
+                    solid, idleTint = Color(0.30f, 0.45f, 0.70f, 1f), hoverTint = Color(0.55f, 0.80f, 1.0f, 1f),
+                ),
+                ButtonWidget(
+                    PixelRect(17f * tile, 10f * tile, 7f * tile, 2.5f * tile),
+                    solid, idleTint = Color(0.30f, 0.45f, 0.70f, 1f), hoverTint = Color(0.55f, 0.80f, 1.0f, 1f),
+                ),
+            )
         buttons.forEach { ui.add(it) }
     }
 
@@ -165,7 +182,10 @@ private class UiHarness(private val outPath: String) : ApplicationAdapter() {
         }
     }
 
-    override fun resize(width: Int, height: Int) = window.resize(width, height)
+    override fun resize(
+        width: Int,
+        height: Int,
+    ) = window.resize(width, height)
 
     override fun dispose() {
         window.dispose() // shared canvas + font not owned by the window
@@ -183,13 +203,15 @@ private class UiHarness(private val outPath: String) : ApplicationAdapter() {
 }
 
 fun main() {
-    val outPath = System.getProperty("kotile.harness.out")
-        ?: "${System.getProperty("user.dir")}/ui-harness.png"
+    val outPath =
+        System.getProperty("kotile.harness.out")
+            ?: "${System.getProperty("user.dir")}/ui-harness.png"
 
-    val config = Lwjgl3ApplicationConfiguration().apply {
-        setTitle("kotile UI harness")
-        setWindowedMode(WINDOW_W_PX, WINDOW_H_PX)
-        disableAudio(true)
-    }
+    val config =
+        Lwjgl3ApplicationConfiguration().apply {
+            setTitle("kotile UI harness")
+            setWindowedMode(WINDOW_W_PX, WINDOW_H_PX)
+            disableAudio(true)
+        }
     Lwjgl3Application(UiHarness(outPath), config)
 }

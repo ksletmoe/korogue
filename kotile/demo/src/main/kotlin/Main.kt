@@ -29,10 +29,11 @@ class KotileDemo : ApplicationAdapter() {
         sheet = TileSheet(Gdx.files.classpath("vaarn-8x8.png"), 8, 8)
         spriteCanvas = KotileCanvas(20, 20)
         sprites = SpriteTileRenderer(spriteCanvas, sheet)
-        overlay = AsciiTileWindow.create {
-            widthInTiles = 80
-            heightInTiles = 30
-        }
+        overlay =
+            AsciiTileWindow.create {
+                widthInTiles = 80
+                heightInTiles = 30
+            }
 
         drawSprites()
         drawOverlay()
@@ -70,7 +71,11 @@ class KotileDemo : ApplicationAdapter() {
      * out-of-bounds cell, so shrinking the window past the showcase would
      * otherwise crash; clip it here instead.
      */
-    private fun putSprite(x: Int, y: Int, tile: StaticSpriteTile) {
+    private fun putSprite(
+        x: Int,
+        y: Int,
+        tile: StaticSpriteTile,
+    ) {
         if (x in 0 until sprites.widthInTiles && y in 0 until sprites.heightInTiles) {
             sprites.drawTile(x, y, z = 0, tile = tile)
         }
@@ -98,7 +103,10 @@ class KotileDemo : ApplicationAdapter() {
         }
     }
 
-    override fun resize(width: Int, height: Int) {
+    override fun resize(
+        width: Int,
+        height: Int,
+    ) {
         // Resize BOTH surfaces (not just the overlay) and redraw, since each
         // reflows its grid and drops content that no longer fits.
         sprites.resize(width, height)
@@ -116,9 +124,10 @@ class KotileDemo : ApplicationAdapter() {
 }
 
 fun main() {
-    val config = Lwjgl3ApplicationConfiguration().apply {
-        setTitle("kotile")
-        setWindowedMode(800, 300)
-    }
+    val config =
+        Lwjgl3ApplicationConfiguration().apply {
+            setTitle("kotile")
+            setWindowedMode(800, 300)
+        }
     Lwjgl3Application(KotileDemo(), config)
 }
