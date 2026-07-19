@@ -97,7 +97,12 @@ private class SpriteRenderHarness(private val outPath: String) : ApplicationAdap
         val rampLen = 20
         repeat(rampLen) { i ->
             val v = 1f - i.toFloat() / (rampLen - 1)
-            sprites.drawTile(1 + i, 7, z = 0, tile = StaticSpriteTile(sheetX = 0, sheetY = 2, tint = Color(v, v, v, 1f)))
+            sprites.drawTile(
+                1 + i,
+                7,
+                z = 0,
+                tile = StaticSpriteTile(sheetX = 0, sheetY = 2, tint = Color(v, v, v, 1f)),
+            )
         }
 
         // Row 9: an animated tile cycling three art-block cells, resolved at
@@ -171,7 +176,8 @@ private class SpriteRenderHarness(private val outPath: String) : ApplicationAdap
         if (++frame >= 2) {
             println(
                 "SPRITE-HARNESS grid=${canvas.width}x${canvas.height} tilePx=$TILE_PX " +
-                    "logical=${Gdx.graphics.width}x${Gdx.graphics.height} backbuffer=${Gdx.graphics.backBufferWidth}x${Gdx.graphics.backBufferHeight}",
+                    "logical=${Gdx.graphics.width}x${Gdx.graphics.height} " +
+                    "backbuffer=${Gdx.graphics.backBufferWidth}x${Gdx.graphics.backBufferHeight}",
             )
             val pixmap = Pixmap.createFromFrameBuffer(0, 0, Gdx.graphics.backBufferWidth, Gdx.graphics.backBufferHeight)
             PixmapIO.writePNG(Gdx.files.absolute(outPath), pixmap, Deflater.DEFAULT_COMPRESSION, true)
@@ -181,7 +187,10 @@ private class SpriteRenderHarness(private val outPath: String) : ApplicationAdap
         }
     }
 
-    override fun resize(width: Int, height: Int) {
+    override fun resize(
+        width: Int,
+        height: Int,
+    ) {
         sprites.resize(width, height) // rebuilds the internal tilemap
         layered.resize(width, height) // both renderers track the canvas size
         buildScene() // ...so repopulate them
@@ -197,8 +206,9 @@ private class SpriteRenderHarness(private val outPath: String) : ApplicationAdap
 }
 
 fun main() {
-    val outPath = System.getProperty("kotile.harness.out")
-        ?: "${System.getProperty("user.dir")}/sprite-harness.png"
+    val outPath =
+        System.getProperty("kotile.harness.out")
+            ?: "${System.getProperty("user.dir")}/sprite-harness.png"
 
     val config =
         Lwjgl3ApplicationConfiguration().apply {

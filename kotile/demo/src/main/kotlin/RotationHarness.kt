@@ -75,13 +75,15 @@ private class RotationHarness(private val outPath: String) : ApplicationAdapter(
 }
 
 fun main() {
-    val outPath = System.getProperty("kotile.harness.out")
-        ?: "${System.getProperty("user.dir")}/rotation-harness.png"
+    val outPath =
+        System.getProperty("kotile.harness.out")
+            ?: "${System.getProperty("user.dir")}/rotation-harness.png"
 
-    val config = Lwjgl3ApplicationConfiguration().apply {
-        setTitle("kotile rotation harness")
-        setWindowedMode(WINDOW_W_PX, WINDOW_H_PX)
-        disableAudio(true)
-    }
+    val config =
+        Lwjgl3ApplicationConfiguration().apply {
+            setTitle("kotile rotation harness")
+            setWindowedMode(WINDOW_W_PX, WINDOW_H_PX)
+            disableAudio(true)
+        }
     Lwjgl3Application(RotationHarness(outPath), config)
 }

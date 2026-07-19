@@ -60,8 +60,7 @@ public class AnimatedSpriteTile(
      * @param elapsedMs monotonically increasing wall-clock time in milliseconds.
      *   Negative values are treated as `0` (first frame).
      */
-    override fun regionFor(elapsedMs: Long): TextureRegion =
-        frames[frameIndexAt(frames, mode, elapsedMs)].content
+    override fun regionFor(elapsedMs: Long): TextureRegion = frames[frameIndexAt(frames, mode, elapsedMs)].content
 
     /**
      * [tint] multiplied by the active frame's [AnimationFrame.tint] (krogue-2ur), letting a

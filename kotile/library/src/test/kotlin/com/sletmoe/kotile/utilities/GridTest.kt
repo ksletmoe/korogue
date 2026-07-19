@@ -47,12 +47,13 @@ class GridTest : FunSpec({
         val visited = mutableMapOf<Pair<Int, Int>, Int>()
         grid.forEachIndexed { x, y, value -> visited[x to y] = value }
 
-        visited shouldBe mapOf(
-            (0 to 0) to 1,
-            (0 to 1) to 1,
-            (1 to 0) to 8,
-            (1 to 1) to 1,
-        )
+        visited shouldBe
+            mapOf(
+                (0 to 0) to 1,
+                (0 to 1) to 1,
+                (1 to 0) to 8,
+                (1 to 1) to 1,
+            )
     }
 
     test("out of bounds access throws") {
@@ -130,10 +131,11 @@ class GridTest : FunSpec({
         val visited = mutableListOf<Vector2Int>()
         grid.forEachCoordinate { visited.add(it) }
 
-        visited shouldBe listOf(
-            Vector2Int(0, 0), Vector2Int(0, 1), Vector2Int(0, 2),
-            Vector2Int(1, 0), Vector2Int(1, 1), Vector2Int(1, 2),
-        )
+        visited shouldBe
+            listOf(
+                Vector2Int(0, 0), Vector2Int(0, 1), Vector2Int(0, 2),
+                Vector2Int(1, 0), Vector2Int(1, 1), Vector2Int(1, 2),
+            )
     }
 
     test("copy carries over every cell value") {

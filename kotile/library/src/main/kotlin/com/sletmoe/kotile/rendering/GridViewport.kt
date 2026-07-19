@@ -1,7 +1,6 @@
 package com.sletmoe.kotile.rendering
 
 import com.badlogic.gdx.graphics.OrthographicCamera
-import com.badlogic.gdx.graphics.glutils.HdpiUtils
 import com.badlogic.gdx.utils.viewport.Viewport
 import kotlin.math.roundToInt
 
@@ -67,7 +66,11 @@ class GridViewport(
      * Selects **fixed-grid** mode: [columns] x [rows] cells scaled by [policy].
      * Takes effect on the next [update].
      */
-    fun useFixedGrid(columns: Int, rows: Int, policy: ScalePolicy) {
+    fun useFixedGrid(
+        columns: Int,
+        rows: Int,
+        policy: ScalePolicy,
+    ) {
         fixedColumns = columns
         fixedRows = rows
         scalePolicy = policy
@@ -84,13 +87,20 @@ class GridViewport(
      * window, sets the world to the content size and the GL bounds to the
      * centered content rectangle, then [apply]s the projection.
      */
-    override fun update(screenWidth: Int, screenHeight: Int, centerCamera: Boolean) {
+    override fun update(
+        screenWidth: Int,
+        screenHeight: Int,
+        centerCamera: Boolean,
+    ) {
         val computed =
             if (fixedColumns > 0 && fixedRows > 0) {
                 GridLayout.forFixedGrid(
-                    screenWidth, screenHeight,
-                    fixedColumns, fixedRows,
-                    nativeTileWidthPx, nativeTileHeightPx,
+                    screenWidth,
+                    screenHeight,
+                    fixedColumns,
+                    fixedRows,
+                    nativeTileWidthPx,
+                    nativeTileHeightPx,
                     scalePolicy,
                 )
             } else {

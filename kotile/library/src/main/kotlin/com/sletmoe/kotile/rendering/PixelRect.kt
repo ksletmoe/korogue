@@ -31,6 +31,8 @@ data class PixelRect(val x: Float, val y: Float, val width: Float, val height: F
      * pixel-cell coverage and [GridLayout.tileAt], so adjacent widgets that share
      * an edge never both claim a point.
      */
-    fun contains(px: Float, py: Float): Boolean =
-        px >= x && px < right && py >= y && py < bottom
+    fun contains(
+        px: Float,
+        py: Float,
+    ): Boolean = px >= x && px < right && py >= y && py < bottom
 }

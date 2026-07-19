@@ -28,6 +28,8 @@ data class TileViewport(
      * Returns a new [TileViewport] translated by ([dx], [dy]) tiles. Positive
      * [dx] scrolls right; positive [dy] scrolls down.
      */
-    fun translate(dx: Int, dy: Int): TileViewport =
-        TileViewport(originX + dx, originY + dy)
+    fun translate(
+        dx: Int,
+        dy: Int,
+    ): TileViewport = TileViewport(originX + dx, originY + dy)
 }

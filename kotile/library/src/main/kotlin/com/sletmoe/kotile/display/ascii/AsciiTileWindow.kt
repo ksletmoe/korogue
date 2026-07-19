@@ -152,6 +152,7 @@ class AsciiTileWindow private constructor(
     sharesCanvas: Boolean = false,
 ) : Disposable {
     private val compositeBlend: BlendMode = if (sharesCanvas) BlendMode.NORMAL else BlendMode.REPLACE
+
     /** Current grid width in cells. Updated by [resize] when [fitToWindow] is `true`. */
     var widthInTiles: Int = widthInTiles
         private set
@@ -250,7 +251,11 @@ class AsciiTileWindow private constructor(
      *
      * @throws IndexOutOfBoundsException if the cell is outside the grid
      */
-    fun drawTile(x: Int, y: Int, tile: AsciiTile) {
+    fun drawTile(
+        x: Int,
+        y: Int,
+        tile: AsciiTile,
+    ) {
         drawTile(x, y, z = 0, tile = tile)
     }
 
@@ -261,7 +266,12 @@ class AsciiTileWindow private constructor(
      *
      * @throws IndexOutOfBoundsException if the cell is outside the grid
      */
-    fun drawTile(x: Int, y: Int, z: Int, tile: AsciiTile) {
+    fun drawTile(
+        x: Int,
+        y: Int,
+        z: Int,
+        tile: AsciiTile,
+    ) {
         layeredTiles.setCell(x, y, z, tile)
         refreshAnimatedTrackingAt(x, y)
         compositeCache.markCellDirty(x, y)
@@ -278,7 +288,10 @@ class AsciiTileWindow private constructor(
      * [AnimatedAsciiTile]: any tile whose appearance varies with time needs the
      * per-frame redraw, including consumer-supplied implementations.
      */
-    private fun refreshAnimatedTrackingAt(x: Int, y: Int) {
+    private fun refreshAnimatedTrackingAt(
+        x: Int,
+        y: Int,
+    ) {
         val stillAnimated = layeredTiles.anyCellAt(x, y) { it is DynamicAsciiTile }
         val position = Vector2Int(x, y)
         if (stillAnimated) animatedPositions.add(position) else animatedPositions.remove(position)
@@ -290,7 +303,10 @@ class AsciiTileWindow private constructor(
      *
      * @throws IndexOutOfBoundsException if the cell is outside the grid
      */
-    fun drawTile(position: Vector3Int, tile: AsciiTile) = drawTile(position.x, position.y, position.z, tile)
+    fun drawTile(
+        position: Vector3Int,
+        tile: AsciiTile,
+    ) = drawTile(position.x, position.y, position.z, tile)
 
     // -------------------------------------------------------------------------
     // Write — text
@@ -350,7 +366,10 @@ class AsciiTileWindow private constructor(
      * Sets every cell on layer [z] to [tile]. The layer is created on demand
      * if it does not yet exist.
      */
-    fun fill(z: Int, tile: AsciiTile) {
+    fun fill(
+        z: Int,
+        tile: AsciiTile,
+    ) {
         for (y in 0 until heightInTiles) {
             for (x in 0 until widthInTiles) {
                 layeredTiles.setCell(x, y, z, tile)
@@ -369,7 +388,10 @@ class AsciiTileWindow private constructor(
      * Clears the cell at column [x], row [y] on layer z=0 so nothing is drawn
      * there. No-op if layer 0 has never been written to.
      */
-    fun clearTile(x: Int, y: Int) {
+    fun clearTile(
+        x: Int,
+        y: Int,
+    ) {
         clearTile(x, y, z = 0)
     }
 
@@ -377,7 +399,11 @@ class AsciiTileWindow private constructor(
      * Clears the cell at column [x], row [y] on layer [z]. No-op if layer [z]
      * does not exist.
      */
-    fun clearTile(x: Int, y: Int, z: Int) {
+    fun clearTile(
+        x: Int,
+        y: Int,
+        z: Int,
+    ) {
         layeredTiles.removeCell(x, y, z)
         refreshAnimatedTrackingAt(x, y)
         compositeCache.markCellDirty(x, y)
@@ -435,15 +461,20 @@ class AsciiTileWindow private constructor(
      * @param elapsedMs wall-clock time used to resolve animated cells to a
      *   concrete descriptor. Defaults to 0 (first frame).
      */
-    fun topTileAt(x: Int, y: Int, elapsedMs: Long = 0L): StaticAsciiTile? =
-        layeredTiles.topCellAt(x, y)?.resolveAt(elapsedMs)
+    fun topTileAt(
+        x: Int,
+        y: Int,
+        elapsedMs: Long = 0L,
+    ): StaticAsciiTile? = layeredTiles.topCellAt(x, y)?.resolveAt(elapsedMs)
 
     /**
      * Returns the composited (top-most non-null) [StaticAsciiTile] at
      * [position], or `null` if all layers are empty at that cell.
      */
-    fun topTileAt(position: Vector2Int, elapsedMs: Long = 0L): StaticAsciiTile? =
-        layeredTiles.topCellAt(position)?.resolveAt(elapsedMs)
+    fun topTileAt(
+        position: Vector2Int,
+        elapsedMs: Long = 0L,
+    ): StaticAsciiTile? = layeredTiles.topCellAt(position)?.resolveAt(elapsedMs)
 
     // -------------------------------------------------------------------------
     // Render
@@ -486,14 +517,15 @@ class AsciiTileWindow private constructor(
      *   [AnimatedAsciiTile] cells, sampled once per [Layer.render]; defaults to a
      *   constant 0 (first frame) for static grids.
      */
-    fun asLayer(elapsedMs: () -> Long = { 0L }): Layer = object : Layer {
-        override fun render(canvas: KotileCanvas) {
-            check(canvas === this@AsciiTileWindow.canvas) {
-                "AsciiTileWindow.asLayer must be composited on the canvas it was built with"
+    fun asLayer(elapsedMs: () -> Long = { 0L }): Layer =
+        object : Layer {
+            override fun render(canvas: KotileCanvas) {
+                check(canvas === this@AsciiTileWindow.canvas) {
+                    "AsciiTileWindow.asLayer must be composited on the canvas it was built with"
+                }
+                drawCachedGrid(elapsedMs())
             }
-            drawCachedGrid(elapsedMs())
         }
-    }
 
     /** Recomposites dirty cells of [layeredTiles] into [compositeCache], then blits the cache as one sprite. */
     private fun drawCachedGrid(elapsedMs: Long) {
@@ -517,7 +549,14 @@ class AsciiTileWindow private constructor(
             // NORMAL when sharesCanvas is true so a shared-canvas pane's empty cells don't erase a
             // neighbor's pixels (krogue-a24).
             val l = canvas.layout
-            canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = l.contentWidthPx, h = l.contentHeightPx, blend = compositeBlend)
+            canvas.drawSprite(
+                pxX = 0f,
+                pxY = 0f,
+                region = region,
+                w = l.contentWidthPx,
+                h = l.contentHeightPx,
+                blend = compositeBlend,
+            )
         }
     }
 
@@ -528,7 +567,12 @@ class AsciiTileWindow private constructor(
      * viewport)` overload bypasses this cache entirely), so screen and logical coordinates are
      * identical here.
      */
-    private fun drawCell(x: Int, y: Int, elapsedMs: Long, drawer: GridCompositeCache.TileDrawer) {
+    private fun drawCell(
+        x: Int,
+        y: Int,
+        elapsedMs: Long,
+        drawer: GridCompositeCache.TileDrawer,
+    ) {
         drawResolvedCell(layeredTiles, x, y, x, y, elapsedMs, drawer)
     }
 
@@ -616,7 +660,14 @@ class AsciiTileWindow private constructor(
         canvas.reapplyViewport()
         viewportCache.cachedRegion?.let { region ->
             val l = canvas.layout
-            canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = l.contentWidthPx, h = l.contentHeightPx, blend = compositeBlend)
+            canvas.drawSprite(
+                pxX = 0f,
+                pxY = 0f,
+                region = region,
+                w = l.contentWidthPx,
+                h = l.contentHeightPx,
+                blend = compositeBlend,
+            )
         }
         canvas.end()
     }
@@ -656,7 +707,10 @@ class AsciiTileWindow private constructor(
      * When [fitToWindow] is `false`, only the canvas projection is updated;
      * the tile grid remains unchanged.
      */
-    fun resize(widthPx: Int, heightPx: Int) {
+    fun resize(
+        widthPx: Int,
+        heightPx: Int,
+    ) {
         canvas.resize(widthPx, heightPx)
         if (!fitToWindow) return
 

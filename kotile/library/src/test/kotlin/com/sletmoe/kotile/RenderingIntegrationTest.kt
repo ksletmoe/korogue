@@ -60,15 +60,17 @@ class RenderingIntegrationTest : FunSpec({
     test("AsciiTileWindow fills cells with the background color").config(enabled = HeadlessGl.available) {
         // A space glyph is fully keyed-out to transparent, so only the
         // background quad (white tinted by the background color) shows.
-        val pixels = HeadlessGl.render(80, 40, Color.BLACK) {
-            val window = AsciiTileWindow.create {
-                widthInTiles = 8
-                heightInTiles = 4
+        val pixels =
+            HeadlessGl.render(80, 40, Color.BLACK) {
+                val window =
+                    AsciiTileWindow.create {
+                        widthInTiles = 8
+                        heightInTiles = 4
+                    }
+                window.fill(StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
+                window.render()
+                window.dispose()
             }
-            window.fill(StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
-            window.render()
-            window.dispose()
-        }
         val avg = pixels.averageColor(0, 0, 80, 40)
         avg.r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
         avg.g.toDouble() shouldBe (0.0 plusOrMinus 0.1)
@@ -79,15 +81,17 @@ class RenderingIntegrationTest : FunSpec({
     test("a glyph is foreground-tinted and drawn at the top-left origin").config(enabled = HeadlessGl.available) {
         // Full block (CP437 0xDB) is solid white; tinted red it fills cell
         // (0,0). Other cells stay at the black clear color.
-        val pixels = HeadlessGl.render(80, 40, Color.BLACK) {
-            val window = AsciiTileWindow.create {
-                widthInTiles = 8
-                heightInTiles = 4
+        val pixels =
+            HeadlessGl.render(80, 40, Color.BLACK) {
+                val window =
+                    AsciiTileWindow.create {
+                        widthInTiles = 8
+                        heightInTiles = 4
+                    }
+                window.drawTile(0, 0, StaticAsciiTile('Û', Color.RED, Color.CLEAR))
+                window.render()
+                window.dispose()
             }
-            window.drawTile(0, 0, StaticAsciiTile('Û', Color.RED, Color.CLEAR))
-            window.render()
-            window.dispose()
-        }
 
         val topLeft = pixels.averageColor(0, 0, 10, 10)
         topLeft.r.toDouble() shouldBe (1.0 plusOrMinus 0.15)
@@ -124,30 +128,33 @@ class RenderingIntegrationTest : FunSpec({
         // krogue-2ur: frame 0 has no override (renders at the tile's WHITE constant tint, i.e.
         // the sheet's own blue); frame 1 overrides to green. Proves TileRenderer.renderGrid calls
         // entry.tintFor(elapsedMs) — not the old constant entry.tint — for the DynamicSpriteTile branch.
-        val pixels = HeadlessGl.render(8, 8, Color.BLACK) {
-            val tilePixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
-            tilePixmap.setColor(SHEET_BLUE)
-            tilePixmap.fill()
-            val file = File.createTempFile("kotile-shimmer", ".png").apply { deleteOnExit() }
-            PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), tilePixmap)
-            tilePixmap.dispose()
+        val pixels =
+            HeadlessGl.render(8, 8, Color.BLACK) {
+                val tilePixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
+                tilePixmap.setColor(SHEET_BLUE)
+                tilePixmap.fill()
+                val file = File.createTempFile("kotile-shimmer", ".png").apply { deleteOnExit() }
+                PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), tilePixmap)
+                tilePixmap.dispose()
 
-            val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
-            val canvas = KotileCanvas(8, 8)
-            val renderer = SpriteTileRenderer(canvas, sheet)
-            val region = sheet.region(0, 0)
-            val shimmering = AnimatedSpriteTile(
-                frames = listOf(
-                    AnimationFrame(region, durationMs = 100),
-                    AnimationFrame(region, durationMs = 100, tint = Color.GREEN),
-                ),
-            )
-            renderer.drawTile(0, 0, z = 0, tile = shimmering)
-            renderer.render(elapsedMs = 0)
-            renderer.dispose()
-            canvas.dispose()
-            sheet.dispose()
-        }
+                val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
+                val canvas = KotileCanvas(8, 8)
+                val renderer = SpriteTileRenderer(canvas, sheet)
+                val region = sheet.region(0, 0)
+                val shimmering =
+                    AnimatedSpriteTile(
+                        frames =
+                            listOf(
+                                AnimationFrame(region, durationMs = 100),
+                                AnimationFrame(region, durationMs = 100, tint = Color.GREEN),
+                            ),
+                    )
+                renderer.drawTile(0, 0, z = 0, tile = shimmering)
+                renderer.render(elapsedMs = 0)
+                renderer.dispose()
+                canvas.dispose()
+                sheet.dispose()
+            }
 
         // Frame 0 (elapsedMs=0): no override -> the sheet's own blue (0.3, 0.3, 0.9) shows through
         // at the implicit WHITE constant tint, unscaled.
@@ -155,30 +162,33 @@ class RenderingIntegrationTest : FunSpec({
         frame0.b.toDouble() shouldBe (0.9 plusOrMinus 0.1)
         frame0.r.toDouble() shouldBe (0.3 plusOrMinus 0.1)
 
-        val pixelsFrame1 = HeadlessGl.render(8, 8, Color.BLACK) {
-            val tilePixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
-            tilePixmap.setColor(SHEET_BLUE)
-            tilePixmap.fill()
-            val file = File.createTempFile("kotile-shimmer2", ".png").apply { deleteOnExit() }
-            PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), tilePixmap)
-            tilePixmap.dispose()
+        val pixelsFrame1 =
+            HeadlessGl.render(8, 8, Color.BLACK) {
+                val tilePixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
+                tilePixmap.setColor(SHEET_BLUE)
+                tilePixmap.fill()
+                val file = File.createTempFile("kotile-shimmer2", ".png").apply { deleteOnExit() }
+                PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), tilePixmap)
+                tilePixmap.dispose()
 
-            val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
-            val canvas = KotileCanvas(8, 8)
-            val renderer = SpriteTileRenderer(canvas, sheet)
-            val region = sheet.region(0, 0)
-            val shimmering = AnimatedSpriteTile(
-                frames = listOf(
-                    AnimationFrame(region, durationMs = 100),
-                    AnimationFrame(region, durationMs = 100, tint = Color.GREEN),
-                ),
-            )
-            renderer.drawTile(0, 0, z = 0, tile = shimmering)
-            renderer.render(elapsedMs = 150) // into frame 1: green override
-            renderer.dispose()
-            canvas.dispose()
-            sheet.dispose()
-        }
+                val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
+                val canvas = KotileCanvas(8, 8)
+                val renderer = SpriteTileRenderer(canvas, sheet)
+                val region = sheet.region(0, 0)
+                val shimmering =
+                    AnimatedSpriteTile(
+                        frames =
+                            listOf(
+                                AnimationFrame(region, durationMs = 100),
+                                AnimationFrame(region, durationMs = 100, tint = Color.GREEN),
+                            ),
+                    )
+                renderer.drawTile(0, 0, z = 0, tile = shimmering)
+                renderer.render(elapsedMs = 150) // into frame 1: green override
+                renderer.dispose()
+                canvas.dispose()
+                sheet.dispose()
+            }
 
         // Frame 1 (elapsedMs=150): GREEN(0,1,0) override multiplies onto the sheet's own blue, so r
         // and b (both zeroed by GREEN's own r/b components) drop out while g is capped at the
@@ -193,32 +203,33 @@ class RenderingIntegrationTest : FunSpec({
     }
 
     test("TileSheet honors margin and spacing").config(enabled = HeadlessGl.available) {
-        val pixels = HeadlessGl.render(8, 4, Color.BLACK) {
-            // A 2x1 sheet of 4x4 tiles: 1px border, 2px gap between tiles.
-            // Width = 2*margin + 2*tile + 1*spacing = 2 + 8 + 2 = 12; height = 6.
-            val sheetPixmap = Pixmap(12, 6, Pixmap.Format.RGBA8888)
-            sheetPixmap.setColor(Color.BLACK)
-            sheetPixmap.fill()
-            sheetPixmap.setColor(Color.RED)
-            sheetPixmap.fillRectangle(1, 1, 4, 4) // tile (0,0)
-            sheetPixmap.setColor(Color.GREEN)
-            sheetPixmap.fillRectangle(7, 1, 4, 4) // tile (1,0): 1 + (4 + 2)
-            val file = File.createTempFile("kotile-sheet", ".png").apply { deleteOnExit() }
-            PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), sheetPixmap)
-            sheetPixmap.dispose()
+        val pixels =
+            HeadlessGl.render(8, 4, Color.BLACK) {
+                // A 2x1 sheet of 4x4 tiles: 1px border, 2px gap between tiles.
+                // Width = 2*margin + 2*tile + 1*spacing = 2 + 8 + 2 = 12; height = 6.
+                val sheetPixmap = Pixmap(12, 6, Pixmap.Format.RGBA8888)
+                sheetPixmap.setColor(Color.BLACK)
+                sheetPixmap.fill()
+                sheetPixmap.setColor(Color.RED)
+                sheetPixmap.fillRectangle(1, 1, 4, 4) // tile (0,0)
+                sheetPixmap.setColor(Color.GREEN)
+                sheetPixmap.fillRectangle(7, 1, 4, 4) // tile (1,0): 1 + (4 + 2)
+                val file = File.createTempFile("kotile-sheet", ".png").apply { deleteOnExit() }
+                PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), sheetPixmap)
+                sheetPixmap.dispose()
 
-            val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 4, 4, margin = 1, spacing = 2)
-            sheet.widthInTiles shouldBe 2
-            sheet.heightInTiles shouldBe 1
+                val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 4, 4, margin = 1, spacing = 2)
+                sheet.widthInTiles shouldBe 2
+                sheet.heightInTiles shouldBe 1
 
-            val canvas = KotileCanvas(4, 4)
-            canvas.begin()
-            canvas.drawTile(0, 0, sheet.region(0, 0))
-            canvas.drawTile(1, 0, sheet.region(1, 0))
-            canvas.end()
-            canvas.dispose()
-            sheet.dispose()
-        }
+                val canvas = KotileCanvas(4, 4)
+                canvas.begin()
+                canvas.drawTile(0, 0, sheet.region(0, 0))
+                canvas.drawTile(1, 0, sheet.region(1, 0))
+                canvas.end()
+                canvas.dispose()
+                sheet.dispose()
+            }
 
         val left = pixels.averageColor(0, 0, 4, 4)
         left.r.toDouble() shouldBe (1.0 plusOrMinus 0.1)
@@ -236,21 +247,22 @@ class RenderingIntegrationTest : FunSpec({
         // pixel (2, 2) — a HALF-tile offset on a 4px grid, i.e. straddling four
         // cells rather than snapping to one. It must land at top-left-origin
         // pixels [2,6) x [2,6): proves both sub-tile placement and the y-flip.
-        val pixels = HeadlessGl.render(12, 12, Color.BLACK) {
-            val texPixmap = Pixmap(4, 4, Pixmap.Format.RGBA8888)
-            texPixmap.setColor(Color.RED)
-            texPixmap.fill()
-            val texture = Texture(texPixmap)
-            texPixmap.dispose()
-            val region = TextureRegion(texture)
+        val pixels =
+            HeadlessGl.render(12, 12, Color.BLACK) {
+                val texPixmap = Pixmap(4, 4, Pixmap.Format.RGBA8888)
+                texPixmap.setColor(Color.RED)
+                texPixmap.fill()
+                val texture = Texture(texPixmap)
+                texPixmap.dispose()
+                val region = TextureRegion(texture)
 
-            val canvas = KotileCanvas(4, 4) // reflow: 3x3 grid of 4px cells at 1x
-            canvas.begin()
-            canvas.drawSprite(pxX = 2f, pxY = 2f, region = region, w = 4f, h = 4f)
-            canvas.end()
-            canvas.dispose()
-            texture.dispose()
-        }
+                val canvas = KotileCanvas(4, 4) // reflow: 3x3 grid of 4px cells at 1x
+                canvas.begin()
+                canvas.drawSprite(pxX = 2f, pxY = 2f, region = region, w = 4f, h = 4f)
+                canvas.end()
+                canvas.dispose()
+                texture.dispose()
+            }
 
         // The sprite occupies the offset rectangle...
         val onSprite = pixels.averageColor(2, 2, 6, 6)
@@ -274,24 +286,25 @@ class RenderingIntegrationTest : FunSpec({
         // on the bottom. Empirically confirmed direction via kotile:demo's rotationHarness before
         // writing this assertion, since the Y-up GL / Y-down content-space flip makes the sign
         // easy to get backwards by pure reasoning alone.
-        val pixels = HeadlessGl.render(8, 8, Color.BLACK) {
-            val sheetPixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
-            sheetPixmap.blending = Pixmap.Blending.None
-            sheetPixmap.setColor(Color.RED)
-            sheetPixmap.fillRectangle(0, 0, 4, 8) // left half
-            sheetPixmap.setColor(Color.BLUE)
-            sheetPixmap.fillRectangle(4, 0, 4, 8) // right half
-            val texture = Texture(sheetPixmap)
-            sheetPixmap.dispose()
-            val region = TextureRegion(texture)
+        val pixels =
+            HeadlessGl.render(8, 8, Color.BLACK) {
+                val sheetPixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
+                sheetPixmap.blending = Pixmap.Blending.None
+                sheetPixmap.setColor(Color.RED)
+                sheetPixmap.fillRectangle(0, 0, 4, 8) // left half
+                sheetPixmap.setColor(Color.BLUE)
+                sheetPixmap.fillRectangle(4, 0, 4, 8) // right half
+                val texture = Texture(sheetPixmap)
+                sheetPixmap.dispose()
+                val region = TextureRegion(texture)
 
-            val canvas = KotileCanvas(8, 8)
-            canvas.begin()
-            canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = 8f, h = 8f, rotationDeg = 90f)
-            canvas.end()
-            canvas.dispose()
-            texture.dispose()
-        }
+                val canvas = KotileCanvas(8, 8)
+                canvas.begin()
+                canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = 8f, h = 8f, rotationDeg = 90f)
+                canvas.end()
+                canvas.dispose()
+                texture.dispose()
+            }
 
         val top = pixels.averageColor(0, 0, 8, 4)
         top.r.toDouble() shouldBe (1.0 plusOrMinus 0.1)
@@ -307,29 +320,30 @@ class RenderingIntegrationTest : FunSpec({
     test("drawSprite flipX mirrors the sprite horizontally (krogue-csc)").config(enabled = HeadlessGl.available) {
         // Same left(RED)/right(BLUE) split as the rotation test. Unflipped, RED is on the left;
         // flipX=true must swap them without a rotation.
-        val pixels = HeadlessGl.render(8, 8, Color.BLACK) {
-            val sheetPixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
-            sheetPixmap.blending = Pixmap.Blending.None
-            sheetPixmap.setColor(Color.RED)
-            sheetPixmap.fillRectangle(0, 0, 4, 8) // left half
-            sheetPixmap.setColor(Color.BLUE)
-            sheetPixmap.fillRectangle(4, 0, 4, 8) // right half
-            val texture = Texture(sheetPixmap)
-            sheetPixmap.dispose()
-            val region = TextureRegion(texture)
+        val pixels =
+            HeadlessGl.render(8, 8, Color.BLACK) {
+                val sheetPixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
+                sheetPixmap.blending = Pixmap.Blending.None
+                sheetPixmap.setColor(Color.RED)
+                sheetPixmap.fillRectangle(0, 0, 4, 8) // left half
+                sheetPixmap.setColor(Color.BLUE)
+                sheetPixmap.fillRectangle(4, 0, 4, 8) // right half
+                val texture = Texture(sheetPixmap)
+                sheetPixmap.dispose()
+                val region = TextureRegion(texture)
 
-            val canvas = KotileCanvas(8, 8)
-            canvas.begin()
-            canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = 8f, h = 8f, flipX = true)
-            canvas.end()
-            // Drawn again, unflipped this time: proves the first flipped draw didn't
-            // permanently mutate the shared region instance.
-            canvas.begin()
-            canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = 8f, h = 8f)
-            canvas.end()
-            canvas.dispose()
-            texture.dispose()
-        }
+                val canvas = KotileCanvas(8, 8)
+                canvas.begin()
+                canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = 8f, h = 8f, flipX = true)
+                canvas.end()
+                // Drawn again, unflipped this time: proves the first flipped draw didn't
+                // permanently mutate the shared region instance.
+                canvas.begin()
+                canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = 8f, h = 8f)
+                canvas.end()
+                canvas.dispose()
+                texture.dispose()
+            }
 
         // The second (unflipped) draw wins on screen: RED back on the left.
         pixels.averageColor(0, 0, 4, 8).r.toDouble() shouldBe (1.0 plusOrMinus 0.1)
@@ -338,24 +352,25 @@ class RenderingIntegrationTest : FunSpec({
     }
 
     test("drawSprite flipX actually swaps sides while flipped (krogue-csc)").config(enabled = HeadlessGl.available) {
-        val pixels = HeadlessGl.render(8, 8, Color.BLACK) {
-            val sheetPixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
-            sheetPixmap.blending = Pixmap.Blending.None
-            sheetPixmap.setColor(Color.RED)
-            sheetPixmap.fillRectangle(0, 0, 4, 8) // left half
-            sheetPixmap.setColor(Color.BLUE)
-            sheetPixmap.fillRectangle(4, 0, 4, 8) // right half
-            val texture = Texture(sheetPixmap)
-            sheetPixmap.dispose()
-            val region = TextureRegion(texture)
+        val pixels =
+            HeadlessGl.render(8, 8, Color.BLACK) {
+                val sheetPixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
+                sheetPixmap.blending = Pixmap.Blending.None
+                sheetPixmap.setColor(Color.RED)
+                sheetPixmap.fillRectangle(0, 0, 4, 8) // left half
+                sheetPixmap.setColor(Color.BLUE)
+                sheetPixmap.fillRectangle(4, 0, 4, 8) // right half
+                val texture = Texture(sheetPixmap)
+                sheetPixmap.dispose()
+                val region = TextureRegion(texture)
 
-            val canvas = KotileCanvas(8, 8)
-            canvas.begin()
-            canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = 8f, h = 8f, flipX = true)
-            canvas.end()
-            canvas.dispose()
-            texture.dispose()
-        }
+                val canvas = KotileCanvas(8, 8)
+                canvas.begin()
+                canvas.drawSprite(pxX = 0f, pxY = 0f, region = region, w = 8f, h = 8f, flipX = true)
+                canvas.end()
+                canvas.dispose()
+                texture.dispose()
+            }
 
         // flipX swaps sides: BLUE (was on the right) now shows on the left, RED on the right.
         pixels.averageColor(0, 0, 4, 8).b.toDouble() shouldBe (1.0 plusOrMinus 0.1)
@@ -364,26 +379,27 @@ class RenderingIntegrationTest : FunSpec({
     }
 
     test("TileRenderer honors a StaticSpriteTile's flipX (krogue-csc)").config(enabled = HeadlessGl.available) {
-        val pixels = HeadlessGl.render(8, 8, Color.BLACK) {
-            val sheetPixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
-            sheetPixmap.blending = Pixmap.Blending.None
-            sheetPixmap.setColor(Color.RED)
-            sheetPixmap.fillRectangle(0, 0, 4, 8)
-            sheetPixmap.setColor(Color.BLUE)
-            sheetPixmap.fillRectangle(4, 0, 4, 8)
-            val file = File.createTempFile("kotile-flip", ".png").apply { deleteOnExit() }
-            PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), sheetPixmap)
-            sheetPixmap.dispose()
+        val pixels =
+            HeadlessGl.render(8, 8, Color.BLACK) {
+                val sheetPixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
+                sheetPixmap.blending = Pixmap.Blending.None
+                sheetPixmap.setColor(Color.RED)
+                sheetPixmap.fillRectangle(0, 0, 4, 8)
+                sheetPixmap.setColor(Color.BLUE)
+                sheetPixmap.fillRectangle(4, 0, 4, 8)
+                val file = File.createTempFile("kotile-flip", ".png").apply { deleteOnExit() }
+                PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), sheetPixmap)
+                sheetPixmap.dispose()
 
-            val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
-            val canvas = KotileCanvas(8, 8)
-            val renderer = SpriteTileRenderer(canvas, sheet)
-            renderer.drawTile(0, 0, z = 0, tile = StaticSpriteTile(0, 0, flipX = true))
-            renderer.render()
-            renderer.dispose()
-            canvas.dispose()
-            sheet.dispose()
-        }
+                val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
+                val canvas = KotileCanvas(8, 8)
+                val renderer = SpriteTileRenderer(canvas, sheet)
+                renderer.drawTile(0, 0, z = 0, tile = StaticSpriteTile(0, 0, flipX = true))
+                renderer.render()
+                renderer.dispose()
+                canvas.dispose()
+                sheet.dispose()
+            }
 
         pixels.averageColor(0, 0, 4, 8).b.toDouble() shouldBe (1.0 plusOrMinus 0.1)
         pixels.averageColor(4, 0, 8, 8).r.toDouble() shouldBe (1.0 plusOrMinus 0.1)
@@ -391,30 +407,32 @@ class RenderingIntegrationTest : FunSpec({
     }
 
     test("TileRenderer honors an AnimatedSpriteTile's flipX (krogue-csc)").config(enabled = HeadlessGl.available) {
-        val pixels = HeadlessGl.render(8, 8, Color.BLACK) {
-            val sheetPixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
-            sheetPixmap.blending = Pixmap.Blending.None
-            sheetPixmap.setColor(Color.RED)
-            sheetPixmap.fillRectangle(0, 0, 4, 8)
-            sheetPixmap.setColor(Color.BLUE)
-            sheetPixmap.fillRectangle(4, 0, 4, 8)
-            val file = File.createTempFile("kotile-flip2", ".png").apply { deleteOnExit() }
-            PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), sheetPixmap)
-            sheetPixmap.dispose()
+        val pixels =
+            HeadlessGl.render(8, 8, Color.BLACK) {
+                val sheetPixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
+                sheetPixmap.blending = Pixmap.Blending.None
+                sheetPixmap.setColor(Color.RED)
+                sheetPixmap.fillRectangle(0, 0, 4, 8)
+                sheetPixmap.setColor(Color.BLUE)
+                sheetPixmap.fillRectangle(4, 0, 4, 8)
+                val file = File.createTempFile("kotile-flip2", ".png").apply { deleteOnExit() }
+                PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), sheetPixmap)
+                sheetPixmap.dispose()
 
-            val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
-            val canvas = KotileCanvas(8, 8)
-            val renderer = SpriteTileRenderer(canvas, sheet)
-            val tile = AnimatedSpriteTile(
-                frames = listOf(AnimationFrame(sheet.region(0, 0), durationMs = 100)),
-                flipX = true,
-            )
-            renderer.drawTile(0, 0, z = 0, tile = tile)
-            renderer.render()
-            renderer.dispose()
-            canvas.dispose()
-            sheet.dispose()
-        }
+                val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
+                val canvas = KotileCanvas(8, 8)
+                val renderer = SpriteTileRenderer(canvas, sheet)
+                val tile =
+                    AnimatedSpriteTile(
+                        frames = listOf(AnimationFrame(sheet.region(0, 0), durationMs = 100)),
+                        flipX = true,
+                    )
+                renderer.drawTile(0, 0, z = 0, tile = tile)
+                renderer.render()
+                renderer.dispose()
+                canvas.dispose()
+                sheet.dispose()
+            }
 
         pixels.averageColor(0, 0, 4, 8).b.toDouble() shouldBe (1.0 plusOrMinus 0.1)
         pixels.averageColor(4, 0, 8, 8).r.toDouble() shouldBe (1.0 plusOrMinus 0.1)
@@ -425,25 +443,26 @@ class RenderingIntegrationTest : FunSpec({
         // drawTile is sugar over drawSprite: drawing cell (1, 1) via each path
         // must produce identical pixels. Guards the sugar's cell→pixel mapping
         // (including the y-flip) against the primitive.
-        fun renderVia(useSprite: Boolean): Pixmap = HeadlessGl.render(12, 12, Color.BLACK) {
-            val texPixmap = Pixmap(4, 4, Pixmap.Format.RGBA8888)
-            texPixmap.setColor(Color.GREEN)
-            texPixmap.fill()
-            val texture = Texture(texPixmap)
-            texPixmap.dispose()
-            val region = TextureRegion(texture)
+        fun renderVia(useSprite: Boolean): Pixmap =
+            HeadlessGl.render(12, 12, Color.BLACK) {
+                val texPixmap = Pixmap(4, 4, Pixmap.Format.RGBA8888)
+                texPixmap.setColor(Color.GREEN)
+                texPixmap.fill()
+                val texture = Texture(texPixmap)
+                texPixmap.dispose()
+                val region = TextureRegion(texture)
 
-            val canvas = KotileCanvas(4, 4)
-            canvas.begin()
-            if (useSprite) {
-                canvas.drawSprite(pxX = 4f, pxY = 4f, region = region, w = 4f, h = 4f)
-            } else {
-                canvas.drawTile(1, 1, region)
+                val canvas = KotileCanvas(4, 4)
+                canvas.begin()
+                if (useSprite) {
+                    canvas.drawSprite(pxX = 4f, pxY = 4f, region = region, w = 4f, h = 4f)
+                } else {
+                    canvas.drawTile(1, 1, region)
+                }
+                canvas.end()
+                canvas.dispose()
+                texture.dispose()
             }
-            canvas.end()
-            canvas.dispose()
-            texture.dispose()
-        }
 
         val viaTile = renderVia(useSprite = false)
         val viaSprite = renderVia(useSprite = true)
@@ -462,20 +481,21 @@ class RenderingIntegrationTest : FunSpec({
         // sprite over the top-left quadrant. The stack's draw order must let the
         // later layer win where they overlap, and the earlier show through
         // elsewhere.
-        val pixels = HeadlessGl.render(8, 8, Color.BLACK) {
-            val blue = solidTexture(Color.BLUE)
-            val red = solidTexture(Color.RED)
-            val canvas = KotileCanvas(8, 8) // reflow: one 8px cell; content is 8x8 px
+        val pixels =
+            HeadlessGl.render(8, 8, Color.BLACK) {
+                val blue = solidTexture(Color.BLUE)
+                val red = solidTexture(Color.RED)
+                val canvas = KotileCanvas(8, 8) // reflow: one 8px cell; content is 8x8 px
 
-            val stack = LayerStack(canvas)
-            stack.add(Layer { c -> c.drawSprite(0f, 0f, TextureRegion(blue), w = 8f, h = 8f) })
-            stack.add(Layer { c -> c.drawSprite(0f, 0f, TextureRegion(red), w = 4f, h = 4f) })
-            stack.render()
+                val stack = LayerStack(canvas)
+                stack.add(Layer { c -> c.drawSprite(0f, 0f, TextureRegion(blue), w = 8f, h = 8f) })
+                stack.add(Layer { c -> c.drawSprite(0f, 0f, TextureRegion(red), w = 4f, h = 4f) })
+                stack.render()
 
-            canvas.dispose()
-            blue.dispose()
-            red.dispose()
-        }
+                canvas.dispose()
+                blue.dispose()
+                red.dispose()
+            }
 
         pixels.averageColor(0, 0, 4, 4).r.toDouble() shouldBe (1.0 plusOrMinus 0.1) // top-left: red wins
         pixels.averageColor(4, 4, 8, 8).b.toDouble() shouldBe (1.0 plusOrMinus 0.1) // elsewhere: blue shows
@@ -483,31 +503,35 @@ class RenderingIntegrationTest : FunSpec({
         pixels.dispose()
     }
 
-    test("a grid renderer's asLayer composites under a free layer in one stack").config(enabled = HeadlessGl.available) {
+    test(
+        "a grid renderer's asLayer composites under a free layer in one stack",
+    ).config(enabled = HeadlessGl.available) {
         // AsciiTileWindow.asLayer draws the (blue-background) grid; a free red
         // sprite is stacked on top over the top-left cell. Proves a grid layer
         // and a free layer share one begin/end pass and overlay by draw order.
-        val pixels = HeadlessGl.render(20, 20, Color.BLACK) {
-            val font = Fonts.cp437_10x10()
-            val canvas = KotileCanvas(font.charWidthPx, font.charHeightPx) // 10x10
-            val window = AsciiTileWindow.createWithCanvas(canvas, font) {
-                widthInTiles = 2
-                heightInTiles = 2
-                fitToWindow = false // fixed 2x2 grid -> 20x20 px at integer 1x
+        val pixels =
+            HeadlessGl.render(20, 20, Color.BLACK) {
+                val font = Fonts.cp437_10x10()
+                val canvas = KotileCanvas(font.charWidthPx, font.charHeightPx) // 10x10
+                val window =
+                    AsciiTileWindow.createWithCanvas(canvas, font) {
+                        widthInTiles = 2
+                        heightInTiles = 2
+                        fitToWindow = false // fixed 2x2 grid -> 20x20 px at integer 1x
+                    }
+                window.fill(StaticAsciiTile(' ', Color.WHITE, Color.BLUE)) // bg quads blue
+                val red = solidTexture(Color.RED)
+
+                val stack = LayerStack(canvas)
+                stack.add(window.asLayer())
+                stack.add(Layer { c -> c.drawSprite(0f, 0f, TextureRegion(red), w = 10f, h = 10f) })
+                stack.render()
+
+                window.dispose() // shared canvas + font are NOT disposed by the window
+                red.dispose()
+                canvas.dispose()
+                font.dispose()
             }
-            window.fill(StaticAsciiTile(' ', Color.WHITE, Color.BLUE)) // bg quads blue
-            val red = solidTexture(Color.RED)
-
-            val stack = LayerStack(canvas)
-            stack.add(window.asLayer())
-            stack.add(Layer { c -> c.drawSprite(0f, 0f, TextureRegion(red), w = 10f, h = 10f) })
-            stack.render()
-
-            window.dispose() // shared canvas + font are NOT disposed by the window
-            red.dispose()
-            canvas.dispose()
-            font.dispose()
-        }
 
         pixels.averageColor(0, 0, 10, 10).r.toDouble() shouldBe (1.0 plusOrMinus 0.1) // top-left cell: red sprite
         pixels.averageColor(10, 10, 20, 20).b.toDouble() shouldBe (1.0 plusOrMinus 0.1) // other cell: blue grid
@@ -519,23 +543,24 @@ class RenderingIntegrationTest : FunSpec({
         // update advances it +4px, so after update+render it must sit at
         // content pixels [4,8) x [0,4) — not its spawn cell. Drives the whole
         // stack.update -> stack.render pipeline through GL.
-        val pixels = HeadlessGl.render(8, 8, Color.BLACK) {
-            val red = solidTexture(Color.RED)
-            val canvas = KotileCanvas(8, 8)
-            val effects = EffectsLayer()
-            val stack = LayerStack(canvas)
-            stack.add(effects)
+        val pixels =
+            HeadlessGl.render(8, 8, Color.BLACK) {
+                val red = solidTexture(Color.RED)
+                val canvas = KotileCanvas(8, 8)
+                val effects = EffectsLayer()
+                val stack = LayerStack(canvas)
+                stack.add(effects)
 
-            effects.spawn(
-                Effect(pxX = 0f, pxY = 0f, w = 4f, h = 4f, region = TextureRegion(red), velXPerMs = 0.04f),
-            )
-            stack.update(100)
-            stack.render()
+                effects.spawn(
+                    Effect(pxX = 0f, pxY = 0f, w = 4f, h = 4f, region = TextureRegion(red), velXPerMs = 0.04f),
+                )
+                stack.update(100)
+                stack.render()
 
-            effects.activeCount shouldBe 1 // no lifetime -> still active
-            canvas.dispose()
-            red.dispose()
-        }
+                effects.activeCount shouldBe 1 // no lifetime -> still active
+                canvas.dispose()
+                red.dispose()
+            }
 
         pixels.averageColor(4, 0, 8, 4).r.toDouble() shouldBe (1.0 plusOrMinus 0.1) // moved here
         pixels.averageColor(0, 0, 4, 4).r.toDouble() shouldBe (0.0 plusOrMinus 0.1) // vacated spawn spot
@@ -548,75 +573,85 @@ class RenderingIntegrationTest : FunSpec({
         // Same left(RED)/right(BLUE) split as drawSprite's own rotation test, but spawned as an
         // Effect with rotationDeg = 90 instead of calling drawSprite directly — proves
         // EffectsLayer.render actually passes the field through rather than dropping it.
-        val pixels = HeadlessGl.render(8, 8, Color.BLACK) {
-            val sheetPixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
-            sheetPixmap.blending = Pixmap.Blending.None
-            sheetPixmap.setColor(Color.RED)
-            sheetPixmap.fillRectangle(0, 0, 4, 8)
-            sheetPixmap.setColor(Color.BLUE)
-            sheetPixmap.fillRectangle(4, 0, 4, 8)
-            val texture = Texture(sheetPixmap)
-            sheetPixmap.dispose()
+        val pixels =
+            HeadlessGl.render(8, 8, Color.BLACK) {
+                val sheetPixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
+                sheetPixmap.blending = Pixmap.Blending.None
+                sheetPixmap.setColor(Color.RED)
+                sheetPixmap.fillRectangle(0, 0, 4, 8)
+                sheetPixmap.setColor(Color.BLUE)
+                sheetPixmap.fillRectangle(4, 0, 4, 8)
+                val texture = Texture(sheetPixmap)
+                sheetPixmap.dispose()
 
-            val canvas = KotileCanvas(8, 8)
-            val effects = EffectsLayer()
-            val stack = LayerStack(canvas)
-            stack.add(effects)
+                val canvas = KotileCanvas(8, 8)
+                val effects = EffectsLayer()
+                val stack = LayerStack(canvas)
+                stack.add(effects)
 
-            effects.spawn(
-                Effect(pxX = 0f, pxY = 0f, w = 8f, h = 8f, region = TextureRegion(texture), rotationDeg = 90f),
-            )
-            stack.render()
+                effects.spawn(
+                    Effect(pxX = 0f, pxY = 0f, w = 8f, h = 8f, region = TextureRegion(texture), rotationDeg = 90f),
+                )
+                stack.render()
 
-            canvas.dispose()
-            texture.dispose()
-        }
+                canvas.dispose()
+                texture.dispose()
+            }
 
         pixels.averageColor(0, 0, 8, 4).r.toDouble() shouldBe (1.0 plusOrMinus 0.1) // RED now on top
         pixels.averageColor(0, 4, 8, 8).b.toDouble() shouldBe (1.0 plusOrMinus 0.1) // BLUE now on bottom
         pixels.dispose()
     }
 
-    test("UiLayer draws a widget above the grid at its pixel bounds; hidden widgets don't draw").config(enabled = HeadlessGl.available) {
+    test(
+        "UiLayer draws a widget above the grid at its pixel bounds; hidden widgets don't draw",
+    ).config(enabled = HeadlessGl.available) {
         // A blue-background 2x2 grid (20x20px) with a UiLayer on top. A visible
         // red widget occupies content pixels [2,8) x [2,8) — a free, sub-cell
         // rectangle straddling into cell (0,0). A second, hidden widget covers the
         // bottom-right cell; it must leave that cell showing the blue grid.
-        val pixels = HeadlessGl.render(20, 20, Color.BLACK) {
-            val font = Fonts.cp437_10x10()
-            val canvas = KotileCanvas(font.charWidthPx, font.charHeightPx) // 10x10
-            val window = AsciiTileWindow.createWithCanvas(canvas, font) {
-                widthInTiles = 2
-                heightInTiles = 2
-                fitToWindow = false // fixed 2x2 grid -> 20x20 px at integer 1x
+        val pixels =
+            HeadlessGl.render(20, 20, Color.BLACK) {
+                val font = Fonts.cp437_10x10()
+                val canvas = KotileCanvas(font.charWidthPx, font.charHeightPx) // 10x10
+                val window =
+                    AsciiTileWindow.createWithCanvas(canvas, font) {
+                        widthInTiles = 2
+                        heightInTiles = 2
+                        fitToWindow = false // fixed 2x2 grid -> 20x20 px at integer 1x
+                    }
+                window.fill(StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
+                val red = solidTexture(Color.RED)
+
+                val ui = UiLayer()
+                ui.add(SolidWidget(PixelRect(2f, 2f, 6f, 6f), red)) // visible, on top
+                ui.add(SolidWidget(PixelRect(10f, 10f, 10f, 10f), red, visible = false)) // hidden
+
+                val stack = LayerStack(canvas)
+                stack.add(window.asLayer()) // grid, below
+                stack.add(ui) // UI, on top
+                stack.render()
+
+                ui.widgetCount shouldBe 2
+                window.dispose()
+                red.dispose()
+                canvas.dispose()
+                font.dispose()
             }
-            window.fill(StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
-            val red = solidTexture(Color.RED)
 
-            val ui = UiLayer()
-            ui.add(SolidWidget(PixelRect(2f, 2f, 6f, 6f), red))          // visible, on top
-            ui.add(SolidWidget(PixelRect(10f, 10f, 10f, 10f), red, visible = false)) // hidden
-
-            val stack = LayerStack(canvas)
-            stack.add(window.asLayer()) // grid, below
-            stack.add(ui)               // UI, on top
-            stack.render()
-
-            ui.widgetCount shouldBe 2
-            window.dispose()
-            red.dispose()
-            canvas.dispose()
-            font.dispose()
-        }
-
-        pixels.averageColor(2, 2, 8, 8).r.toDouble() shouldBe (1.0 plusOrMinus 0.1)  // visible widget: red, over the grid
-        pixels.averageColor(0, 0, 2, 2).b.toDouble() shouldBe (1.0 plusOrMinus 0.1)  // outside its bounds: blue grid shows
-        pixels.averageColor(12, 12, 20, 20).b.toDouble() shouldBe (1.0 plusOrMinus 0.1) // hidden widget: blue grid, not red
+        // visible widget: red, over the grid
+        pixels.averageColor(2, 2, 8, 8).r.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        // outside its bounds: blue grid shows
+        pixels.averageColor(0, 0, 2, 2).b.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+        // hidden widget: blue grid, not red
+        pixels.averageColor(12, 12, 20, 20).b.toDouble() shouldBe (1.0 plusOrMinus 0.1)
         pixels.averageColor(12, 12, 20, 20).r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
         pixels.dispose()
     }
 
-    test("sprite layers composite bottom-up: a transparent foreground reveals the background").config(enabled = HeadlessGl.available) {
+    test(
+        "sprite layers composite bottom-up: a transparent foreground reveals the background",
+    ).config(enabled = HeadlessGl.available) {
         // Background terrain (blue, z=0) under a fully transparent foreground
         // sprite (z=1). Bottom-up compositing draws the background beneath the
         // foreground, so the blue shows through; the old top-cell-only path
@@ -627,7 +662,9 @@ class RenderingIntegrationTest : FunSpec({
         avg.r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
     }
 
-    test("sprite layers composite bottom-up: an opaque foreground occludes the background").config(enabled = HeadlessGl.available) {
+    test(
+        "sprite layers composite bottom-up: an opaque foreground occludes the background",
+    ).config(enabled = HeadlessGl.available) {
         // An opaque foreground (red, z=1) fully covers the background (blue,
         // z=0): compositing must not let occluded terrain bleed through.
         val avg = renderLayered(background = Color.BLUE, foreground = Color.RED)
@@ -635,7 +672,9 @@ class RenderingIntegrationTest : FunSpec({
         avg.b.toDouble() shouldBe (0.0 plusOrMinus 0.1)
     }
 
-    test("sprite tiles smooth at a fractional scale but stay crisp at an integer scale").config(enabled = HeadlessGl.available) {
+    test(
+        "sprite tiles smooth at a fractional scale but stay crisp at an integer scale",
+    ).config(enabled = HeadlessGl.available) {
         // A sprite with a hard internal red|blue edge. At a fractional scale the
         // sharp-bilinear filter must blend across that edge (some pixel is
         // purple: both channels high); at an integer scale nearest-neighbour
@@ -648,21 +687,25 @@ class RenderingIntegrationTest : FunSpec({
         integer.toDouble() shouldBe (0.0 plusOrMinus 0.06) // no blend: crisp edge
     }
 
-    test("a fractional-scaled glyph grid still renders through the sharp-bilinear path").config(enabled = HeadlessGl.available) {
+    test(
+        "a fractional-scaled glyph grid still renders through the sharp-bilinear path",
+    ).config(enabled = HeadlessGl.available) {
         // Smoke test for the glyph layer on the same shader path: a full-block
         // glyph on a FitScale fixed grid at a non-integer scale must still fill
         // its cell (the shader must not blank or corrupt the glyph).
-        val pixels = HeadlessGl.render(20, 20, Color.BLACK) {
-            val window = AsciiTileWindow.create {
-                widthInTiles = 1
-                heightInTiles = 1
-                fitToWindow = false
-                scalePolicy = FitScale
+        val pixels =
+            HeadlessGl.render(20, 20, Color.BLACK) {
+                val window =
+                    AsciiTileWindow.create {
+                        widthInTiles = 1
+                        heightInTiles = 1
+                        fitToWindow = false
+                        scalePolicy = FitScale
+                    }
+                window.drawTile(0, 0, StaticAsciiTile('Û', Color.WHITE, Color.CLEAR))
+                window.render()
+                window.dispose()
             }
-            window.drawTile(0, 0, StaticAsciiTile('Û', Color.WHITE, Color.CLEAR))
-            window.render()
-            window.dispose()
-        }
         // Center of the (scaled, centered) cell is solid white.
         val center = pixels.averageColor(8, 8, 12, 12)
         center.r.toDouble() shouldBeGreaterThan 0.8
@@ -672,17 +715,19 @@ class RenderingIntegrationTest : FunSpec({
     }
 
     test("AsciiTileWindow.drawText renders glyphs and clips to the window").config(enabled = HeadlessGl.available) {
-        val pixels = HeadlessGl.render(80, 40, Color.BLACK) {
-            val window = AsciiTileWindow.create {
-                widthInTiles = 8
-                heightInTiles = 4
+        val pixels =
+            HeadlessGl.render(80, 40, Color.BLACK) {
+                val window =
+                    AsciiTileWindow.create {
+                        widthInTiles = 8
+                        heightInTiles = 4
+                    }
+                // Starts at column 6 in an 8-wide window: only 2 cells fit, the
+                // rest must be clipped rather than throwing.
+                window.drawText(6, 0, "HELLO", Color.RED, Color.CLEAR)
+                window.render()
+                window.dispose()
             }
-            // Starts at column 6 in an 8-wide window: only 2 cells fit, the
-            // rest must be clipped rather than throwing.
-            window.drawText(6, 0, "HELLO", Color.RED, Color.CLEAR)
-            window.render()
-            window.dispose()
-        }
 
         // Cell (6,0) holds a red glyph; cell (0,0) was never written.
         pixels.averageColor(60, 0, 70, 10).r.toDouble() shouldBeGreaterThan 0.05
@@ -699,17 +744,19 @@ class RenderingIntegrationTest : FunSpec({
     ) {
         // Regression guard for the cache's FBO recomposite pass: it must clear before redrawing, or
         // a cell cleared after the first paint would keep showing its old (cached) color forever.
-        val pixels = HeadlessGl.render(80, 40, Color.BLACK) {
-            val window = AsciiTileWindow.create {
-                widthInTiles = 8
-                heightInTiles = 4
+        val pixels =
+            HeadlessGl.render(80, 40, Color.BLACK) {
+                val window =
+                    AsciiTileWindow.create {
+                        widthInTiles = 8
+                        heightInTiles = 4
+                    }
+                window.drawTile(0, 0, StaticAsciiTile(' ', Color.WHITE, Color.RED))
+                window.render() // first paint: cache created, cell (0,0) red
+                window.clearTile(0, 0)
+                window.render() // recomposite must drop the red, not retain it from the cache
+                window.dispose()
             }
-            window.drawTile(0, 0, StaticAsciiTile(' ', Color.WHITE, Color.RED))
-            window.render() // first paint: cache created, cell (0,0) red
-            window.clearTile(0, 0)
-            window.render() // recomposite must drop the red, not retain it from the cache
-            window.dispose()
-        }
         pixels.averageColor(0, 0, 10, 10).r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
         pixels.dispose()
     }
@@ -723,16 +770,18 @@ class RenderingIntegrationTest : FunSpec({
 
     /** Renders one 10x10 ASCII cell: z=0 is always '#' white on blue; [overlay] goes on z=1. */
     fun asciiOverlayCell(overlay: StaticAsciiTile?): Color {
-        val pixels = HeadlessGl.render(10, 10, Color.BLACK) {
-            val window = AsciiTileWindow.create {
-                widthInTiles = 1
-                heightInTiles = 1
+        val pixels =
+            HeadlessGl.render(10, 10, Color.BLACK) {
+                val window =
+                    AsciiTileWindow.create {
+                        widthInTiles = 1
+                        heightInTiles = 1
+                    }
+                window.drawTile(0, 0, z = 0, tile = StaticAsciiTile('#', Color.WHITE, Color.BLUE))
+                if (overlay != null) window.drawTile(0, 0, z = 1, tile = overlay)
+                window.render()
+                window.dispose()
             }
-            window.drawTile(0, 0, z = 0, tile = StaticAsciiTile('#', Color.WHITE, Color.BLUE))
-            if (overlay != null) window.drawTile(0, 0, z = 1, tile = overlay)
-            window.render()
-            window.dispose()
-        }
         val avg = pixels.averageColor(0, 0, 10, 10)
         pixels.dispose()
         return avg
@@ -795,15 +844,17 @@ class RenderingIntegrationTest : FunSpec({
         // claimed the opposite and was wrong: a highlight ABOVE a creature still wins the glyph
         // channel (a space is a glyph, just a keyed-out one) and erases it.
         fun cellOf(vararg layers: StaticAsciiTile): Color {
-            val pixels = HeadlessGl.render(10, 10, Color.BLACK) {
-                val window = AsciiTileWindow.create {
-                    widthInTiles = 1
-                    heightInTiles = 1
+            val pixels =
+                HeadlessGl.render(10, 10, Color.BLACK) {
+                    val window =
+                        AsciiTileWindow.create {
+                            widthInTiles = 1
+                            heightInTiles = 1
+                        }
+                    layers.forEachIndexed { z, tile -> window.drawTile(0, 0, z = z, tile = tile) }
+                    window.render()
+                    window.dispose()
                 }
-                layers.forEachIndexed { z, tile -> window.drawTile(0, 0, z = z, tile = tile) }
-                window.render()
-                window.dispose()
-            }
             val avg = pixels.averageColor(0, 0, 10, 10)
             pixels.dispose()
             return avg
@@ -833,26 +884,30 @@ class RenderingIntegrationTest : FunSpec({
         // static glyph changes the cell every frame while never being the top cell: under the old
         // predicate it would be marked clean and freeze. Two renders at different elapsed times must
         // therefore produce different backgrounds.
-        val flickering = AnimatedAsciiTile(
-            frames = listOf(
-                AnimationFrame(StaticAsciiTile(' ', Color.WHITE, Color.BLUE), durationMs = 100),
-                AnimationFrame(StaticAsciiTile(' ', Color.WHITE, Color.GREEN), durationMs = 100),
-            ),
-        )
+        val flickering =
+            AnimatedAsciiTile(
+                frames =
+                    listOf(
+                        AnimationFrame(StaticAsciiTile(' ', Color.WHITE, Color.BLUE), durationMs = 100),
+                        AnimationFrame(StaticAsciiTile(' ', Color.WHITE, Color.GREEN), durationMs = 100),
+                    ),
+            )
 
         fun frameAt(elapsedMs: Long): Color {
-            val pixels = HeadlessGl.render(10, 10, Color.BLACK) {
-                val window = AsciiTileWindow.create {
-                    widthInTiles = 1
-                    heightInTiles = 1
+            val pixels =
+                HeadlessGl.render(10, 10, Color.BLACK) {
+                    val window =
+                        AsciiTileWindow.create {
+                            widthInTiles = 1
+                            heightInTiles = 1
+                        }
+                    val source = LayeredTilemap<AsciiTile>(1, 1)
+                    source.setCell(0, 0, 0, flickering) // dynamic BACKGROUND, underneath...
+                    source.setCell(0, 0, 1, StaticAsciiTile('@', Color.RED, Color.CLEAR)) // ...a static glyph
+                    window.render(source, elapsedMs = 0) // first paint establishes the cache
+                    window.render(source, elapsedMs = elapsedMs)
+                    window.dispose()
                 }
-                val source = LayeredTilemap<AsciiTile>(1, 1)
-                source.setCell(0, 0, 0, flickering) // dynamic BACKGROUND, underneath...
-                source.setCell(0, 0, 1, StaticAsciiTile('@', Color.RED, Color.CLEAR)) // ...a static glyph
-                window.render(source, elapsedMs = 0) // first paint establishes the cache
-                window.render(source, elapsedMs = elapsedMs)
-                window.dispose()
-            }
             val avg = pixels.averageColor(0, 0, 10, 10)
             pixels.dispose()
             return avg
@@ -908,11 +963,13 @@ class RenderingIntegrationTest : FunSpec({
         // on the returned pixmap here without rebinding first.
         HeadlessGl.render(20, 20, Color.BLACK) {
             val query = BufferUtils.newIntBuffer(16)
+
             fun frameBufferBinding(): Int {
                 query.clear()
                 Gdx.gl.glGetIntegerv(GL20.GL_FRAMEBUFFER_BINDING, query)
                 return query.get(0)
             }
+
             fun viewport(): IntArray {
                 query.clear()
                 Gdx.gl.glGetIntegerv(GL20.GL_VIEWPORT, query)
@@ -925,12 +982,14 @@ class RenderingIntegrationTest : FunSpec({
             Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
             callerHandle = consumerFbo.framebufferHandle
 
-            val window = AsciiTileWindow.create {
-                widthInTiles = 2
-                heightInTiles = 2
-                fitToWindow = false // so resize() below reallocates rather than reflowing to nothing
-            }
+            val window =
+                AsciiTileWindow.create {
+                    widthInTiles = 2
+                    heightInTiles = 2
+                    fitToWindow = false // so resize() below reallocates rather than reflowing to nothing
+                }
             window.fill(StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
+
             // Three passes, because they hit different code: the first ALLOCATES the cache's
             // FrameBuffer (whose constructor leaves 0 bound), the second is a pure cache hit
             // (nothing dirty, so no FBO pass at all), and the resize DISPOSES and reallocates.
@@ -1001,13 +1060,15 @@ class RenderingIntegrationTest : FunSpec({
 
             val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
             val canvas = KotileCanvas(8, 8)
-            val exploding = object : TileRenderer(canvas) {
-                override fun regionFor(staticTile: StaticSpriteTile): TextureRegion =
-                    error("boom -- a consumer's region lookup failed mid-recomposite")
-            }
+            val exploding =
+                object : TileRenderer(canvas) {
+                    override fun regionFor(staticTile: StaticSpriteTile): TextureRegion =
+                        error("boom -- a consumer's region lookup failed mid-recomposite")
+                }
             exploding.drawTile(0, 0, z = 0, tile = StaticSpriteTile(0, 0))
 
             val query = BufferUtils.newIntBuffer(16)
+
             fun binding(): Int {
                 query.clear()
                 Gdx.gl.glGetIntegerv(GL20.GL_FRAMEBUFFER_BINDING, query)
@@ -1050,18 +1111,20 @@ class RenderingIntegrationTest : FunSpec({
     test("krogue-1qb: AsciiTileWindow.clear drops every layer, leaving no stale cache content").config(
         enabled = HeadlessGl.available,
     ) {
-        val pixels = HeadlessGl.render(10, 10, Color.BLACK) {
-            val window = AsciiTileWindow.create {
-                widthInTiles = 1
-                heightInTiles = 1
+        val pixels =
+            HeadlessGl.render(10, 10, Color.BLACK) {
+                val window =
+                    AsciiTileWindow.create {
+                        widthInTiles = 1
+                        heightInTiles = 1
+                    }
+                window.drawTile(0, 0, z = 0, tile = StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
+                window.drawTile(0, 0, z = 1, tile = StaticAsciiTile(' ', Color.WHITE, Color.RED))
+                window.render() // first paint: both layers, red on top
+                window.clear()
+                window.render() // recomposite must drop both, not retain them from the cache
+                window.dispose()
             }
-            window.drawTile(0, 0, z = 0, tile = StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
-            window.drawTile(0, 0, z = 1, tile = StaticAsciiTile(' ', Color.WHITE, Color.RED))
-            window.render() // first paint: both layers, red on top
-            window.clear()
-            window.render() // recomposite must drop both, not retain them from the cache
-            window.dispose()
-        }
         val avg = pixels.averageColor(0, 0, 10, 10)
         avg.r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
         avg.b.toDouble() shouldBe (0.0 plusOrMinus 0.1)
@@ -1073,18 +1136,20 @@ class RenderingIntegrationTest : FunSpec({
     ) {
         // The sharpest test of clearLayer's bookkeeping: it must dirty the cells it vacated (or
         // the red stays, stale) without disturbing z=0 (or the blue vanishes too).
-        val pixels = HeadlessGl.render(10, 10, Color.BLACK) {
-            val window = AsciiTileWindow.create {
-                widthInTiles = 1
-                heightInTiles = 1
+        val pixels =
+            HeadlessGl.render(10, 10, Color.BLACK) {
+                val window =
+                    AsciiTileWindow.create {
+                        widthInTiles = 1
+                        heightInTiles = 1
+                    }
+                window.drawTile(0, 0, z = 0, tile = StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
+                window.drawTile(0, 0, z = 1, tile = StaticAsciiTile(' ', Color.WHITE, Color.RED))
+                window.render() // first paint: red hides blue (top-cell-wins)
+                window.clearLayer(1)
+                window.render()
+                window.dispose()
             }
-            window.drawTile(0, 0, z = 0, tile = StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
-            window.drawTile(0, 0, z = 1, tile = StaticAsciiTile(' ', Color.WHITE, Color.RED))
-            window.render() // first paint: red hides blue (top-cell-wins)
-            window.clearLayer(1)
-            window.render()
-            window.dispose()
-        }
         val avg = pixels.averageColor(0, 0, 10, 10)
         avg.b.toDouble() shouldBe (1.0 plusOrMinus 0.1) // z=0 survived
         avg.r.toDouble() shouldBe (0.0 plusOrMinus 0.1) // z=1 is gone, not stale
@@ -1094,35 +1159,41 @@ class RenderingIntegrationTest : FunSpec({
     test("krogue-1qb: AsciiTileWindow.clearLayer on a never-written layer is a no-op").config(
         enabled = HeadlessGl.available,
     ) {
-        val pixels = HeadlessGl.render(10, 10, Color.BLACK) {
-            val window = AsciiTileWindow.create {
-                widthInTiles = 1
-                heightInTiles = 1
+        val pixels =
+            HeadlessGl.render(10, 10, Color.BLACK) {
+                val window =
+                    AsciiTileWindow.create {
+                        widthInTiles = 1
+                        heightInTiles = 1
+                    }
+                window.drawTile(0, 0, z = 0, tile = StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
+                window.clearLayer(99) // must not throw, and must not disturb z=0
+                window.render()
+                window.dispose()
             }
-            window.drawTile(0, 0, z = 0, tile = StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
-            window.clearLayer(99) // must not throw, and must not disturb z=0
-            window.render()
-            window.dispose()
-        }
         pixels.averageColor(0, 0, 10, 10).b.toDouble() shouldBe (1.0 plusOrMinus 0.1)
         pixels.dispose()
     }
 
-    test("krogue-drk: AsciiTileWindow renders identical output across repeated render calls with no writes between them").config(
+    test(
+        "krogue-drk: AsciiTileWindow renders identical output across repeated render calls with no writes between them",
+    ).config(
         enabled = HeadlessGl.available,
     ) {
         // The cache-hit path (dirty == false) must still reproduce the same frame, not blank/stale.
-        val pixels = HeadlessGl.render(80, 40, Color.BLACK) {
-            val window = AsciiTileWindow.create {
-                widthInTiles = 8
-                heightInTiles = 4
+        val pixels =
+            HeadlessGl.render(80, 40, Color.BLACK) {
+                val window =
+                    AsciiTileWindow.create {
+                        widthInTiles = 8
+                        heightInTiles = 4
+                    }
+                window.drawTile(0, 0, StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
+                window.render()
+                window.render() // cache hit: no writes since the previous render
+                window.render()
+                window.dispose()
             }
-            window.drawTile(0, 0, StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
-            window.render()
-            window.render() // cache hit: no writes since the previous render
-            window.render()
-            window.dispose()
-        }
         pixels.averageColor(0, 0, 10, 10).b.toDouble() shouldBe (1.0 plusOrMinus 0.1)
         pixels.dispose()
     }
@@ -1133,22 +1204,26 @@ class RenderingIntegrationTest : FunSpec({
         // Placing an animated tile is sticky (ADR-0024): every render call must recomposite even
         // though nothing was written between the two render() calls below, or the animation would
         // visibly freeze on its first-painted frame.
-        val tile = AnimatedAsciiTile(
-            frames = listOf(
-                AnimationFrame(StaticAsciiTile(' ', Color.WHITE, Color.RED), durationMs = 100),
-                AnimationFrame(StaticAsciiTile(' ', Color.WHITE, Color.GREEN), durationMs = 100),
-            ),
-        )
-        val pixels = HeadlessGl.render(80, 40, Color.BLACK) {
-            val window = AsciiTileWindow.create {
-                widthInTiles = 8
-                heightInTiles = 4
+        val tile =
+            AnimatedAsciiTile(
+                frames =
+                    listOf(
+                        AnimationFrame(StaticAsciiTile(' ', Color.WHITE, Color.RED), durationMs = 100),
+                        AnimationFrame(StaticAsciiTile(' ', Color.WHITE, Color.GREEN), durationMs = 100),
+                    ),
+            )
+        val pixels =
+            HeadlessGl.render(80, 40, Color.BLACK) {
+                val window =
+                    AsciiTileWindow.create {
+                        widthInTiles = 8
+                        heightInTiles = 4
+                    }
+                window.drawTile(0, 0, tile)
+                window.render(elapsedMs = 0) // first paint: frame 0 (red)
+                window.render(elapsedMs = 150) // frame 1 (green) -- no writes between these two calls
+                window.dispose()
             }
-            window.drawTile(0, 0, tile)
-            window.render(elapsedMs = 0) // first paint: frame 0 (red)
-            window.render(elapsedMs = 150) // frame 1 (green) -- no writes between these two calls
-            window.dispose()
-        }
         val topLeft = pixels.averageColor(0, 0, 10, 10)
         topLeft.g.toDouble() shouldBe (1.0 plusOrMinus 0.1)
         topLeft.r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
@@ -1161,20 +1236,23 @@ class RenderingIntegrationTest : FunSpec({
         // The window's per-frame repaint tracking must key on the DynamicAsciiTile *branch*, not on
         // the built-in AnimatedAsciiTile class -- otherwise a consumer's own time-driven tile paints
         // once and then freezes, since nothing is written between the two render() calls below.
-        val custom = object : DynamicAsciiTile {
-            override fun resolveAt(elapsedMs: Long): StaticAsciiTile =
-                StaticAsciiTile(' ', Color.WHITE, if (elapsedMs < 100) Color.RED else Color.GREEN)
-        }
-        val pixels = HeadlessGl.render(80, 40, Color.BLACK) {
-            val window = AsciiTileWindow.create {
-                widthInTiles = 8
-                heightInTiles = 4
+        val custom =
+            object : DynamicAsciiTile {
+                override fun resolveAt(elapsedMs: Long): StaticAsciiTile =
+                    StaticAsciiTile(' ', Color.WHITE, if (elapsedMs < 100) Color.RED else Color.GREEN)
             }
-            window.drawTile(0, 0, custom)
-            window.render(elapsedMs = 0) // first paint: red
-            window.render(elapsedMs = 150) // green -- no writes between these two calls
-            window.dispose()
-        }
+        val pixels =
+            HeadlessGl.render(80, 40, Color.BLACK) {
+                val window =
+                    AsciiTileWindow.create {
+                        widthInTiles = 8
+                        heightInTiles = 4
+                    }
+                window.drawTile(0, 0, custom)
+                window.render(elapsedMs = 0) // first paint: red
+                window.render(elapsedMs = 150) // green -- no writes between these two calls
+                window.dispose()
+            }
         val topLeft = pixels.averageColor(0, 0, 10, 10)
         topLeft.g.toDouble() shouldBe (1.0 plusOrMinus 0.1)
         topLeft.r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
@@ -1184,25 +1262,26 @@ class RenderingIntegrationTest : FunSpec({
     test("krogue-drk: SpriteTileRenderer's composite cache reflects a clearTile, not stale content").config(
         enabled = HeadlessGl.available,
     ) {
-        val pixels = HeadlessGl.render(8, 8, Color.BLACK) {
-            val tilePixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
-            tilePixmap.setColor(Color.RED)
-            tilePixmap.fill()
-            val file = File.createTempFile("kotile-drk-clear", ".png").apply { deleteOnExit() }
-            PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), tilePixmap)
-            tilePixmap.dispose()
+        val pixels =
+            HeadlessGl.render(8, 8, Color.BLACK) {
+                val tilePixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
+                tilePixmap.setColor(Color.RED)
+                tilePixmap.fill()
+                val file = File.createTempFile("kotile-drk-clear", ".png").apply { deleteOnExit() }
+                PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), tilePixmap)
+                tilePixmap.dispose()
 
-            val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
-            val canvas = KotileCanvas(8, 8)
-            val renderer = SpriteTileRenderer(canvas, sheet)
-            renderer.drawTile(0, 0, z = 0, tile = StaticSpriteTile(0, 0))
-            renderer.render() // first paint: red
-            renderer.clearTile(0, 0, z = 0)
-            renderer.render() // recomposite must drop the red, not retain it from the cache
-            renderer.dispose()
-            canvas.dispose()
-            sheet.dispose()
-        }
+                val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
+                val canvas = KotileCanvas(8, 8)
+                val renderer = SpriteTileRenderer(canvas, sheet)
+                renderer.drawTile(0, 0, z = 0, tile = StaticSpriteTile(0, 0))
+                renderer.render() // first paint: red
+                renderer.clearTile(0, 0, z = 0)
+                renderer.render() // recomposite must drop the red, not retain it from the cache
+                renderer.dispose()
+                canvas.dispose()
+                sheet.dispose()
+            }
         pixels.averageColor(0, 0, 8, 8).r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
         pixels.dispose()
     }
@@ -1235,16 +1314,17 @@ class RenderingIntegrationTest : FunSpec({
 
     test("krogue-0y8: TileRenderer.fill covers every cell on z=0").config(enabled = HeadlessGl.available) {
         // 16x16 window of 8x8 tiles = a 2x2 grid; fill must reach all four cells, not just (0,0).
-        val pixels = HeadlessGl.render(16, 16, Color.BLACK) {
-            val sheet = TileSheet(Gdx.files.absolute(twoTileSheetPath("kotile-0y8-fill")), 8, 8)
-            val canvas = KotileCanvas(8, 8)
-            val renderer = SpriteTileRenderer(canvas, sheet)
-            renderer.fill(redTile)
-            renderer.render()
-            renderer.dispose()
-            canvas.dispose()
-            sheet.dispose()
-        }
+        val pixels =
+            HeadlessGl.render(16, 16, Color.BLACK) {
+                val sheet = TileSheet(Gdx.files.absolute(twoTileSheetPath("kotile-0y8-fill")), 8, 8)
+                val canvas = KotileCanvas(8, 8)
+                val renderer = SpriteTileRenderer(canvas, sheet)
+                renderer.fill(redTile)
+                renderer.render()
+                renderer.dispose()
+                canvas.dispose()
+                sheet.dispose()
+            }
         // Every corner cell is red.
         for ((x, y) in listOf(0 to 0, 8 to 0, 0 to 8, 8 to 8)) {
             val avg = pixels.averageColor(x, y, x + 8, y + 8)
@@ -1257,19 +1337,20 @@ class RenderingIntegrationTest : FunSpec({
     test("krogue-0y8: TileRenderer.clear drops every layer, leaving no stale cache content").config(
         enabled = HeadlessGl.available,
     ) {
-        val pixels = HeadlessGl.render(8, 8, Color.BLACK) {
-            val sheet = TileSheet(Gdx.files.absolute(twoTileSheetPath("kotile-0y8-clear")), 8, 8)
-            val canvas = KotileCanvas(8, 8)
-            val renderer = SpriteTileRenderer(canvas, sheet)
-            renderer.drawTile(0, 0, z = 0, tile = redTile)
-            renderer.drawTile(0, 0, z = 1, tile = blueTile)
-            renderer.render() // first paint: both layers
-            renderer.clear()
-            renderer.render() // recomposite must drop both, not retain them from the cache
-            renderer.dispose()
-            canvas.dispose()
-            sheet.dispose()
-        }
+        val pixels =
+            HeadlessGl.render(8, 8, Color.BLACK) {
+                val sheet = TileSheet(Gdx.files.absolute(twoTileSheetPath("kotile-0y8-clear")), 8, 8)
+                val canvas = KotileCanvas(8, 8)
+                val renderer = SpriteTileRenderer(canvas, sheet)
+                renderer.drawTile(0, 0, z = 0, tile = redTile)
+                renderer.drawTile(0, 0, z = 1, tile = blueTile)
+                renderer.render() // first paint: both layers
+                renderer.clear()
+                renderer.render() // recomposite must drop both, not retain them from the cache
+                renderer.dispose()
+                canvas.dispose()
+                sheet.dispose()
+            }
         val avg = pixels.averageColor(0, 0, 8, 8)
         avg.r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
         avg.b.toDouble() shouldBe (0.0 plusOrMinus 0.1)
@@ -1281,19 +1362,20 @@ class RenderingIntegrationTest : FunSpec({
     ) {
         // The sharpest test of clearLayer's bookkeeping: it must dirty the cells it vacated
         // (or the blue stays, stale) without disturbing z=0 (or the red vanishes too).
-        val pixels = HeadlessGl.render(8, 8, Color.BLACK) {
-            val sheet = TileSheet(Gdx.files.absolute(twoTileSheetPath("kotile-0y8-clearlayer")), 8, 8)
-            val canvas = KotileCanvas(8, 8)
-            val renderer = SpriteTileRenderer(canvas, sheet)
-            renderer.drawTile(0, 0, z = 0, tile = redTile)
-            renderer.drawTile(0, 0, z = 1, tile = blueTile) // opaque, so it hides the red
-            renderer.render() // first paint: blue over red
-            renderer.clearLayer(1)
-            renderer.render()
-            renderer.dispose()
-            canvas.dispose()
-            sheet.dispose()
-        }
+        val pixels =
+            HeadlessGl.render(8, 8, Color.BLACK) {
+                val sheet = TileSheet(Gdx.files.absolute(twoTileSheetPath("kotile-0y8-clearlayer")), 8, 8)
+                val canvas = KotileCanvas(8, 8)
+                val renderer = SpriteTileRenderer(canvas, sheet)
+                renderer.drawTile(0, 0, z = 0, tile = redTile)
+                renderer.drawTile(0, 0, z = 1, tile = blueTile) // opaque, so it hides the red
+                renderer.render() // first paint: blue over red
+                renderer.clearLayer(1)
+                renderer.render()
+                renderer.dispose()
+                canvas.dispose()
+                sheet.dispose()
+            }
         val avg = pixels.averageColor(0, 0, 8, 8)
         avg.r.toDouble() shouldBe (1.0 plusOrMinus 0.1) // z=0 survived
         avg.b.toDouble() shouldBe (0.0 plusOrMinus 0.1) // z=1 is gone, not stale
@@ -1303,17 +1385,18 @@ class RenderingIntegrationTest : FunSpec({
     test("krogue-0y8: TileRenderer.clearLayer on a never-written layer is a no-op").config(
         enabled = HeadlessGl.available,
     ) {
-        val pixels = HeadlessGl.render(8, 8, Color.BLACK) {
-            val sheet = TileSheet(Gdx.files.absolute(twoTileSheetPath("kotile-0y8-clearlayer-noop")), 8, 8)
-            val canvas = KotileCanvas(8, 8)
-            val renderer = SpriteTileRenderer(canvas, sheet)
-            renderer.drawTile(0, 0, z = 0, tile = redTile)
-            renderer.clearLayer(99) // must not throw, and must not disturb z=0
-            renderer.render()
-            renderer.dispose()
-            canvas.dispose()
-            sheet.dispose()
-        }
+        val pixels =
+            HeadlessGl.render(8, 8, Color.BLACK) {
+                val sheet = TileSheet(Gdx.files.absolute(twoTileSheetPath("kotile-0y8-clearlayer-noop")), 8, 8)
+                val canvas = KotileCanvas(8, 8)
+                val renderer = SpriteTileRenderer(canvas, sheet)
+                renderer.drawTile(0, 0, z = 0, tile = redTile)
+                renderer.clearLayer(99) // must not throw, and must not disturb z=0
+                renderer.render()
+                renderer.dispose()
+                canvas.dispose()
+                sheet.dispose()
+            }
         pixels.averageColor(0, 0, 8, 8).r.toDouble() shouldBe (1.0 plusOrMinus 0.1)
         pixels.dispose()
     }
@@ -1323,21 +1406,22 @@ class RenderingIntegrationTest : FunSpec({
     ) {
         // Proves the defaults really are z=0 on both sides: a z-defaulted write is removed by
         // clearLayer(0), and a z-defaulted clear removes an explicit z=0 write.
-        val pixels = HeadlessGl.render(16, 8, Color.BLACK) {
-            val sheet = TileSheet(Gdx.files.absolute(twoTileSheetPath("kotile-0y8-zdefault")), 8, 8)
-            val canvas = KotileCanvas(8, 8)
-            val renderer = SpriteTileRenderer(canvas, sheet)
-            renderer.drawTile(0, 0, redTile) // z defaults to 0
-            renderer.drawTile(1, 0, z = 0, tile = redTile)
-            renderer.render()
-            renderer.clearLayer(0) // removes the z-defaulted write at (0,0)
-            renderer.drawTile(1, 0, z = 0, tile = redTile)
-            renderer.clearTile(1, 0) // z defaults to 0, so this removes it again
-            renderer.render()
-            renderer.dispose()
-            canvas.dispose()
-            sheet.dispose()
-        }
+        val pixels =
+            HeadlessGl.render(16, 8, Color.BLACK) {
+                val sheet = TileSheet(Gdx.files.absolute(twoTileSheetPath("kotile-0y8-zdefault")), 8, 8)
+                val canvas = KotileCanvas(8, 8)
+                val renderer = SpriteTileRenderer(canvas, sheet)
+                renderer.drawTile(0, 0, redTile) // z defaults to 0
+                renderer.drawTile(1, 0, z = 0, tile = redTile)
+                renderer.render()
+                renderer.clearLayer(0) // removes the z-defaulted write at (0,0)
+                renderer.drawTile(1, 0, z = 0, tile = redTile)
+                renderer.clearTile(1, 0) // z defaults to 0, so this removes it again
+                renderer.render()
+                renderer.dispose()
+                canvas.dispose()
+                sheet.dispose()
+            }
         pixels.averageColor(0, 0, 8, 8).r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
         pixels.averageColor(8, 0, 16, 8).r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
         pixels.dispose()
@@ -1372,34 +1456,39 @@ class RenderingIntegrationTest : FunSpec({
         afterClear shouldBe redTile // z=0 shows through once z=1 is cleared
     }
 
-    test("krogue-drk: TileRenderer keeps an AnimatedSpriteTile animating across renders with no writes between them").config(
+    test(
+        "krogue-drk: TileRenderer keeps an AnimatedSpriteTile animating across renders with no writes between them",
+    ).config(
         enabled = HeadlessGl.available,
     ) {
-        val pixels = HeadlessGl.render(8, 8, Color.BLACK) {
-            val tilePixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
-            tilePixmap.setColor(SHEET_BLUE)
-            tilePixmap.fill()
-            val file = File.createTempFile("kotile-drk-anim", ".png").apply { deleteOnExit() }
-            PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), tilePixmap)
-            tilePixmap.dispose()
+        val pixels =
+            HeadlessGl.render(8, 8, Color.BLACK) {
+                val tilePixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
+                tilePixmap.setColor(SHEET_BLUE)
+                tilePixmap.fill()
+                val file = File.createTempFile("kotile-drk-anim", ".png").apply { deleteOnExit() }
+                PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), tilePixmap)
+                tilePixmap.dispose()
 
-            val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
-            val canvas = KotileCanvas(8, 8)
-            val renderer = SpriteTileRenderer(canvas, sheet)
-            val region = sheet.region(0, 0)
-            val shimmering = AnimatedSpriteTile(
-                frames = listOf(
-                    AnimationFrame(region, durationMs = 100),
-                    AnimationFrame(region, durationMs = 100, tint = Color.GREEN),
-                ),
-            )
-            renderer.drawTile(0, 0, z = 0, tile = shimmering)
-            renderer.render(elapsedMs = 0) // first paint: frame 0 (sheet's own blue)
-            renderer.render(elapsedMs = 150) // frame 1 (green) -- no writes between these two calls
-            renderer.dispose()
-            canvas.dispose()
-            sheet.dispose()
-        }
+                val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
+                val canvas = KotileCanvas(8, 8)
+                val renderer = SpriteTileRenderer(canvas, sheet)
+                val region = sheet.region(0, 0)
+                val shimmering =
+                    AnimatedSpriteTile(
+                        frames =
+                            listOf(
+                                AnimationFrame(region, durationMs = 100),
+                                AnimationFrame(region, durationMs = 100, tint = Color.GREEN),
+                            ),
+                    )
+                renderer.drawTile(0, 0, z = 0, tile = shimmering)
+                renderer.render(elapsedMs = 0) // first paint: frame 0 (sheet's own blue)
+                renderer.render(elapsedMs = 150) // frame 1 (green) -- no writes between these two calls
+                renderer.dispose()
+                canvas.dispose()
+                sheet.dispose()
+            }
         // GREEN(0,1,0) multiplies onto the sheet's own blue (0.3, 0.3, 0.9): r and b drop to 0, g is
         // capped at the sheet's own 0.3 -- not 1.0, since tint only ever darkens, never brightens
         // past the source texture. g alone can't distinguish this from a stale frame-0 WHITE-tint
@@ -1423,18 +1512,20 @@ class RenderingIntegrationTest : FunSpec({
         // must not bleed into (or wipe) an adjacent, unchanged cell's per-cell glScissor+glClear.
         // Reuses ONE persistent window across two renders -- a fresh window per frame would only
         // ever hit the fully-dirty first-paint branch, never this one.
-        val pixels = HeadlessGl.render(80, 40, Color.BLACK) {
-            val window = AsciiTileWindow.create {
-                widthInTiles = 8
-                heightInTiles = 4
+        val pixels =
+            HeadlessGl.render(80, 40, Color.BLACK) {
+                val window =
+                    AsciiTileWindow.create {
+                        widthInTiles = 8
+                        heightInTiles = 4
+                    }
+                window.drawTile(0, 0, StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
+                window.drawTile(1, 0, StaticAsciiTile(' ', Color.WHITE, Color.GREEN))
+                window.render() // first paint: both cells set, cache fully dirty
+                window.drawTile(0, 0, StaticAsciiTile(' ', Color.WHITE, Color.RED)) // only (0,0) changes
+                window.render() // partial-dirty recomposite: only (0,0)'s scissor rect should be touched
+                window.dispose()
             }
-            window.drawTile(0, 0, StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
-            window.drawTile(1, 0, StaticAsciiTile(' ', Color.WHITE, Color.GREEN))
-            window.render() // first paint: both cells set, cache fully dirty
-            window.drawTile(0, 0, StaticAsciiTile(' ', Color.WHITE, Color.RED)) // only (0,0) changes
-            window.render() // partial-dirty recomposite: only (0,0)'s scissor rect should be touched
-            window.dispose()
-        }
         // Changed cell now red...
         val changed = pixels.averageColor(0, 0, 10, 10)
         changed.r.toDouble() shouldBe (1.0 plusOrMinus 0.1)
@@ -1457,18 +1548,20 @@ class RenderingIntegrationTest : FunSpec({
         // (blue). On a persistent renderer, removing the top layer and re-rendering must recomposite
         // to the bottom layer's color -- not retain the removed top layer's stale cached pixels, which
         // is exactly what would happen if the cell were redrawn without first being cleared.
-        val pixels = HeadlessGl.render(80, 40, Color.BLACK) {
-            val window = AsciiTileWindow.create {
-                widthInTiles = 8
-                heightInTiles = 4
+        val pixels =
+            HeadlessGl.render(80, 40, Color.BLACK) {
+                val window =
+                    AsciiTileWindow.create {
+                        widthInTiles = 8
+                        heightInTiles = 4
+                    }
+                window.drawTile(0, 0, z = 0, tile = StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
+                window.drawTile(0, 0, z = 1, tile = StaticAsciiTile(' ', Color.WHITE, Color.RED))
+                window.render() // first paint: top (red) layer wins
+                window.clearTile(0, 0, z = 1) // remove the top layer
+                window.render() // must recomposite to reveal the bottom (blue) layer
+                window.dispose()
             }
-            window.drawTile(0, 0, z = 0, tile = StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
-            window.drawTile(0, 0, z = 1, tile = StaticAsciiTile(' ', Color.WHITE, Color.RED))
-            window.render() // first paint: top (red) layer wins
-            window.clearTile(0, 0, z = 1) // remove the top layer
-            window.render() // must recomposite to reveal the bottom (blue) layer
-            window.dispose()
-        }
         val cell00 = pixels.averageColor(0, 0, 10, 10)
         cell00.b.toDouble() shouldBe (1.0 plusOrMinus 0.1)
         cell00.r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
@@ -1510,30 +1603,34 @@ private val SHEET_BLUE = Color(0.3f, 0.3f, 0.9f, 1f)
  * adjacent texels blend to purple. The dense edges make the result robust to the
  * exact scale (a single centered edge can alias against the ~1px blend band).
  */
-private fun maxEdgeBlend(policy: ScalePolicy, windowPx: Int): Float {
-    val pixels = HeadlessGl.render(windowPx, windowPx, Color.BLACK) {
-        val tilePixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
-        tilePixmap.blending = Pixmap.Blending.None
-        for (ty in 0 until 8) {
-            for (tx in 0 until 8) {
-                tilePixmap.setColor(if ((tx + ty) % 2 == 0) Color.RED else Color.BLUE)
-                tilePixmap.fillRectangle(tx, ty, 1, 1)
+private fun maxEdgeBlend(
+    policy: ScalePolicy,
+    windowPx: Int,
+): Float {
+    val pixels =
+        HeadlessGl.render(windowPx, windowPx, Color.BLACK) {
+            val tilePixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
+            tilePixmap.blending = Pixmap.Blending.None
+            for (ty in 0 until 8) {
+                for (tx in 0 until 8) {
+                    tilePixmap.setColor(if ((tx + ty) % 2 == 0) Color.RED else Color.BLUE)
+                    tilePixmap.fillRectangle(tx, ty, 1, 1)
+                }
             }
-        }
-        val file = File.createTempFile("kotile-edge", ".png").apply { deleteOnExit() }
-        PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), tilePixmap)
-        tilePixmap.dispose()
+            val file = File.createTempFile("kotile-edge", ".png").apply { deleteOnExit() }
+            PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), tilePixmap)
+            tilePixmap.dispose()
 
-        val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
-        val canvas = KotileCanvas(8, 8)
-        canvas.useFixedGrid(1, 1, policy)
-        val renderer = SpriteTileRenderer(canvas, sheet)
-        renderer.drawTile(0, 0, z = 0, tile = StaticSpriteTile(0, 0))
-        renderer.render()
-        renderer.dispose()
-        canvas.dispose()
-        sheet.dispose()
-    }
+            val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
+            val canvas = KotileCanvas(8, 8)
+            canvas.useFixedGrid(1, 1, policy)
+            val renderer = SpriteTileRenderer(canvas, sheet)
+            renderer.drawTile(0, 0, z = 0, tile = StaticSpriteTile(0, 0))
+            renderer.render()
+            renderer.dispose()
+            canvas.dispose()
+            sheet.dispose()
+        }
 
     var maxBlend = 0f
     for (y in 0 until windowPx) {
@@ -1548,28 +1645,32 @@ private fun maxEdgeBlend(policy: ScalePolicy, windowPx: Int): Float {
     return maxBlend
 }
 
-private fun renderSpriteTile(tileColor: Color, tint: Color): Color {
-    val pixels = HeadlessGl.render(64, 64, Color.BLACK) {
-        val tilePixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
-        tilePixmap.setColor(tileColor)
-        tilePixmap.fill()
-        val file = File.createTempFile("kotile-sprite", ".png").apply { deleteOnExit() }
-        PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), tilePixmap)
-        tilePixmap.dispose()
+private fun renderSpriteTile(
+    tileColor: Color,
+    tint: Color,
+): Color {
+    val pixels =
+        HeadlessGl.render(64, 64, Color.BLACK) {
+            val tilePixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888)
+            tilePixmap.setColor(tileColor)
+            tilePixmap.fill()
+            val file = File.createTempFile("kotile-sprite", ".png").apply { deleteOnExit() }
+            PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), tilePixmap)
+            tilePixmap.dispose()
 
-        val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
-        val canvas = KotileCanvas(8, 8)
-        val renderer = SpriteTileRenderer(canvas, sheet)
-        for (y in 0 until 8) {
-            for (x in 0 until 8) {
-                renderer.drawTile(x, y, z = 0, tile = StaticSpriteTile(sheetX = 0, sheetY = 0, tint = tint))
+            val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
+            val canvas = KotileCanvas(8, 8)
+            val renderer = SpriteTileRenderer(canvas, sheet)
+            for (y in 0 until 8) {
+                for (x in 0 until 8) {
+                    renderer.drawTile(x, y, z = 0, tile = StaticSpriteTile(sheetX = 0, sheetY = 0, tint = tint))
+                }
             }
+            renderer.render()
+            renderer.dispose()
+            canvas.dispose()
+            sheet.dispose()
         }
-        renderer.render()
-        renderer.dispose()
-        canvas.dispose()
-        sheet.dispose()
-    }
     val avg = pixels.averageColor(0, 0, 64, 64)
     pixels.dispose()
     return avg
@@ -1581,32 +1682,36 @@ private fun renderSpriteTile(tileColor: Color, tint: Color): Color {
  * resulting color. The two tiles are sliced from a synthetic 8x16 two-cell
  * sheet: cell (0,0) is [background], cell (0,1) is [foreground].
  */
-private fun renderLayered(background: Color, foreground: Color): Color {
-    val pixels = HeadlessGl.render(64, 64, Color.BLACK) {
-        val sheetPixmap = Pixmap(8, 16, Pixmap.Format.RGBA8888)
-        sheetPixmap.blending = Pixmap.Blending.None
-        sheetPixmap.setColor(background)
-        sheetPixmap.fillRectangle(0, 0, 8, 8) // tile (0,0): background terrain
-        sheetPixmap.setColor(foreground)
-        sheetPixmap.fillRectangle(0, 8, 8, 8) // tile (0,1): foreground entity
-        val file = File.createTempFile("kotile-layered", ".png").apply { deleteOnExit() }
-        PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), sheetPixmap)
-        sheetPixmap.dispose()
+private fun renderLayered(
+    background: Color,
+    foreground: Color,
+): Color {
+    val pixels =
+        HeadlessGl.render(64, 64, Color.BLACK) {
+            val sheetPixmap = Pixmap(8, 16, Pixmap.Format.RGBA8888)
+            sheetPixmap.blending = Pixmap.Blending.None
+            sheetPixmap.setColor(background)
+            sheetPixmap.fillRectangle(0, 0, 8, 8) // tile (0,0): background terrain
+            sheetPixmap.setColor(foreground)
+            sheetPixmap.fillRectangle(0, 8, 8, 8) // tile (0,1): foreground entity
+            val file = File.createTempFile("kotile-layered", ".png").apply { deleteOnExit() }
+            PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), sheetPixmap)
+            sheetPixmap.dispose()
 
-        val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
-        val canvas = KotileCanvas(8, 8)
-        val renderer = SpriteTileRenderer(canvas, sheet)
-        for (y in 0 until 8) {
-            for (x in 0 until 8) {
-                renderer.drawTile(x, y, z = 0, tile = StaticSpriteTile(sheetX = 0, sheetY = 0))
-                renderer.drawTile(x, y, z = 1, tile = StaticSpriteTile(sheetX = 0, sheetY = 1))
+            val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), 8, 8)
+            val canvas = KotileCanvas(8, 8)
+            val renderer = SpriteTileRenderer(canvas, sheet)
+            for (y in 0 until 8) {
+                for (x in 0 until 8) {
+                    renderer.drawTile(x, y, z = 0, tile = StaticSpriteTile(sheetX = 0, sheetY = 0))
+                    renderer.drawTile(x, y, z = 1, tile = StaticSpriteTile(sheetX = 0, sheetY = 1))
+                }
             }
+            renderer.render()
+            renderer.dispose()
+            canvas.dispose()
+            sheet.dispose()
         }
-        renderer.render()
-        renderer.dispose()
-        canvas.dispose()
-        sheet.dispose()
-    }
     val avg = pixels.averageColor(0, 0, 64, 64)
     pixels.dispose()
     return avg

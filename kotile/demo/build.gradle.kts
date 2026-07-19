@@ -1,6 +1,7 @@
 plugins {
     kotlin("jvm")
     application
+    id("org.jlleitschuh.gradle.ktlint")
 }
 
 val gdxVersion: String by project
@@ -42,8 +43,9 @@ tasks.register<JavaExec>("renderHarness") {
     if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
         jvmArgs("-XstartOnFirstThread")
     }
-    val outFile = (project.findProperty("outFile") as String?)
-        ?: layout.buildDirectory.file("harness.png").get().asFile.absolutePath
+    val outFile =
+        (project.findProperty("outFile") as String?)
+            ?: layout.buildDirectory.file("harness.png").get().asFile.absolutePath
     systemProperty("kotile.harness.out", outFile)
     doFirst { logger.lifecycle("Rendering harness scene to: $outFile") }
 }
@@ -62,8 +64,9 @@ tasks.register<JavaExec>("spriteHarness") {
     if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
         jvmArgs("-XstartOnFirstThread")
     }
-    val outFile = (project.findProperty("outFile") as String?)
-        ?: layout.buildDirectory.file("sprite-harness.png").get().asFile.absolutePath
+    val outFile =
+        (project.findProperty("outFile") as String?)
+            ?: layout.buildDirectory.file("sprite-harness.png").get().asFile.absolutePath
     systemProperty("kotile.harness.out", outFile)
     doFirst { logger.lifecycle("Rendering sprite harness scene to: $outFile") }
 }
@@ -82,8 +85,9 @@ tasks.register<JavaExec>("fixedGridHarness") {
     if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
         jvmArgs("-XstartOnFirstThread")
     }
-    val outFile = (project.findProperty("outFile") as String?)
-        ?: layout.buildDirectory.file("fixed-grid-harness.png").get().asFile.absolutePath
+    val outFile =
+        (project.findProperty("outFile") as String?)
+            ?: layout.buildDirectory.file("fixed-grid-harness.png").get().asFile.absolutePath
     systemProperty("kotile.harness.out", outFile)
     (project.findProperty("winW") as String?)?.let { systemProperty("kotile.harness.winW", it) }
     (project.findProperty("winH") as String?)?.let { systemProperty("kotile.harness.winH", it) }
@@ -106,8 +110,9 @@ tasks.register<JavaExec>("effectsHarness") {
     if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
         jvmArgs("-XstartOnFirstThread")
     }
-    val outFile = (project.findProperty("outFile") as String?)
-        ?: layout.buildDirectory.file("effects-harness.png").get().asFile.absolutePath
+    val outFile =
+        (project.findProperty("outFile") as String?)
+            ?: layout.buildDirectory.file("effects-harness.png").get().asFile.absolutePath
     systemProperty("kotile.harness.out", outFile)
     doFirst { logger.lifecycle("Rendering effects harness scene to: $outFile") }
 }
@@ -126,8 +131,9 @@ tasks.register<JavaExec>("uiHarness") {
     if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
         jvmArgs("-XstartOnFirstThread")
     }
-    val outFile = (project.findProperty("outFile") as String?)
-        ?: layout.buildDirectory.file("ui-harness.png").get().asFile.absolutePath
+    val outFile =
+        (project.findProperty("outFile") as String?)
+            ?: layout.buildDirectory.file("ui-harness.png").get().asFile.absolutePath
     systemProperty("kotile.harness.out", outFile)
     doFirst { logger.lifecycle("Rendering UI harness scene to: $outFile") }
 }
@@ -146,8 +152,9 @@ tasks.register<JavaExec>("rotationHarness") {
     if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
         jvmArgs("-XstartOnFirstThread")
     }
-    val outFile = (project.findProperty("outFile") as String?)
-        ?: layout.buildDirectory.file("rotation-harness.png").get().asFile.absolutePath
+    val outFile =
+        (project.findProperty("outFile") as String?)
+            ?: layout.buildDirectory.file("rotation-harness.png").get().asFile.absolutePath
     systemProperty("kotile.harness.out", outFile)
     doFirst { logger.lifecycle("Rendering rotation harness scene to: $outFile") }
 }

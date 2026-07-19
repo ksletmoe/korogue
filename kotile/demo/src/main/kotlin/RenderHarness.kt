@@ -7,8 +7,8 @@ import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.PixmapIO
 import com.sletmoe.kotile.display.ascii.AsciiTile
-import com.sletmoe.kotile.display.ascii.StaticAsciiTile
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
+import com.sletmoe.kotile.display.ascii.StaticAsciiTile
 import com.sletmoe.kotile.rendering.TileViewport
 import com.sletmoe.kotile.utilities.LayeredTilemap
 import java.util.zip.Deflater
@@ -55,7 +55,16 @@ private class RenderHarness(private val outPath: String) : ApplicationAdapter() 
 
     private fun buildScene() {
         val swatches =
-            listOf(Color.RED, Color.GREEN, Color.BLUE, Color.WHITE, Color.YELLOW, Color.CYAN, Color.MAGENTA, Color.LIGHT_GRAY)
+            listOf(
+                Color.RED,
+                Color.GREEN,
+                Color.BLUE,
+                Color.WHITE,
+                Color.YELLOW,
+                Color.CYAN,
+                Color.MAGENTA,
+                Color.LIGHT_GRAY,
+            )
 
         // Rows 0-1: BACKGROUND-QUAD path. A space glyph is transparent, so only
         // the 1x1 white background texture (tinted by the bg color) shows. Each
@@ -100,7 +109,12 @@ private class RenderHarness(private val outPath: String) : ApplicationAdapter() 
         }
     }
 
-    private fun text(x: Int, y: Int, s: String, fg: Color) {
+    private fun text(
+        x: Int,
+        y: Int,
+        s: String,
+        fg: Color,
+    ) {
         s.forEachIndexed { i, c ->
             val cx = x + i
             if (cx in 0 until MAP_W && y in 0 until MAP_H) {
@@ -121,8 +135,10 @@ private class RenderHarness(private val outPath: String) : ApplicationAdapter() 
         // Let the initial resize settle before grabbing the frame.
         if (++frame >= 2) {
             println(
-                "HARNESS window=${window.widthInTiles}x${window.heightInTiles} tilePx=${window.tileWidthPx}x${window.tileHeightPx} " +
-                    "logical=${Gdx.graphics.width}x${Gdx.graphics.height} backbuffer=${Gdx.graphics.backBufferWidth}x${Gdx.graphics.backBufferHeight}",
+                "HARNESS window=${window.widthInTiles}x${window.heightInTiles} " +
+                    "tilePx=${window.tileWidthPx}x${window.tileHeightPx} " +
+                    "logical=${Gdx.graphics.width}x${Gdx.graphics.height} " +
+                    "backbuffer=${Gdx.graphics.backBufferWidth}x${Gdx.graphics.backBufferHeight}",
             )
             val pixmap = Pixmap.createFromFrameBuffer(0, 0, Gdx.graphics.backBufferWidth, Gdx.graphics.backBufferHeight)
             PixmapIO.writePNG(Gdx.files.absolute(outPath), pixmap, Deflater.DEFAULT_COMPRESSION, true)
@@ -132,14 +148,18 @@ private class RenderHarness(private val outPath: String) : ApplicationAdapter() 
         }
     }
 
-    override fun resize(width: Int, height: Int) = window.resize(width, height)
+    override fun resize(
+        width: Int,
+        height: Int,
+    ) = window.resize(width, height)
 
     override fun dispose() = window.dispose()
 }
 
 fun main() {
-    val outPath = System.getProperty("kotile.harness.out")
-        ?: "${System.getProperty("user.dir")}/harness.png"
+    val outPath =
+        System.getProperty("kotile.harness.out")
+            ?: "${System.getProperty("user.dir")}/harness.png"
 
     val config =
         Lwjgl3ApplicationConfiguration().apply {

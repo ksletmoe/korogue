@@ -17,10 +17,30 @@ package com.sletmoe.kotile.input
  */
 open class KotileInputAdapter : KotileInputListener {
     override fun onKeyDown(keycode: Int) {}
+
     override fun onKeyUp(keycode: Int) {}
+
     override fun onKeyTyped(character: Char) {}
-    override fun onTileClicked(tileX: Int, tileY: Int, button: Int) {}
-    override fun onTileHovered(tileX: Int, tileY: Int) {}
-    override fun onTileDragged(tileX: Int, tileY: Int, button: Int) {}
-    override fun onScrolled(amountX: Float, amountY: Float) {}
+
+    override fun onTileClicked(
+        tileX: Int,
+        tileY: Int,
+        button: Int,
+    ) {}
+
+    override fun onTileHovered(
+        tileX: Int,
+        tileY: Int,
+    ) {}
+
+    override fun onTileDragged(
+        tileX: Int,
+        tileY: Int,
+        button: Int,
+    ) {}
+
+    override fun onScrolled(
+        amountX: Float,
+        amountY: Float,
+    ) {}
 }

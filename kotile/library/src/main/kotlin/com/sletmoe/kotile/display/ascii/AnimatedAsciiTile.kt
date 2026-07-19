@@ -59,6 +59,5 @@ public class AnimatedAsciiTile(
      * @param elapsedMs monotonically increasing wall-clock time in milliseconds.
      *   Negative values are treated as `0` (first frame).
      */
-    override fun resolveAt(elapsedMs: Long): StaticAsciiTile =
-        frames[frameIndexAt(frames, mode, elapsedMs)].content
+    override fun resolveAt(elapsedMs: Long): StaticAsciiTile = frames[frameIndexAt(frames, mode, elapsedMs)].content
 }

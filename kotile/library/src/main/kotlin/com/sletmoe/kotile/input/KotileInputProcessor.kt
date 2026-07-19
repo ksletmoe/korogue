@@ -71,7 +71,6 @@ import com.sletmoe.kotile.rendering.GridLayout
 class KotileInputProcessor(
     private val layout: () -> GridLayout,
 ) : InputProcessor {
-
     private val listeners = mutableListOf<KotileInputListener>()
 
     /**
@@ -103,7 +102,12 @@ class KotileInputProcessor(
      * @param pointer libGDX pointer index (ignored for mouse input)
      * @param button a libGDX button constant from [com.badlogic.gdx.Input.Buttons]
      */
-    override fun touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
+    override fun touchDown(
+        screenX: Int,
+        screenY: Int,
+        pointer: Int,
+        button: Int,
+    ): Boolean {
         val layout = layout()
         layout.contentPixelAt(screenX.toFloat(), screenY.toFloat())?.let { (px, py) ->
             listeners.forEach { it.onPointerDown(px, py, button) }
@@ -119,7 +123,12 @@ class KotileInputProcessor(
      * half of a free-UI click; there is no tile-coordinate equivalent), or drops
      * the event if the pixel position is outside the grid content rectangle.
      */
-    override fun touchUp(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
+    override fun touchUp(
+        screenX: Int,
+        screenY: Int,
+        pointer: Int,
+        button: Int,
+    ): Boolean {
         layout().contentPixelAt(screenX.toFloat(), screenY.toFloat())?.let { (px, py) ->
             listeners.forEach { it.onPointerUp(px, py, button) }
         }
@@ -136,7 +145,11 @@ class KotileInputProcessor(
      * @param pointer libGDX pointer index (ignored for mouse input)
      * @param button a libGDX button constant from [com.badlogic.gdx.Input.Buttons]
      */
-    override fun touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean {
+    override fun touchDragged(
+        screenX: Int,
+        screenY: Int,
+        pointer: Int,
+    ): Boolean {
         val layout = layout()
         layout.contentPixelAt(screenX.toFloat(), screenY.toFloat())?.let { (px, py) ->
             listeners.forEach { it.onPointerDragged(px, py) }
@@ -155,7 +168,10 @@ class KotileInputProcessor(
      * @param screenX screen pixel X (0 = left, increases right)
      * @param screenY screen pixel Y (0 = top, increases down; libGDX Desktop convention)
      */
-    override fun mouseMoved(screenX: Int, screenY: Int): Boolean {
+    override fun mouseMoved(
+        screenX: Int,
+        screenY: Int,
+    ): Boolean {
         val layout = layout()
         layout.contentPixelAt(screenX.toFloat(), screenY.toFloat())?.let { (px, py) ->
             listeners.forEach { it.onPointerMoved(px, py) }
@@ -201,7 +217,10 @@ class KotileInputProcessor(
      * @param amountX horizontal scroll delta
      * @param amountY vertical scroll delta
      */
-    override fun scrolled(amountX: Float, amountY: Float): Boolean {
+    override fun scrolled(
+        amountX: Float,
+        amountY: Float,
+    ): Boolean {
         listeners.forEach { it.onScrolled(amountX, amountY) }
         return false
     }
@@ -210,5 +229,10 @@ class KotileInputProcessor(
      * Part of the [InputProcessor] contract (libGDX 1.14+); not surfaced to
      * [KotileInputListener]. Always returns `false`.
      */
-    override fun touchCancelled(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean = false
+    override fun touchCancelled(
+        screenX: Int,
+        screenY: Int,
+        pointer: Int,
+        button: Int,
+    ): Boolean = false
 }

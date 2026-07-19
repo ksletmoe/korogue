@@ -67,7 +67,10 @@ internal fun <T> frameIndexAt(
 }
 
 /** Binary-searches [starts] for the last entry <= [pos] and returns its index. */
-private fun indexForPosition(starts: LongArray, pos: Long): Int {
+private fun indexForPosition(
+    starts: LongArray,
+    pos: Long,
+): Int {
     var lo = 0
     var hi = starts.size - 1
     while (lo < hi) {

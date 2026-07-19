@@ -107,7 +107,10 @@ class TileSheet(
         source.dispose()
     }
 
-    private fun tilesAlong(imagePx: Int, tilePx: Int): Int {
+    private fun tilesAlong(
+        imagePx: Int,
+        tilePx: Int,
+    ): Int {
         val usable = imagePx - 2 * margin + spacing
         return if (usable > 0) usable / (tilePx + spacing) else 0
     }
@@ -117,7 +120,10 @@ class TileSheet(
      *
      * @throws IllegalArgumentException if [x] or [y] is outside the sheet
      */
-    fun region(x: Int, y: Int): TextureRegion {
+    fun region(
+        x: Int,
+        y: Int,
+    ): TextureRegion {
         require(x in 0 until widthInTiles) { "x must be in 0 until $widthInTiles, was $x" }
         require(y in 0 until heightInTiles) { "y must be in 0 until $heightInTiles, was $y" }
 
@@ -148,10 +154,13 @@ class TileSheet(
          * Pixmap(FileHandle) always decodes to RGBA8888 on the desktop backend
          * so this assumption holds for normal sheet loading.
          */
-        fun zeroOutColor(pixmap: Pixmap, keyColor: Color) {
+        fun zeroOutColor(
+            pixmap: Pixmap,
+            keyColor: Color,
+        ) {
             val keyR = (Color.rgba8888(keyColor) ushr 24 and 0xff).toByte()
             val keyG = (Color.rgba8888(keyColor) ushr 16 and 0xff).toByte()
-            val keyB = (Color.rgba8888(keyColor) ushr  8 and 0xff).toByte()
+            val keyB = (Color.rgba8888(keyColor) ushr 8 and 0xff).toByte()
 
             pixmap.blending = Pixmap.Blending.None
             val buf: ByteBuffer = pixmap.pixels

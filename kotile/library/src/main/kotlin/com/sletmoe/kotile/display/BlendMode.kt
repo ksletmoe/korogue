@@ -37,7 +37,13 @@ enum class BlendMode {
      */
     internal fun apply(batch: SpriteBatch) {
         when (this) {
-            NORMAL -> batch.setBlendFunctionSeparate(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA, GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
+            NORMAL ->
+                batch.setBlendFunctionSeparate(
+                    GL20.GL_SRC_ALPHA,
+                    GL20.GL_ONE_MINUS_SRC_ALPHA,
+                    GL20.GL_SRC_ALPHA,
+                    GL20.GL_ONE_MINUS_SRC_ALPHA,
+                )
             ADDITIVE -> batch.setBlendFunctionSeparate(GL20.GL_SRC_ALPHA, GL20.GL_ONE, GL20.GL_SRC_ALPHA, GL20.GL_ONE)
             REPLACE -> batch.setBlendFunctionSeparate(GL20.GL_ONE, GL20.GL_ZERO, GL20.GL_ONE, GL20.GL_ZERO)
         }

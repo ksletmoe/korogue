@@ -66,11 +66,13 @@ class Font(
     keyColor: Color? = Color.BLACK,
     useMipMaps: Boolean = true,
 ) : Disposable {
-    private val tileSheet = TileSheet(Gdx.files.classpath(fontFileName), charWidthPx, charHeightPx, keyColor, useMipMaps = useMipMaps)
+    private val tileSheet =
+        TileSheet(Gdx.files.classpath(fontFileName), charWidthPx, charHeightPx, keyColor, useMipMaps = useMipMaps)
 
-    private val glyphs: List<TextureRegion> = (0 until GLYPH_COUNT).map { index ->
-        tileSheet.region(index % COLUMNS, index / COLUMNS)
-    }
+    private val glyphs: List<TextureRegion> =
+        (0 until GLYPH_COUNT).map { index ->
+            tileSheet.region(index % COLUMNS, index / COLUMNS)
+        }
 
     /**
      * Returns the glyph region for [character], or `null` if its code point is
@@ -106,6 +108,10 @@ class Font(
  * [Font] class documentation for a full example.
  */
 object Fonts {
+    // cp437_10x10 deliberately mirrors the bundled asset filename (cp437_10x10.png)
+    // and is established public API, so it keeps its underscore-and-digits name and
+    // suppresses ktlint's camelCase function-naming rule rather than break consumers.
+
     /**
      * Returns the bundled 10×10 pixel CP437 bitmap font.
      *
@@ -118,5 +124,6 @@ object Fonts {
      * @param keyColor the solid color in the sheet to treat as transparent;
      *   defaults to [Color.BLACK]
      */
+    @Suppress("ktlint:standard:function-naming")
     fun cp437_10x10(keyColor: Color? = Color.BLACK): Font = Font("cp437_10x10.png", 10, 10, keyColor)
 }

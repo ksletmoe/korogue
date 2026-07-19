@@ -54,7 +54,14 @@ internal class GridCompositeCache(
     /** Draws into the cache's native-resolution [FrameBuffer] for the duration of one [recompositeIfDirty] call. */
     interface TileDrawer {
         /** Draws [region] at cell ([x], [y]) (top-left origin, tile-sized), tinted by [tint]. */
-        fun drawTile(x: Int, y: Int, region: TextureRegion, tint: Color, flipX: Boolean = false, flipY: Boolean = false)
+        fun drawTile(
+            x: Int,
+            y: Int,
+            region: TextureRegion,
+            tint: Color,
+            flipX: Boolean = false,
+            flipY: Boolean = false,
+        )
     }
 
     // Scratch buffer for glGetIntegerv. Reused rather than allocated per recomposite, which runs
@@ -91,7 +98,10 @@ internal class GridCompositeCache(
     }
 
     /** Marks a single cell stale; a no-op if [markAllDirty] already covers this recomposite. */
-    fun markCellDirty(x: Int, y: Int) {
+    fun markCellDirty(
+        x: Int,
+        y: Int,
+    ) {
         if (!fullyDirty) dirtyCells.add(packCell(x, y))
     }
 
@@ -100,7 +110,10 @@ internal class GridCompositeCache(
      * changed since the last call (or this is the first call), forcing a
      * recomposite. No-op if the size is unchanged.
      */
-    fun ensureSize(widthInTiles: Int, heightInTiles: Int) {
+    fun ensureSize(
+        widthInTiles: Int,
+        heightInTiles: Int,
+    ) {
         if (widthInTiles == gridWidth && heightInTiles == gridHeight && frameBuffer != null) return
         // The whole (re)allocation runs under the guard, not just the FrameBuffer constructor:
         // that constructor leaves framebuffer 0 bound once it has built, and deleting a framebuffer
@@ -122,10 +135,11 @@ internal class GridCompositeCache(
             // the final on-screen scale is fractional (that shader wants Linear, set per-draw, separately).
             frameBuffer!!.colorBufferTexture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
             batch = SpriteBatch()
-            camera = OrthographicCamera().apply {
-                setToOrtho(false, pxWidth.toFloat(), pxHeight.toFloat())
-                update()
-            }
+            camera =
+                OrthographicCamera().apply {
+                    setToOrtho(false, pxWidth.toFloat(), pxHeight.toFloat())
+                    update()
+                }
         }
         markAllDirty()
     }
@@ -162,7 +176,11 @@ internal class GridCompositeCache(
         dirtyCells.clear()
     }
 
-    private fun recomposite(fbo: FrameBuffer, b: SpriteBatch, draw: (x: Int, y: Int, drawer: TileDrawer) -> Unit) {
+    private fun recomposite(
+        fbo: FrameBuffer,
+        b: SpriteBatch,
+        draw: (x: Int, y: Int, drawer: TileDrawer) -> Unit,
+    ) {
         fbo.begin()
         b.projectionMatrix = camera!!.combined
         val drawer = nativeDrawer(b)
@@ -235,7 +253,14 @@ internal class GridCompositeCache(
         val tileW = tileWidthPx.toFloat()
         val tileH = tileHeightPx.toFloat()
         return object : TileDrawer {
-            override fun drawTile(x: Int, y: Int, region: TextureRegion, tint: Color, flipX: Boolean, flipY: Boolean) {
+            override fun drawTile(
+                x: Int,
+                y: Int,
+                region: TextureRegion,
+                tint: Color,
+                flipX: Boolean,
+                flipY: Boolean,
+            ) {
                 b.color = tint
                 if (flipX || flipY) region.flip(flipX, flipY)
                 // Same top-left-origin -> y-up-GL flip KotileCanvas.drawSprite uses.
@@ -257,7 +282,10 @@ internal class GridCompositeCache(
     val cachedRegion: TextureRegion?
         get() = frameBuffer?.let { TextureRegion(it.colorBufferTexture).apply { flip(false, true) } }
 
-    private fun packCell(x: Int, y: Int): Long = (x.toLong() shl 32) or (y.toLong() and 0xFFFFFFFFL)
+    private fun packCell(
+        x: Int,
+        y: Int,
+    ): Long = (x.toLong() shl 32) or (y.toLong() and 0xFFFFFFFFL)
 
     private fun unpackCellX(packed: Long): Int = (packed shr 32).toInt()
 

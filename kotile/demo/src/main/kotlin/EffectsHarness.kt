@@ -9,10 +9,10 @@ import com.badlogic.gdx.graphics.PixmapIO
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.sletmoe.kotile.display.KotileCanvas
-import com.sletmoe.kotile.display.ascii.StaticAsciiTile
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
 import com.sletmoe.kotile.display.ascii.Font
 import com.sletmoe.kotile.display.ascii.Fonts
+import com.sletmoe.kotile.display.ascii.StaticAsciiTile
 import com.sletmoe.kotile.rendering.Effect
 import com.sletmoe.kotile.rendering.EffectsLayer
 import com.sletmoe.kotile.rendering.LayerStack
@@ -53,11 +53,12 @@ private class EffectsHarness(private val outPath: String) : ApplicationAdapter()
     override fun create() {
         font = Fonts.cp437_10x10()
         canvas = KotileCanvas(font.charWidthPx, font.charHeightPx)
-        window = AsciiTileWindow.createWithCanvas(canvas, font) {
-            widthInTiles = COLS
-            heightInTiles = ROWS
-            fitToWindow = false // fixed grid: effect pixel positions stay put across resize
-        }
+        window =
+            AsciiTileWindow.createWithCanvas(canvas, font) {
+                widthInTiles = COLS
+                heightInTiles = ROWS
+                fitToWindow = false // fixed grid: effect pixel positions stay put across resize
+            }
         boltTexture = solidTexture(Color.WHITE)
 
         buildGrid()
@@ -126,7 +127,10 @@ private class EffectsHarness(private val outPath: String) : ApplicationAdapter()
         }
     }
 
-    override fun resize(width: Int, height: Int) = window.resize(width, height)
+    override fun resize(
+        width: Int,
+        height: Int,
+    ) = window.resize(width, height)
 
     override fun dispose() {
         window.dispose() // shared canvas + font not owned by the window
@@ -144,13 +148,15 @@ private class EffectsHarness(private val outPath: String) : ApplicationAdapter()
 }
 
 fun main() {
-    val outPath = System.getProperty("kotile.harness.out")
-        ?: "${System.getProperty("user.dir")}/effects-harness.png"
+    val outPath =
+        System.getProperty("kotile.harness.out")
+            ?: "${System.getProperty("user.dir")}/effects-harness.png"
 
-    val config = Lwjgl3ApplicationConfiguration().apply {
-        setTitle("kotile effects harness")
-        setWindowedMode(WINDOW_W_PX, WINDOW_H_PX)
-        disableAudio(true)
-    }
+    val config =
+        Lwjgl3ApplicationConfiguration().apply {
+            setTitle("kotile effects harness")
+            setWindowedMode(WINDOW_W_PX, WINDOW_H_PX)
+            disableAudio(true)
+        }
     Lwjgl3Application(EffectsHarness(outPath), config)
 }
