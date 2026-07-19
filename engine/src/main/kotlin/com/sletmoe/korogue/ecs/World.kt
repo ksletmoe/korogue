@@ -19,10 +19,13 @@ import com.sletmoe.korogue.random.GameRandom
  *
  * **Mutation flows through [World].** [Entity] is read-only to callers; component
  * changes go through [set] / [update] / [remove], giving a single seam onto which
- * change tracking / save-state deltas can later be hooked. Every mutator **signals
- * whether its target existed** — [set] returns a Boolean, [update] and [remove]
- * return the affected component or null — so a write to a typo'd or already-despawned
- * id is reported to the caller rather than vanishing without a trace.
+ * change tracking / save-state deltas can later be hooked. No mutator drops a write
+ * to a missing id silently, but the signals differ in kind: [set] returns a Boolean
+ * reporting specifically whether the *entity* existed, while [update] and [remove]
+ * return the affected component or null — where null means *either* a missing entity
+ * or a live entity lacking the requested component (operation/component presence, not
+ * entity presence). Either way a write to a typo'd or already-despawned id is reported
+ * to the caller rather than vanishing without a trace.
  *
  * **Randomness is seeded by construction** (ADR-0025). The world owns its [random], so
  * every tick draws from a seeded, serializable stream and there is no API path to an

@@ -94,6 +94,16 @@ class WorldTest : DescribeSpec({
             e.get<Health>() shouldBe Health(75, 100)
         }
 
+        it("set keys by the component's concrete runtime class, not the caller's static type") {
+            // Guards ADR-0005: set deliberately keys by component::class, so an argument
+            // upcast to Component must still land under Health and be found by get<Health>().
+            val world = World()
+            val e = world.spawn()
+            val component: Component = Health(30, 40)
+            world.set(e.id, component).shouldBeTrue()
+            e.get<Health>() shouldBe Health(30, 40)
+        }
+
         it("set returns false and writes nothing for an unknown entity") {
             val world = World()
             world.set(EntityId(5), Health(1, 1)).shouldBeFalse()

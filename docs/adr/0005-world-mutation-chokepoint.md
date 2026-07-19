@@ -44,10 +44,16 @@ the signatures.
 
 **Decision:** the seam **signals absence; it never silently drops.** `World.set` now
 returns `Boolean` (`true` when the entity existed and the write applied, `false` — writing
-nothing — for an unknown id), so every mutator reports whether its target existed: `set`
-via `Boolean`, `update`/`remove` via the affected component or `null`. `GameWorld.relocate`
-propagates the same `Boolean`. The `Unit → Boolean` change is source-compatible — a caller
-that already knows the entity is live may ignore the result.
+nothing — for an unknown id), so no mutator can be handed a missing id and stay silent.
+The absence signals differ in kind: `set`'s `Boolean` reports specifically whether the
+*entity* existed, whereas `update`/`remove` return `null` for *either* a missing entity or
+a live entity that lacks the requested component — they report operation/component presence,
+not entity presence. `GameWorld.relocate` propagates `set`'s `Boolean`. The `Unit → Boolean`
+change is source-compatible for the common case — a direct call site that already knows the
+entity is live may ignore the result unchanged — but it is not blanket-compatible: a
+function reference (`::set`, typed `(EntityId, Component) -> Unit`) and any separately
+compiled consumer need recompilation or migration. Within this repo there are no such
+references, so the practical migration cost is nil.
 
 **Returning a value, not throwing.** The Rogue example (the engine's exemplary consumer)
 was used to choose: all of its ~30 `set` call sites write to a known-live entity, so
