@@ -48,10 +48,10 @@ open class GameWorld(
 
     var currentZoneId: String
         get() = _currentZoneId
+
+        /** @throws IllegalArgumentException if [value] is not a registered zone id. */
         set(value) {
-            if (value !in zones) {
-                throw RuntimeException("Invalid zone ID '$value'. Does not exist in $zones")
-            }
+            require(value in zones) { "Invalid zone ID '$value'. Does not exist in $zones" }
             _currentZoneId = value
         }
 
@@ -67,16 +67,22 @@ open class GameWorld(
      * Drops the zone [zoneId] from the registry — its terrain is discarded (an ephemeral level the
      * player has left, say). Occupant entities tagged with that zone are the ECS's concern and are
      * not touched here; despawn them first. The [currentZoneId] cannot be removed.
+     *
+     * @throws IllegalArgumentException if [zoneId] is the [currentZoneId].
      */
     fun removeZone(zoneId: String) {
-        if (zoneId == currentZoneId) {
-            throw RuntimeException("Cannot remove the current zone '$zoneId'")
-        }
+        require(zoneId != currentZoneId) { "Cannot remove the current zone '$zoneId'" }
         zoneRegistry.remove(zoneId)
     }
 
+    /**
+     * The active zone. Never null in practice: [currentZoneId] is validated on every write and at
+     * [Builder.build], so a missing entry here is a broken invariant (a bug), not caller error.
+     *
+     * @throws IllegalStateException if [currentZoneId] has no registered zone.
+     */
     val currentZone: Zone
-        get() = zones[currentZoneId]!!
+        get() = checkNotNull(zones[currentZoneId]) { "currentZoneId '$currentZoneId' has no registered zone" }
 
     /**
      * The policy deciding which zones are simulated (ADR-0021, Knob 1). Defaults to
@@ -198,16 +204,15 @@ open class GameWorld(
             return zone
         }
 
+        /**
+         * @throws IllegalStateException if no zones were added, or if no zone was marked
+         *   `isCurrentZone` (so [currentZoneId] is unset).
+         */
         fun build(): GameWorld {
-            if (zones.isEmpty()) {
-                throw RuntimeException("A World must have at least one Zone")
-            }
+            check(zones.isNotEmpty()) { "A World must have at least one Zone" }
+            val currentZoneId = checkNotNull(currentZoneId) { "A World must have the currentZoneId set" }
 
-            if (currentZoneId == null) {
-                throw RuntimeException("A World must have the currentZoneId set")
-            }
-
-            val gameWorld = GameWorld(World(random), zones, currentZoneId!!)
+            val gameWorld = GameWorld(World(random), zones, currentZoneId)
 
             // Materialize buffered zone-gen spawns now that the ECS world exists (ADR-0019),
             // adding Position (the cell) and ZoneMember (the zone) to each entity's own components.

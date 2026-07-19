@@ -70,7 +70,7 @@ class RandomWalkCaveTest : DescribeSpec({
         }
 
         it("should never paint a cell outside the grid boundaries") {
-            // If painting ever went out of bounds, Grid.set would throw RuntimeException.
+            // If painting ever went out of bounds, Grid.set would throw IndexOutOfBoundsException.
             // Running without exception is the assertion.
             val grid = blankGrid(15, 15)
             val generator = randomWalkCave(7, 7, length = 300, groundTile = FLOOR_TILE)
