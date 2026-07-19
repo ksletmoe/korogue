@@ -383,9 +383,19 @@ open class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposabl
         lastSharpTexture = texture
     }
 
+    /**
+     * Whether [dispose] has been called on this canvas. Exposed (module-internal)
+     * so ownership tests can observe that a window disposed the canvas it owns —
+     * and left a shared one alone — rather than only checking that dispose threw
+     * nothing.
+     */
+    internal var disposed: Boolean = false
+        private set
+
     /** Disposes the underlying sprite batch and the sharp-bilinear shader, if compiled. */
     override fun dispose() {
         batch.dispose()
         sharpShader?.dispose()
+        disposed = true
     }
 }

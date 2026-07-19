@@ -56,11 +56,14 @@ private class ButtonWidget(
     var hovered = false
         private set
 
+    // Built once, not per render: drawSprite is on the composite hot path.
+    private val region = TextureRegion(texture)
+
     override fun render(canvas: KotileCanvas) {
         canvas.drawSprite(
             bounds.x,
             bounds.y,
-            TextureRegion(texture),
+            region,
             bounds.width,
             bounds.height,
             tint = if (hovered) hoverTint else idleTint,
