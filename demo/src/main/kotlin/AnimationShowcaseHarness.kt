@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.PixmapIO
+import com.sletmoe.korogue.algorithms.color.NormalizedRgb
 import com.sletmoe.korogue.algorithms.color.toNormalizedRgb
 import com.sletmoe.korogue.algorithms.geometry.lineOfCellsStoppingAtBlocker
 import com.sletmoe.korogue.algorithms.lighting.DiminishingLightValueCalculator
@@ -166,7 +167,7 @@ private class AnimationShowcaseHarness(private val outPath: String?) : Applicati
     private lateinit var overlayRenderer: SpriteTileRenderer // creatures, torch, arrow
 
     private val lightCalculator = DiminishingLightValueCalculator()
-    private val torchLightColor = Color(1f, 0.92f, 0.72f, 1f).toNormalizedRgb()
+    private val torchLightColor = NormalizedRgb(1.0, 0.92, 0.72)
 
     // A thin '.' glyph covers little of its cell, so tinting only the foreground barely reads as
     // a glow (unlike the sprite side's fully-opaque stone). A lit background wash -- dim

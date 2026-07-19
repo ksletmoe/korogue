@@ -89,7 +89,10 @@ layer: RenderLayer)`, `Player` (marker), `LightEmitter(color: NormalizedRgb, rad
 calculatorId)`, `Behavior(strategyId)`, `Portal(targetZoneId, targetX, targetY)`. Intent
 components (transient, consumed by systems each tick): `MoveIntent(dx, dy)`,
 `AttackIntent(targetId)`. Colors are `NormalizedRgb` (immutable), not GDX `Color`; the
-renderer converts at the draw boundary.
+renderer converts at the draw boundary (ADR-0035). `NormalizedRgb` is the **model** colour a
+consumer authors into components and light values — use its palette (`NormalizedRgb.YELLOW`,
+`.WHITE`, …) or `fromColor`/`fromHex`, not `Color.X.toNormalizedRgb()`. GDX `Color` is the
+**presentation** colour of the UI toolkit and `world.Tile`.
 
 ### Systems (`com.sletmoe.korogue.systems`, `.schedule`, `.perception`)
 

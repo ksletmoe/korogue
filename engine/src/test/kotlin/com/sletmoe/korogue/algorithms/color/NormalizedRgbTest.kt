@@ -151,6 +151,86 @@ class NormalizedRgbTest : DescribeSpec({
         }
     }
 
+    describe("companion constants") {
+        it("BLACK and WHITE are the neutral identities") {
+            NormalizedRgb.BLACK shouldBe NormalizedRgb(0.0, 0.0, 0.0)
+            NormalizedRgb.WHITE shouldBe NormalizedRgb(1.0, 1.0, 1.0)
+        }
+
+        it("WHITE is the multiply identity and BLACK the absorber") {
+            val c = NormalizedRgb(0.3, 0.6, 0.9)
+            (c * NormalizedRgb.WHITE) shouldBe c
+            (c * NormalizedRgb.BLACK) shouldBe NormalizedRgb.BLACK
+        }
+
+        it("palette constants mirror the GDX Color they re-export") {
+            NormalizedRgb.YELLOW shouldBe Color.YELLOW.toNormalizedRgb()
+            NormalizedRgb.GOLD shouldBe Color.GOLD.toNormalizedRgb()
+            NormalizedRgb.CYAN shouldBe Color.CYAN.toNormalizedRgb()
+        }
+    }
+
+    describe("NormalizedRgb.fromColor()") {
+        it("drops alpha and keeps rgb channels") {
+            val rgb = NormalizedRgb.fromColor(Color(0.3f, 0.6f, 0.9f, 0.5f))
+            rgb.r shouldBe (0.3 plusOrMinus 1e-6)
+            rgb.g shouldBe (0.6 plusOrMinus 1e-6)
+            rgb.b shouldBe (0.9 plusOrMinus 1e-6)
+        }
+
+        it("is the same conversion as the Color.toNormalizedRgb() extension") {
+            val color = Color(0.2f, 0.4f, 0.8f, 1f)
+            NormalizedRgb.fromColor(color) shouldBe color.toNormalizedRgb()
+        }
+    }
+
+    describe("NormalizedRgb.fromHex()") {
+        it("parses a 6-digit hex string") {
+            val rgb = NormalizedRgb.fromHex("ff0000")
+            rgb.r shouldBe (1.0 plusOrMinus 1e-6)
+            rgb.g shouldBe (0.0 plusOrMinus 1e-6)
+            rgb.b shouldBe (0.0 plusOrMinus 1e-6)
+        }
+
+        it("drops the alpha of an 8-digit hex string") {
+            val rgb = NormalizedRgb.fromHex("0000ff80")
+            rgb.r shouldBe (0.0 plusOrMinus 1e-6)
+            rgb.g shouldBe (0.0 plusOrMinus 1e-6)
+            rgb.b shouldBe (1.0 plusOrMinus 1e-6)
+        }
+    }
+
+    describe("NormalizedRgb.lerp()") {
+        val a = NormalizedRgb(0.0, 0.2, 1.0)
+        val b = NormalizedRgb(1.0, 0.6, 0.0)
+
+        it("returns this colour at t = 0.0") {
+            a.lerp(b, 0.0) shouldBe a
+        }
+
+        it("returns the other colour at t = 1.0") {
+            a.lerp(b, 1.0).let {
+                it.r shouldBe (b.r plusOrMinus 1e-9)
+                it.g shouldBe (b.g plusOrMinus 1e-9)
+                it.b shouldBe (b.b plusOrMinus 1e-9)
+            }
+        }
+
+        it("returns the per-channel midpoint at t = 0.5") {
+            val mid = a.lerp(b, 0.5)
+            mid.r shouldBe (0.5 plusOrMinus 1e-9)
+            mid.g shouldBe (0.4 plusOrMinus 1e-9)
+            mid.b shouldBe (0.5 plusOrMinus 1e-9)
+        }
+
+        it("extrapolates past 1.0 without clamping (model space is unclamped)") {
+            val past = a.lerp(b, 2.0)
+            past.r shouldBe (2.0 plusOrMinus 1e-9)
+            past.g shouldBe (1.0 plusOrMinus 1e-9)
+            past.b shouldBe (-1.0 plusOrMinus 1e-9)
+        }
+    }
+
     describe("Color.tintedByLight()") {
         it("matches the (toNormalizedRgb() * (lightColor * intensity)).toColor() chain it replaces") {
             val base = Color(0.6f, 0.5f, 0.4f, 1f)
