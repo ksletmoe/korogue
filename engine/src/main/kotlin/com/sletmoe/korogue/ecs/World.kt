@@ -19,7 +19,13 @@ import com.sletmoe.korogue.random.GameRandom
  *
  * **Mutation flows through [World].** [Entity] is read-only to callers; component
  * changes go through [set] / [update] / [remove], giving a single seam onto which
- * change tracking / save-state deltas can later be hooked.
+ * change tracking / save-state deltas can later be hooked. No mutator drops a write
+ * to a missing id silently, but the signals differ in kind: [set] returns a Boolean
+ * reporting specifically whether the *entity* existed, while [update] and [remove]
+ * return the affected component or null — where null means *either* a missing entity
+ * or a live entity lacking the requested component (operation/component presence, not
+ * entity presence). Either way a write to a typo'd or already-despawned id is reported
+ * to the caller rather than vanishing without a trace.
  *
  * **Randomness is seeded by construction** (ADR-0025). The world owns its [random], so
  * every tick draws from a seeded, serializable stream and there is no API path to an
@@ -107,15 +113,26 @@ class World(
 
     /**
      * Attaches [component] to entity [id], replacing any existing component of its
-     * concrete class. No-op if [id] is unknown. Note this keys by the component's
-     * concrete runtime class; [update] keys by the queried type.
+     * concrete class, and returns true. Returns false — writing nothing — if [id] is
+     * unknown (never spawned or already despawned), so a stray write is *signalled*
+     * rather than silently dropped; a caller that already knows the entity is live can
+     * ignore the result.
+     *
+     * The stored component is keyed by its **concrete runtime class**
+     * (`component::class`), matching [Entity]'s one-component-per-concrete-type model
+     * (ADR-0002). [update] and [remove] key by the reified type they are queried with;
+     * for [set] the two coincide whenever [component]'s static type is its concrete
+     * type — the normal case. (Keying `set` by a reified `T` instead would be the real
+     * footgun: an upcast argument like `val c: Component = Health(...)` would then store
+     * under `Component`, where no `get<Health>()` could find it.)
      */
     fun set(
         id: EntityId,
         component: Component,
-    ) {
-        val entity = entitiesById[id] ?: return
+    ): Boolean {
+        val entity = entitiesById[id] ?: return false
         entity.byType[component::class] = component
+        return true
     }
 
     /**
