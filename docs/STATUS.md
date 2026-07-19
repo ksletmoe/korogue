@@ -3,7 +3,23 @@
 > Current-state snapshots. Design rationale is in [ARCHITECTURE.md](ARCHITECTURE.md);
 > the live task backlog is in **beads** — run `bd list` / `bd ready`.
 
-_Last updated: 2026-06-13 (after concealment/piercing/suppressors, krogue-1my.3 — perception epic complete / ADR-0015)._
+_Last updated: 2026-07-17 (TileSurface dynamic-tile seam + kotile shared-canvas blend fix)._
+
+## Recent (2026-07-17)
+
+- **`TileSurface` carries kotile's dynamic-tile branch (krogue-2co, ADR-0033).** The engine UI
+  seam gained `put(x, y, z, tile: AsciiTile)` beside the glyph/`fg`/`bg` primitive, so a widget can
+  place a time-varying cell (e.g. `AnimatedAsciiTile` torch flicker) that the window animates on its
+  own clock. Non-breaking: the overload defaults to the tile's first frame, and every existing caller
+  (incl. the whole korogue-rogue port) compiles/tests unchanged. `WindowSurface`/`RegionSurface`
+  carry the live tile through; the animation showcase demo now places its torch flicker through the
+  engine instead of bypassing it.
+- **kotile: shared-canvas composite blend (krogue-a24).** `GridCompositeCache`'s blit is
+  `BlendMode.REPLACE` (authoritative — erases a cell's own stale pixel; krogue-asz), which erased
+  *neighbor panes* on a shared canvas because a window's unpopulated cells overwrote them. New
+  `sharesCanvas` flag on `SpriteTileRenderer`/`TileRenderer` and `AsciiTileWindowConfig` blits
+  `NORMAL` instead for multi-pane layouts (default stays REPLACE). This was a pre-existing regression
+  (bisected to `3bff9b4f1`) that had left the split-screen animation showcase's sprite half blank.
 
 ## Migration arc (done)
 
