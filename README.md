@@ -20,9 +20,9 @@ sprite arrow with its glyph-missile counterpart), and flickering torch lighting 
 showcase:
 
 <p align="center">
-  <video src="docs/images/animation.webm" controls loop muted playsinline width="800">
-    <a href="docs/images/animation.webm">Watch the animation showcase (webm)</a>
-  </video>
+  <img src="docs/images/animation.gif" alt="Animation showcase: a split sprite/ASCII room with animated creatures, a projectile in flight, and flickering torch lighting" width="800">
+  <br>
+  <em>(<a href="docs/images/animation.webm">full-quality webm</a>)</em>
 </p>
 
 The showcase uses the [DawnLike](https://opengameart.org/content/dawnlike-16x16-universal-rogue-like-tileset-v181)
