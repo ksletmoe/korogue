@@ -1,15 +1,15 @@
-cp437_10x10.png
+cp437_8x8.png, cp437_9x16.png, cp437_10x10.png, cp437_12x12.png, cp437_16x16.png
 
 Source:  AsciiPanel, by Trystan Spangler — https://github.com/trystan/AsciiPanel
-         One of AsciiPanel's bundled "system" CP437 fonts (its README lists
-         CP437_8x8/10x10/12x12/16x16/9x16 as provided fonts). The bytes in this
-         copy were re-exported on macOS (so the PNG carries an Apple ICC profile),
-         but the glyph pixels are identical to AsciiPanel's cp437_10x10.png —
-         verified with a pixel diff (0 differing pixels).
+         These are AsciiPanel's own bundled CP437 "system" fonts (its README
+         lists CP437_8x8/9x16/10x10/12x12/16x16 as provided fonts). Each is a
+         16x16 CP437 grid, code point 0 top-left, crisp 1-bit (black background,
+         white glyphs) — loaded with keyColor = Color.BLACK so the black keys to
+         transparent (see Fonts.cp437_*()).
 License: MIT License
 
 AsciiPanel is released under the MIT License, which requires that the copyright
-and permission notice below accompany copies of the asset:
+and permission notice below accompany copies of the assets:
 
     The MIT License (MIT)
 
