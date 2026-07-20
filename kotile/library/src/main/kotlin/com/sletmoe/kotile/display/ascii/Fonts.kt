@@ -122,6 +122,9 @@ object Fonts {
      *
      * The caller owns the returned [Font] and must [Font.dispose] it when done.
      *
+     * Provenance: AsciiPanel's CP437 10×10 "system font" (Trystan Spangler),
+     * MIT-licensed; see `cp437_10x10.license.txt` on the classpath.
+     *
      * @param keyColor the solid color in the sheet to treat as transparent;
      *   defaults to [Color.BLACK]
      */
