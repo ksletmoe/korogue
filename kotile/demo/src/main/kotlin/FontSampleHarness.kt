@@ -45,7 +45,7 @@ private class FontSampleHarness(
         font = bundledFont(fontName)
         window =
             AsciiTileWindow.create {
-                this.font = font
+                this.glyphSource = font
                 widthInTiles = COLS
                 heightInTiles = ROWS
                 fitToWindow = false
