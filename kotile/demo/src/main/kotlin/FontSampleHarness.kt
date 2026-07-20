@@ -127,10 +127,9 @@ private class FontSampleHarness(
         height: Int,
     ) = window.resize(width, height)
 
-    override fun dispose() {
-        window.dispose()
-        font.dispose()
-    }
+    // AsciiTileWindow.create owns the configured glyph source, so window.dispose()
+    // already releases the font — disposing it again here would be a double free.
+    override fun dispose() = window.dispose()
 
     private companion object {
         const val COLS = 44
