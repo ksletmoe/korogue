@@ -18,8 +18,9 @@ import com.sletmoe.kotile.utilities.Vector2Int
 import com.sletmoe.kotile.utilities.Vector3Int
 
 /**
- * A grid of ASCII cells rendered with a bitmap [Font], supporting z-ordered
- * layers for composited output and animated cell content.
+ * A grid of ASCII cells rendered from a [GlyphSource] (the bundled bitmap
+ * [Font], or any other), supporting z-ordered layers for composited output and
+ * animated cell content.
  *
  * Cells are set with [drawTile], [drawText], and [fill] (all default to layer
  * z=0 for backwards compatibility), then drawn by [render], which composites
@@ -133,7 +134,7 @@ import com.sletmoe.kotile.utilities.Vector3Int
  * @property heightInTiles grid height in cells
  */
 class AsciiTileWindow private constructor(
-    private val font: Font,
+    private val glyphSource: GlyphSource,
     private val canvas: KotileCanvas,
     widthInTiles: Int,
     heightInTiles: Int,
@@ -141,8 +142,8 @@ class AsciiTileWindow private constructor(
     private val scalePolicy: ScalePolicy = IntegerScale,
     /** When `false` the canvas was supplied externally and [dispose] must not release it. */
     private val ownsCanvas: Boolean = true,
-    /** When `false` the font was supplied externally and [dispose] must not release it. */
-    private val ownsFont: Boolean = true,
+    /** When `false` the glyph source was supplied externally and [dispose] must not release it. */
+    private val ownsGlyphSource: Boolean = true,
     /**
      * When `true`, this window composites into a canvas shared with other panes, so its cached
      * composite is blitted with [BlendMode.NORMAL] rather than the default authoritative
@@ -595,24 +596,24 @@ class AsciiTileWindow private constructor(
         elapsedMs: Long,
         drawer: GridCompositeCache.TileDrawer,
     ) {
-        var glyphSource: StaticAsciiTile? = null
+        var topCell: StaticAsciiTile? = null
         var background: Color? = null
         for (layer in map.layersTopDown) {
             val descriptor = (layer[logicalX, logicalY] ?: continue).resolveAt(elapsedMs)
             // First cell found is the top-most one, so it wins the glyph channel.
-            if (glyphSource == null) glyphSource = descriptor
+            if (topCell == null) topCell = descriptor
             // A fully transparent background means "I do not paint one" -- keep walking down and let
             // a lower cell supply it. Alpha is not blended between layers: the first cell that does
             // paint wins outright and its color is used as-is (ADR-0030).
             if (descriptor.backgroundColor.a > 0f) {
                 background = descriptor.backgroundColor
-                break // glyphSource was set on the first iteration, so both channels are resolved
+                break // topCell was set on the first iteration, so both channels are resolved
             }
         }
         // Nothing anywhere in the stack -- no glyph and no background, so nothing to draw.
-        val descriptor = glyphSource ?: return
+        val descriptor = topCell ?: return
         background?.let { drawer.drawTile(screenX, screenY, backgroundRegion, it) }
-        font.glyph(descriptor.character)?.let { glyph ->
+        glyphSource.glyph(descriptor.character)?.let { glyph ->
             drawer.drawTile(screenX, screenY, glyph, descriptor.foregroundColor)
         }
     }
@@ -773,7 +774,7 @@ class AsciiTileWindow private constructor(
      *   supplied it is responsible for disposing it after all windows sharing it
      *   have been disposed.
      * - The [Font] passed to [createWithCanvas] follows the same rule: if you
-     *   supply a font it is considered externally owned and will **not** be
+     *   supply a glyph source it is considered externally owned and will **not** be
      *   disposed by this window.
      *
      * A second call is a no-op (see [disposed]).
@@ -782,7 +783,7 @@ class AsciiTileWindow private constructor(
         if (disposed) return
         disposed = true
         if (ownsCanvas) canvas.dispose()
-        if (ownsFont) font.dispose()
+        if (ownsGlyphSource) glyphSource.dispose()
         backgroundTexture.dispose()
         compositeCache.dispose()
         viewportCache.dispose()
@@ -809,11 +810,11 @@ class AsciiTileWindow private constructor(
          */
         fun create(init: AsciiTileWindowConfig.() -> Unit): AsciiTileWindow {
             val config = AsciiTileWindowConfig().apply(init)
-            val font = config.font ?: Fonts.cp437_10x10()
-            val canvas = KotileCanvas(font.charWidthPx, font.charHeightPx)
+            val glyphSource = config.glyphSource ?: Fonts.cp437_10x10()
+            val canvas = KotileCanvas(glyphSource.charWidthPx, glyphSource.charHeightPx)
 
             return AsciiTileWindow(
-                font,
+                glyphSource,
                 canvas,
                 config.widthInTiles,
                 config.heightInTiles,
@@ -875,26 +876,26 @@ class AsciiTileWindow private constructor(
          *
          * @param canvas the shared [KotileCanvas]; must remain valid for the
          *   entire lifetime of the window
-         * @param font the shared [Font]; must remain valid for the entire
+         * @param glyphSource the shared [GlyphSource]; must remain valid for the entire
          *   lifetime of the window
          * @param init configuration block for tile grid dimensions and
          *   [AsciiTileWindowConfig.fitToWindow]
          */
         fun createWithCanvas(
             canvas: KotileCanvas,
-            font: Font,
+            glyphSource: GlyphSource,
             init: AsciiTileWindowConfig.() -> Unit = {},
         ): AsciiTileWindow {
             val config = AsciiTileWindowConfig().apply(init)
             return AsciiTileWindow(
-                font = font,
+                glyphSource = glyphSource,
                 canvas = canvas,
                 widthInTiles = config.widthInTiles,
                 heightInTiles = config.heightInTiles,
                 fitToWindow = config.fitToWindow,
                 scalePolicy = config.scalePolicy,
                 ownsCanvas = false,
-                ownsFont = false,
+                ownsGlyphSource = false,
                 sharesCanvas = config.sharesCanvas,
             )
         }
@@ -904,9 +905,10 @@ class AsciiTileWindow private constructor(
 /**
  * Configuration for [AsciiTileWindow.create] and [AsciiTileWindow.createWithCanvas].
  *
- * @property font font to render with when using [AsciiTileWindow.create];
+ * @property glyphSource the [GlyphSource] to render with when using
+ *   [AsciiTileWindow.create] — the bundled bitmap [Font] or any other;
  *   defaults to [Fonts.cp437_10x10] when `null`. Ignored by
- *   [AsciiTileWindow.createWithCanvas], which takes the font as an explicit
+ *   [AsciiTileWindow.createWithCanvas], which takes the source as an explicit
  *   parameter instead.
  * @property widthInTiles initial grid width in cells; used when [fitToWindow]
  *   is `false` or before the first [AsciiTileWindow.resize] call
@@ -929,7 +931,7 @@ class AsciiTileWindow private constructor(
  *   Leave `false` for a window that owns its whole canvas.
  */
 data class AsciiTileWindowConfig(
-    var font: Font? = null,
+    var glyphSource: GlyphSource? = null,
     var widthInTiles: Int = 80,
     var heightInTiles: Int = 30,
     var fitToWindow: Boolean = true,
