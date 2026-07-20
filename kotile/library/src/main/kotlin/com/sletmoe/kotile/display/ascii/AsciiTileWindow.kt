@@ -905,7 +905,7 @@ class AsciiTileWindow private constructor(
 /**
  * Configuration for [AsciiTileWindow.create] and [AsciiTileWindow.createWithCanvas].
  *
- * @property font the [GlyphSource] to render with when using
+ * @property glyphSource the [GlyphSource] to render with when using
  *   [AsciiTileWindow.create] — the bundled bitmap [Font] or any other;
  *   defaults to [Fonts.cp437_10x10] when `null`. Ignored by
  *   [AsciiTileWindow.createWithCanvas], which takes the source as an explicit
