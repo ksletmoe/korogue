@@ -16,18 +16,17 @@ import java.util.zip.Deflater
 /**
  * Visual proof for a **bundled font sheet**, rendered through the real
  * [Font] + [AsciiTileWindow] path (not a preview tool), so what the snapshot
- * shows is exactly what a consumer of [Fonts] gets. Added with the 12×12 sheet
- * (krogue-kotile-font12) to verify it composites cleanly — its antialiased,
- * alpha-carrying glyphs are tinted by each cell's foreground color over both
- * dark and light backgrounds, which is where keying artifacts (halos) would
- * show if the sheet format were wrong.
+ * shows is exactly what a consumer of [Fonts] gets. Renders any of the bundled
+ * CP437 sizes (`-Pfont=8x8|9x16|10x10|12x12|16x16`) so a sheet can be eyeballed:
+ * its glyphs, tinted by each cell's foreground color over both dark and light
+ * backgrounds, expose keying artifacts (halos) if the sheet format is wrong.
  *
  * The scene: the full 256-glyph CP437 chart (16×16, code point 0 top-left),
  * a line of sample text, and a box-drawing frame — the three things a CP437
  * font has to get right (glyph shapes, layout order, seamless line pieces).
  *
  *   ./gradlew :kotile:demo:fontHarness                 # -> demo/build/font-harness.png
- *   ./gradlew :kotile:demo:fontHarness -Pfont=10x10    # the other bundled sheet
+ *   ./gradlew :kotile:demo:fontHarness -Pfont=16x16    # any bundled size
  *   ./gradlew :kotile:demo:fontHarness -PoutFile=/tmp/f.png
  */
 private class FontSampleHarness(
@@ -43,7 +42,7 @@ private class FontSampleHarness(
     private val paper = Color(0.82f, 0.80f, 0.72f, 1f)
 
     override fun create() {
-        font = if (fontName == "10x10") Fonts.cp437_10x10() else Fonts.cp437_12x12()
+        font = bundledFont(fontName)
         window =
             AsciiTileWindow.create {
                 this.font = font
@@ -139,23 +138,42 @@ private class FontSampleHarness(
     }
 }
 
+/** The bundled CP437 sizes this harness can render, ascending. */
+private val BUNDLED_FONT_SIZES = listOf("8x8", "9x16", "10x10", "12x12", "16x16")
+
+private fun bundledFont(name: String): Font =
+    when (name) {
+        "8x8" -> Fonts.cp437_8x8()
+        "9x16" -> Fonts.cp437_9x16()
+        "10x10" -> Fonts.cp437_10x10()
+        "12x12" -> Fonts.cp437_12x12()
+        "16x16" -> Fonts.cp437_16x16()
+        else -> error("Unsupported font '$name'") // guarded by BUNDLED_FONT_SIZES in main()
+    }
+
+/** (cellWidthPx, cellHeightPx) parsed from a bundled size name like "9x16". */
+private fun fontCellPx(name: String): Pair<Int, Int> {
+    val (w, h) = name.split("x").map { it.toInt() }
+    return w to h
+}
+
 fun main() {
     val outPath =
         System.getProperty("kotile.harness.out")
             ?: "${System.getProperty("user.dir")}/font-harness.png"
     val fontName = System.getProperty("kotile.harness.font") ?: "12x12"
-    require(fontName == "10x10" || fontName == "12x12") {
-        "Unsupported -Pfont='$fontName'; expected one of: 10x10, 12x12"
+    require(fontName in BUNDLED_FONT_SIZES) {
+        "Unsupported -Pfont='$fontName'; expected one of: ${BUNDLED_FONT_SIZES.joinToString()}"
     }
 
-    // Native tile px * an integer zoom, so IntegerScale upscales nearest-neighbour
-    // with no letterboxing (44*12*3 x 16*12*3 for the default 12x12 sheet).
-    val px = if (fontName == "10x10") 10 else 12
+    // Native cell px * an integer zoom, so IntegerScale upscales nearest-neighbour
+    // with no letterboxing (44 cols x 16 rows of native cells, times the zoom).
+    val (cellW, cellH) = fontCellPx(fontName)
     val zoom = 3
     val config =
         Lwjgl3ApplicationConfiguration().apply {
             setTitle("kotile font sample: $fontName")
-            setWindowedMode(44 * px * zoom, 16 * px * zoom)
+            setWindowedMode(44 * cellW * zoom, 16 * cellH * zoom)
             disableAudio(true)
         }
     Lwjgl3Application(FontSampleHarness(outPath, fontName), config)
