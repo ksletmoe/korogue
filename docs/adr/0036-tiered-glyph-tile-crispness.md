@@ -66,8 +66,11 @@ glyph texture at that size. The existing `Font` becomes the bitmap (size-agnosti
 implementation, so tiers 1–2 are unaffected. The Brogue-fidelity implementation is
 a **high-resolution / vector glyph source rasterized at the cell size** — the
 pragmatic route is **gdx-freetype rasterising a TTF at the exact cell px** on
-resize (FreeType provides the gamma-correct hinted AA that Brogue hand-rolls),
-cached per size. An **SDF glyph source** (`krogue-19k`) is a second implementation
+resize (FreeType supplies hinted, high-quality AA *coverage* — it outputs an
+alpha mask and is agnostic to colour space, so gamma-correct compositing is the
+render pipeline's job: blend the coverage in linear space, exactly as tier 2's
+downsample does), cached per size. An **SDF glyph source** (`krogue-19k`) is a
+second implementation
 behind the same seam, aimed at smoothly-scaled **UI/menu text** where the pixel
 aesthetic is not wanted; it is glyph-only and softer, so it is an alternative, not
 the primary Brogue route.
