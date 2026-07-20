@@ -67,7 +67,7 @@ private class FontSampleHarness(
         // edge halos the alpha channel would otherwise hide on black.
         window.drawText(19, 1, "The quick brown fox", amber, Color.BLACK)
         window.drawText(19, 2, "jumps over 0123456789", amber, Color.BLACK)
-        window.drawText(19, 4, "Dark ink on paper: 12x12", ink, paper)
+        window.drawText(19, 4, "Dark ink on paper: $fontName", ink, paper)
         window.drawText(19, 5, "@ # $ % & * ( ) [ ] { }", ink, paper)
 
         // Box-drawing frame (single-line): proves the line pieces meet at corners.
@@ -141,6 +141,9 @@ fun main() {
         System.getProperty("kotile.harness.out")
             ?: "${System.getProperty("user.dir")}/font-harness.png"
     val fontName = System.getProperty("kotile.harness.font") ?: "12x12"
+    require(fontName == "10x10" || fontName == "12x12") {
+        "Unsupported -Pfont='$fontName'; expected one of: 10x10, 12x12"
+    }
 
     // Native tile px * an integer zoom, so IntegerScale upscales nearest-neighbour
     // with no letterboxing (44*12*3 x 16*12*3 for the default 12x12 sheet).
