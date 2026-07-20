@@ -18,8 +18,9 @@ import com.sletmoe.kotile.utilities.Vector2Int
 import com.sletmoe.kotile.utilities.Vector3Int
 
 /**
- * A grid of ASCII cells rendered with a bitmap [Font], supporting z-ordered
- * layers for composited output and animated cell content.
+ * A grid of ASCII cells rendered from a [GlyphSource] (the bundled bitmap
+ * [Font], or any other), supporting z-ordered layers for composited output and
+ * animated cell content.
  *
  * Cells are set with [drawTile], [drawText], and [fill] (all default to layer
  * z=0 for backwards compatibility), then drawn by [render], which composites
@@ -133,7 +134,7 @@ import com.sletmoe.kotile.utilities.Vector3Int
  * @property heightInTiles grid height in cells
  */
 class AsciiTileWindow private constructor(
-    private val font: Font,
+    private val font: GlyphSource,
     private val canvas: KotileCanvas,
     widthInTiles: Int,
     heightInTiles: Int,
@@ -882,7 +883,7 @@ class AsciiTileWindow private constructor(
          */
         fun createWithCanvas(
             canvas: KotileCanvas,
-            font: Font,
+            font: GlyphSource,
             init: AsciiTileWindowConfig.() -> Unit = {},
         ): AsciiTileWindow {
             val config = AsciiTileWindowConfig().apply(init)
@@ -904,9 +905,10 @@ class AsciiTileWindow private constructor(
 /**
  * Configuration for [AsciiTileWindow.create] and [AsciiTileWindow.createWithCanvas].
  *
- * @property font font to render with when using [AsciiTileWindow.create];
+ * @property font the [GlyphSource] to render with when using
+ *   [AsciiTileWindow.create] — the bundled bitmap [Font] or any other;
  *   defaults to [Fonts.cp437_10x10] when `null`. Ignored by
- *   [AsciiTileWindow.createWithCanvas], which takes the font as an explicit
+ *   [AsciiTileWindow.createWithCanvas], which takes the source as an explicit
  *   parameter instead.
  * @property widthInTiles initial grid width in cells; used when [fitToWindow]
  *   is `false` or before the first [AsciiTileWindow.resize] call
@@ -929,7 +931,7 @@ class AsciiTileWindow private constructor(
  *   Leave `false` for a window that owns its whole canvas.
  */
 data class AsciiTileWindowConfig(
-    var font: Font? = null,
+    var font: GlyphSource? = null,
     var widthInTiles: Int = 80,
     var heightInTiles: Int = 30,
     var fitToWindow: Boolean = true,

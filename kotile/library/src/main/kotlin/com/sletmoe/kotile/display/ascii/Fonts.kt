@@ -7,6 +7,38 @@ import com.badlogic.gdx.utils.Disposable
 import com.sletmoe.kotile.tiles.TileSheet
 
 /**
+ * A source of glyphs for [AsciiTileWindow]: it reports the native cell size the
+ * window sizes its [com.sletmoe.kotile.display.KotileCanvas] from, and maps a
+ * character to the texture region drawn for that cell (tinted by the cell's
+ * foreground colour).
+ *
+ * This is the seam (ADR-0036, krogue-9x7) that lets [AsciiTileWindow] hold a
+ * glyph provider without knowing which kind it is. [Font] is the bundled bitmap
+ * implementation and the only one today; resolution-independent sources — a
+ * gdx-freetype face rasterised at the cell size, or an SDF atlas — will plug in
+ * here. Those add a size-parametric rasterisation hook when they land
+ * (krogue-9x7.2); the bitmap [Font] is size-agnostic — its glyphs are a fixed
+ * pixel grid, scaled by the window's [com.sletmoe.kotile.rendering.ScalePolicy].
+ *
+ * Owns GPU resources; [dispose] releases them (see [AsciiTileWindow]'s ownership
+ * contract for who calls it).
+ */
+interface GlyphSource : Disposable {
+    /** Native glyph cell width in px; the canvas's native tile width. */
+    val charWidthPx: Int
+
+    /** Native glyph cell height in px; the canvas's native tile height. */
+    val charHeightPx: Int
+
+    /**
+     * The texture region to draw for [character], or `null` if [character] is
+     * outside this source's repertoire (for the bundled [Font], a code point
+     * beyond the 256-glyph CP437 page).
+     */
+    fun glyph(character: Char): TextureRegion?
+}
+
+/**
  * A bitmap font loaded from a classpath image laid out as a 16x16 CP437 code
  * page (256 glyphs in row-major order, code point 0 in the top-left cell).
  * Owns a GPU texture and must be [dispose]d when no longer needed.
@@ -61,11 +93,11 @@ import com.sletmoe.kotile.tiles.TileSheet
  */
 class Font(
     fontFileName: String,
-    val charWidthPx: Int,
-    val charHeightPx: Int,
+    override val charWidthPx: Int,
+    override val charHeightPx: Int,
     keyColor: Color? = Color.BLACK,
     useMipMaps: Boolean = true,
-) : Disposable {
+) : GlyphSource {
     private val tileSheet =
         TileSheet(Gdx.files.classpath(fontFileName), charWidthPx, charHeightPx, keyColor, useMipMaps = useMipMaps)
 
@@ -78,7 +110,7 @@ class Font(
      * Returns the glyph region for [character], or `null` if its code point is
      * outside the 256-glyph code page.
      */
-    fun glyph(character: Char): TextureRegion? = glyphs.getOrNull(character.code)
+    override fun glyph(character: Char): TextureRegion? = glyphs.getOrNull(character.code)
 
     /** Disposes the underlying glyph sheet. */
     override fun dispose() = tileSheet.dispose()
