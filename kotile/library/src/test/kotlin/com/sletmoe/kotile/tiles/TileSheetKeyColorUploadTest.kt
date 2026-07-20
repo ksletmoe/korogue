@@ -40,21 +40,32 @@ class TileSheetKeyColorUploadTest : FunSpec({
                     // A solid RED tile with NO key-color (black) pixels: keying changes nothing, but
                     // zeroOutColor still runs (keyColor != null) and — before the fix — still left
                     // the buffer at its end, blanking the as-is upload.
-                    val sheetPixmap = Pixmap(tile, tile, Pixmap.Format.RGBA8888)
-                    sheetPixmap.setColor(Color.RED)
-                    sheetPixmap.fill()
-                    val file = File.createTempFile("kotile-keycolor-pot", ".png").apply { deleteOnExit() }
-                    PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), sheetPixmap)
-                    sheetPixmap.dispose()
+                    var sheetPixmap: Pixmap? = null
+                    var sheet: TileSheet? = null
+                    var canvas: KotileCanvas? = null
+                    var renderer: SpriteTileRenderer? = null
+                    try {
+                        sheetPixmap =
+                            Pixmap(tile, tile, Pixmap.Format.RGBA8888).apply {
+                                setColor(Color.RED)
+                                fill()
+                            }
+                        val file = File.createTempFile("kotile-keycolor-pot", ".png").apply { deleteOnExit() }
+                        PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), sheetPixmap)
 
-                    val sheet = TileSheet(Gdx.files.absolute(file.absolutePath), tile, tile, keyColor = Color.BLACK)
-                    val canvas = KotileCanvas(tile, tile)
-                    val renderer = SpriteTileRenderer(canvas, sheet)
-                    renderer.drawTile(0, 0, z = 0, tile = StaticSpriteTile(0, 0))
-                    renderer.render()
-                    renderer.dispose()
-                    canvas.dispose()
-                    sheet.dispose()
+                        sheet = TileSheet(Gdx.files.absolute(file.absolutePath), tile, tile, keyColor = Color.BLACK)
+                        canvas = KotileCanvas(tile, tile)
+                        renderer = SpriteTileRenderer(canvas, sheet)
+                        renderer.drawTile(0, 0, z = 0, tile = StaticSpriteTile(0, 0))
+                        renderer.render()
+                    } finally {
+                        // Dispose every native resource even if setup/render/assert fails, so a
+                        // failure can't leak GL state into later headless-GL tests.
+                        renderer?.dispose()
+                        canvas?.dispose()
+                        sheet?.dispose()
+                        sheetPixmap?.dispose()
+                    }
                 }
 
             // Un-fixed: the upload is blank, so the cell keeps the black clear color. Fixed: solid RED.
