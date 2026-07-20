@@ -97,6 +97,27 @@ tasks.register<JavaExec>("fixedGridHarness") {
     doFirst { logger.lifecycle("Rendering fixed-grid harness scene to: $outFile") }
 }
 
+// Font sample (krogue-kotile-font12): renders a bundled font sheet through the
+// real Font + AsciiTileWindow path (full CP437 chart + sample text + box frame)
+// and dumps a PNG, so a bundled sheet can be eyeballed exactly as consumers get it.
+//
+//   ./gradlew :kotile:demo:fontHarness -PoutFile=/tmp/f.png -Pfont=12x12
+tasks.register<JavaExec>("fontHarness") {
+    group = "verification"
+    description = "Renders a bundled CP437 font sheet (chart + text + box frame) to a PNG."
+    mainClass.set("FontSampleHarnessKt")
+    classpath = sourceSets["main"].runtimeClasspath
+    if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
+        jvmArgs("-XstartOnFirstThread")
+    }
+    val outFile =
+        (project.findProperty("outFile") as String?)
+            ?: layout.buildDirectory.file("font-harness.png").get().asFile.absolutePath
+    systemProperty("kotile.harness.out", outFile)
+    (project.findProperty("font") as String?)?.let { systemProperty("kotile.harness.font", it) }
+    doFirst { logger.lifecycle("Rendering font sample harness to: $outFile") }
+}
+
 // Free-layer counterpart (krogue-tk9, ADR-0018): draws an EffectsLayer of bolts
 // at sub-tile pixel positions composited over an ASCII grid, and dumps a PNG.
 //

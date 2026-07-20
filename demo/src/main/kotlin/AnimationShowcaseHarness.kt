@@ -358,8 +358,11 @@ internal class AnimationShowcaseHarness(private val outPath: String?) : Applicat
         val snapshotPath = outPath
         if (snapshotPath != null && ++frame >= PRE_ADVANCE_STEPS) {
             val pixmap = Pixmap.createFromFrameBuffer(0, 0, Gdx.graphics.backBufferWidth, Gdx.graphics.backBufferHeight)
-            PixmapIO.writePNG(Gdx.files.absolute(snapshotPath), pixmap, Deflater.DEFAULT_COMPRESSION, true)
-            pixmap.dispose()
+            try {
+                PixmapIO.writePNG(Gdx.files.absolute(snapshotPath), pixmap, Deflater.DEFAULT_COMPRESSION, true)
+            } finally {
+                pixmap.dispose() // release native memory even if the PNG write throws
+            }
             println("ANIMATION SHOWCASE HARNESS wrote $snapshotPath")
             Gdx.app.exit()
         }

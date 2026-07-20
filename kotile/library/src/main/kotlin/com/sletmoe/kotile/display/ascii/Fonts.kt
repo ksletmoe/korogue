@@ -98,8 +98,9 @@ class Font(
  *
  * ## Bundled fonts
  *
- * - [cp437_10x10] — a 10×10 pixel CP437 sheet (the only bundled font at this
- *   time).
+ * - [cp437_10x10] — a 10×10 pixel CP437 sheet (opaque, black keyed to
+ *   transparent).
+ * - [cp437_12x12] — a 12×12 pixel CP437 sheet (antialiased, alpha-carrying).
  *
  * ## Custom fonts
  *
@@ -121,9 +122,33 @@ object Fonts {
      *
      * The caller owns the returned [Font] and must [Font.dispose] it when done.
      *
+     * Provenance: AsciiPanel's CP437 10×10 "system font" (Trystan Spangler),
+     * MIT-licensed; see `cp437_10x10.license.txt` on the classpath.
+     *
      * @param keyColor the solid color in the sheet to treat as transparent;
      *   defaults to [Color.BLACK]
      */
     @Suppress("ktlint:standard:function-naming")
     fun cp437_10x10(keyColor: Color? = Color.BLACK): Font = Font("cp437_10x10.png", 10, 10, keyColor)
+
+    /**
+     * Returns the bundled 12×12 pixel CP437 bitmap font.
+     *
+     * Unlike [cp437_10x10], this sheet is antialiased and carries its coverage
+     * in the alpha channel (RGB is white throughout), so it composites cleanly
+     * over any cell background when tinted by the cell's foreground color. It is
+     * therefore loaded with `keyColor = null` by default — there is no solid
+     * background color to key out. Pass a [keyColor] only if you have a specific
+     * reason to key a color instead of using the alpha channel.
+     *
+     * The caller owns the returned [Font] and must [Font.dispose] it when done.
+     *
+     * Provenance: derived from the CC0 "Modern DOS" 8×16 bitmaps (Jayvee
+     * Enaguas) via susam/pcface; see `cp437_12x12.license.txt` on the classpath.
+     *
+     * @param keyColor a solid color in the sheet to treat as transparent;
+     *   defaults to `null` because this sheet already carries an alpha channel
+     */
+    @Suppress("ktlint:standard:function-naming")
+    fun cp437_12x12(keyColor: Color? = null): Font = Font("cp437_12x12.png", 12, 12, keyColor)
 }
