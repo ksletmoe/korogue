@@ -141,8 +141,11 @@ private class RenderHarness(private val outPath: String) : ApplicationAdapter() 
                     "backbuffer=${Gdx.graphics.backBufferWidth}x${Gdx.graphics.backBufferHeight}",
             )
             val pixmap = Pixmap.createFromFrameBuffer(0, 0, Gdx.graphics.backBufferWidth, Gdx.graphics.backBufferHeight)
-            PixmapIO.writePNG(Gdx.files.absolute(outPath), pixmap, Deflater.DEFAULT_COMPRESSION, true)
-            pixmap.dispose()
+            try {
+                PixmapIO.writePNG(Gdx.files.absolute(outPath), pixmap, Deflater.DEFAULT_COMPRESSION, true)
+            } finally {
+                pixmap.dispose() // release native memory even if the PNG write throws
+            }
             println("HARNESS wrote $outPath")
             Gdx.app.exit()
         }

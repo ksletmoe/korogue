@@ -47,8 +47,11 @@ private class RotationHarness(private val outPath: String) : ApplicationAdapter(
 
         if (++frame >= 2) {
             val pixmap = Pixmap.createFromFrameBuffer(0, 0, Gdx.graphics.backBufferWidth, Gdx.graphics.backBufferHeight)
-            PixmapIO.writePNG(Gdx.files.absolute(outPath), pixmap, Deflater.DEFAULT_COMPRESSION, true)
-            pixmap.dispose()
+            try {
+                PixmapIO.writePNG(Gdx.files.absolute(outPath), pixmap, Deflater.DEFAULT_COMPRESSION, true)
+            } finally {
+                pixmap.dispose() // release native memory even if the PNG write throws
+            }
             println("ROTATION HARNESS wrote $outPath")
             Gdx.app.exit()
         }

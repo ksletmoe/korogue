@@ -97,8 +97,11 @@ class KotileDemo : ApplicationAdapter() {
 
         if (snapshotPath != null && ++frame >= 2) {
             val pixmap = Pixmap.createFromFrameBuffer(0, 0, Gdx.graphics.backBufferWidth, Gdx.graphics.backBufferHeight)
-            PixmapIO.writePNG(Gdx.files.absolute(snapshotPath), pixmap, Deflater.DEFAULT_COMPRESSION, true)
-            pixmap.dispose()
+            try {
+                PixmapIO.writePNG(Gdx.files.absolute(snapshotPath), pixmap, Deflater.DEFAULT_COMPRESSION, true)
+            } finally {
+                pixmap.dispose() // release native memory even if the PNG write throws
+            }
             Gdx.app.exit()
         }
     }
