@@ -181,6 +181,14 @@ class TileSheet(
                     buf.put(0)
                 }
             }
+            // The loop leaves the buffer at its end. Reset to the start so the next reader gets the
+            // whole image: a Texture(pixmap) upload reads glTexImage2D from the buffer's current
+            // position/remaining, so an end-positioned buffer uploads zero bytes and yields a BLANK
+            // texture. That only bites sheets whose source is *already* a power of two (uploaded
+            // as-is, `upload = source`); NPOT sheets are copied into a fresh padded Pixmap and so
+            // never hit it — which is exactly why 8x8/16x16 (POT) rendered blank while 10x10/12x12
+            // (padded) were fine (krogue-3wr).
+            buf.rewind()
         }
     }
 }
