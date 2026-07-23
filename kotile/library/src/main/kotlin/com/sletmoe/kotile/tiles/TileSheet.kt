@@ -65,7 +65,7 @@ class TileSheet(
     val heightInTiles: Int
 
     init {
-        val source = Pixmap(file)
+        val source = decodeForKeying(Pixmap(file), keyColor)
         if (keyColor != null) {
             zeroOutColor(source, keyColor)
         }
@@ -143,6 +143,35 @@ class TileSheet(
         }
 
         /**
+         * Returns a pixmap [zeroOutColor] can actually key into: RGBA8888 when a [keyColor] is set,
+         * the decoded pixmap untouched otherwise.
+         *
+         * `Pixmap(FileHandle)` does **not** always decode to RGBA8888 — a PNG with no alpha channel
+         * decodes to [Pixmap.Format.RGB888], which has no alpha byte to write. On such a pixmap
+         * [zeroOutColor]'s `drawPixel(x, y, 0)` only rewrites the (already-black) RGB and the keyed
+         * background uploads fully opaque, so cell backgrounds are hidden behind an opaque glyph
+         * surround (krogue-7i8). The bundled 12x12/16x16/9x16 sheets are stored without alpha and hit
+         * exactly this; 8x8/10x10 happen to carry an alpha channel and keyed correctly, which is why
+         * the symptom looked tied to tile size rather than to the source format it actually is.
+         *
+         * Promoting to RGBA8888 first (via [Pixmap.drawPixmap] with blending off, so the opaque
+         * source copies in unchanged) gives keying a real alpha channel to clear. Only done when a
+         * key is requested: an un-keyed RGB888 sheet is meant to stay fully opaque, and the
+         * power-of-two padding below already produces an RGBA8888 upload for the NPOT case.
+         */
+        fun decodeForKeying(
+            decoded: Pixmap,
+            keyColor: Color?,
+        ): Pixmap {
+            if (keyColor == null || decoded.format == Pixmap.Format.RGBA8888) return decoded
+            return Pixmap(decoded.width, decoded.height, Pixmap.Format.RGBA8888).apply {
+                blending = Pixmap.Blending.None
+                drawPixmap(decoded, 0, 0)
+                decoded.dispose()
+            }
+        }
+
+        /**
          * Makes every pixel whose RGB matches [keyColor] fully transparent, so a sheet authored on a
          * solid background composites cleanly. Reads each pixel with [Pixmap.getPixel] and clears the
          * matches with [Pixmap.drawPixel], both addressed by (x, y).
@@ -156,8 +185,10 @@ class TileSheet(
          * the buffer's position, so an already-power-of-two sheet (uploaded as-is) can't upload blank
          * (krogue-3wr).
          *
-         * Assumes RGBA8888 layout (4 bytes per pixel: R, G, B, A). Pixmap(FileHandle) always decodes
-         * to RGBA8888 on the desktop backend, so this holds for normal sheet loading.
+         * Assumes RGBA8888 layout (4 bytes per pixel: R, G, B, A) — required, not incidental: on an
+         * alpha-less format the `drawPixel` below has no alpha byte to clear and keying silently
+         * no-ops (krogue-7i8). [decodeForKeying] guarantees the layout before this runs; do not call
+         * this on a raw `Pixmap(FileHandle)`, which may be [Pixmap.Format.RGB888] for a no-alpha PNG.
          */
         fun zeroOutColor(
             pixmap: Pixmap,

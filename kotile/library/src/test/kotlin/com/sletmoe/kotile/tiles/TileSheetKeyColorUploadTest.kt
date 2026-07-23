@@ -2,8 +2,10 @@ package com.sletmoe.kotile.tiles
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.PixmapIO
+import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.sletmoe.kotile.HeadlessGl
 import com.sletmoe.kotile.averageColor
 import com.sletmoe.kotile.display.KotileCanvas
@@ -11,7 +13,9 @@ import com.sletmoe.kotile.rendering.SpriteTileRenderer
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.doubles.plusOrMinus
 import io.kotest.matchers.shouldBe
+import java.awt.image.BufferedImage
 import java.io.File
+import javax.imageio.ImageIO
 
 /**
  * Regression guards for two bugs in [TileSheet]'s `keyColor` keyer, both from mutating the source
@@ -28,8 +32,20 @@ import java.io.File
  * to test each pixel and [com.badlogic.gdx.graphics.Pixmap.drawPixel] to clear it, addressed by (x, y) —
  * which never reads or writes the backing buffer's bytes and never moves its position.
  *
+ * And a third, from the source's *format* rather than its buffer:
+ *  - **krogue-7i8 (keying no-ops on an alpha-less sheet):** `Pixmap(FileHandle)` decodes a PNG with
+ *    no alpha channel to [Pixmap.Format.RGB888], which has no alpha byte — so `drawPixel(x, y, 0)`
+ *    only rewrote the (already-black) RGB and the keyed background uploaded fully opaque, hiding cell
+ *    backgrounds behind an opaque glyph surround. The bundled 12x12/16x16/9x16 sheets are stored
+ *    without alpha and hit it; 8x8/10x10 carry an alpha channel and keyed fine, which is why the
+ *    symptom first looked tied to tile size. Fixed by promoting the source to RGBA8888 before keying
+ *    ([TileSheet]'s `decodeForKeying`). Its guard test **must** author the fixture with a real
+ *    alpha-less encoder ([ImageIO] `TYPE_INT_RGB`): [PixmapIO] always writes an alpha channel, so a
+ *    fixture round-tripped through it decodes to RGBA8888 and cannot reproduce the bug — which is
+ *    exactly why the two buffer-mutation guards above never caught it.
+ *
  * Unlike the NPOT sub-region bug (see [NpotTileSheetTest], which needs a dimension assertion because
- * Mesa samples NPOT correctly), both of these show up in the rendered pixels on **any** GL — so these
+ * Mesa samples NPOT correctly), all of these show up in the rendered pixels on **any** GL — so these
  * checks are real regression guards on the Linux Mesa CI too.
  */
 class TileSheetKeyColorUploadTest : FunSpec({
@@ -134,6 +150,75 @@ class TileSheetKeyColorUploadTest : FunSpec({
                 // Red must come through at the same level as green/blue; the bug collapses it toward 0.
                 avg.r.toDouble() shouldBe (avg.g.toDouble() plusOrMinus 0.05)
                 avg.r.toDouble() shouldBe (avg.b.toDouble() plusOrMinus 0.05)
+            } finally {
+                pixels.dispose()
+            }
+        }
+
+    test("keying an alpha-less (RGB888) sheet still makes the keyed color transparent")
+        .config(enabled = HeadlessGl.available) {
+            val tile = 40
+
+            val pixels =
+                // Blue clear, and the keyed sheet is drawn straight over it with normal alpha blending —
+                // this reproduces the actual symptom (a glyph's keyed surround sitting over a background):
+                // a keyed-out (transparent) texel lets the BLUE through, an un-keyed opaque black one
+                // hides it. Drawn with a bare SpriteBatch rather than a SpriteTileRenderer on purpose:
+                // the renderer's authoritative REPLACE blit overwrites its whole rectangle, so a keyed
+                // texel lands as (0,0,0,0) and reads rgb-black whether keying worked or not — an
+                // rgb-only readback of that path cannot see this bug (which is why the buffer-mutation
+                // guards above, all single-layer REPLACE, never did).
+                HeadlessGl.render(tile, tile, Color.BLUE) {
+                    var sheet: TileSheet? = null
+                    var batch: SpriteBatch? = null
+                    try {
+                        // Author the fixture with an alpha-less encoder: ImageIO TYPE_INT_RGB writes a
+                        // PNG with no alpha channel, which Pixmap(FileHandle) decodes to RGB888 — the
+                        // format the bug lives on. PixmapIO would write an alpha channel (decoding back
+                        // to RGBA8888) and could not reproduce it. Left half white (the glyph, kept),
+                        // right half black (the background, keyed out).
+                        val image = BufferedImage(tile, tile, BufferedImage.TYPE_INT_RGB)
+                        for (y in 0 until tile) {
+                            for (x in 0 until tile) {
+                                image.setRGB(x, y, if (x < tile / 2) 0xFFFFFF else 0x000000)
+                            }
+                        }
+                        val file = File.createTempFile("kotile-keycolor-rgb888", ".png").apply { deleteOnExit() }
+                        ImageIO.write(image, "png", file)
+
+                        sheet = TileSheet(Gdx.files.absolute(file.absolutePath), tile, tile, keyColor = Color.BLACK)
+                        batch =
+                            SpriteBatch().apply {
+                                projectionMatrix =
+                                    OrthographicCamera().apply {
+                                        setToOrtho(false, tile.toFloat(), tile.toFloat())
+                                        update()
+                                    }.combined
+                            }
+                        batch.begin()
+                        batch.draw(sheet.region(0, 0), 0f, 0f, tile.toFloat(), tile.toFloat())
+                        batch.end()
+                    } finally {
+                        batch?.dispose()
+                        sheet?.dispose()
+                    }
+                }
+
+            try {
+                // First prove the sheet actually rendered (not blank): the un-keyed left half is white.
+                // Without this the keyed-half check below could pass against a wholly-broken upload —
+                // a test that cannot fail.
+                val glyph = pixels.averageColor(2, 2, tile / 2 - 2, tile - 2)
+                glyph.r.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+                glyph.g.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+                glyph.b.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+
+                // The keyed (black) half must be transparent, so the BLUE background shows through.
+                // Un-fixed (RGB888 keying no-ops) it stays opaque black: blue collapses to 0 and this fails.
+                val keyed = pixels.averageColor(tile / 2 + 2, 2, tile - 2, tile - 2)
+                keyed.b.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+                keyed.r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+                keyed.g.toDouble() shouldBe (0.0 plusOrMinus 0.1)
             } finally {
                 pixels.dispose()
             }
