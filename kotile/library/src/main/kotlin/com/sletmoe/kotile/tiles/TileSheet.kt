@@ -7,7 +7,6 @@ import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.Texture.TextureFilter
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.utils.Disposable
-import java.nio.ByteBuffer
 
 /**
  * Slices an image into a grid of equally sized tiles, uploaded to the GPU.
@@ -144,51 +143,44 @@ class TileSheet(
         }
 
         /**
-         * Zeroes every pixel whose RGB components match [keyColor] by iterating
-         * the [Pixmap]'s backing [ByteBuffer] directly. This avoids one
-         * per-pixel JNI round-trip (getPixel/drawPixel) and instead touches
-         * native memory sequentially in a single Java loop.
+         * Makes every pixel whose RGB matches [keyColor] fully transparent, so a sheet authored on a
+         * solid background composites cleanly. Reads each pixel with [Pixmap.getPixel] and clears the
+         * matches with [Pixmap.drawPixel], both addressed by (x, y).
          *
-         * Assumes RGBA8888 layout (4 bytes per pixel: R, G, B, A). If the
-         * pixmap uses a different format, the RGB comparison may be incorrect;
-         * Pixmap(FileHandle) always decodes to RGBA8888 on the desktop backend
-         * so this assumption holds for normal sheet loading.
+         * Staying on libGDX's coordinate API for both read and write is deliberate and load-bearing:
+         * writing transparency straight into `Pixmap.pixels` — the backing buffer, by any means,
+         * per-byte or bulk — corrupts pixels when the [Pixmap] is later uploaded to a [Texture]. The
+         * red byte of the pixel *following* a keyed one is dropped, so white glyph pixels next to the
+         * keyed background render cyan on thin strokes (a green/teal tint, krogue-9gu). [Pixmap.drawPixel]
+         * goes through libGDX's own native path and is correct. Addressing by (x, y) also never touches
+         * the buffer's position, so an already-power-of-two sheet (uploaded as-is) can't upload blank
+         * (krogue-3wr).
+         *
+         * Assumes RGBA8888 layout (4 bytes per pixel: R, G, B, A). Pixmap(FileHandle) always decodes
+         * to RGBA8888 on the desktop backend, so this holds for normal sheet loading.
          */
         fun zeroOutColor(
             pixmap: Pixmap,
             keyColor: Color,
         ) {
-            val keyR = (Color.rgba8888(keyColor) ushr 24 and 0xff).toByte()
-            val keyG = (Color.rgba8888(keyColor) ushr 16 and 0xff).toByte()
-            val keyB = (Color.rgba8888(keyColor) ushr 8 and 0xff).toByte()
+            // Compare the top 24 bits (RGB) of the RGBA8888 pixel, ignoring alpha.
+            val keyRgb = (Color.rgba8888(keyColor).toLong() and 0xFFFFFFFFL) and 0xFFFFFF00L
 
+            // Key entirely through libGDX's own getPixel/drawPixel, addressed by (x, y). Writing
+            // transparency straight into Pixmap.pixels (the backing buffer) corrupts pixels on the
+            // texture upload — the red byte of the pixel following a keyed one is dropped, turning
+            // white glyph pixels cyan on thin strokes (a green/teal tint, krogue-9gu). An earlier
+            // attempt that indexed the raw buffer by byte offset garbled glyphs; staying in (x, y)
+            // for both read and write is the correct, simple path. Addressing by (x, y) also never
+            // touches the buffer position, so already-POT sheets can't upload blank (krogue-3wr).
             pixmap.blending = Pixmap.Blending.None
-            val buf: ByteBuffer = pixmap.pixels
-            buf.rewind()
-
-            while (buf.remaining() >= 4) {
-                val r = buf.get()
-                val g = buf.get()
-                val b = buf.get()
-                buf.get() // alpha — read past it
-
-                if (r == keyR && g == keyG && b == keyB) {
-                    // Rewind 4 bytes and overwrite with transparent black.
-                    buf.position(buf.position() - 4)
-                    buf.put(0)
-                    buf.put(0)
-                    buf.put(0)
-                    buf.put(0)
+            for (y in 0 until pixmap.height) {
+                for (x in 0 until pixmap.width) {
+                    if ((pixmap.getPixel(x, y).toLong() and 0xFFFFFFFFL and 0xFFFFFF00L) == keyRgb) {
+                        pixmap.drawPixel(x, y, 0) // fully transparent (0,0,0,0)
+                    }
                 }
             }
-            // The loop leaves the buffer at its end. Reset to the start so the next reader gets the
-            // whole image: a Texture(pixmap) upload reads glTexImage2D from the buffer's current
-            // position/remaining, so an end-positioned buffer uploads zero bytes and yields a BLANK
-            // texture. That only bites sheets whose source is *already* a power of two (uploaded
-            // as-is, `upload = source`); NPOT sheets are copied into a fresh padded Pixmap and so
-            // never hit it — which is exactly why 8x8/16x16 (POT) rendered blank while 10x10/12x12
-            // (padded) were fine (krogue-3wr).
-            buf.rewind()
         }
     }
 }
