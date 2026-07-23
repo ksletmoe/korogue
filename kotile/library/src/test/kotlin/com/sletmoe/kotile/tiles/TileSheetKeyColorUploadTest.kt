@@ -24,8 +24,9 @@ import java.io.File
  *  - **krogue-9gu (green/teal tint):** writing the key-out through the buffer corrupted the red byte
  *    of the pixel *after* a keyed one, so white glyph pixels next to the keyed background rendered
  *    cyan on thin strokes.
- * Both are fixed by keying through [com.badlogic.gdx.graphics.Pixmap.drawPixel] (libGDX's own path)
- * and only *reading* the buffer, with indexed reads that never move the position.
+ * Both are fixed by keying entirely through libGDX's coordinate API — [com.badlogic.gdx.graphics.Pixmap.getPixel]
+ * to test each pixel and [com.badlogic.gdx.graphics.Pixmap.drawPixel] to clear it, addressed by (x, y) —
+ * which never reads or writes the backing buffer's bytes and never moves its position.
  *
  * Unlike the NPOT sub-region bug (see [NpotTileSheetTest], which needs a dimension assertion because
  * Mesa samples NPOT correctly), both of these show up in the rendered pixels on **any** GL — so these

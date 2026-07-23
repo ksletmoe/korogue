@@ -144,16 +144,17 @@ class TileSheet(
 
         /**
          * Makes every pixel whose RGB matches [keyColor] fully transparent, so a sheet authored on a
-         * solid background composites cleanly. Scans the [Pixmap]'s backing buffer with cheap indexed
-         * reads and clears matched pixels with [Pixmap.drawPixel].
+         * solid background composites cleanly. Reads each pixel with [Pixmap.getPixel] and clears the
+         * matches with [Pixmap.drawPixel], both addressed by (x, y).
          *
-         * The asymmetry (read the buffer, but write via drawPixel) is deliberate and load-bearing:
-         * writing transparency straight into `Pixmap.pixels` — by any means, per-byte or bulk —
-         * corrupts pixels when the [Pixmap] is later uploaded to a [Texture]. The red byte of the
-         * pixel *following* a keyed one is dropped, so white glyph pixels next to the keyed background
-         * render cyan on thin strokes (a green/teal tint, krogue-9gu). [Pixmap.drawPixel] goes through
-         * libGDX's own native path and is correct. Indexed reads also never move the buffer position,
-         * so an already-power-of-two sheet (uploaded as-is) can't upload blank (krogue-3wr).
+         * Staying on libGDX's coordinate API for both read and write is deliberate and load-bearing:
+         * writing transparency straight into `Pixmap.pixels` — the backing buffer, by any means,
+         * per-byte or bulk — corrupts pixels when the [Pixmap] is later uploaded to a [Texture]. The
+         * red byte of the pixel *following* a keyed one is dropped, so white glyph pixels next to the
+         * keyed background render cyan on thin strokes (a green/teal tint, krogue-9gu). [Pixmap.drawPixel]
+         * goes through libGDX's own native path and is correct. Addressing by (x, y) also never touches
+         * the buffer's position, so an already-power-of-two sheet (uploaded as-is) can't upload blank
+         * (krogue-3wr).
          *
          * Assumes RGBA8888 layout (4 bytes per pixel: R, G, B, A). Pixmap(FileHandle) always decodes
          * to RGBA8888 on the desktop backend, so this holds for normal sheet loading.
@@ -168,10 +169,10 @@ class TileSheet(
             // Key entirely through libGDX's own getPixel/drawPixel, addressed by (x, y). Writing
             // transparency straight into Pixmap.pixels (the backing buffer) corrupts pixels on the
             // texture upload — the red byte of the pixel following a keyed one is dropped, turning
-            // white glyph pixels cyan on thin strokes (a green/teal tint, krogue-9gu). Reads through
-            // the raw buffer are safe, but computing x,y from a byte index and drawing there garbled
-            // glyphs; staying in (x, y) for both read and write is the correct, simple path. Also
-            // never touches the buffer position, so already-POT sheets can't upload blank (krogue-3wr).
+            // white glyph pixels cyan on thin strokes (a green/teal tint, krogue-9gu). An earlier
+            // attempt that indexed the raw buffer by byte offset garbled glyphs; staying in (x, y)
+            // for both read and write is the correct, simple path. Addressing by (x, y) also never
+            // touches the buffer position, so already-POT sheets can't upload blank (krogue-3wr).
             pixmap.blending = Pixmap.Blending.None
             for (y in 0 until pixmap.height) {
                 for (x in 0 until pixmap.width) {
