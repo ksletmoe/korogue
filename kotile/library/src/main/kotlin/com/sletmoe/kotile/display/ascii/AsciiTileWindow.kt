@@ -811,7 +811,7 @@ class AsciiTileWindow private constructor(
         fun create(init: AsciiTileWindowConfig.() -> Unit): AsciiTileWindow {
             val config = AsciiTileWindowConfig().apply(init)
             val glyphSource = config.glyphSource ?: Fonts.cp437_10x10()
-            val canvas = KotileCanvas(glyphSource.charWidthPx, glyphSource.charHeightPx)
+            val canvas = KotileCanvas(glyphSource.charWidthPx, glyphSource.charHeightPx, config.superSample)
 
             return AsciiTileWindow(
                 glyphSource,
@@ -929,6 +929,16 @@ class AsciiTileWindow private constructor(
  *   erase a neighbor pane's pixels (krogue-a24). Correct as long as the frame is
  *   composited fresh each time (every pane redrawn, or the canvas cleared first).
  *   Leave `false` for a window that owns its whole canvas.
+ * @property superSample opt into the tier-2 supersample→gamma-downsample path
+ *   (ADR-0036, krogue-1zo): at a **fractional** scale the grid is captured into an
+ *   offscreen buffer at a large integer tile size and resolved to the window with a
+ *   gamma-correct downsample, staying crisp at any window size. Ignored unless the
+ *   scale is fractional (only [fitToWindow] `= false` with a fractional
+ *   [scalePolicy] such as [com.sletmoe.kotile.rendering.FitScale] reaches it);
+ *   defaults to `false`, which uses the lighter sharp-bilinear path. Only affects a
+ *   window built with [AsciiTileWindow.create] (which owns its canvas); with
+ *   [AsciiTileWindow.createWithCanvas] the mode is chosen when you construct the
+ *   [KotileCanvas].
  */
 data class AsciiTileWindowConfig(
     var glyphSource: GlyphSource? = null,
@@ -937,4 +947,5 @@ data class AsciiTileWindowConfig(
     var fitToWindow: Boolean = true,
     var scalePolicy: ScalePolicy = IntegerScale,
     var sharesCanvas: Boolean = false,
+    var superSample: Boolean = false,
 )
