@@ -73,11 +73,16 @@ class TileSheetKeyColorUploadTest : FunSpec({
                 }
 
             // Un-fixed: the upload is blank, so the cell keeps the black clear color. Fixed: solid RED.
-            val avg = pixels.averageColor(2, 2, tile - 2, tile - 2)
-            avg.r.toDouble() shouldBe (1.0 plusOrMinus 0.1)
-            avg.g.toDouble() shouldBe (0.0 plusOrMinus 0.1)
-            avg.b.toDouble() shouldBe (0.0 plusOrMinus 0.1)
-            pixels.dispose()
+            try {
+                val avg = pixels.averageColor(2, 2, tile - 2, tile - 2)
+                avg.r.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+                avg.g.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+                avg.b.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+            } finally {
+                // Dispose the captured Pixmap even if an assertion fails, so it can't leak into the
+                // shared headless-GL context that outlives this test.
+                pixels.dispose()
+            }
         }
 
     test("keying does not drop the red channel of pixels next to a keyed pixel (no green tint)")
@@ -117,9 +122,19 @@ class TileSheetKeyColorUploadTest : FunSpec({
 
             // The white stripes are colourless, so red must come through at the same level as green.
             // The bug drops red to 0 while green/blue survive — avg.r would collapse toward 0.
-            val avg = pixels.averageColor(1, 2, tile - 1, tile - 2)
-            avg.r.toDouble() shouldBe (avg.g.toDouble() plusOrMinus 0.05)
-            avg.r.toDouble() shouldBe (avg.b.toDouble() plusOrMinus 0.05)
-            pixels.dispose()
+            try {
+                val avg = pixels.averageColor(1, 2, tile - 1, tile - 2)
+                // First prove the stripes are actually visible: ~half the region is white, half is the
+                // keyed-out (transparent → black clear) column, so green/blue average near 0.5. Without
+                // this, the blank-upload bug (all channels 0) would satisfy the r≈g≈b comparisons below
+                // and the test would pass against un-fixed code — a test that cannot fail.
+                avg.g.toDouble() shouldBe (0.5 plusOrMinus 0.1)
+                avg.b.toDouble() shouldBe (0.5 plusOrMinus 0.1)
+                // Red must come through at the same level as green/blue; the bug collapses it toward 0.
+                avg.r.toDouble() shouldBe (avg.g.toDouble() plusOrMinus 0.05)
+                avg.r.toDouble() shouldBe (avg.b.toDouble() plusOrMinus 0.05)
+            } finally {
+                pixels.dispose()
+            }
         }
 })
