@@ -360,6 +360,13 @@ class FreeTypeGlyphSource(
         // the neighbouring CP437 slot in the shared atlas. The per-cell flush makes each scissor take
         // effect for its own draw (SpriteBatch buffers until flushed) — same discipline as
         // GridCompositeCache's partial recomposite.
+        //
+        // rasterise can run mid-app (a resolution-independent resize), so restore the caller's scissor
+        // enable-state and box — preservingFrameBuffer only covers framebuffer + viewport.
+        val hadScissor = Gdx.gl.glIsEnabled(GL20.GL_SCISSOR_TEST)
+        glQueryBuffer.clear()
+        Gdx.gl.glGetIntegerv(GL20.GL_SCISSOR_BOX, glQueryBuffer)
+        val savedScissor = IntArray(4) { glQueryBuffer.get(it) }
         Gdx.gl.glEnable(GL20.GL_SCISSOR_TEST)
         try {
             val layout = GlyphLayout()
@@ -385,7 +392,8 @@ class FreeTypeGlyphSource(
                 batch.flush() // land this cell's geometry while its scissor is active
             }
         } finally {
-            Gdx.gl.glDisable(GL20.GL_SCISSOR_TEST)
+            Gdx.gl.glScissor(savedScissor[0], savedScissor[1], savedScissor[2], savedScissor[3])
+            if (!hadScissor) Gdx.gl.glDisable(GL20.GL_SCISSOR_TEST)
         }
     }
 
