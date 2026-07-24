@@ -119,8 +119,26 @@ class FreeTypeGlyphSource(
     private var renderBatch: SpriteBatch? = null
     private val renderCamera = OrthographicCamera()
 
+    /**
+     * The supersample factor the **last** [rasterize] actually used, after the shader-availability and
+     * [maxTextureSize] caps. Exposed (module-internal) for tests: the orientation regression depends on
+     * an *odd* number of 2:1 halving passes surviving, so a spec asserts this equals what it requested
+     * rather than trusting the cap didn't quietly halve it to an even count on a low-`GL_MAX_TEXTURE_SIZE`
+     * driver (where the GL specs are the only place a failure can be read).
+     */
+    internal var effectiveSupersample: Int = 0
+        private set
+
     init {
-        rasterize(cellWidthPx, cellHeightPx)
+        // Nothing the caller can reach holds a dispose() for this half-built object, so release what we
+        // allocated (the generator, plus anything rasterize published) if the first rasterise throws.
+        var ok = false
+        try {
+            rasterize(cellWidthPx, cellHeightPx)
+            ok = true
+        } finally {
+            if (!ok) dispose()
+        }
     }
 
     override fun glyph(character: Char): TextureRegion? = regions.getOrNull(character.code)
@@ -157,6 +175,7 @@ class FreeTypeGlyphSource(
         while (ss > 1 && (atlasW * ss > maxTex || atlasH * ss > maxTex)) {
             ss /= 2
         }
+        effectiveSupersample = ss
 
         val font =
             generator.generateFont(
@@ -189,11 +208,12 @@ class FreeTypeGlyphSource(
                         var scale = ss
                         while (scale > 1) {
                             val half = FrameBuffer(Pixmap.Format.RGBA8888, buffer.width / 2, buffer.height / 2, false)
+                            var halved = false
                             try {
                                 gammaHalve(half, buffer)
-                            } catch (t: Throwable) {
-                                half.dispose()
-                                throw t
+                                halved = true
+                            } finally {
+                                if (!halved) half.dispose() // gammaHalve threw; don't leak this FBO
                             }
                             buffer.dispose()
                             buffer = half

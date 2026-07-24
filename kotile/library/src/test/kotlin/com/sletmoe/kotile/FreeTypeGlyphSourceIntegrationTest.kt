@@ -148,10 +148,12 @@ class FreeTypeGlyphSourceIntegrationTest : FunSpec({
             // Cell 16 keeps the master atlas at 16·16·8 = 2048px/axis, so it stays under any driver's
             // GL_MAX_TEXTURE_SIZE (≥ 2048 everywhere) and rasterize() does NOT halve `ss` to an even
             // count — otherwise the cap would silently make this pass even against the un-fixed code.
+            var effectiveSs = -1
             val pixels =
                 HeadlessGl.render(16, 16, Color.BLACK) {
                     val source =
                         FreeTypeGlyphSource(Gdx.files.classpath("fonts/UbuntuMono-R.ttf"), 16, 16, supersample = 8)
+                    effectiveSs = source.effectiveSupersample
                     val window =
                         AsciiTileWindow.create {
                             glyphSource = source
@@ -168,6 +170,9 @@ class FreeTypeGlyphSourceIntegrationTest : FunSpec({
                 }
 
             try {
+                // Guard against a low-GL_MAX_TEXTURE_SIZE driver capping ss down to an even pass count:
+                // if it did, this spec would pass WITH the bug present. 8 (3 passes, odd) must survive.
+                effectiveSs shouldBe 8
                 // Upright: the full block is solid in its core (~1). Flipped: a sparse '+' glyph, far
                 // dimmer. Sample the central half (the block doesn't reach the cell edges — see the
                 // full-block test's note) so this discriminates orientation, not edge coverage.
