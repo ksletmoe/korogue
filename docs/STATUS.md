@@ -282,10 +282,32 @@ then given a tested ECS foundation:
   batch, this covers **both** layers, unlike the glyph-only alternatives
   (krogue-19k SDF, krogue-yfs multi-size). Integer/reflow scales are untouched
   (default shader + nearest, pixel-perfect). The heavier FBO supersample
-  (krogue-1zo) stays a separate, deferred option. Guarded by GL-gated pixel tests
-  in `RenderingIntegrationTest` (sprite blend ≈0.50 fractional vs 0.0 integer; glyph
-  smoke); eyeball via `:kotile:demo:fixedGridHarness -Ppolicy=fit` at a fractional
-  window size.
+  (krogue-1zo) is now the opt-in alternative for the same fractional case (below).
+  Guarded by GL-gated pixel tests in `RenderingIntegrationTest` (sprite blend ≈0.50
+  fractional vs 0.0 integer; glyph smoke); eyeball via
+  `:kotile:demo:fixedGridHarness -Ppolicy=fit` at a fractional window size.
+- **Supersample→gamma-downsample — tier 2 (krogue-1zo, ADR-0036).** Opt in with
+  `KotileCanvas(…, fractionalScaleMode = FractionalScaleMode.SUPERSAMPLE)` (or the
+  same `fractionalScaleMode` in the `AsciiTileWindow.create` config). At a
+  **fractional** scale, instead of the
+  lighter sharp-bilinear shader the whole pass — glyphs **and** sprite tiles — is
+  captured into an offscreen `SupersampleTarget` FBO at a **large integer** tile
+  size (`ceil(scale)`×native, pixel-crisp) and resolved to the window with a
+  gamma-correct 2×2 box downsample (`GammaDownsample` shader): each destination
+  pixel's source footprint is averaged in **linear light**, so edges keep the
+  correct brightness (the black↔white midpoint lands at ~188, not the muddy
+  encoded-space 128). This is a canvas-level render-target mode, not a
+  `ScalePolicy` and not a glyph-source change; the grid collaborators
+  (`AsciiTileWindow`/`TileRenderer`) need no changes because `canvas.layout`
+  returns the supersample layout during the capture pass. Integer/reflow scales
+  and the default (`SHARP_BILINEAR`) path are untouched. It does **not**
+  reproduce Brogue's *smooth-glyph* look (that is tier 3 / krogue-9x7.2 — a bitmap
+  source has no high-res detail to recover); it delivers crisp *pixels* at any
+  size. The sRGB↔linear curve is unit-tested GL-free (`GammaColorTest`); the
+  shader + canvas wiring are guarded by GL-gated pixel tests
+  (`SupersampleIntegrationTest`) and, on macOS where those can't run, by the
+  main-thread `:kotile:library:ssVerify` harness (which reproduces the specs'
+  exact geometry and reads back ~0.735 at a 50/50 edge).
 - **Layer model — grid + free (pixel-space) layers (ADR-0018).** `KotileCanvas.drawSprite(pxX,
   pxY, region, w, h, tint)` is the real drawing primitive (`drawTile` is grid-snapped sugar
   over it); a frame is an ordered list of `Layer`s composited back-to-front by a `LayerStack`

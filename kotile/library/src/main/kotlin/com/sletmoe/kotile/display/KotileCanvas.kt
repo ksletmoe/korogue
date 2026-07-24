@@ -7,12 +7,15 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.utils.Disposable
+import com.sletmoe.kotile.rendering.FractionalScaleMode
 import com.sletmoe.kotile.rendering.GridLayout
 import com.sletmoe.kotile.rendering.GridViewport
 import com.sletmoe.kotile.rendering.IntegerScale
 import com.sletmoe.kotile.rendering.ScalePolicy
 import com.sletmoe.kotile.rendering.SharpBilinear
+import com.sletmoe.kotile.rendering.SupersampleTarget
 import kotlin.math.abs
+import kotlin.math.ceil
 import kotlin.math.roundToInt
 
 /**
@@ -68,15 +71,50 @@ import kotlin.math.roundToInt
  * partial-tile bleed, so the letterbox bars are guaranteed to stay at the clear
  * color.
  *
+ * ### Fractional-scale mode (tier 2, opt-in)
+ *
+ * With [fractionalScaleMode] = [FractionalScaleMode.SUPERSAMPLE], a **fractional**
+ * scale is handled differently: instead of the lighter sharp-bilinear shader, the
+ * whole pass — glyphs *and* sprite tiles — is captured into an offscreen
+ * [SupersampleTarget] at a large integer tile size (pixel-crisp) and then resolved
+ * to the window with a gamma-correct downsample (ADR-0036 tier 2, krogue-1zo).
+ * Integer scales and reflow are unaffected (still direct + nearest, pixel-perfect),
+ * and if the downsample shader or buffer is unavailable the canvas falls back to
+ * sharp-bilinear. This is the heavier, higher-fidelity fractional path;
+ * [FractionalScaleMode.SHARP_BILINEAR] remains the default.
+ *
  * The class is `open` to allow subclassing — for example, in tests that need
  * to track dispose calls, or in consumers that want to add instrumentation.
  *
  * @property tileWidthPx a tile's **native** width in pixels (pre-scaling)
  * @property tileHeightPx a tile's **native** height in pixels (pre-scaling)
+ * @param fractionalScaleMode how a fractional fixed-grid scale is smoothed (see
+ *   the class doc and [FractionalScaleMode]); defaults to
+ *   [FractionalScaleMode.SHARP_BILINEAR].
  */
-open class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposable {
+open class KotileCanvas(
+    val tileWidthPx: Int,
+    val tileHeightPx: Int,
+    private val fractionalScaleMode: FractionalScaleMode = FractionalScaleMode.SHARP_BILINEAR,
+) : Disposable {
     private val batch = SpriteBatch()
     private val viewport = GridViewport(tileWidthPx, tileHeightPx)
+
+    // Allocated lazily on the first fractional-scale pass when the mode is SUPERSAMPLE; null otherwise so a
+    // canvas that never opts in (or never hits a fractional scale) pays nothing. Owns a scene FBO and
+    // the gamma-downsample shader/batch. See SupersampleTarget.
+    private var supersampleTarget: SupersampleTarget? = null
+
+    // Non-null only for the duration of a supersample capture pass (between begin and end): the
+    // integer-scaled layout the scene is drawn against, which [layout] returns during the pass so the
+    // grid collaborators (AsciiTileWindow/TileRenderer) blit at the supersample size without knowing
+    // this mode exists. Cleared in end(). See computeSupersampleLayout.
+    private var supersampleLayout: GridLayout? = null
+
+    // Source texels per on-screen pixel on each axis during the active supersample pass; drives the
+    // downsample tap spacing in resolveToScreen. Set in begin(), consumed in end().
+    private var ssFootprintX = 1f
+    private var ssFootprintY = 1f
 
     // Sharp-bilinear filtering for fractional (FitScale) scaling. The shader is
     // compiled lazily the first time a fractional scale is drawn; if compilation
@@ -87,6 +125,9 @@ open class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposabl
 
     /** Whether the current [begin]/[end] pass is drawing with sharp-bilinear on. */
     private var sharpActive = false
+
+    /** Whether the current [begin]/[end] pass is capturing into the supersample scene buffer. */
+    private var ssActive = false
 
     /** The texture whose size/filter the sharp shader was last configured for, this pass. */
     private var lastSharpTexture: Texture? = null
@@ -99,8 +140,17 @@ open class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposabl
      * count, on-screen (possibly scaled) tile size, and the centering offset.
      * Recomputed on every [resize] and mode change. Use [GridLayout.tileAt] to
      * map a mouse pixel position to a tile cell under the current layout.
+     *
+     * During an active supersample capture pass (between [begin] and [end] at a
+     * fractional scale) this returns the **supersample** layout the scene is drawn
+     * against — larger, integer-scaled tiles with no letterbox offset — so
+     * everything drawn in the pass lands in the offscreen scene at that size and is
+     * downsampled uniformly. Input hit-testing reads [layout] outside a render pass,
+     * where it is the real on-screen placement. Callers that must have the on-screen
+     * placement regardless (e.g. mid-pass) can read it off [resize] state; in
+     * practice only draw code runs mid-pass, and draw code *wants* the pass layout.
      */
-    val layout: GridLayout get() = viewport.layout
+    val layout: GridLayout get() = supersampleLayout ?: viewport.layout
 
     /** Current drawable width in pixels (the application's framebuffer width). */
     val widthPx: Int get() = Gdx.graphics.width
@@ -177,10 +227,17 @@ open class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposabl
      * otherwise the default nearest-neighbour path is used.
      */
     fun begin() {
-        viewport.apply()
-        batch.projectionMatrix = viewport.camera.combined
+        ssActive = fractionalScaleMode == FractionalScaleMode.SUPERSAMPLE && isFractionalScale() && beginSupersample()
 
-        sharpActive = isFractionalScale() && ensureSharpShader() != null
+        if (!ssActive) {
+            viewport.apply()
+            batch.projectionMatrix = viewport.camera.combined
+        }
+
+        // Supersample renders the scene at an integer tile size, so it is crisp with the default
+        // nearest path -- sharp-bilinear is the *alternative* fractional strategy, never stacked on
+        // top of it.
+        sharpActive = !ssActive && isFractionalScale() && ensureSharpShader() != null
         lastSharpTexture = null
         batch.shader = if (sharpActive) sharpShader else null
 
@@ -191,6 +248,43 @@ open class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposabl
             // can be set. u_textureSize is set per-texture in drawTile.
             sharpShader!!.setUniformf("u_scale", scaleX(), scaleY())
         }
+    }
+
+    /**
+     * Sets up the offscreen supersample scene for this pass: computes the integer-scaled
+     * [supersampleLayout], binds the [SupersampleTarget] sized to it, and points the batch projection
+     * at the scene. Returns `false` (and leaves nothing bound) if the target could not be prepared, so
+     * [begin] falls back to the on-screen path.
+     */
+    private fun beginSupersample(): Boolean {
+        val real = viewport.layout
+        val ss = computeSupersampleLayout(real)
+        val target = supersampleTarget ?: SupersampleTarget(tileWidthPx, tileHeightPx).also { supersampleTarget = it }
+        val ok = target.beginCapture(ss.contentWidthPx.roundToInt(), ss.contentHeightPx.roundToInt())
+        if (!ok) return false
+        supersampleLayout = ss
+        ssFootprintX = ss.tileWidthPx / real.tileWidthPx
+        ssFootprintY = ss.tileHeightPx / real.tileHeightPx
+        batch.projectionMatrix = target.projectionMatrix
+        return true
+    }
+
+    /**
+     * The supersample scene layout for a given on-screen [real] layout: the same grid, its tiles
+     * rounded **up** to the next integer multiple of the native tile size (so the scene is a crisp
+     * integer-scaled render), with no letterbox offset (the scene buffer *is* the content rect).
+     */
+    private fun computeSupersampleLayout(real: GridLayout): GridLayout {
+        val ssScaleX = ceil(real.tileWidthPx / tileWidthPx).toInt().coerceAtLeast(1)
+        val ssScaleY = ceil(real.tileHeightPx / tileHeightPx).toInt().coerceAtLeast(1)
+        return GridLayout(
+            columns = real.columns,
+            rows = real.rows,
+            tileWidthPx = (ssScaleX * tileWidthPx).toFloat(),
+            tileHeightPx = (ssScaleY * tileHeightPx).toFloat(),
+            offsetXPx = 0f,
+            offsetYPx = 0f,
+        )
     }
 
     /**
@@ -205,6 +299,14 @@ open class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposabl
      * values.
      */
     internal fun reapplyViewport() {
+        if (ssActive) {
+            // Mid-pass we are rendering into the scene buffer, not the window: re-assert *its* binding
+            // and viewport (a GridCompositeCache pass may have swapped targets and restored only the
+            // raw binding), and keep the scene projection.
+            supersampleTarget?.reassert()
+            supersampleLayout?.let { batch.projectionMatrix = supersampleTarget!!.projectionMatrix }
+            return
+        }
         viewport.apply()
         batch.projectionMatrix = viewport.camera.combined
     }
@@ -216,6 +318,23 @@ open class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposabl
      */
     fun end() {
         batch.end()
+        if (ssActive) {
+            // The pass drew into the scene buffer; resolve it to the window, gamma-downsampled. Apply
+            // the real (on-screen) viewport/projection first so the scene lands in the content rect
+            // with its letterbox, then hand that projection to the target.
+            val real = viewport.layout
+            supersampleLayout = null
+            ssActive = false
+            viewport.apply()
+            batch.projectionMatrix = viewport.camera.combined
+            supersampleTarget?.resolveToScreen(
+                projection = viewport.camera.combined,
+                contentWidthPx = real.contentWidthPx,
+                contentHeightPx = real.contentHeightPx,
+                footprintTexelsX = ssFootprintX,
+                footprintTexelsY = ssFootprintY,
+            )
+        }
         if (linearizedTextures.isNotEmpty()) {
             linearizedTextures.forEach { it.setFilter(it.minFilter, Texture.TextureFilter.Nearest) }
             linearizedTextures.clear()
@@ -392,10 +511,11 @@ open class KotileCanvas(val tileWidthPx: Int, val tileHeightPx: Int) : Disposabl
     internal var disposed: Boolean = false
         private set
 
-    /** Disposes the underlying sprite batch and the sharp-bilinear shader, if compiled. */
+    /** Disposes the underlying sprite batch, the sharp-bilinear shader, and the supersample scene target, if any. */
     override fun dispose() {
         batch.dispose()
         sharpShader?.dispose()
+        supersampleTarget?.dispose()
         disposed = true
     }
 }

@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.utils.Disposable
 import com.sletmoe.kotile.display.BlendMode
 import com.sletmoe.kotile.display.KotileCanvas
+import com.sletmoe.kotile.rendering.FractionalScaleMode
 import com.sletmoe.kotile.rendering.GridCompositeCache
 import com.sletmoe.kotile.rendering.IntegerScale
 import com.sletmoe.kotile.rendering.Layer
@@ -811,7 +812,7 @@ class AsciiTileWindow private constructor(
         fun create(init: AsciiTileWindowConfig.() -> Unit): AsciiTileWindow {
             val config = AsciiTileWindowConfig().apply(init)
             val glyphSource = config.glyphSource ?: Fonts.cp437_10x10()
-            val canvas = KotileCanvas(glyphSource.charWidthPx, glyphSource.charHeightPx)
+            val canvas = KotileCanvas(glyphSource.charWidthPx, glyphSource.charHeightPx, config.fractionalScaleMode)
 
             return AsciiTileWindow(
                 glyphSource,
@@ -929,6 +930,17 @@ class AsciiTileWindow private constructor(
  *   erase a neighbor pane's pixels (krogue-a24). Correct as long as the frame is
  *   composited fresh each time (every pane redrawn, or the canvas cleared first).
  *   Leave `false` for a window that owns its whole canvas.
+ * @property fractionalScaleMode how a **fractional** fixed-grid scale is smoothed
+ *   (see [com.sletmoe.kotile.rendering.FractionalScaleMode]). Defaults to
+ *   [com.sletmoe.kotile.rendering.FractionalScaleMode.SHARP_BILINEAR]; set
+ *   [com.sletmoe.kotile.rendering.FractionalScaleMode.SUPERSAMPLE] to opt into the
+ *   tier-2 supersample→gamma-downsample path (ADR-0036, krogue-1zo), which stays
+ *   crisp at any window size. Ignored unless the scale is fractional (only
+ *   [fitToWindow] `= false` with a fractional [scalePolicy] such as
+ *   [com.sletmoe.kotile.rendering.FitScale] reaches it). Only affects a window
+ *   built with [AsciiTileWindow.create] (which owns its canvas); with
+ *   [AsciiTileWindow.createWithCanvas] the mode is chosen when you construct the
+ *   [KotileCanvas].
  */
 data class AsciiTileWindowConfig(
     var glyphSource: GlyphSource? = null,
@@ -937,4 +949,5 @@ data class AsciiTileWindowConfig(
     var fitToWindow: Boolean = true,
     var scalePolicy: ScalePolicy = IntegerScale,
     var sharesCanvas: Boolean = false,
+    var fractionalScaleMode: FractionalScaleMode = FractionalScaleMode.SHARP_BILINEAR,
 )

@@ -73,6 +73,21 @@ tasks.test {
     }
 }
 
+// macOS-only manual verification for the supersample→downsample path (krogue-1zo): the Kotest GL
+// specs can't run on macOS (GLFW needs the first thread), so this forks a JVM with
+// -XstartOnFirstThread and runs SupersampleManualVerify.main(), which reproduces those specs' exact
+// geometry/GL state and prints PASS/FAIL. Uses the test runtime classpath so it can reach the
+// internal shader. On Linux/CI just run the real specs via `xvfb-run -a ./gradlew :kotile:library:test`.
+tasks.register<JavaExec>("ssVerify") {
+    group = "verification"
+    description = "Manually verifies the supersample→downsample path on real pixels (macOS main-thread GL)."
+    mainClass.set("com.sletmoe.kotile.SupersampleManualVerifyKt")
+    classpath = sourceSets["test"].runtimeClasspath
+    if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
+        jvmArgs("-XstartOnFirstThread")
+    }
+}
+
 publishing {
     publications {
         create<MavenPublication>("maven") {
