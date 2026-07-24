@@ -36,6 +36,27 @@ interface GlyphSource : Disposable {
      * beyond the 256-glyph CP437 page).
      */
     fun glyph(character: Char): TextureRegion?
+
+    /**
+     * Size-parametric hook (ADR-0036 tier 3, krogue-9x7.2): (re)rasterise this
+     * source's glyphs for a target cell of [widthPx] x [heightPx] pixels.
+     *
+     * The default is a **no-op**: the bundled bitmap [Font] is size-agnostic — its
+     * glyphs are a fixed pixel grid scaled by the window's
+     * [com.sletmoe.kotile.rendering.ScalePolicy] — so it ignores this. A
+     * resolution-independent source (the freetype face,
+     * [com.sletmoe.kotile.display.ascii.FreeTypeGlyphSource]) regenerates its atlas
+     * at the requested size and updates [charWidthPx]/[charHeightPx] to match, so
+     * glyphs are rasterised at — rather than scaled to — the on-screen cell size.
+     *
+     * Calling with the current size is a no-op (implementations short-circuit an
+     * unchanged size), so a caller may invoke it every resize cheaply.
+     */
+    fun prepareForCellSize(
+        widthPx: Int,
+        heightPx: Int,
+    ) {
+    }
 }
 
 /**
@@ -202,4 +223,33 @@ object Fonts {
      */
     @Suppress("ktlint:standard:function-naming")
     fun cp437_16x16(keyColor: Color? = Color.BLACK): Font = Font("cp437_16x16.png", 16, 16, keyColor)
+
+    /**
+     * Returns a [FreeTypeGlyphSource] on the bundled **Ubuntu Mono** TrueType face
+     * — the tier-3, resolution-independent glyph source (ADR-0036, krogue-9x7.2).
+     * Glyphs are rasterised *at* the [cellWidthPx] x [cellHeightPx] cell size
+     * (smooth at any size, re-rasterised on [GlyphSource.prepareForCellSize])
+     * rather than scaled from a fixed bitmap. Ubuntu Mono is chosen for its full
+     * CP437 coverage — box-drawing, block/shade elements, and Greek — which most
+     * code-oriented monospace faces omit.
+     *
+     * Unlike the `cp437_*` bitmap fonts this is **not** free — it renders the whole
+     * 256-glyph page through an offscreen buffer, so build it once and reuse it.
+     * The caller owns the returned source and must [GlyphSource.dispose] it.
+     *
+     * Provenance: Ubuntu Mono, Ubuntu Font Licence 1.0; see `ubuntu-mono.license.txt`
+     * and `fonts/UbuntuMono-LICENCE.txt` on the classpath.
+     *
+     * @param cellWidthPx initial cell width in pixels (default 16)
+     * @param cellHeightPx initial cell height in pixels (default 16)
+     */
+    fun ubuntuMono(
+        cellWidthPx: Int = 16,
+        cellHeightPx: Int = 16,
+    ): FreeTypeGlyphSource =
+        FreeTypeGlyphSource(
+            com.badlogic.gdx.Gdx.files.classpath("fonts/UbuntuMono-R.ttf"),
+            cellWidthPx,
+            cellHeightPx,
+        )
 }

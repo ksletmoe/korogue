@@ -308,6 +308,29 @@ then given a tested ECS foundation:
   (`SupersampleIntegrationTest`) and, on macOS where those can't run, by the
   main-thread `:kotile:library:ssVerify` harness (which reproduces the specs'
   exact geometry and reads back ~0.735 at a 50/50 edge).
+- **Freetype glyph source — tier 3 (krogue-9x7.2, ADR-0036).** `FreeTypeGlyphSource`
+  (via `Fonts.ubuntuMono(...)`) is a resolution-independent `GlyphSource` that
+  rasterises a TrueType face (bundled **Ubuntu Mono**, Ubuntu Font Licence 1.0 —
+  chosen for full CP437 box-drawing/block/Greek coverage) into a 16×16 page atlas.
+  Indexed by `char.code` as a CP437 slot exactly like the bitmap `Font` (drop-in),
+  mapping each slot to its Unicode glyph via `Cp437`. **Brogue-style smoothing:** it
+  rasterises the page at `supersample`× the cell (default 4×, ~150px master per
+  cell ≈ Brogue's ~128px) with **hinting off**, then downsamples to cell size by
+  repeated gamma-correct 2:1 halving (reusing tier 2's `GammaDownsample`) — a
+  high-res master resolved in linear light, not stems hinted onto the grid. The
+  master atlas is capped to `GL_MAX_TEXTURE_SIZE`. The size-parametric seam hook is
+  `GlyphSource.prepareForCellSize(w, h)` (no-op for the bitmap `Font`). Two ways to
+  stay crisp at any size: (1) `AsciiTileWindowConfig.resolutionIndependent = true`
+  keeps a fixed cell **count** and re-rasterises the source at the on-screen cell px
+  on resize, drawing 1:1 — the sharpest; the atlas is built at the **backbuffer**
+  cell px while the canvas layout stays logical (so input mapping is unchanged and
+  HdpiUtils' blit upscaling lands 1:1 on retina). `KotileCanvas.setNativeTileSize`
+  makes the native tile px mutable for this. (2) compose a generous master with
+  `SUPERSAMPLE`. CP437→Unicode is unit-tested GL-free (`Cp437Test`); rasterisation +
+  re-raster-on-resize are GL-gated (`FreeTypeGlyphSourceIntegrationTest`); eyeball
+  via `:kotile:library:freetypeVerify` (full page chart + composition + res-indep
+  banners). **Deferred (own bead):** Brogue's per-glyph sub-pixel alignment +
+  brightness curves; seamless box-drawing tiling when the cell aspect ≠ the font's.
 - **Layer model — grid + free (pixel-space) layers (ADR-0018).** `KotileCanvas.drawSprite(pxX,
   pxY, region, w, h, tint)` is the real drawing primitive (`drawTile` is grid-snapped sugar
   over it); a frame is an ordered list of `Layer`s composited back-to-front by a `LayerStack`
