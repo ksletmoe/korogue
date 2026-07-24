@@ -1,12 +1,16 @@
 package com.sletmoe.kotile
 
+import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.graphics.glutils.FrameBuffer
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
+import com.badlogic.gdx.utils.BufferUtils
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
 import com.sletmoe.kotile.display.ascii.StaticAsciiTile
 import com.sletmoe.kotile.rendering.FitScale
@@ -24,6 +28,13 @@ import io.kotest.matchers.shouldBe
  * canvas wiring are exercised on real pixels. Skipped unless a (software) GL
  * context is available — on macOS these do not run locally; CI runs them under
  * xvfb + llvmpipe. See [HeadlessGl].
+ *
+ * Every test disposes its native GL resources in a `finally`: [HeadlessGl] reuses
+ * one GL context for the whole JVM, so a leak from a failing assertion would
+ * contaminate later tests (the krogue-8lo failure class). The two canvas tests
+ * also assert [com.sletmoe.kotile.display.KotileCanvas.supersampledLastPass], so a
+ * silent regression to the sharp-bilinear fallback fails them rather than passing
+ * on look-alike pixels.
  */
 class SupersampleIntegrationTest : FunSpec({
 
@@ -47,39 +58,43 @@ class SupersampleIntegrationTest : FunSpec({
                             drawPixel(1, 0)
                         }
                     val texture =
-                        Texture(
-                            source,
-                        ).apply { setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear) }
+                        Texture(source).apply { setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear) }
                     source.dispose()
 
-                    val shader = ShaderProgram(GammaDownsample.VERTEX, GammaDownsample.FRAGMENT)
-                    check(shader.isCompiled) { "gamma-downsample shader failed to compile: ${shader.log}" }
-
-                    val batch = SpriteBatch()
-                    val camera =
-                        OrthographicCamera().apply {
-                            setToOrtho(false, 1f, 1f)
-                            update()
-                        }
-                    batch.projectionMatrix = camera.combined
-                    batch.shader = shader
-                    batch.begin()
-                    shader.setUniformf("u_footprintTexels", 2f, 1f)
-                    shader.setUniformf("u_srcTexel", 1f / 2f, 1f / 1f)
-                    batch.draw(TextureRegion(texture), 0f, 0f, 1f, 1f)
-                    batch.end()
-
-                    batch.dispose()
-                    shader.dispose()
-                    texture.dispose()
+                    var shader: ShaderProgram? = null
+                    var batch: SpriteBatch? = null
+                    try {
+                        shader = ShaderProgram(GammaDownsample.VERTEX, GammaDownsample.FRAGMENT)
+                        check(shader.isCompiled) { "gamma-downsample shader failed to compile: ${shader.log}" }
+                        batch = SpriteBatch()
+                        val camera =
+                            OrthographicCamera().apply {
+                                setToOrtho(false, 1f, 1f)
+                                update()
+                            }
+                        batch.projectionMatrix = camera.combined
+                        batch.shader = shader
+                        batch.begin()
+                        shader.setUniformf("u_footprintTexels", 2f, 1f)
+                        shader.setUniformf("u_srcTexel", 1f / 2f, 1f / 1f)
+                        batch.draw(TextureRegion(texture), 0f, 0f, 1f, 1f)
+                        batch.end()
+                    } finally {
+                        batch?.dispose()
+                        shader?.dispose()
+                        texture.dispose()
+                    }
                 }
 
-            val out = pixels.averageColor(0, 0, 1, 1)
-            // Gamma-correct midpoint, well clear of the naive 0.5 it replaces.
-            out.r.toDouble() shouldBe (0.735 plusOrMinus 0.03)
-            out.g.toDouble() shouldBe (0.735 plusOrMinus 0.03)
-            out.b.toDouble() shouldBe (0.735 plusOrMinus 0.03)
-            pixels.dispose()
+            try {
+                val out = pixels.averageColor(0, 0, 1, 1)
+                // Gamma-correct midpoint, well clear of the naive 0.5 it replaces.
+                out.r.toDouble() shouldBe (0.735 plusOrMinus 0.03)
+                out.g.toDouble() shouldBe (0.735 plusOrMinus 0.03)
+                out.b.toDouble() shouldBe (0.735 plusOrMinus 0.03)
+            } finally {
+                pixels.dispose()
+            }
         }
 
     test("KotileCanvas superSample: a solid fill at a fractional scale resolves back to the same solid color")
@@ -89,6 +104,7 @@ class SupersampleIntegrationTest : FunSpec({
             // fill must survive the capture→downsample round trip unchanged (uniform in, uniform out,
             // independent of the gamma curve), proving the scene buffer binds, resolves to the content
             // rect, and restores the outer (HeadlessGl capture) framebuffer.
+            var usedSupersample = false
             val pixels =
                 HeadlessGl.render(60, 30, Color.BLACK) {
                     val window =
@@ -99,18 +115,27 @@ class SupersampleIntegrationTest : FunSpec({
                             scalePolicy = FitScale
                             fractionalScaleMode = FractionalScaleMode.SUPERSAMPLE
                         }
-                    window.fill(StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
-                    window.render()
-                    window.dispose()
+                    try {
+                        window.fill(StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
+                        window.render()
+                        usedSupersample = window.backingCanvas.supersampledLastPass
+                    } finally {
+                        window.dispose()
+                    }
                 }
 
-            // Content fills the whole window at 1.5x with no letterbox (both axes scale 1.5). Sample
-            // the centre well away from any edge-antialiased border.
-            val center = pixels.averageColor(20, 10, 40, 20)
-            center.r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
-            center.g.toDouble() shouldBe (0.0 plusOrMinus 0.1)
-            center.b.toDouble() shouldBe (1.0 plusOrMinus 0.1)
-            pixels.dispose()
+            try {
+                // The capture→downsample path must be the one that ran, not the sharp-bilinear fallback.
+                usedSupersample shouldBe true
+                // Content fills the whole window at 1.5x with no letterbox (both axes scale 1.5). Sample
+                // the centre well away from any edge-antialiased border.
+                val center = pixels.averageColor(20, 10, 40, 20)
+                center.r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+                center.g.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+                center.b.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+            } finally {
+                pixels.dispose()
+            }
         }
 
     test("KotileCanvas superSample: renders a half-white / half-black split with the correct bright and dark halves")
@@ -118,6 +143,7 @@ class SupersampleIntegrationTest : FunSpec({
             // Proves the supersample path draws real per-cell content (not just a uniform fill) at a
             // fractional scale: the left half of the grid is white, the right half black, and after the
             // 1.5x supersample+downsample the left screen region must be bright and the right dark.
+            var usedSupersample = false
             val pixels =
                 HeadlessGl.render(60, 30, Color.BLACK) {
                     val window =
@@ -128,21 +154,101 @@ class SupersampleIntegrationTest : FunSpec({
                             scalePolicy = FitScale
                             fractionalScaleMode = FractionalScaleMode.SUPERSAMPLE
                         }
-                    for (y in 0 until 2) {
-                        window.drawTile(0, y, StaticAsciiTile(' ', Color.WHITE, Color.WHITE))
-                        window.drawTile(1, y, StaticAsciiTile(' ', Color.WHITE, Color.WHITE))
-                        window.drawTile(2, y, StaticAsciiTile(' ', Color.WHITE, Color.BLACK))
-                        window.drawTile(3, y, StaticAsciiTile(' ', Color.WHITE, Color.BLACK))
+                    try {
+                        for (y in 0 until 2) {
+                            window.drawTile(0, y, StaticAsciiTile(' ', Color.WHITE, Color.WHITE))
+                            window.drawTile(1, y, StaticAsciiTile(' ', Color.WHITE, Color.WHITE))
+                            window.drawTile(2, y, StaticAsciiTile(' ', Color.WHITE, Color.BLACK))
+                            window.drawTile(3, y, StaticAsciiTile(' ', Color.WHITE, Color.BLACK))
+                        }
+                        window.render()
+                        usedSupersample = window.backingCanvas.supersampledLastPass
+                    } finally {
+                        window.dispose()
                     }
-                    window.render()
-                    window.dispose()
                 }
 
-            // Left quarter (well inside the white half) is bright; right quarter (well inside black) dark.
-            val left = pixels.averageColor(5, 10, 20, 20)
-            val right = pixels.averageColor(40, 10, 55, 20)
-            left.r.toDouble() shouldBe (1.0 plusOrMinus 0.1)
-            right.r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
-            pixels.dispose()
+            try {
+                usedSupersample shouldBe true
+                // Left quarter (well inside white); right quarter (well inside black).
+                val left = pixels.averageColor(5, 10, 20, 20)
+                val right = pixels.averageColor(40, 10, 55, 20)
+                left.r.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+                right.r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+            } finally {
+                pixels.dispose()
+            }
+        }
+
+    test("KotileCanvas superSample: resolve restores the caller's bound framebuffer (krogue-s5h)")
+        .config(enabled = HeadlessGl.available) {
+            // The supersample resolve must draw into whatever framebuffer the caller had bound and
+            // leave it bound — the FBO-nesting contract AsciiTileWindow documents (a consumer wrapping
+            // render() in their own FrameBuffer for a screenshot/post-process). Binding a hardcoded 0
+            // (or the platform default) instead would send the frame to the window and leave the wrong
+            // target bound. Render a supersample pass inside a consumer FrameBuffer and assert that
+            // buffer is bound again afterwards, and holds the frame.
+            var restoredHandle = -1
+            var expectedHandle = -1
+            var centerBlue = 0.0
+            var usedSupersample = false
+            HeadlessGl
+                .render(60, 30, Color.BLACK) {
+                    val outer = FrameBuffer(Pixmap.Format.RGBA8888, 60, 30, false)
+                    // Cleanup scope covers begin() and window creation too, so a setup failure can't
+                    // leave `outer` bound/undisposed in the shared GL context (krogue-8lo class).
+                    var outerBegun = false
+                    try {
+                        outer.begin()
+                        outerBegun = true
+                        Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
+                        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
+                        val window =
+                            AsciiTileWindow.create {
+                                widthInTiles = 4
+                                heightInTiles = 2
+                                fitToWindow = false
+                                scalePolicy = FitScale
+                                fractionalScaleMode = FractionalScaleMode.SUPERSAMPLE
+                            }
+                        try {
+                            window.fill(StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
+                            window.render()
+                            usedSupersample = window.backingCanvas.supersampledLastPass
+                            expectedHandle = outer.framebufferHandle
+                            restoredHandle = boundFramebuffer()
+                            // Read the consumer buffer (still bound if the contract held) — must hold the frame.
+                            val shot = Pixmap.createFromFrameBuffer(0, 0, 60, 30)
+                            try {
+                                centerBlue = shot.averageColor(20, 10, 40, 20).b.toDouble()
+                            } finally {
+                                shot.dispose()
+                            }
+                        } finally {
+                            window.dispose()
+                        }
+                    } finally {
+                        try {
+                            if (outerBegun) outer.end()
+                        } finally {
+                            outer.dispose()
+                        }
+                    }
+                }.dispose()
+
+            // Without this the test is vacuous: if SUPERSAMPLE silently fell back, render() would draw
+            // straight into `outer` (no scene FBO), so nothing rebinds it and the handle/pixel checks
+            // pass trivially without ever exercising resolveToScreen's restore.
+            usedSupersample shouldBe true
+            // A consumer FBO is non-zero on desktop, so this also proves it wasn't reset to 0.
+            expectedHandle shouldBe restoredHandle
+            centerBlue shouldBe (1.0 plusOrMinus 0.1)
         }
 })
+
+/** The framebuffer handle currently bound to `GL_FRAMEBUFFER`. */
+private fun boundFramebuffer(): Int {
+    val buf = BufferUtils.newIntBuffer(16)
+    Gdx.gl.glGetIntegerv(GL20.GL_FRAMEBUFFER_BINDING, buf)
+    return buf.get(0)
+}

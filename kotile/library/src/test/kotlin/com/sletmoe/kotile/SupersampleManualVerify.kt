@@ -13,6 +13,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.graphics.glutils.FrameBuffer
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
+import com.badlogic.gdx.utils.BufferUtils
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
 import com.sletmoe.kotile.display.ascii.StaticAsciiTile
 import com.sletmoe.kotile.rendering.FitScale
@@ -43,6 +44,7 @@ private class SupersampleManualVerify : ApplicationAdapter() {
     // content via HdpiUtils at backbuffer scale, so the capture FBO and sample rects must too; on CI
     // this is 1 and the harness reduces exactly to the committed spec's geometry.
     private var hidpi = 1
+    private val glQueryBuffer = BufferUtils.newIntBuffer(16)
 
     override fun render() {
         // Let the initial resize settle so Gdx.graphics reports WIN_WxWIN_H before the pipeline checks.
@@ -54,9 +56,64 @@ private class SupersampleManualVerify : ApplicationAdapter() {
         gammaShaderCheck()
         solidFillCheck()
         halfSplitCheck()
+        fboRestoreCheck()
 
         println(if (failures == 0) "SSVERIFY: ALL PASSED" else "SSVERIFY: $failures FAILED")
         Gdx.app.exit()
+    }
+
+    /** Mirrors the committed krogue-s5h spec: the resolve must restore the caller's bound framebuffer. */
+    private fun fboRestoreCheck() {
+        Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, 0)
+        val outer = FrameBuffer(Pixmap.Format.RGBA8888, WIN_W * hidpi, WIN_H * hidpi, false)
+        var bound = -1
+        var usedSupersample = false
+        var centerBlue = -1f
+        // Cleanup scope covers begin() and window creation, so a setup failure can't leak `outer`.
+        var outerBegun = false
+        try {
+            outer.begin()
+            outerBegun = true
+            Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
+            Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
+            val window =
+                AsciiTileWindow.create {
+                    widthInTiles = 4
+                    heightInTiles = 2
+                    fitToWindow = false
+                    scalePolicy = FitScale
+                    fractionalScaleMode = FractionalScaleMode.SUPERSAMPLE
+                }
+            try {
+                window.fill(StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
+                window.render()
+                usedSupersample = window.backingCanvas.supersampledLastPass
+                glQueryBuffer.clear()
+                Gdx.gl.glGetIntegerv(GL20.GL_FRAMEBUFFER_BINDING, glQueryBuffer)
+                bound = glQueryBuffer.get(0)
+                // Read the frame back out of `outer` (still bound) -- a resolve that restored the binding
+                // but dropped/cleared the pixels must not pass.
+                val shot = Pixmap.createFromFrameBuffer(0, 0, WIN_W * hidpi, WIN_H * hidpi)
+                try {
+                    centerBlue = shot.averageColor(20 * hidpi, 10 * hidpi, 40 * hidpi, 20 * hidpi).b
+                } finally {
+                    shot.dispose()
+                }
+            } finally {
+                window.dispose()
+            }
+        } finally {
+            try {
+                if (outerBegun) outer.end()
+            } finally {
+                outer.dispose()
+            }
+        }
+        report(
+            "resolve restores the caller's framebuffer + frame (s5h)",
+            usedSupersample && bound == outer.framebufferHandle && outer.framebufferHandle != 0 && centerBlue > 0.85f,
+            "usedSupersample=$usedSupersample bound=$bound expected=${outer.framebufferHandle} centerBlue=$centerBlue",
+        )
     }
 
     /** Mirrors the committed "50/50 black+white footprint → ~0.735" spec, driving the internal shader directly. */

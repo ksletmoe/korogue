@@ -129,6 +129,16 @@ open class KotileCanvas(
     /** Whether the current [begin]/[end] pass is capturing into the supersample scene buffer. */
     private var ssActive = false
 
+    /**
+     * Whether the most recent [begin] actually engaged the supersample capture path (mode is
+     * SUPERSAMPLE, scale is fractional, and the target prepared). Exposed (module-internal) purely for
+     * test observability: a pixel test asserting "the scene looks right" can't tell a working
+     * supersample pass from the sharp-bilinear fallback silently taking over, so the GL specs read this
+     * to prove the path they mean to exercise is the one that ran (mirrors the [disposed] seam).
+     */
+    internal var supersampledLastPass: Boolean = false
+        private set
+
     /** The texture whose size/filter the sharp shader was last configured for, this pass. */
     private var lastSharpTexture: Texture? = null
 
@@ -228,6 +238,7 @@ open class KotileCanvas(
      */
     fun begin() {
         ssActive = fractionalScaleMode == FractionalScaleMode.SUPERSAMPLE && isFractionalScale() && beginSupersample()
+        supersampledLastPass = ssActive
 
         if (!ssActive) {
             viewport.apply()
