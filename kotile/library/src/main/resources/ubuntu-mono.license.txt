@@ -1,0 +1,27 @@
+fonts/UbuntuMono-R.ttf
+
+Source:  Ubuntu Mono (Regular), by Canonical Ltd. — https://design.ubuntu.com/font
+         A monospaced typeface with broad CP437 coverage — box-drawing
+         (U+2500–257F), block elements and shades (U+2580–259F, incl. U+2588
+         full block), Greek, and the accented ranges a code-page-437 grid needs.
+         It is the default TrueType face for the tier-3 freetype glyph source
+         (FreeTypeGlyphSource / Fonts.ubuntuMono), rasterized at the cell pixel
+         size (ADR-0036 tier 3, krogue-9x7.2). A handful of CP437 symbols the
+         face does not carry (e.g. ☺ U+263A, ⌂ U+2302, ∩ U+2229, ≡ U+2261,
+         ⌠⌡ U+2320/1, ⁿ U+207F, ■ U+25A0, ₧ U+20A7) fall back to the face's
+         .notdef glyph.
+
+License: Ubuntu Font Licence, Version 1.0
+         Copyright 2011 Canonical Ltd.
+
+The complete, unmodified Ubuntu Font Licence 1.0 text ships alongside the font
+at:
+
+    fonts/UbuntuMono-LICENCE.txt
+
+Per the licence, that file accompanies the bundled font in this JAR. The font
+is used as-is (not renamed or modified); it is embedded and rasterized at
+runtime by gdx-freetype. The UFL permits the Font Software to be bundled,
+embedded, and redistributed freely (including with software sold for a fee);
+see the licence for the full terms, including that a modified version may not
+use the "Ubuntu" name.

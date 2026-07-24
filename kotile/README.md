@@ -53,6 +53,10 @@ dependencies {
 
     implementation("com.badlogicgames.gdx:gdx-backend-lwjgl3:1.14.1")
     runtimeOnly("com.badlogicgames.gdx:gdx-platform:1.14.1:natives-desktop")
+
+    // Only if you use the freetype glyph source (Fonts.ubuntuMono / FreeTypeGlyphSource):
+    // the freetype native must be on the runtime classpath alongside the backend native above.
+    runtimeOnly("com.badlogicgames.gdx:gdx-freetype-platform:1.14.1:natives-desktop")
 }
 ```
 

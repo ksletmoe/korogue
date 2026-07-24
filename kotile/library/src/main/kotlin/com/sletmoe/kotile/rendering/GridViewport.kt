@@ -43,9 +43,15 @@ import kotlin.math.roundToInt
  * @param nativeTileHeightPx a tile's native (pre-scale) height in pixels; must be `> 0`
  */
 class GridViewport(
-    private val nativeTileWidthPx: Int,
-    private val nativeTileHeightPx: Int,
+    nativeTileWidthPx: Int,
+    nativeTileHeightPx: Int,
 ) : Viewport() {
+    // Mutable so a resolution-independent glyph source (FreeTypeGlyphSource) can re-rasterise at the
+    // on-screen cell size and have the grid rendered 1:1 at that size rather than scaled -- see
+    // KotileCanvas.setNativeTileSize / AsciiTileWindow's resolution-independent path (krogue-9x7.2).
+    private var nativeTileWidthPx: Int = nativeTileWidthPx
+    private var nativeTileHeightPx: Int = nativeTileHeightPx
+
     private var fixedColumns: Int = 0
     private var fixedRows: Int = 0
     private var scalePolicy: ScalePolicy = IntegerScale
@@ -60,6 +66,19 @@ class GridViewport(
 
     init {
         camera = OrthographicCamera()
+    }
+
+    /**
+     * Changes the native (pre-scale) tile pixel size used to compute the [layout]. Takes effect on the
+     * next [update]. Used by the resolution-independent path, which re-rasterises the glyph atlas at the
+     * on-screen cell size and then renders it 1:1.
+     */
+    internal fun setNativeTileSize(
+        widthPx: Int,
+        heightPx: Int,
+    ) {
+        nativeTileWidthPx = widthPx.coerceAtLeast(1)
+        nativeTileHeightPx = heightPx.coerceAtLeast(1)
     }
 
     /**

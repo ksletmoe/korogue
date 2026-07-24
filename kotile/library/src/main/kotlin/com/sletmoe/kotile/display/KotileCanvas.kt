@@ -86,17 +86,29 @@ import kotlin.math.roundToInt
  * The class is `open` to allow subclassing — for example, in tests that need
  * to track dispose calls, or in consumers that want to add instrumentation.
  *
- * @property tileWidthPx a tile's **native** width in pixels (pre-scaling)
- * @property tileHeightPx a tile's **native** height in pixels (pre-scaling)
+ * @param tileWidthPx a tile's **native** width in pixels (pre-scaling)
+ * @param tileHeightPx a tile's **native** height in pixels (pre-scaling)
  * @param fractionalScaleMode how a fractional fixed-grid scale is smoothed (see
  *   the class doc and [FractionalScaleMode]); defaults to
  *   [FractionalScaleMode.SHARP_BILINEAR].
  */
 open class KotileCanvas(
-    val tileWidthPx: Int,
-    val tileHeightPx: Int,
+    tileWidthPx: Int,
+    tileHeightPx: Int,
     private val fractionalScaleMode: FractionalScaleMode = FractionalScaleMode.SHARP_BILINEAR,
 ) : Disposable {
+    /**
+     * A tile's **native** width in pixels (pre-scaling). Mutable via [setNativeTileSize] so a
+     * resolution-independent glyph source can re-rasterise at the on-screen cell size; constant for the
+     * usual bitmap/fixed-size sources.
+     */
+    var tileWidthPx: Int = tileWidthPx
+        private set
+
+    /** A tile's **native** height in pixels (pre-scaling). See [tileWidthPx]. */
+    var tileHeightPx: Int = tileHeightPx
+        private set
+
     private val batch = SpriteBatch()
     private val viewport = GridViewport(tileWidthPx, tileHeightPx)
 
@@ -225,6 +237,32 @@ open class KotileCanvas(
     private fun recomputeLayout() {
         viewport.update(widthPx, heightPx, true)
         batch.projectionMatrix = viewport.camera.combined
+    }
+
+    /**
+     * Changes the **native** tile pixel size ([tileWidthPx] x [tileHeightPx]) and recomputes the
+     * layout. Used by the resolution-independent path (krogue-9x7.2): a [GlyphSource] that re-rasterises
+     * at the on-screen cell size pairs with this so the grid renders 1:1 at that size rather than being
+     * scaled. Callers that own per-tile-size GPU buffers sized from these (e.g. an
+     * [com.sletmoe.kotile.display.ascii.AsciiTileWindow]'s composite caches) must rebuild them to match.
+     *
+     * A no-op if the size is unchanged.
+     */
+    internal fun setNativeTileSize(
+        widthPx: Int,
+        heightPx: Int,
+    ) {
+        val w = widthPx.coerceAtLeast(1)
+        val h = heightPx.coerceAtLeast(1)
+        if (w == tileWidthPx && h == tileHeightPx) return
+        tileWidthPx = w
+        tileHeightPx = h
+        viewport.setNativeTileSize(w, h)
+        // The supersample scene target is sized from the native tile; drop it so it rebuilds at the new
+        // size on the next fractional pass (resolution independence uses IntegerScale, so usually null).
+        supersampleTarget?.dispose()
+        supersampleTarget = null
+        recomputeLayout()
     }
 
     /**

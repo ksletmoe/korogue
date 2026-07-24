@@ -14,6 +14,12 @@ dependencies {
     // public signatures), so it is exposed transitively to consumers. The
     // consumer chooses its own gdx backend (lwjgl3, android, ...).
     api("com.badlogicgames.gdx:gdx:$gdxVersion")
+    // gdx-freetype backs the tier-3 freetype glyph source (FreeTypeGlyphSource,
+    // ADR-0036 / krogue-9x7.2). Exposed as `api` because a consumer that supplies
+    // its own TTF touches FreeTypeFontGenerator's parameter types. The consumer
+    // must also put the freetype *native* on its runtime classpath alongside the
+    // backend natives it already provides (e.g. gdx-freetype-platform:natives-desktop).
+    api("com.badlogicgames.gdx:gdx-freetype:$gdxVersion")
 
     testImplementation(kotlin("test"))
     testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
@@ -21,6 +27,8 @@ dependencies {
     // The integration tests need a real backend to obtain a GL context.
     testImplementation("com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion")
     testRuntimeOnly("com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop")
+    // Native freetype for the glyph-source tests / ssVerify-style harnesses.
+    testRuntimeOnly("com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-desktop")
 }
 
 kotlin {
@@ -86,6 +94,25 @@ tasks.register<JavaExec>("ssVerify") {
     if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
         jvmArgs("-XstartOnFirstThread")
     }
+}
+
+// macOS-only manual verification for the freetype glyph source (krogue-9x7.2): renders the full CP437
+// page through FreeTypeGlyphSource, dumps a PNG to eyeball glyph shape/placement, and reads pixels back
+// for smoke assertions. Forks a JVM with -XstartOnFirstThread and uses the test runtime classpath (for
+// the freetype native + internal helpers). On Linux/CI the real GL specs cover this.
+tasks.register<JavaExec>("freetypeVerify") {
+    group = "verification"
+    description = "Renders the CP437 page via FreeTypeGlyphSource to a PNG and checks it (macOS main-thread GL)."
+    mainClass.set("com.sletmoe.kotile.FreeTypeManualVerifyKt")
+    classpath = sourceSets["test"].runtimeClasspath
+    if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
+        jvmArgs("-XstartOnFirstThread")
+    }
+    val outFile =
+        (project.findProperty("outFile") as? String)
+            ?: layout.buildDirectory.file("freetype-verify.png").get().asFile.absolutePath
+    systemProperty("kotile.ftverify.out", outFile)
+    doFirst { logger.lifecycle("Rendering freetype chart to: $outFile") }
 }
 
 publishing {

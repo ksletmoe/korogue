@@ -1,5 +1,6 @@
 package com.sletmoe.kotile.display.ascii
 
+import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture
@@ -17,6 +18,7 @@ import com.sletmoe.kotile.rendering.ViewportDirtyTracker
 import com.sletmoe.kotile.utilities.LayeredTilemap
 import com.sletmoe.kotile.utilities.Vector2Int
 import com.sletmoe.kotile.utilities.Vector3Int
+import kotlin.math.roundToInt
 
 /**
  * A grid of ASCII cells rendered from a [GlyphSource] (the bundled bitmap
@@ -152,6 +154,15 @@ class AsciiTileWindow private constructor(
      * erase whatever a neighbor pane drew there (krogue-a24). See [AsciiTileWindowConfig.sharesCanvas].
      */
     sharesCanvas: Boolean = false,
+    /**
+     * When `true`, the grid keeps a **fixed** cell count and, on each [resize], re-rasterises a
+     * size-parametric [glyphSource] at the on-screen cell pixel size (via
+     * [GlyphSource.prepareForCellSize]) and renders it 1:1 — so glyphs are drawn *at* the display size
+     * rather than scaled to it (ADR-0036 tier 3, krogue-9x7.2). Only meaningful for a size-parametric
+     * source such as [FreeTypeGlyphSource]; a bitmap [Font] ignores the re-rasterise and behaves as a
+     * normal fixed grid.
+     */
+    private val resolutionIndependent: Boolean = false,
 ) : Disposable {
     private val compositeBlend: BlendMode = if (sharesCanvas) BlendMode.NORMAL else BlendMode.REPLACE
 
@@ -195,7 +206,12 @@ class AsciiTileWindow private constructor(
 
     // Per-cell composite cache (krogue-drk/krogue-oxi, ADR-0024): [render] and [asLayer] recomposite
     // only the cells marked dirty since the last call, blitting the persistent result as one sprite.
-    private val compositeCache = GridCompositeCache(canvas.tileWidthPx, canvas.tileHeightPx)
+    // `var` (not `val`) so the resolution-independent path can rebuild it at a new tile px when the
+    // glyph source re-rasterises on resize (rebuildCaches). Sized from the glyph source's atlas px (not
+    // the canvas's layout px): for the usual sources those are equal, but the resolution-independent
+    // path deliberately rasterises the atlas at the *backbuffer* cell px while the canvas layout stays
+    // logical, so the cache holds full backbuffer detail and HdpiUtils' blit upscaling lands 1:1.
+    private var compositeCache = GridCompositeCache(glyphSource.charWidthPx, glyphSource.charHeightPx)
 
     // Separate cache + per-observer dirty tracker for the render(source, viewport) overload
     // (krogue-c0q): source is caller-owned and may be shared across several windows/panes, so it
@@ -203,8 +219,8 @@ class AsciiTileWindow private constructor(
     // this window's own drawTile/clearTile). ViewportDirtyTracker instead polls
     // LayeredTilemap.versionAt each call — see its doc for why that is safe for multiple observers
     // where a single consumable dirty flag would not be.
-    private val viewportCache = GridCompositeCache(canvas.tileWidthPx, canvas.tileHeightPx)
-    private val viewportDirtyTracker = ViewportDirtyTracker(viewportCache)
+    private var viewportCache = GridCompositeCache(glyphSource.charWidthPx, glyphSource.charHeightPx)
+    private var viewportDirtyTracker = ViewportDirtyTracker(viewportCache)
 
     // Positions currently holding an AnimatedAsciiTile on any z-layer. Recomputed from ground truth
     // (not incrementally counted) on every single-cell write touching that position -- see
@@ -235,7 +251,13 @@ class AsciiTileWindow private constructor(
         // Fixed-grid mode: let the canvas scale/letterbox our fixed cell count
         // to the window. Reflow mode leaves the canvas in its default reflow
         // layout and follows its column/row count on resize.
-        if (!fitToWindow) {
+        //
+        // Resolution-independent mode is a fixed grid too, but scaled by IntegerScale so that after
+        // re-rasterising the glyph source to the on-screen cell px the grid renders 1:1 (scale 1), not
+        // re-scaled. The first re-rasterise happens on the first resize.
+        if (resolutionIndependent) {
+            canvas.useFixedGrid(this.widthInTiles, this.heightInTiles, IntegerScale)
+        } else if (!fitToWindow) {
             canvas.useFixedGrid(this.widthInTiles, this.heightInTiles, scalePolicy)
         }
     }
@@ -708,11 +730,22 @@ class AsciiTileWindow private constructor(
      *
      * When [fitToWindow] is `false`, only the canvas projection is updated;
      * the tile grid remains unchanged.
+     *
+     * When `resolutionIndependent` (see [AsciiTileWindowConfig]) the cell **count**
+     * is fixed but the cell **pixel size** tracks the window: this recomputes the
+     * on-screen cell px, re-rasterises a size-parametric glyph source to match (via
+     * [GlyphSource.prepareForCellSize]), retiles the canvas ([KotileCanvas.setNativeTileSize]),
+     * and rebuilds the composite caches to the new atlas px — so glyphs are drawn
+     * *at* the display size, not scaled. See [resizeResolutionIndependent].
      */
     fun resize(
         widthPx: Int,
         heightPx: Int,
     ) {
+        if (resolutionIndependent) {
+            resizeResolutionIndependent(widthPx, heightPx)
+            return
+        }
         canvas.resize(widthPx, heightPx)
         if (!fitToWindow) return
 
@@ -750,6 +783,60 @@ class AsciiTileWindow private constructor(
             }
         }
         compositeCache.markAllDirty()
+    }
+
+    /**
+     * Resolution-independent resize (krogue-9x7.2): the cell **count** stays fixed; the cell **pixel
+     * size** tracks the window. Compute the largest integer cell that fits the fixed grid, re-rasterise
+     * the glyph source at that size, retile the canvas + caches to the source's new native px, and let
+     * the canvas render 1:1 (IntegerScale). A bitmap source that ignores [GlyphSource.prepareForCellSize]
+     * keeps its native px, so this degrades to an ordinary fixed grid.
+     */
+    private fun resizeResolutionIndependent(
+        widthPx: Int,
+        heightPx: Int,
+    ) {
+        // Logical cell px sets the canvas layout (and so input mapping); the atlas is rasterised at the
+        // *backbuffer* cell px so the grid is drawn at true display resolution. On a HiDPI display these
+        // differ by the backbuffer/logical ratio; on a normal display they're equal.
+        val cellLogical = minOf(widthPx / widthInTiles, heightPx / heightInTiles).coerceAtLeast(1)
+        val hidpi = (Gdx.graphics.backBufferWidth.toFloat() / Gdx.graphics.width.coerceAtLeast(1)).coerceAtLeast(1f)
+        val cellPhysical = (cellLogical * hidpi).roundToInt().coerceAtLeast(1)
+
+        glyphSource.prepareForCellSize(cellPhysical, cellPhysical)
+        // The atlas px the source actually produced (a bitmap Font ignores the request and stays put; a
+        // freetype source follows it, so its atlas == cellPhysical). The canvas layout is the atlas px
+        // mapped back through the HiDPI ratio, so the grid draws at logical scale and HdpiUtils upscales
+        // the atlas-resolution cache blit 1:1 onto the backbuffer. For a size-parametric source this is
+        // the intended `cellLogical`; a fixed bitmap source just renders at its native backbuffer res.
+        val atlasW = glyphSource.charWidthPx
+        val atlasH = glyphSource.charHeightPx
+        val layoutW = (atlasW / hidpi).roundToInt().coerceAtLeast(1)
+        val layoutH = (atlasH / hidpi).roundToInt().coerceAtLeast(1)
+        canvas.setNativeTileSize(layoutW, layoutH) // no-op if unchanged
+        if (atlasW != compositeCacheTileW || atlasH != compositeCacheTileH) rebuildCaches()
+        canvas.resize(widthPx, heightPx)
+        compositeCache.markAllDirty()
+    }
+
+    /** The atlas px (both axes) the composite caches are currently sized at (see [rebuildCaches]). */
+    private var compositeCacheTileW = glyphSource.charWidthPx
+    private var compositeCacheTileH = glyphSource.charHeightPx
+
+    /**
+     * Disposes and reallocates the composite caches at the glyph source's current atlas px. Called by
+     * the resolution-independent path after the source re-rasterises, since a [GridCompositeCache]'s
+     * framebuffer is sized from the tile px at construction and can't resize in place. The per-observer
+     * [ViewportDirtyTracker] is rebuilt with the fresh cache.
+     */
+    private fun rebuildCaches() {
+        compositeCacheTileW = glyphSource.charWidthPx
+        compositeCacheTileH = glyphSource.charHeightPx
+        compositeCache.dispose()
+        compositeCache = GridCompositeCache(glyphSource.charWidthPx, glyphSource.charHeightPx)
+        viewportCache.dispose()
+        viewportCache = GridCompositeCache(glyphSource.charWidthPx, glyphSource.charHeightPx)
+        viewportDirtyTracker = ViewportDirtyTracker(viewportCache)
     }
 
     // -------------------------------------------------------------------------
@@ -822,6 +909,7 @@ class AsciiTileWindow private constructor(
                 config.fitToWindow,
                 config.scalePolicy,
                 sharesCanvas = config.sharesCanvas,
+                resolutionIndependent = config.resolutionIndependent,
             )
         }
 
@@ -888,6 +976,13 @@ class AsciiTileWindow private constructor(
             init: AsciiTileWindowConfig.() -> Unit = {},
         ): AsciiTileWindow {
             val config = AsciiTileWindowConfig().apply(init)
+            // Resolution independence retiles the canvas (native tile px, atlas, caches). A canvas
+            // supplied here is externally owned and generally shared, with a single layout; letting one
+            // pane retile it would silently invalidate the others. Not supported via this factory.
+            require(!config.resolutionIndependent) {
+                "resolutionIndependent is not supported with a shared/external canvas (createWithCanvas); " +
+                    "use create { } so the window owns its canvas."
+            }
             return AsciiTileWindow(
                 glyphSource = glyphSource,
                 canvas = canvas,
@@ -941,6 +1036,13 @@ class AsciiTileWindow private constructor(
  *   built with [AsciiTileWindow.create] (which owns its canvas); with
  *   [AsciiTileWindow.createWithCanvas] the mode is chosen when you construct the
  *   [KotileCanvas].
+ * @property resolutionIndependent keep a **fixed** cell count but re-rasterise a
+ *   size-parametric [glyphSource] at the on-screen cell pixel size on every
+ *   [AsciiTileWindow.resize], rendering it 1:1 (ADR-0036 tier 3, krogue-9x7.2). Use
+ *   with [FreeTypeGlyphSource] for smooth glyphs rasterised *at* — not scaled to —
+ *   any window size. Overrides [scalePolicy]/[fitToWindow] (the grid is a fixed
+ *   [IntegerScale] grid). A bitmap [Font] ignores the re-rasterise, so it behaves
+ *   as an ordinary fixed grid. Defaults to `false`.
  */
 data class AsciiTileWindowConfig(
     var glyphSource: GlyphSource? = null,
@@ -950,4 +1052,5 @@ data class AsciiTileWindowConfig(
     var scalePolicy: ScalePolicy = IntegerScale,
     var sharesCanvas: Boolean = false,
     var fractionalScaleMode: FractionalScaleMode = FractionalScaleMode.SHARP_BILINEAR,
+    var resolutionIndependent: Boolean = false,
 )
