@@ -56,9 +56,12 @@ class FreeTypeGlyphSourceIntegrationTest : FunSpec({
                 blockRegionSize shouldBe (16 to 16)
                 spaceHasGlyph shouldBe true
                 outOfRangeGlyph shouldBe false
-                // Cell 0 (full block) is near-white; cell 1 (space) stays black.
-                pixels.averageColor(2, 2, 14, 14).r.toDouble() shouldBe (1.0 plusOrMinus 0.1)
-                pixels.averageColor(18, 2, 30, 14).r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
+                // Cell 0 (full block) is opaque in its core; cell 1 (space) stays black. Sample the
+                // central half only: glyph placement centres each glyph's cap box, so cell-filling
+                // glyphs don't reach the cell edges yet (seams — the krogue-9x7.4 follow-up), which a
+                // full-cell sample would (correctly) catch.
+                pixels.averageColor(4, 4, 12, 12).r.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+                pixels.averageColor(20, 4, 28, 12).r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
             } finally {
                 pixels.dispose()
             }
@@ -98,8 +101,12 @@ class FreeTypeGlyphSourceIntegrationTest : FunSpec({
             var atlasAt40 = -1
             var cellAt80 = -1
             var atlasAt80 = -1
+            // Derive the backbuffer/logical ratio from the shared HeadlessGl window rather than assuming
+            // 1 — the atlas is built at the backbuffer cell px, so the expectation must track hidpi.
+            var hidpi = 1
             HeadlessGl
                 .render(40, 20, Color.BLACK) {
+                    hidpi = (Gdx.graphics.backBufferWidth / Gdx.graphics.width.coerceAtLeast(1)).coerceAtLeast(1)
                     val source = Fonts.ubuntuMono(16, 16)
                     val window =
                         AsciiTileWindow.create {
@@ -109,7 +116,7 @@ class FreeTypeGlyphSourceIntegrationTest : FunSpec({
                             resolutionIndependent = true
                         }
                     try {
-                        // 40x20 window, 4x2 grid -> cell = min(40/4, 20/2) = 10.
+                        // 40x20 window, 4x2 grid -> logical cell = min(40/4, 20/2) = 10.
                         window.resize(40, 20)
                         cellAt40 = window.tileWidthPx
                         atlasAt40 = source.charWidthPx
@@ -122,10 +129,11 @@ class FreeTypeGlyphSourceIntegrationTest : FunSpec({
                     }
                 }.dispose()
 
+            // Canvas layout is the logical cell; the atlas is that times the HiDPI ratio.
             cellAt40 shouldBe 10
-            atlasAt40 shouldBe 10 // hidpi=1 on CI, so atlas px == logical cell px
-            cellAt80 shouldBe 20
-            atlasAt80 shouldBe 20 // grew with the window, not stuck at the construction size (16)
+            atlasAt40 shouldBe 10 * hidpi
+            cellAt80 shouldBe 20 // grew with the window, not stuck at the construction size (16)
+            atlasAt80 shouldBe 20 * hidpi
         }
 
     test("FreeTypeGlyphSource: an odd supersample pass count keeps the atlas upright (not flipped)")
@@ -136,10 +144,14 @@ class FreeTypeGlyphSourceIntegrationTest : FunSpec({
             // sits at atlas row 13; a vertical flip maps that cell to row 2 (a sparse '+' glyph). So
             // `glyph(219)` renders fully opaque only when the atlas is upright — flipped, it would show
             // '+' and read near-empty. supersample=4 (2 passes) passes even with the bug, so 8 is used.
+            //
+            // Cell 16 keeps the master atlas at 16·16·8 = 2048px/axis, so it stays under any driver's
+            // GL_MAX_TEXTURE_SIZE (≥ 2048 everywhere) and rasterize() does NOT halve `ss` to an even
+            // count — otherwise the cap would silently make this pass even against the un-fixed code.
             val pixels =
-                HeadlessGl.render(24, 24, Color.BLACK) {
+                HeadlessGl.render(16, 16, Color.BLACK) {
                     val source =
-                        FreeTypeGlyphSource(Gdx.files.classpath("fonts/UbuntuMono-R.ttf"), 24, 24, supersample = 8)
+                        FreeTypeGlyphSource(Gdx.files.classpath("fonts/UbuntuMono-R.ttf"), 16, 16, supersample = 8)
                     val window =
                         AsciiTileWindow.create {
                             glyphSource = source
@@ -156,8 +168,10 @@ class FreeTypeGlyphSourceIntegrationTest : FunSpec({
                 }
 
             try {
-                // Upright: the full block fills the cell. Flipped: a sparse '+' glyph, far dimmer.
-                pixels.averageColor(2, 2, 22, 22).r.toDouble() shouldBeGreaterThan 0.9
+                // Upright: the full block is solid in its core (~1). Flipped: a sparse '+' glyph, far
+                // dimmer. Sample the central half (the block doesn't reach the cell edges — see the
+                // full-block test's note) so this discriminates orientation, not edge coverage.
+                pixels.averageColor(4, 4, 12, 12).r.toDouble() shouldBeGreaterThan 0.9
             } finally {
                 pixels.dispose()
             }

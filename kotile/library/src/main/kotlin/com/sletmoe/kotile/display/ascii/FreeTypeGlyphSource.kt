@@ -113,6 +113,12 @@ class FreeTypeGlyphSource(
     // GridCompositeCache for the same discipline.
     private val glQueryBuffer = BufferUtils.newIntBuffer(16)
 
+    // One reusable batch + camera for all render passes, rather than allocating a SpriteBatch (which
+    // compiles a shader and allocates buffers) per pass — rasterise runs on every resize step of the
+    // resolution-independent path. Lazily created on first rasterise; released in dispose().
+    private var renderBatch: SpriteBatch? = null
+    private val renderCamera = OrthographicCamera()
+
     init {
         rasterize(cellWidthPx, cellHeightPx)
     }
@@ -170,31 +176,45 @@ class FreeTypeGlyphSource(
                 },
             )
 
+        // Each intermediate FBO / the font / the read-back pixmap is released even if a GL step throws
+        // (an allocation or incomplete-FBO GdxRuntimeException) — the caller has no handle to these.
         val upright =
-            preservingFrameBuffer {
-                // 1. Render every glyph centred in its ss-sized cell.
-                var buffer = FrameBuffer(Pixmap.Format.RGBA8888, atlasW * ss, atlasH * ss, false)
-                renderGlyphs(buffer, font, w * ss, h * ss)
-                // 2. Halve — gamma-correct, in linear light — until the atlas is at cell resolution.
-                var scale = ss
-                while (scale > 1) {
-                    val half = FrameBuffer(Pixmap.Format.RGBA8888, buffer.width / 2, buffer.height / 2, false)
-                    gammaHalve(half, buffer)
-                    buffer.dispose()
-                    buffer = half
-                    scale /= 2
+            try {
+                preservingFrameBuffer {
+                    // 1. Render every glyph centred in its ss-sized cell.
+                    var buffer = FrameBuffer(Pixmap.Format.RGBA8888, atlasW * ss, atlasH * ss, false)
+                    try {
+                        renderGlyphs(buffer, font, w * ss, h * ss)
+                        // 2. Halve — gamma-correct, in linear light — until the atlas is at cell resolution.
+                        var scale = ss
+                        while (scale > 1) {
+                            val half = FrameBuffer(Pixmap.Format.RGBA8888, buffer.width / 2, buffer.height / 2, false)
+                            try {
+                                gammaHalve(half, buffer)
+                            } catch (t: Throwable) {
+                                half.dispose()
+                                throw t
+                            }
+                            buffer.dispose()
+                            buffer = half
+                            scale /= 2
+                        }
+                        // 3. Read the cell-resolution atlas back, upright (FBO pixels are bottom-up).
+                        buffer.begin()
+                        val raw = Pixmap.createFromFrameBuffer(0, 0, atlasW, atlasH)
+                        buffer.end()
+                        try {
+                            flipY(raw)
+                        } finally {
+                            raw.dispose()
+                        }
+                    } finally {
+                        buffer.dispose()
+                    }
                 }
-                // 3. Read the cell-resolution atlas back, upright (FBO pixels are bottom-up).
-                buffer.begin()
-                val raw = Pixmap.createFromFrameBuffer(0, 0, atlasW, atlasH)
-                buffer.end()
-                buffer.dispose()
-                val flipped = flipY(raw)
-                raw.dispose()
-                flipped
+            } finally {
+                font.dispose()
             }
-
-        font.dispose()
 
         val newAtlas =
             Texture(upright).apply { setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear) }
@@ -221,21 +241,9 @@ class FreeTypeGlyphSource(
         cellW: Int,
         cellH: Int,
     ) {
-        target.begin()
-        Gdx.gl.glClearColor(0f, 0f, 0f, 0f)
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
-        val batch = SpriteBatch()
-        batch.disableBlending()
-        val camera =
-            OrthographicCamera().apply {
-                setToOrtho(false, target.width.toFloat(), target.height.toFloat())
-                update()
-            }
-        batch.projectionMatrix = camera.combined
-        batch.begin()
+        val batch = beginTargetPass(target, shader = null)
         drawAllGlyphs(font, batch, cellW, cellH, target.height)
         batch.end()
-        batch.dispose()
         target.end()
     }
 
@@ -251,19 +259,7 @@ class FreeTypeGlyphSource(
         val shader = downsampleShader ?: return
         val texture = source.colorBufferTexture
         texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
-        target.begin()
-        Gdx.gl.glClearColor(0f, 0f, 0f, 0f)
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
-        val batch = SpriteBatch()
-        batch.disableBlending()
-        val camera =
-            OrthographicCamera().apply {
-                setToOrtho(false, target.width.toFloat(), target.height.toFloat())
-                update()
-            }
-        batch.projectionMatrix = camera.combined
-        batch.shader = shader
-        batch.begin()
+        val batch = beginTargetPass(target, shader)
         shader.setUniformf("u_footprintTexels", 2f, 2f)
         shader.setUniformf("u_srcTexel", 1f / source.width, 1f / source.height)
         // Drawing an FBO's colour texture into another FBO flips it vertically (FBO storage is
@@ -279,8 +275,29 @@ class FreeTypeGlyphSource(
             target.height.toFloat(),
         )
         batch.end()
-        batch.dispose()
         target.end()
+    }
+
+    /**
+     * Binds [target], clears it transparent, and starts the shared [renderBatch] pointed at it with
+     * [shader] (null = default) and blending disabled (straight-alpha writes; see [renderGlyphs]).
+     * Returns the batch, already `begin`-ed; the caller draws, then `end()`s the batch and [target].
+     */
+    private fun beginTargetPass(
+        target: FrameBuffer,
+        shader: ShaderProgram?,
+    ): SpriteBatch {
+        target.begin()
+        Gdx.gl.glClearColor(0f, 0f, 0f, 0f)
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
+        val batch = renderBatch ?: SpriteBatch().also { renderBatch = it }
+        renderCamera.setToOrtho(false, target.width.toFloat(), target.height.toFloat())
+        renderCamera.update()
+        batch.projectionMatrix = renderCamera.combined
+        batch.shader = shader
+        batch.disableBlending()
+        batch.begin()
+        return batch
     }
 
     /** GL_MAX_TEXTURE_SIZE for the current context (the largest square texture/FBO the GPU will allocate). */
@@ -318,33 +335,45 @@ class FreeTypeGlyphSource(
         h: Int,
         atlasH: Int,
     ) {
-        val layout = GlyphLayout()
-        for (slot in 0 until GLYPH_COUNT) {
-            val codePoint = Cp437.toUnicode(slot)
-            if (codePoint < 0) continue
-            val text = String(Character.toChars(codePoint))
-            layout.setText(font, text)
-            if (layout.width <= 0f && layout.height <= 0f) continue // nothing to draw (e.g. space)
+        // Scissor each glyph to its own cell: BitmapFont.draw doesn't clip, so a glyph whose outline
+        // exceeds the cell (accents, tall box-drawing, or an overflowing em) would otherwise overwrite
+        // the neighbouring CP437 slot in the shared atlas. The per-cell flush makes each scissor take
+        // effect for its own draw (SpriteBatch buffers until flushed) — same discipline as
+        // GridCompositeCache's partial recomposite.
+        Gdx.gl.glEnable(GL20.GL_SCISSOR_TEST)
+        try {
+            val layout = GlyphLayout()
+            for (slot in 0 until GLYPH_COUNT) {
+                val codePoint = Cp437.toUnicode(slot)
+                if (codePoint < 0) continue
+                val text = String(Character.toChars(codePoint))
+                layout.setText(font, text)
+                if (layout.width <= 0f && layout.height <= 0f) continue // nothing to draw (e.g. space)
 
-            val col = slot % COLUMNS
-            val row = slot / COLUMNS
-            val cellLeft = (col * w).toFloat()
-            val cellTopWorldY = (atlasH - row * h).toFloat()
+                val col = slot % COLUMNS
+                val row = slot / COLUMNS
+                val cellLeft = (col * w).toFloat()
+                val cellTopWorldY = (atlasH - row * h).toFloat()
 
-            // BitmapFont.draw places (x, y) at the top of the line and draws downward in the y-up
-            // world; centre the measured glyph box within the cell.
-            val drawX = cellLeft + (w - layout.width) / 2f
-            val drawY = cellTopWorldY - (h - layout.height) / 2f
-            font.draw(batch, layout, drawX, drawY)
+                // Clip to this cell (GL scissor is bottom-left origin; the cell's bottom edge is atlasH
+                // - (row+1)*h). BitmapFont.draw places (x, y) at the top of the line and draws downward
+                // in the y-up world; centre the measured glyph box within the cell.
+                Gdx.gl.glScissor(col * w, atlasH - (row + 1) * h, w, h)
+                val drawX = cellLeft + (w - layout.width) / 2f
+                val drawY = cellTopWorldY - (h - layout.height) / 2f
+                font.draw(batch, layout, drawX, drawY)
+                batch.flush() // land this cell's geometry while its scissor is active
+            }
+        } finally {
+            Gdx.gl.glDisable(GL20.GL_SCISSOR_TEST)
         }
     }
 
+    /** Returns a vertically flipped copy of [src], one row per native blit (not per pixel). */
     private fun flipY(src: Pixmap): Pixmap {
         val dst = Pixmap(src.width, src.height, Pixmap.Format.RGBA8888).apply { blending = Pixmap.Blending.None }
         for (y in 0 until src.height) {
-            for (x in 0 until src.width) {
-                dst.drawPixel(x, y, src.getPixel(x, src.height - 1 - y))
-            }
+            dst.drawPixmap(src, 0, y, 0, src.height - 1 - y, src.width, 1)
         }
         return dst
     }
@@ -365,10 +394,12 @@ class FreeTypeGlyphSource(
         }
     }
 
-    /** Disposes the atlas texture, the downsample shader, and the freetype generator. */
+    /** Disposes the atlas texture, the render batch, the downsample shader, and the freetype generator. */
     override fun dispose() {
         atlas?.dispose()
         atlas = null
+        renderBatch?.dispose()
+        renderBatch = null
         downsampleShader?.dispose()
         downsampleShader = null
         generator.dispose()

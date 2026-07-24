@@ -109,7 +109,7 @@ tasks.register<JavaExec>("freetypeVerify") {
         jvmArgs("-XstartOnFirstThread")
     }
     val outFile =
-        (project.findProperty("outFile") as String?)
+        (project.findProperty("outFile") as? String)
             ?: layout.buildDirectory.file("freetype-verify.png").get().asFile.absolutePath
     systemProperty("kotile.ftverify.out", outFile)
     doFirst { logger.lifecycle("Rendering freetype chart to: $outFile") }

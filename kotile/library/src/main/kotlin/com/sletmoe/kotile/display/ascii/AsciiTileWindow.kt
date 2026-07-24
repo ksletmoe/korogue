@@ -730,6 +730,13 @@ class AsciiTileWindow private constructor(
      *
      * When [fitToWindow] is `false`, only the canvas projection is updated;
      * the tile grid remains unchanged.
+     *
+     * When `resolutionIndependent` (see [AsciiTileWindowConfig]) the cell **count**
+     * is fixed but the cell **pixel size** tracks the window: this recomputes the
+     * on-screen cell px, re-rasterises a size-parametric glyph source to match (via
+     * [GlyphSource.prepareForCellSize]), retiles the canvas ([KotileCanvas.setNativeTileSize]),
+     * and rebuilds the composite caches to the new atlas px — so glyphs are drawn
+     * *at* the display size, not scaled. See [resizeResolutionIndependent].
      */
     fun resize(
         widthPx: Int,
@@ -798,21 +805,23 @@ class AsciiTileWindow private constructor(
 
         glyphSource.prepareForCellSize(cellPhysical, cellPhysical)
         // The atlas px the source actually produced (a bitmap Font ignores the request and stays put; a
-        // freetype source follows). Layout uses the logical cell; caches use the atlas px.
+        // freetype source follows it, so its atlas == cellPhysical). The canvas layout is the atlas px
+        // mapped back through the HiDPI ratio, so the grid draws at logical scale and HdpiUtils upscales
+        // the atlas-resolution cache blit 1:1 onto the backbuffer. For a size-parametric source this is
+        // the intended `cellLogical`; a fixed bitmap source just renders at its native backbuffer res.
         val atlasW = glyphSource.charWidthPx
         val atlasH = glyphSource.charHeightPx
-        val layoutW = if (atlasW == cellPhysical) cellLogical else atlasW
-        val layoutH = if (atlasH == cellPhysical) cellLogical else atlasH
-        if (layoutW != canvas.tileWidthPx || layoutH != canvas.tileHeightPx || atlasW != compositeCacheTileW) {
-            canvas.setNativeTileSize(layoutW, layoutH)
-            rebuildCaches()
-        }
+        val layoutW = (atlasW / hidpi).roundToInt().coerceAtLeast(1)
+        val layoutH = (atlasH / hidpi).roundToInt().coerceAtLeast(1)
+        canvas.setNativeTileSize(layoutW, layoutH) // no-op if unchanged
+        if (atlasW != compositeCacheTileW || atlasH != compositeCacheTileH) rebuildCaches()
         canvas.resize(widthPx, heightPx)
         compositeCache.markAllDirty()
     }
 
-    /** The atlas px the composite caches are currently sized at (see [rebuildCaches]). */
+    /** The atlas px (both axes) the composite caches are currently sized at (see [rebuildCaches]). */
     private var compositeCacheTileW = glyphSource.charWidthPx
+    private var compositeCacheTileH = glyphSource.charHeightPx
 
     /**
      * Disposes and reallocates the composite caches at the glyph source's current atlas px. Called by
@@ -822,6 +831,7 @@ class AsciiTileWindow private constructor(
      */
     private fun rebuildCaches() {
         compositeCacheTileW = glyphSource.charWidthPx
+        compositeCacheTileH = glyphSource.charHeightPx
         compositeCache.dispose()
         compositeCache = GridCompositeCache(glyphSource.charWidthPx, glyphSource.charHeightPx)
         viewportCache.dispose()
@@ -966,6 +976,13 @@ class AsciiTileWindow private constructor(
             init: AsciiTileWindowConfig.() -> Unit = {},
         ): AsciiTileWindow {
             val config = AsciiTileWindowConfig().apply(init)
+            // Resolution independence retiles the canvas (native tile px, atlas, caches). A canvas
+            // supplied here is externally owned and generally shared, with a single layout; letting one
+            // pane retile it would silently invalidate the others. Not supported via this factory.
+            require(!config.resolutionIndependent) {
+                "resolutionIndependent is not supported with a shared/external canvas (createWithCanvas); " +
+                    "use create { } so the window owns its canvas."
+            }
             return AsciiTileWindow(
                 glyphSource = glyphSource,
                 canvas = canvas,

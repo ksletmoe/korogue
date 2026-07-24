@@ -311,7 +311,8 @@ then given a tested ECS foundation:
 - **Freetype glyph source — tier 3 (krogue-9x7.2, ADR-0036).** `FreeTypeGlyphSource`
   (via `Fonts.ubuntuMono(...)`) is a resolution-independent `GlyphSource` that
   rasterises a TrueType face (bundled **Ubuntu Mono**, Ubuntu Font Licence 1.0 —
-  chosen for full CP437 box-drawing/block/Greek coverage) into a 16×16 page atlas.
+  chosen for broad CP437 box-drawing/block/Greek coverage — a few symbols it lacks
+  fall back to `.notdef`) into a 16×16 page atlas.
   Indexed by `char.code` as a CP437 slot exactly like the bitmap `Font` (drop-in),
   mapping each slot to its Unicode glyph via `Cp437`. **Brogue-style smoothing:** it
   rasterises the page at `supersample`× the cell (default 4×, ~150px master per

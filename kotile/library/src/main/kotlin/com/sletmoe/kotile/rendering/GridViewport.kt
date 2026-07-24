@@ -73,7 +73,7 @@ class GridViewport(
      * next [update]. Used by the resolution-independent path, which re-rasterises the glyph atlas at the
      * on-screen cell size and then renders it 1:1.
      */
-    fun setNativeTileSize(
+    internal fun setNativeTileSize(
         widthPx: Int,
         heightPx: Int,
     ) {

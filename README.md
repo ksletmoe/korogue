@@ -193,6 +193,8 @@ dependencies {
     // A libGDX backend + natives to open a window (the engine brings kotile + gdx-core transitively).
     implementation("com.badlogicgames.gdx:gdx-backend-lwjgl3:1.14.1")
     runtimeOnly("com.badlogicgames.gdx:gdx-platform:1.14.1:natives-desktop")
+    // Only if you use kotile's freetype glyph source (Fonts.ubuntuMono): add the freetype native too.
+    runtimeOnly("com.badlogicgames.gdx:gdx-freetype-platform:1.14.1:natives-desktop")
 }
 ```
 

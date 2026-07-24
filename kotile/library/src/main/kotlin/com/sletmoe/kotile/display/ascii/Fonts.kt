@@ -229,9 +229,10 @@ object Fonts {
      * — the tier-3, resolution-independent glyph source (ADR-0036, krogue-9x7.2).
      * Glyphs are rasterised *at* the [cellWidthPx] x [cellHeightPx] cell size
      * (smooth at any size, re-rasterised on [GlyphSource.prepareForCellSize])
-     * rather than scaled from a fixed bitmap. Ubuntu Mono is chosen for its full
+     * rather than scaled from a fixed bitmap. Ubuntu Mono is chosen for its broad
      * CP437 coverage — box-drawing, block/shade elements, and Greek — which most
-     * code-oriented monospace faces omit.
+     * code-oriented monospace faces omit; a few CP437 symbols it lacks (e.g. ☺, ⌂,
+     * ∩, ≡, ■) fall back to the face's `.notdef` glyph.
      *
      * Unlike the `cp437_*` bitmap fonts this is **not** free — it renders the whole
      * 256-glyph page through an offscreen buffer, so build it once and reuse it.
