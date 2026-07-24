@@ -287,8 +287,9 @@ then given a tested ECS foundation:
   fractional vs 0.0 integer; glyph smoke); eyeball via
   `:kotile:demo:fixedGridHarness -Ppolicy=fit` at a fractional window size.
 - **Supersample→gamma-downsample — tier 2 (krogue-1zo, ADR-0036).** Opt in with
-  `KotileCanvas(…, superSample = true)` (or `superSample = true` in the
-  `AsciiTileWindow.create` config). At a **fractional** scale, instead of the
+  `KotileCanvas(…, fractionalScaleMode = FractionalScaleMode.SUPERSAMPLE)` (or the
+  same `fractionalScaleMode` in the `AsciiTileWindow.create` config). At a
+  **fractional** scale, instead of the
   lighter sharp-bilinear shader the whole pass — glyphs **and** sprite tiles — is
   captured into an offscreen `SupersampleTarget` FBO at a **large integer** tile
   size (`ceil(scale)`×native, pixel-crisp) and resolved to the window with a
@@ -299,7 +300,7 @@ then given a tested ECS foundation:
   `ScalePolicy` and not a glyph-source change; the grid collaborators
   (`AsciiTileWindow`/`TileRenderer`) need no changes because `canvas.layout`
   returns the supersample layout during the capture pass. Integer/reflow scales
-  and the default (`superSample = false`) path are untouched. It does **not**
+  and the default (`SHARP_BILINEAR`) path are untouched. It does **not**
   reproduce Brogue's *smooth-glyph* look (that is tier 3 / krogue-9x7.2 — a bitmap
   source has no high-res detail to recover); it delivers crisp *pixels* at any
   size. The sRGB↔linear curve is unit-tested GL-free (`GammaColorTest`); the

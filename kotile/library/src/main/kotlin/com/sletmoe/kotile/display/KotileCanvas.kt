@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.utils.Disposable
+import com.sletmoe.kotile.rendering.FractionalScaleMode
 import com.sletmoe.kotile.rendering.GridLayout
 import com.sletmoe.kotile.rendering.GridViewport
 import com.sletmoe.kotile.rendering.IntegerScale
@@ -70,35 +71,36 @@ import kotlin.math.roundToInt
  * partial-tile bleed, so the letterbox bars are guaranteed to stay at the clear
  * color.
  *
- * ### Supersample→downsample (tier 2, opt-in)
+ * ### Fractional-scale mode (tier 2, opt-in)
  *
- * With [superSample] `= true`, a **fractional** scale is handled differently:
- * instead of the lighter sharp-bilinear shader, the whole pass — glyphs *and*
- * sprite tiles — is captured into an offscreen [SupersampleTarget] at a large
- * integer tile size (pixel-crisp) and then resolved to the window with a
- * gamma-correct downsample (ADR-0036 tier 2, krogue-1zo). Integer scales and
- * reflow are unaffected (still direct + nearest, pixel-perfect), and if the
- * downsample shader or buffer is unavailable the canvas falls back to
+ * With [fractionalScaleMode] = [FractionalScaleMode.SUPERSAMPLE], a **fractional**
+ * scale is handled differently: instead of the lighter sharp-bilinear shader, the
+ * whole pass — glyphs *and* sprite tiles — is captured into an offscreen
+ * [SupersampleTarget] at a large integer tile size (pixel-crisp) and then resolved
+ * to the window with a gamma-correct downsample (ADR-0036 tier 2, krogue-1zo).
+ * Integer scales and reflow are unaffected (still direct + nearest, pixel-perfect),
+ * and if the downsample shader or buffer is unavailable the canvas falls back to
  * sharp-bilinear. This is the heavier, higher-fidelity fractional path;
- * [SharpBilinear] remains the default.
+ * [FractionalScaleMode.SHARP_BILINEAR] remains the default.
  *
  * The class is `open` to allow subclassing — for example, in tests that need
  * to track dispose calls, or in consumers that want to add instrumentation.
  *
  * @property tileWidthPx a tile's **native** width in pixels (pre-scaling)
  * @property tileHeightPx a tile's **native** height in pixels (pre-scaling)
- * @param superSample opt into the tier-2 supersample→gamma-downsample path for
- *   fractional scales (see the class doc); defaults to `false` (sharp-bilinear).
+ * @param fractionalScaleMode how a fractional fixed-grid scale is smoothed (see
+ *   the class doc and [FractionalScaleMode]); defaults to
+ *   [FractionalScaleMode.SHARP_BILINEAR].
  */
 open class KotileCanvas(
     val tileWidthPx: Int,
     val tileHeightPx: Int,
-    private val superSample: Boolean = false,
+    private val fractionalScaleMode: FractionalScaleMode = FractionalScaleMode.SHARP_BILINEAR,
 ) : Disposable {
     private val batch = SpriteBatch()
     private val viewport = GridViewport(tileWidthPx, tileHeightPx)
 
-    // Allocated lazily on the first fractional-scale pass when superSample is on; null otherwise so a
+    // Allocated lazily on the first fractional-scale pass when the mode is SUPERSAMPLE; null otherwise so a
     // canvas that never opts in (or never hits a fractional scale) pays nothing. Owns a scene FBO and
     // the gamma-downsample shader/batch. See SupersampleTarget.
     private var supersampleTarget: SupersampleTarget? = null
@@ -139,7 +141,7 @@ open class KotileCanvas(
      * Recomputed on every [resize] and mode change. Use [GridLayout.tileAt] to
      * map a mouse pixel position to a tile cell under the current layout.
      *
-     * During an active [superSample] capture pass (between [begin] and [end] at a
+     * During an active supersample capture pass (between [begin] and [end] at a
      * fractional scale) this returns the **supersample** layout the scene is drawn
      * against — larger, integer-scaled tiles with no letterbox offset — so
      * everything drawn in the pass lands in the offscreen scene at that size and is
@@ -225,7 +227,7 @@ open class KotileCanvas(
      * otherwise the default nearest-neighbour path is used.
      */
     fun begin() {
-        ssActive = superSample && isFractionalScale() && beginSupersample()
+        ssActive = fractionalScaleMode == FractionalScaleMode.SUPERSAMPLE && isFractionalScale() && beginSupersample()
 
         if (!ssActive) {
             viewport.apply()

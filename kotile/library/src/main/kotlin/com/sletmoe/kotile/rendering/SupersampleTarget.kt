@@ -50,10 +50,16 @@ internal class SupersampleTarget(
 ) : Disposable {
     private var fbo: FrameBuffer? = null
     private var batch: SpriteBatch? = null
+    private var flippedRegion: TextureRegion? = null
     private val camera = OrthographicCamera()
 
     private var widthPx = 0
     private var heightPx = 0
+
+    // Permanent-failure flag for the buffer/batch allocation, mirroring shaderFailed: a size the GPU
+    // cannot satisfy would otherwise be retried every frame forever. Once set, beginCapture returns
+    // false and the canvas falls back to the lighter path.
+    private var allocationFailed = false
 
     // Compiled lazily on first capture; a failure is permanent (fall back to the lighter
     // sharp-bilinear / nearest path) and never retried -- mirrors KotileCanvas's sharp shader.
@@ -117,13 +123,17 @@ internal class SupersampleTarget(
 
         Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, 0)
 
-        val texture = target.colorBufferTexture
-        // The shader interpolates within each tap, so the scene texture must sample Linear.
-        texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
-        // FrameBuffer colour textures are stored bottom-up; flip V so the scene is upright on screen
-        // (same correction GridCompositeCache.cachedRegion applies). A fresh region per call since
-        // flip() mutates in place.
-        val region = TextureRegion(texture).apply { flip(false, true) }
+        // FrameBuffer colour textures are stored bottom-up; the region is V-flipped so the scene is
+        // upright on screen (same correction GridCompositeCache.cachedRegion applies). Built once per
+        // buffer allocation and cached -- the colour texture handle only changes when ensure() rebuilds
+        // the FBO, which nulls flippedRegion (disposeGpuResources) so it is lazily recreated here.
+        val region =
+            flippedRegion ?: TextureRegion(target.colorBufferTexture)
+                .apply {
+                    // The shader interpolates within each tap, so the scene texture must sample Linear.
+                    target.colorBufferTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
+                    flip(false, true)
+                }.also { flippedRegion = it }
 
         b.projectionMatrix = projection
         b.shader = program
@@ -155,18 +165,40 @@ internal class SupersampleTarget(
         contentWidthPx: Int,
         contentHeightPx: Int,
     ): Boolean {
+        if (allocationFailed) return false
         val w = contentWidthPx.coerceAtLeast(1)
         val h = contentHeightPx.coerceAtLeast(1)
         if (w == widthPx && h == heightPx && fbo != null) return true
         disposeGpuResources()
-        return runCatching {
-            fbo = FrameBuffer(Pixmap.Format.RGBA8888, w, h, false)
-            batch = SpriteBatch()
-            widthPx = w
-            heightPx = h
-            camera.setToOrtho(false, w.toFloat(), h.toFloat())
-            camera.update()
-        }.isSuccess
+
+        // Build into locals and only publish on full success, so a failure part-way (e.g. the batch
+        // throws after the FBO allocates) can't leave fbo non-null with widthPx == 0. Log + latch the
+        // failure like ensureShader rather than silently retrying every frame.
+        val newFbo =
+            try {
+                FrameBuffer(Pixmap.Format.RGBA8888, w, h, false)
+            } catch (t: Throwable) {
+                Gdx.app?.error("SupersampleTarget", "failed to allocate ${w}x$h scene framebuffer", t)
+                allocationFailed = true
+                return false
+            }
+        val newBatch =
+            try {
+                SpriteBatch()
+            } catch (t: Throwable) {
+                newFbo.dispose()
+                Gdx.app?.error("SupersampleTarget", "failed to allocate scene batch", t)
+                allocationFailed = true
+                return false
+            }
+
+        fbo = newFbo
+        batch = newBatch
+        widthPx = w
+        heightPx = h
+        camera.setToOrtho(false, w.toFloat(), h.toFloat())
+        camera.update()
+        return true
     }
 
     private fun disposeGpuResources() {
@@ -174,6 +206,7 @@ internal class SupersampleTarget(
         batch?.dispose()
         fbo = null
         batch = null
+        flippedRegion = null
         widthPx = 0
         heightPx = 0
     }

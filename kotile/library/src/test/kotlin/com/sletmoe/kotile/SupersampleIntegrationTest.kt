@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
 import com.sletmoe.kotile.display.ascii.StaticAsciiTile
 import com.sletmoe.kotile.rendering.FitScale
+import com.sletmoe.kotile.rendering.FractionalScaleMode
 import com.sletmoe.kotile.rendering.GammaDownsample
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.doubles.plusOrMinus
@@ -96,7 +97,7 @@ class SupersampleIntegrationTest : FunSpec({
                             heightInTiles = 2
                             fitToWindow = false
                             scalePolicy = FitScale
-                            superSample = true
+                            fractionalScaleMode = FractionalScaleMode.SUPERSAMPLE
                         }
                     window.fill(StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
                     window.render()
@@ -125,7 +126,7 @@ class SupersampleIntegrationTest : FunSpec({
                             heightInTiles = 2
                             fitToWindow = false
                             scalePolicy = FitScale
-                            superSample = true
+                            fractionalScaleMode = FractionalScaleMode.SUPERSAMPLE
                         }
                     for (y in 0 until 2) {
                         window.drawTile(0, y, StaticAsciiTile(' ', Color.WHITE, Color.WHITE))
