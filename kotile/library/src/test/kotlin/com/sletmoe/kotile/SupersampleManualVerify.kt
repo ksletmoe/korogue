@@ -13,6 +13,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.graphics.glutils.FrameBuffer
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
+import com.badlogic.gdx.utils.BufferUtils
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
 import com.sletmoe.kotile.display.ascii.StaticAsciiTile
 import com.sletmoe.kotile.rendering.FitScale
@@ -43,6 +44,7 @@ private class SupersampleManualVerify : ApplicationAdapter() {
     // content via HdpiUtils at backbuffer scale, so the capture FBO and sample rects must too; on CI
     // this is 1 and the harness reduces exactly to the committed spec's geometry.
     private var hidpi = 1
+    private val glQueryBuffer = BufferUtils.newIntBuffer(16)
 
     override fun render() {
         // Let the initial resize settle so Gdx.graphics reports WIN_WxWIN_H before the pipeline checks.
@@ -54,9 +56,44 @@ private class SupersampleManualVerify : ApplicationAdapter() {
         gammaShaderCheck()
         solidFillCheck()
         halfSplitCheck()
+        fboRestoreCheck()
 
         println(if (failures == 0) "SSVERIFY: ALL PASSED" else "SSVERIFY: $failures FAILED")
         Gdx.app.exit()
+    }
+
+    /** Mirrors the committed krogue-s5h spec: the resolve must restore the caller's bound framebuffer. */
+    private fun fboRestoreCheck() {
+        Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, 0)
+        val outer = FrameBuffer(Pixmap.Format.RGBA8888, WIN_W * hidpi, WIN_H * hidpi, false)
+        outer.begin()
+        Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
+        val window =
+            AsciiTileWindow.create {
+                widthInTiles = 4
+                heightInTiles = 2
+                fitToWindow = false
+                scalePolicy = FitScale
+                fractionalScaleMode = FractionalScaleMode.SUPERSAMPLE
+            }
+        var bound = -1
+        try {
+            window.fill(StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
+            window.render()
+            glQueryBuffer.clear()
+            Gdx.gl.glGetIntegerv(GL20.GL_FRAMEBUFFER_BINDING, glQueryBuffer)
+            bound = glQueryBuffer.get(0)
+        } finally {
+            window.dispose()
+            outer.end()
+            outer.dispose()
+        }
+        report(
+            "resolve restores the caller's framebuffer (s5h)",
+            bound == outer.framebufferHandle && outer.framebufferHandle != 0,
+            "bound=$bound expected=${outer.framebufferHandle}",
+        )
     }
 
     /** Mirrors the committed "50/50 black+white footprint → ~0.735" spec, driving the internal shader directly. */

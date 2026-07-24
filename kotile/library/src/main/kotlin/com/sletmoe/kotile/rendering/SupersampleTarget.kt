@@ -11,6 +11,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.graphics.glutils.FrameBuffer
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.math.Matrix4
+import com.badlogic.gdx.utils.BufferUtils
 import com.badlogic.gdx.utils.Disposable
 
 /**
@@ -43,6 +44,10 @@ import com.badlogic.gdx.utils.Disposable
  * save/restore: those read `GL_FRAMEBUFFER_BINDING` directly, so as long as the
  * scene buffer is the raw-bound target while they run, their restore puts it back.
  * [reassert] re-binds the scene buffer and its viewport after such an interruption.
+ * The framebuffer bound when the pass began is captured (`beginCapture`) and
+ * restored on resolve, so the resolved frame lands in the caller's target — the
+ * window, or a consumer's own [FrameBuffer] when `render()` is wrapped for a
+ * screenshot/post-process (krogue-s5h) — rather than a hardcoded framebuffer 0.
  */
 internal class SupersampleTarget(
     private val nativeTileWidthPx: Int,
@@ -55,6 +60,17 @@ internal class SupersampleTarget(
 
     private var widthPx = 0
     private var heightPx = 0
+
+    // The framebuffer that was bound when the current capture pass began -- the window's default FBO
+    // normally, but a consumer's own FrameBuffer when render() is wrapped for a screenshot/post-process
+    // (the krogue-s5h contract AsciiTileWindow documents). resolveToScreen restores *this*, not a
+    // hardcoded 0 nor the platform default, so the resolved frame lands where the caller expects and
+    // the caller's binding is left as it was found. Captured in beginCapture before any FBO op.
+    private var outerFramebufferHandle = 0
+
+    // Scratch for glGetIntegerv(GL_FRAMEBUFFER_BINDING); reused rather than allocated per frame. Same
+    // habit as GridCompositeCache.
+    private val glQueryBuffer = BufferUtils.newIntBuffer(16)
 
     // Permanent-failure flag for the buffer/batch allocation, mirroring shaderFailed: a size the GPU
     // cannot satisfy would otherwise be retried every frame forever. Once set, beginCapture returns
@@ -81,6 +97,9 @@ internal class SupersampleTarget(
         contentHeightPx: Int,
     ): Boolean {
         if (!ensureShader()) return false
+        // Capture the caller's bound framebuffer *before* ensure() may allocate a FrameBuffer (whose
+        // constructor leaves framebuffer 0 bound), so resolveToScreen can restore the real outer target.
+        outerFramebufferHandle = currentFramebufferHandle()
         if (!ensure(contentWidthPx, contentHeightPx)) return false
         val target = fbo ?: return false
         Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, target.framebufferHandle)
@@ -102,9 +121,10 @@ internal class SupersampleTarget(
     }
 
     /**
-     * Unbinds the scene buffer (back to the window's framebuffer 0), then draws the captured scene to
-     * the on-screen content rectangle at [contentWidthPx] x [contentHeightPx], gamma-correctly
-     * downsampled. [projection] is the canvas's real (on-screen) camera projection and the GL viewport
+     * Unbinds the scene buffer (restoring the framebuffer bound when the pass began — see
+     * [outerFramebufferHandle]), then draws the captured scene to the on-screen content rectangle at
+     * [contentWidthPx] x [contentHeightPx], gamma-correctly downsampled. [projection] is the canvas's
+     * real (on-screen) camera projection and the GL viewport
      * must already be the on-screen content rectangle — the caller re-applies its
      * [com.sletmoe.kotile.rendering.GridViewport] before calling this. [footprintTexelsX] /
      * [footprintTexelsY] are the source texels covered by one destination pixel per axis (the scene
@@ -121,7 +141,11 @@ internal class SupersampleTarget(
         val program = shader ?: return
         val b = batch ?: return
 
-        Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, 0)
+        // Restore the framebuffer that was bound when the pass began (see outerFramebufferHandle) and
+        // resolve into it -- the window's default FBO normally, or a consumer's own FrameBuffer when
+        // render() is wrapped (krogue-s5h). Hardcoding 0 would break both non-zero-default platforms
+        // (iOS) and that wrapping contract; the rest of kotile restores the saved handle too.
+        Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, outerFramebufferHandle)
 
         // FrameBuffer colour textures are stored bottom-up; the region is V-flipped so the scene is
         // upright on screen (same correction GridCompositeCache.cachedRegion applies). Built once per
@@ -145,6 +169,13 @@ internal class SupersampleTarget(
         b.draw(region, 0f, 0f, contentWidthPx, contentHeightPx)
         b.end()
         b.shader = null
+    }
+
+    /** The framebuffer handle currently bound to `GL_FRAMEBUFFER` (0 = default/window unless the platform differs). */
+    private fun currentFramebufferHandle(): Int {
+        glQueryBuffer.clear()
+        Gdx.gl.glGetIntegerv(GL20.GL_FRAMEBUFFER_BINDING, glQueryBuffer)
+        return glQueryBuffer.get(0)
     }
 
     private fun ensureShader(): Boolean {
