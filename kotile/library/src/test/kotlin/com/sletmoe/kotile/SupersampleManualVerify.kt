@@ -78,9 +78,11 @@ private class SupersampleManualVerify : ApplicationAdapter() {
                 fractionalScaleMode = FractionalScaleMode.SUPERSAMPLE
             }
         var bound = -1
+        var usedSupersample = false
         try {
             window.fill(StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
             window.render()
+            usedSupersample = window.backingCanvas.supersampledLastPass
             glQueryBuffer.clear()
             Gdx.gl.glGetIntegerv(GL20.GL_FRAMEBUFFER_BINDING, glQueryBuffer)
             bound = glQueryBuffer.get(0)
@@ -91,8 +93,8 @@ private class SupersampleManualVerify : ApplicationAdapter() {
         }
         report(
             "resolve restores the caller's framebuffer (s5h)",
-            bound == outer.framebufferHandle && outer.framebufferHandle != 0,
-            "bound=$bound expected=${outer.framebufferHandle}",
+            usedSupersample && bound == outer.framebufferHandle && outer.framebufferHandle != 0,
+            "usedSupersample=$usedSupersample bound=$bound expected=${outer.framebufferHandle}",
         )
     }
 

@@ -191,6 +191,7 @@ class SupersampleIntegrationTest : FunSpec({
             var restoredHandle = -1
             var expectedHandle = -1
             var centerBlue = 0.0
+            var usedSupersample = false
             HeadlessGl
                 .render(60, 30, Color.BLACK) {
                     val outer = FrameBuffer(Pixmap.Format.RGBA8888, 60, 30, false)
@@ -208,12 +209,16 @@ class SupersampleIntegrationTest : FunSpec({
                     try {
                         window.fill(StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
                         window.render()
+                        usedSupersample = window.backingCanvas.supersampledLastPass
                         expectedHandle = outer.framebufferHandle
                         restoredHandle = boundFramebuffer()
                         // Read the consumer buffer (still bound if the contract held) — it must hold the frame.
                         val shot = Pixmap.createFromFrameBuffer(0, 0, 60, 30)
-                        centerBlue = shot.averageColor(20, 10, 40, 20).b.toDouble()
-                        shot.dispose()
+                        try {
+                            centerBlue = shot.averageColor(20, 10, 40, 20).b.toDouble()
+                        } finally {
+                            shot.dispose()
+                        }
                     } finally {
                         window.dispose()
                         outer.end()
@@ -221,6 +226,10 @@ class SupersampleIntegrationTest : FunSpec({
                     }
                 }.dispose()
 
+            // Without this the test is vacuous: if SUPERSAMPLE silently fell back, render() would draw
+            // straight into `outer` (no scene FBO), so nothing rebinds it and the handle/pixel checks
+            // pass trivially without ever exercising resolveToScreen's restore.
+            usedSupersample shouldBe true
             // A consumer FBO is non-zero on desktop, so this also proves it wasn't reset to 0.
             expectedHandle shouldBe restoredHandle
             centerBlue shouldBe (1.0 plusOrMinus 0.1)
