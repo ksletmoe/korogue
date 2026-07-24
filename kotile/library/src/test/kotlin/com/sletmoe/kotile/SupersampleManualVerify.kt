@@ -79,6 +79,7 @@ private class SupersampleManualVerify : ApplicationAdapter() {
             }
         var bound = -1
         var usedSupersample = false
+        var centerBlue = -1f
         try {
             window.fill(StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
             window.render()
@@ -86,15 +87,20 @@ private class SupersampleManualVerify : ApplicationAdapter() {
             glQueryBuffer.clear()
             Gdx.gl.glGetIntegerv(GL20.GL_FRAMEBUFFER_BINDING, glQueryBuffer)
             bound = glQueryBuffer.get(0)
+            // Read the frame back out of `outer` (still bound) -- a resolve that restored the binding
+            // but dropped/cleared the pixels must not pass.
+            val shot = Pixmap.createFromFrameBuffer(0, 0, WIN_W * hidpi, WIN_H * hidpi)
+            centerBlue = shot.averageColor(20 * hidpi, 10 * hidpi, 40 * hidpi, 20 * hidpi).b
+            shot.dispose()
         } finally {
             window.dispose()
             outer.end()
             outer.dispose()
         }
         report(
-            "resolve restores the caller's framebuffer (s5h)",
-            usedSupersample && bound == outer.framebufferHandle && outer.framebufferHandle != 0,
-            "usedSupersample=$usedSupersample bound=$bound expected=${outer.framebufferHandle}",
+            "resolve restores the caller's framebuffer + frame (s5h)",
+            usedSupersample && bound == outer.framebufferHandle && outer.framebufferHandle != 0 && centerBlue > 0.85f,
+            "usedSupersample=$usedSupersample bound=$bound expected=${outer.framebufferHandle} centerBlue=$centerBlue",
         )
     }
 
