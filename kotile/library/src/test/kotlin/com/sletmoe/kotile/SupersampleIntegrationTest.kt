@@ -195,34 +195,44 @@ class SupersampleIntegrationTest : FunSpec({
             HeadlessGl
                 .render(60, 30, Color.BLACK) {
                     val outer = FrameBuffer(Pixmap.Format.RGBA8888, 60, 30, false)
-                    outer.begin()
-                    Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
-                    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
-                    val window =
-                        AsciiTileWindow.create {
-                            widthInTiles = 4
-                            heightInTiles = 2
-                            fitToWindow = false
-                            scalePolicy = FitScale
-                            fractionalScaleMode = FractionalScaleMode.SUPERSAMPLE
-                        }
+                    // Cleanup scope covers begin() and window creation too, so a setup failure can't
+                    // leave `outer` bound/undisposed in the shared GL context (krogue-8lo class).
+                    var outerBegun = false
                     try {
-                        window.fill(StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
-                        window.render()
-                        usedSupersample = window.backingCanvas.supersampledLastPass
-                        expectedHandle = outer.framebufferHandle
-                        restoredHandle = boundFramebuffer()
-                        // Read the consumer buffer (still bound if the contract held) — it must hold the frame.
-                        val shot = Pixmap.createFromFrameBuffer(0, 0, 60, 30)
+                        outer.begin()
+                        outerBegun = true
+                        Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
+                        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
+                        val window =
+                            AsciiTileWindow.create {
+                                widthInTiles = 4
+                                heightInTiles = 2
+                                fitToWindow = false
+                                scalePolicy = FitScale
+                                fractionalScaleMode = FractionalScaleMode.SUPERSAMPLE
+                            }
                         try {
-                            centerBlue = shot.averageColor(20, 10, 40, 20).b.toDouble()
+                            window.fill(StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
+                            window.render()
+                            usedSupersample = window.backingCanvas.supersampledLastPass
+                            expectedHandle = outer.framebufferHandle
+                            restoredHandle = boundFramebuffer()
+                            // Read the consumer buffer (still bound if the contract held) — must hold the frame.
+                            val shot = Pixmap.createFromFrameBuffer(0, 0, 60, 30)
+                            try {
+                                centerBlue = shot.averageColor(20, 10, 40, 20).b.toDouble()
+                            } finally {
+                                shot.dispose()
+                            }
                         } finally {
-                            shot.dispose()
+                            window.dispose()
                         }
                     } finally {
-                        window.dispose()
-                        outer.end()
-                        outer.dispose()
+                        try {
+                            if (outerBegun) outer.end()
+                        } finally {
+                            outer.dispose()
+                        }
                     }
                 }.dispose()
 

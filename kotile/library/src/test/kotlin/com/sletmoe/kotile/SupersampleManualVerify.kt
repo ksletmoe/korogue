@@ -66,36 +66,48 @@ private class SupersampleManualVerify : ApplicationAdapter() {
     private fun fboRestoreCheck() {
         Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, 0)
         val outer = FrameBuffer(Pixmap.Format.RGBA8888, WIN_W * hidpi, WIN_H * hidpi, false)
-        outer.begin()
-        Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
-        val window =
-            AsciiTileWindow.create {
-                widthInTiles = 4
-                heightInTiles = 2
-                fitToWindow = false
-                scalePolicy = FitScale
-                fractionalScaleMode = FractionalScaleMode.SUPERSAMPLE
-            }
         var bound = -1
         var usedSupersample = false
         var centerBlue = -1f
+        // Cleanup scope covers begin() and window creation, so a setup failure can't leak `outer`.
+        var outerBegun = false
         try {
-            window.fill(StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
-            window.render()
-            usedSupersample = window.backingCanvas.supersampledLastPass
-            glQueryBuffer.clear()
-            Gdx.gl.glGetIntegerv(GL20.GL_FRAMEBUFFER_BINDING, glQueryBuffer)
-            bound = glQueryBuffer.get(0)
-            // Read the frame back out of `outer` (still bound) -- a resolve that restored the binding
-            // but dropped/cleared the pixels must not pass.
-            val shot = Pixmap.createFromFrameBuffer(0, 0, WIN_W * hidpi, WIN_H * hidpi)
-            centerBlue = shot.averageColor(20 * hidpi, 10 * hidpi, 40 * hidpi, 20 * hidpi).b
-            shot.dispose()
+            outer.begin()
+            outerBegun = true
+            Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
+            Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
+            val window =
+                AsciiTileWindow.create {
+                    widthInTiles = 4
+                    heightInTiles = 2
+                    fitToWindow = false
+                    scalePolicy = FitScale
+                    fractionalScaleMode = FractionalScaleMode.SUPERSAMPLE
+                }
+            try {
+                window.fill(StaticAsciiTile(' ', Color.WHITE, Color.BLUE))
+                window.render()
+                usedSupersample = window.backingCanvas.supersampledLastPass
+                glQueryBuffer.clear()
+                Gdx.gl.glGetIntegerv(GL20.GL_FRAMEBUFFER_BINDING, glQueryBuffer)
+                bound = glQueryBuffer.get(0)
+                // Read the frame back out of `outer` (still bound) -- a resolve that restored the binding
+                // but dropped/cleared the pixels must not pass.
+                val shot = Pixmap.createFromFrameBuffer(0, 0, WIN_W * hidpi, WIN_H * hidpi)
+                try {
+                    centerBlue = shot.averageColor(20 * hidpi, 10 * hidpi, 40 * hidpi, 20 * hidpi).b
+                } finally {
+                    shot.dispose()
+                }
+            } finally {
+                window.dispose()
+            }
         } finally {
-            window.dispose()
-            outer.end()
-            outer.dispose()
+            try {
+                if (outerBegun) outer.end()
+            } finally {
+                outer.dispose()
+            }
         }
         report(
             "resolve restores the caller's framebuffer + frame (s5h)",
