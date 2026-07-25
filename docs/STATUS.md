@@ -357,7 +357,8 @@ then given a tested ECS foundation:
   hence off by default, best for fixed-size sources; translation-only (no x-height band
   scaling / offline cache like Brogue). Verified crisp locally; a GL spec sanity-checks
   the CPU path (block opaque, space empty). **Deferred (krogue-9x7.4):** seamless
-  box-drawing tiling when the cell aspect ≠ the font's.
+  box-drawing tiling when the cell aspect ≠ the font's. **Rationale + omissions
+  (no x-height band scaling, no offline cache):** ADR-0037.
 - **Layer model — grid + free (pixel-space) layers (ADR-0018).** `KotileCanvas.drawSprite(pxX,
   pxY, region, w, h, tint)` is the real drawing primitive (`drawTile` is grid-snapped sugar
   over it); a frame is an ordered list of `Layer`s composited back-to-front by a `LayerStack`
