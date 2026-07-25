@@ -330,8 +330,25 @@ then given a tested ECS foundation:
   `SUPERSAMPLE`. CP437→Unicode is unit-tested GL-free (`Cp437Test`); rasterisation +
   re-raster-on-resize are GL-gated (`FreeTypeGlyphSourceIntegrationTest`); eyeball
   via `:kotile:library:freetypeVerify` (full page chart + composition + res-indep
-  banners). **Deferred (own bead):** Brogue's per-glyph sub-pixel alignment +
-  brightness curves; seamless box-drawing tiling when the cell aspect ≠ the font's.
+  banners, plus a TILE-fit page + brightness/orientation readbacks).
+  **Per-glyph refinement (krogue-9x7.3, done).** Two opt-in knobs on
+  `FreeTypeGlyphSource`/`Fonts.ubuntuMono(...)`, both off by default (so existing
+  behaviour is unchanged): (1) `fit = GlyphFit.TILE` ink-centres each glyph in its
+  cell and enlarges the **whole page by one uniform factor** (a capital fills
+  `TILE_CAP_FILL`≈82% of the cell, clamped per-glyph so full-em glyphs/wide glyphs
+  fill exactly rather than overflow) for single-glyph **map tiles** — vs the default
+  `GlyphFit.TEXT` baseline layout that running text needs. Uniform-em keeps *relative*
+  glyph sizes, so punctuation used as terrain (floor `.`) stays a small centred dot
+  instead of ballooning to fill the cell. The tile path draws the glyph's page region
+  directly with **no extra V-flip** (BitmapFont pages are already y-up-oriented —
+  flipping renders glyphs upside-down; guarded by the `'F'` top-heavy GL spec). (2) `glyphBrightness > 1`
+  applies a per-glyph **peak-normalising** curve on the downsampled atlas — lifts a
+  glyph whose densest pixel falls short of full ink (thin/small glyphs at small cell
+  sizes) up to the given cap `[1,4]`, leaving already-solid glyphs untouched; it is
+  deliberately near-a-no-op at large sizes (most glyphs already reach full ink). This
+  is the pragmatic form of Brogue's `optimizeTiles` (its offline shift/scale search
+  mostly rediscovers "centre the ink" for regular font glyphs — ADR-0036). **Deferred
+  (krogue-9x7.4):** seamless box-drawing tiling when the cell aspect ≠ the font's.
 - **Layer model — grid + free (pixel-space) layers (ADR-0018).** `KotileCanvas.drawSprite(pxX,
   pxY, region, w, h, tint)` is the real drawing primitive (`drawTile` is grid-snapped sugar
   over it); a frame is an ordered list of `Layer`s composited back-to-front by a `LayerStack`

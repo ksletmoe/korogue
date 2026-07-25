@@ -16,6 +16,37 @@ import com.badlogic.gdx.graphics.glutils.FrameBuffer
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.utils.BufferUtils
 import com.sletmoe.kotile.rendering.GammaDownsample
+import kotlin.math.roundToInt
+
+/**
+ * How [FreeTypeGlyphSource] places each glyph within its cell (ADR-0036 tier-3
+ * refinement, krogue-9x7.3) — the "literal text vs. tile" toggle.
+ *
+ * The two are different *placement* strategies, not just a size knob: text wants a
+ * shared baseline and a uniform em so words read correctly; a map tile wants the
+ * single glyph optimally centred and filling its cell.
+ */
+enum class GlyphFit {
+    /**
+     * Baseline-relative placement at a uniform em size, horizontally centred by the
+     * glyph's advance — normal font layout. Letters share a baseline (so `a`, `g`,
+     * `y` align and descenders hang), which is what running text needs. The default.
+     */
+    TEXT,
+
+    /**
+     * **Ink-centred, uniform-em** placement: each glyph's rendered ink box is centred
+     * in its cell, and the whole page is enlarged by a single factor (so a capital
+     * fills most of the cell) rather than fitting each glyph's box independently.
+     * Glyphs keep their *relative* sizes — a period stays a small centred dot while
+     * `@`/monsters/blocks fill — instead of tiny punctuation ballooning to fill a
+     * cell. Best for single-glyph map cells (`@`, monsters, box-drawing, blocks);
+     * wrong for running text, since centring every glyph individually destroys the
+     * shared baseline. This is the pragmatic stand-in for Brogue's per-tile alignment
+     * without an offline `optimizeTiles` search.
+     */
+    TILE,
+}
 
 /**
  * A resolution-independent [GlyphSource] that rasterises a **TrueType** face with
@@ -78,14 +109,27 @@ import com.sletmoe.kotile.rendering.GammaDownsample
  *   downsample; snapped to a power of two in `[1, 8]`. Higher is smoother (closer to Brogue) but builds
  *   a larger transient atlas. Defaults to `4`; `1` disables supersampling (rasterise straight at the
  *   cell px).
+ * @param fit how each glyph is placed in its cell (ADR-0036 refinement, krogue-9x7.3). [GlyphFit.TEXT]
+ *   (default) is normal baseline text layout; [GlyphFit.TILE] ink-centres and scale-fits each glyph for
+ *   single-glyph map cells. See [GlyphFit].
+ * @param glyphBrightness per-glyph brightness curve (krogue-9x7.3): after the downsample, each glyph is
+ *   peak-normalised — a glyph whose densest pixel falls short of full ink is lifted toward it, so thin
+ *   strokes and small glyphs don't read as washed-out grey next to bold ones (most visible at small cell
+ *   sizes). This value is the **cap** on that per-glyph boost, clamped to `[1, 4]`; `1` (the default)
+ *   disables the curve. A glyph already reaching full ink, or an empty cell, is left untouched.
  */
 class FreeTypeGlyphSource(
     ttf: FileHandle,
     cellWidthPx: Int,
     cellHeightPx: Int,
     supersample: Int = 4,
+    private val fit: GlyphFit = GlyphFit.TEXT,
+    glyphBrightness: Float = 1f,
 ) : GlyphSource {
     private val generator = FreeTypeFontGenerator(ttf)
+
+    // The per-glyph peak-normalisation cap (see the constructor doc). Clamped to a sane range; 1 = off.
+    private val glyphBrightness: Float = glyphBrightness.coerceIn(1f, 4f)
 
     // Snapped to a power of two so the atlas downsamples by exact 2:1 gamma halving passes. Higher =
     // smoother edges (closer to Brogue's high-res-master look) at the cost of a larger transient atlas.
@@ -236,6 +280,10 @@ class FreeTypeGlyphSource(
                 font.dispose()
             }
 
+        // Per-glyph brightness curve (krogue-9x7.3): lift each cell's ink toward full opacity so thin
+        // glyphs aren't dim. Runs on the small cell-resolution atlas, once per rasterise; 1f = no-op.
+        if (glyphBrightness > 1f) applyPerGlyphBrightness(upright, w, h)
+
         val newAtlas =
             Texture(upright).apply { setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear) }
         upright.dispose()
@@ -343,10 +391,11 @@ class FreeTypeGlyphSource(
     }
 
     /**
-     * Draws every CP437 slot's glyph, each centred in its own [w] x [h] cell, into the currently bound
-     * offscreen buffer via [font]. The camera is a y-up ortho of the atlas; a cell at grid (col, row)
-     * — top-left origin — has its top edge at world y `atlasH - row*h`. Horizontal centring uses the
-     * measured glyph width; vertical centring uses the measured line height, both from a [GlyphLayout].
+     * Draws every CP437 slot's glyph into its own [w] x [h] cell of the currently bound offscreen
+     * buffer via [font]. The camera is a y-up ortho of the atlas; a cell at grid (col, row) — top-left
+     * origin — has its top edge at world y `atlasH - row*h`. Placement follows [fit]: [GlyphFit.TEXT]
+     * lays glyphs out on a shared baseline at a uniform em ([drawTextGlyph]); [GlyphFit.TILE] ink-centres
+     * and scale-fits each glyph in its cell ([drawTileGlyph]).
      */
     private fun drawAllGlyphs(
         font: BitmapFont,
@@ -355,11 +404,11 @@ class FreeTypeGlyphSource(
         h: Int,
         atlasH: Int,
     ) {
-        // Scissor each glyph to its own cell: BitmapFont.draw doesn't clip, so a glyph whose outline
-        // exceeds the cell (accents, tall box-drawing, or an overflowing em) would otherwise overwrite
-        // the neighbouring CP437 slot in the shared atlas. The per-cell flush makes each scissor take
-        // effect for its own draw (SpriteBatch buffers until flushed) — same discipline as
-        // GridCompositeCache's partial recomposite.
+        // Scissor each glyph to its own cell: neither BitmapFont.draw nor the tile scale-fit clips, so a
+        // glyph whose outline exceeds the cell (accents, tall box-drawing, or a scaled-up tile) would
+        // otherwise overwrite the neighbouring CP437 slot in the shared atlas. The per-cell flush makes
+        // each scissor take effect for its own draw (SpriteBatch buffers until flushed) — same discipline
+        // as GridCompositeCache's partial recomposite.
         //
         // rasterise can run mid-app (a resolution-independent resize), so restore the caller's scissor
         // enable-state and box — preservingFrameBuffer only covers framebuffer + viewport.
@@ -370,30 +419,134 @@ class FreeTypeGlyphSource(
         Gdx.gl.glEnable(GL20.GL_SCISSOR_TEST)
         try {
             val layout = GlyphLayout()
+            // One page-wide enlargement for TILE (uniform em): scale so a capital fills TILE_CAP_FILL of
+            // the cell height. Per-glyph placement then keeps relative sizes and only clamps down anything
+            // that would overflow its cell. capHeight is in the same (supersampled) px as w/h, so the ratio
+            // is resolution-independent; guard a font that reports no capHeight.
+            val tileEmScale =
+                if (fit == GlyphFit.TILE && font.capHeight > 0f) TILE_CAP_FILL * h / font.capHeight else 1f
             for (slot in 0 until GLYPH_COUNT) {
                 val codePoint = Cp437.toUnicode(slot)
                 if (codePoint < 0) continue
-                val text = String(Character.toChars(codePoint))
-                layout.setText(font, text)
-                if (layout.width <= 0f && layout.height <= 0f) continue // nothing to draw (e.g. space)
 
                 val col = slot % COLUMNS
                 val row = slot / COLUMNS
-                val cellLeft = (col * w).toFloat()
-                val cellTopWorldY = (atlasH - row * h).toFloat()
-
-                // Clip to this cell (GL scissor is bottom-left origin; the cell's bottom edge is atlasH
-                // - (row+1)*h). BitmapFont.draw places (x, y) at the top of the line and draws downward
-                // in the y-up world; centre the measured glyph box within the cell.
+                // Clip to this cell (GL scissor is bottom-left origin; the cell's bottom edge is
+                // atlasH - (row+1)*h).
                 Gdx.gl.glScissor(col * w, atlasH - (row + 1) * h, w, h)
-                val drawX = cellLeft + (w - layout.width) / 2f
-                val drawY = cellTopWorldY - (h - layout.height) / 2f
-                font.draw(batch, layout, drawX, drawY)
-                batch.flush() // land this cell's geometry while its scissor is active
+                val drew =
+                    when (fit) {
+                        GlyphFit.TEXT -> drawTextGlyph(font, batch, layout, codePoint, col, row, w, h, atlasH)
+                        GlyphFit.TILE -> drawTileGlyph(font, batch, codePoint, col, row, w, h, atlasH, tileEmScale)
+                    }
+                if (drew) batch.flush() // land this cell's geometry while its scissor is active
             }
         } finally {
             Gdx.gl.glScissor(savedScissor[0], savedScissor[1], savedScissor[2], savedScissor[3])
             if (!hadScissor) Gdx.gl.glDisable(GL20.GL_SCISSOR_TEST)
+        }
+    }
+
+    /**
+     * [GlyphFit.TEXT] placement: measure [codePoint] with [layout] and centre its metric box (advance
+     * width, line height) in the cell. BitmapFont.draw places (x, y) at the top of the line and draws
+     * downward in the y-up world, so all glyphs share a baseline and descenders hang — normal text
+     * layout. Returns `false` (nothing drawn) for a glyph with no ink, e.g. space.
+     */
+    private fun drawTextGlyph(
+        font: BitmapFont,
+        batch: SpriteBatch,
+        layout: GlyphLayout,
+        codePoint: Int,
+        col: Int,
+        row: Int,
+        w: Int,
+        h: Int,
+        atlasH: Int,
+    ): Boolean {
+        layout.setText(font, String(Character.toChars(codePoint)))
+        if (layout.width <= 0f && layout.height <= 0f) return false // nothing to draw (e.g. space)
+        val drawX = (col * w) + (w - layout.width) / 2f
+        val drawY = (atlasH - row * h) - (h - layout.height) / 2f
+        font.draw(batch, layout, drawX, drawY)
+        return true
+    }
+
+    /**
+     * [GlyphFit.TILE] placement: draw [codePoint]'s rendered **ink box** directly, ink-centred in the
+     * cell at the page-wide [emScale] (uniform enlargement — see [GlyphFit.TILE]), clamped down per glyph
+     * so nothing overflows its cell. The uniform scale keeps relative glyph sizes (a period stays a small
+     * dot; a capital fills), while the clamp lets a full-em glyph (block, box-drawing) fill exactly rather
+     * than overflow-and-clip. The glyph's page region ([BitmapFont.Glyph]) is drawn with **no extra
+     * V-flip**: BitmapFont already stores its pages oriented for a y-up batch (which is why the
+     * [GlyphFit.TEXT] `font.draw` path lands upright through the same downstream passes), so a raw region
+     * draw matches it as-is; flipping here would render every glyph upside-down. Returns `false` when the
+     * face has no inked glyph for the slot (e.g. space, or a missing glyph).
+     */
+    private fun drawTileGlyph(
+        font: BitmapFont,
+        batch: SpriteBatch,
+        codePoint: Int,
+        col: Int,
+        row: Int,
+        w: Int,
+        h: Int,
+        atlasH: Int,
+        emScale: Float,
+    ): Boolean {
+        // codePoint is always in the BMP here (every Cp437 entry is < U+FFFF), so a single Char indexes it.
+        val glyph = font.data.getGlyph(codePoint.toChar()) ?: return false
+        if (glyph.width == 0 || glyph.height == 0) return false // no ink (space, or a zero-size glyph)
+
+        // Uniform enlargement, but never larger than fits: a full-em glyph (block/box) fills exactly and a
+        // wide glyph can't spill into a neighbour; punctuation stays at emScale (well under the fit cap).
+        val scale = minOf(emScale, w.toFloat() / glyph.width, h.toFloat() / glyph.height)
+        val drawW = glyph.width * scale
+        val drawH = glyph.height * scale
+        val region =
+            TextureRegion(font.getRegion(glyph.page).texture, glyph.srcX, glyph.srcY, glyph.width, glyph.height)
+        val drawX = (col * w) + (w - drawW) / 2f
+        val drawY = (atlasH - (row + 1) * h) + (h - drawH) / 2f // y-up: cell's bottom edge + vertical centre
+        batch.draw(region, drawX, drawY, drawW, drawH)
+        return true
+    }
+
+    /**
+     * Per-glyph brightness curve (krogue-9x7.3): for each [cellW] x [cellH] cell of [pix], find the
+     * peak ink (max alpha) and scale every pixel's alpha by `min(glyphBrightness, 255/peak)` — lifting a
+     * glyph whose densest pixel falls short of full opacity toward it, so thin/small glyphs read at a
+     * weight consistent with bold ones. A cell that is empty or already reaches full ink is left as-is.
+     * RGB is untouched (glyphs are straight-alpha white); [pix] must have blending off so writes overwrite.
+     */
+    private fun applyPerGlyphBrightness(
+        pix: Pixmap,
+        cellW: Int,
+        cellH: Int,
+    ) {
+        for (slot in 0 until GLYPH_COUNT) {
+            val cx = (slot % COLUMNS) * cellW
+            val cy = (slot / COLUMNS) * cellH
+
+            var peak = 0
+            for (y in cy until cy + cellH) {
+                for (x in cx until cx + cellW) {
+                    val a = pix.getPixel(x, y) and 0xFF
+                    if (a > peak) peak = a
+                }
+            }
+            if (peak <= MIN_INK_ALPHA || peak >= 255) continue // empty cell, or already at full ink
+
+            val boost = minOf(glyphBrightness, 255f / peak)
+            if (boost <= 1f) continue
+            for (y in cy until cy + cellH) {
+                for (x in cx until cx + cellW) {
+                    val rgba = pix.getPixel(x, y)
+                    val a = rgba and 0xFF
+                    if (a == 0) continue
+                    val na = minOf(255, (a * boost).roundToInt())
+                    pix.drawPixel(x, y, (rgba and 0xFFFFFF00.toInt()) or na)
+                }
+            }
         }
     }
 
@@ -437,5 +590,14 @@ class FreeTypeGlyphSource(
         const val GLYPH_COUNT = 256
         const val COLUMNS = 16
         const val ROWS = 16
+
+        // Below this peak alpha a cell is treated as empty (no ink to lift) by the brightness curve, so
+        // stray near-zero downsample noise can't trigger a large boost. ~3% of full opacity.
+        const val MIN_INK_ALPHA = 8
+
+        // TILE fit enlarges the page so a capital fills this fraction of the cell height (uniform em); a
+        // small margin below 1 keeps ascenders/tall glyphs off the very edge. Full-em glyphs (block/box)
+        // are clamped to fill exactly by the per-glyph fit cap in drawTileGlyph.
+        const val TILE_CAP_FILL = 0.82f
     }
 }
