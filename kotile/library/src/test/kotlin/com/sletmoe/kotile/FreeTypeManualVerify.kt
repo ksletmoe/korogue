@@ -111,7 +111,7 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         println(if (failures == 0) "FTVERIFY: ALL PASSED" else "FTVERIFY: $failures FAILED")
 
         pixels.dispose()
-        source.dispose()
+        // `source` was consumed (and disposed) by its renderChart window above.
         Gdx.app.exit()
     }
 
@@ -386,15 +386,15 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
             window.drawTile(slot % COLS, slot / COLS, StaticAsciiTile(Char(slot), Color.WHITE, Color.BLACK))
         }
         window.render()
-        // create() makes the window own `source`; we keep `source` alive for the readback and dispose
-        // it ourselves at the end, so deliberately do NOT dispose the window here (that would take the
-        // shared source with it). Its canvas/caches leak until process exit — fine for a one-shot harness.
         val raw = Pixmap.createFromFrameBuffer(0, 0, w, h)
         fbo.end()
         val flipped = Pixmap(w, h, Pixmap.Format.RGBA8888).apply { blending = Pixmap.Blending.None }
         for (yy in 0 until h) for (xx in 0 until w) flipped.drawPixel(xx, yy, raw.getPixel(xx, h - 1 - yy))
         raw.dispose()
         fbo.dispose()
+        // create() makes the window own `source`; readback is done, so dispose the window here — it
+        // releases its canvas/caches AND the source. Callers therefore must NOT dispose the source too.
+        window.dispose()
         return flipped
     }
 
@@ -409,7 +409,7 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         val chart = renderChart(ss8)
         val block = cellAvg(chart, 219)
         chart.dispose()
-        ss8.dispose()
+        // ss8 was disposed by renderChart's window.
         report("full block (ss=8) atlas upright, not flipped", block > 0.9f, "cellAvg(219)=$block")
     }
 
@@ -474,14 +474,12 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         PixmapIO.writePNG(Gdx.files.absolute(tilePath), tileChart, Deflater.DEFAULT_COMPRESSION, false)
         println("FTVERIFY wrote $tilePath")
 
+        // The four sources were each consumed (and disposed) by their renderChart window; only the
+        // returned chart pixmaps are ours to release.
         textChart.dispose()
         tileChart.dispose()
         brightChart.dispose()
         bright4Chart.dispose()
-        textSrc.dispose()
-        tileSrc.dispose()
-        brightSrc.dispose()
-        bright4Src.dispose()
     }
 
     /** Average red over the top half vs the bottom half of CP437 [slot]'s cell interior (upright pixmap). */
