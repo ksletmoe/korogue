@@ -109,6 +109,7 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         verifyTileFitAndBrightness(outPath)
         renderDemoComparison(outPath)
         renderBrogueComparison(outPath)
+        renderBrogueShowcase(outPath)
 
         println(if (failures == 0) "FTVERIFY: ALL PASSED" else "FTVERIFY: $failures FAILED")
 
@@ -357,6 +358,98 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         box.forEachIndexed { i, slot -> placed += Placed(i, 3, slot, Color.CYAN) }
         // Pure black field to match Brogue's #000 (a grey field lowers contrast and reads dimmer).
         return renderGrid(source, 20, 4, cellW, cellH, placed, bg = Color.BLACK)
+    }
+
+    /**
+     * A Brogue-like showcase at kotile's crispest settings (Brogue's 32×58 cell, ss4 → 128×232 master,
+     * shift-search on) for a direct side-by-side with a real Brogue screenshot: a TEXT-fit message/status
+     * block over a TILE-fit dungeon map, on pure black. Writes freetype-brogue-showcase.png.
+     */
+    private fun renderBrogueShowcase(outPath: String) {
+        val cw = 32
+        val ch = 58
+        val wall = Color(0.55f, 0.55f, 0.62f, 1f)
+        val floor = Color(0.30f, 0.30f, 0.36f, 1f)
+        val door = Color(0.62f, 0.44f, 0.24f, 1f)
+        val tan = Color(0.85f, 0.78f, 0.55f, 1f)
+
+        // TEXT-fit block: messages + a status line (snap on).
+        val textSrc =
+            FreeTypeGlyphSource(Gdx.files.classpath("fonts/UbuntuMono-R.ttf"), cw, ch, 4, snapToPixelGrid = true)
+        val textPlaced = ArrayList<Placed>()
+
+        fun line(
+            row: Int,
+            s: String,
+            color: Color,
+        ) = s.forEachIndexed { i, c -> if (c != ' ') textPlaced += Placed(i, row, c.code, color) }
+        line(0, "Welcome, adventurer, to the Dungeons", tan)
+        line(1, "of Doom! The quick brown fox jumps.", Color.WHITE)
+        line(2, "@  HP:18/18   Str:16   Depth: 3", Color.LIME)
+        val textPanel = renderGrid(textSrc, 37, 3, cw, ch, textPlaced, bg = Color.BLACK)
+
+        // TILE-fit dungeon map (snap on): single glyph per cell, ink-centred.
+        val tileSrc =
+            FreeTypeGlyphSource(
+                Gdx.files.classpath("fonts/UbuntuMono-R.ttf"),
+                cw,
+                ch,
+                4,
+                fit = GlyphFit.TILE,
+                snapToPixelGrid = true,
+            )
+        val mapRows =
+            listOf(
+                "######################",
+                "#........#..........+.",
+                "#..@..k..#....!.....r.#",
+                "#........+..........=.#",
+                "#...r....#.....e......#",
+                "######################",
+            )
+        val colorOf = { c: Char ->
+            when (c) {
+                '@' -> Color.WHITE
+                'k' -> Color.LIME
+                'r' -> Color(0.82f, 0.52f, 0.24f, 1f)
+                'e' -> Color.CYAN
+                '!' -> Color(0.9f, 0.4f, 0.95f, 1f)
+                '=' -> Color.GOLD
+                '+' -> door
+                '#' -> wall
+                '.' -> floor
+                else -> Color.WHITE
+            }
+        }
+        val mapPlaced = ArrayList<Placed>()
+        mapRows.forEachIndexed {
+                r,
+                s,
+            ->
+            s.forEachIndexed { c, ch2 -> if (ch2 != ' ') mapPlaced += Placed(c, r, ch2.code, colorOf(ch2)) }
+        }
+        val mapPanel = renderGrid(tileSrc, 22, mapRows.size, cw, ch, mapPlaced, bg = Color.BLACK)
+
+        val gap = 20
+        val w = maxOf(textPanel.width, mapPanel.width)
+        val h = textPanel.height + gap + mapPanel.height
+        val out =
+            Pixmap(w, h, Pixmap.Format.RGBA8888).apply {
+                blending = Pixmap.Blending.None
+                setColor(Color.BLACK)
+                fill()
+            }
+        out.drawPixmap(textPanel, 0, 0)
+        out.drawPixmap(mapPanel, 0, textPanel.height + gap)
+        val path =
+            outPath.replaceAfterLast('/', "freetype-brogue-showcase.png").let {
+                if (it == outPath) "$outPath.show.png" else it
+            }
+        PixmapIO.writePNG(Gdx.files.absolute(path), out, Deflater.DEFAULT_COMPRESSION, false)
+        println("FTVERIFY wrote $path")
+        textPanel.dispose()
+        mapPanel.dispose()
+        out.dispose()
     }
 
     /**
