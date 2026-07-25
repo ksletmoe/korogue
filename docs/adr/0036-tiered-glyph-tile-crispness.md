@@ -117,6 +117,9 @@ strategies" bullet is superseded by this tiering.
   offline `optimizeTiles` cache + per-glyph brightness curves) — deferred as a
   possible tier-3 refinement. gdx-freetype's at-size rasterisation captures most of
   the quality without the hand-rolled C downscaler and its 2-minute offline pass.
+  *(Partially revised by ADR-0037: the per-glyph min-blur **shift search** was later
+  implemented opt-in as `snapToPixelGrid`; the x-height band scaling, offline cache,
+  and contrast curve remain unported.)*
 - **SDF as the primary Brogue route** — rejected. SDF is glyph-only (leaves sprite
   tiles on the old path), needs an SDF asset pipeline, and softens hard pixel
   detail; it is better positioned as a tier-3 source for smoothly-scaled UI text

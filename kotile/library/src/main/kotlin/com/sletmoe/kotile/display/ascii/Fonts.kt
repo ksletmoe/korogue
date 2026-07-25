@@ -241,16 +241,32 @@ object Fonts {
      * Provenance: Ubuntu Mono, Ubuntu Font Licence 1.0; see `ubuntu-mono.license.txt`
      * and `fonts/UbuntuMono-LICENCE.txt` on the classpath.
      *
+     * The [fit] and [glyphBrightness] refinements (krogue-9x7.3) are off by default
+     * (normal text layout, no brightness curve). Pass [GlyphFit.TILE] for a
+     * single-glyph map source (ink-centred, scale-fit per glyph) and/or a
+     * `glyphBrightness > 1` to lift thin glyphs at small sizes; see
+     * [FreeTypeGlyphSource].
+     *
      * @param cellWidthPx initial cell width in pixels (default 16)
      * @param cellHeightPx initial cell height in pixels (default 16)
+     * @param fit per-glyph placement strategy (default [GlyphFit.TEXT]); see [GlyphFit]
+     * @param glyphBrightness per-glyph brightness-curve cap (default `1f` = off); see [FreeTypeGlyphSource]
+     * @param snapToPixelGrid snap glyph placement to whole on-screen pixels for crisper stems (default
+     *   `false`); see [FreeTypeGlyphSource]
      */
     fun ubuntuMono(
         cellWidthPx: Int = 16,
         cellHeightPx: Int = 16,
+        fit: GlyphFit = GlyphFit.TEXT,
+        glyphBrightness: Float = 1f,
+        snapToPixelGrid: Boolean = false,
     ): FreeTypeGlyphSource =
         FreeTypeGlyphSource(
             com.badlogic.gdx.Gdx.files.classpath("fonts/UbuntuMono-R.ttf"),
             cellWidthPx,
             cellHeightPx,
+            fit = fit,
+            glyphBrightness = glyphBrightness,
+            snapToPixelGrid = snapToPixelGrid,
         )
 }

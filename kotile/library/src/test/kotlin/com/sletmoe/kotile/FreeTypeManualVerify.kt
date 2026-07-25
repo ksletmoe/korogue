@@ -6,16 +6,20 @@ import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
+import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.PixmapIO
+import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.glutils.FrameBuffer
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
 import com.sletmoe.kotile.display.ascii.Fonts
 import com.sletmoe.kotile.display.ascii.FreeTypeGlyphSource
+import com.sletmoe.kotile.display.ascii.GlyphFit
 import com.sletmoe.kotile.display.ascii.StaticAsciiTile
 import com.sletmoe.kotile.rendering.FitScale
 import com.sletmoe.kotile.rendering.FractionalScaleMode
 import java.util.zip.Deflater
+import kotlin.math.abs
 
 /**
  * macOS-only manual verification for the tier-3 freetype glyph source
@@ -34,6 +38,12 @@ private const val COLS = 16
 private const val ROWS = 16
 private val WIN_W = CELL * COLS
 private val WIN_H = CELL * ROWS
+
+// krogue-9x7.3 demo image geometry.
+private const val SCENE_CELL = 40
+private const val SCENE_COLS = 16
+private const val SCENE_ROWS = 6
+private const val STRIP_CELL = 20
 
 private class FreeTypeManualVerify(private val outPath: String) : ApplicationAdapter() {
     private var frame = 0
@@ -96,10 +106,16 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         println("FTVERIFY wrote $riPath")
         ri.dispose()
 
+        verifyTileFitAndBrightness(outPath)
+        renderDemoComparison(outPath)
+        renderBrogueComparison(outPath)
+        renderBrogueShowcase(outPath)
+        renderBrogueMatch(outPath)
+
         println(if (failures == 0) "FTVERIFY: ALL PASSED" else "FTVERIFY: $failures FAILED")
 
         pixels.dispose()
-        source.dispose()
+        // `source` was consumed (and disposed) by its renderChart window above.
         Gdx.app.exit()
     }
 
@@ -193,6 +209,405 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         return flipped
     }
 
+    /**
+     * krogue-9x7.3 demo: renders the same little dungeon scene in TEXT vs TILE fit, and a strip of thin
+     * glyphs with the brightness curve off vs on, stitched into one PNG (freetype-9x7.3-demo.png) so the
+     * two knobs can be compared at a glance. Not a test — a picture for humans.
+     */
+    private fun renderDemoComparison(outPath: String) {
+        val text = renderScene(GlyphFit.TEXT)
+        val tile = renderScene(GlyphFit.TILE)
+        // Thin-glyph strip at a small cell, where the peak-normalising curve actually bites.
+        val brightOff = renderStrip(glyphBrightness = 1f)
+        val brightOn = renderStrip(glyphBrightness = 3f)
+
+        val gap = 6 * hidpi
+        val w = maxOf(text.width, brightOff.width)
+        val h = text.height + gap + tile.height + gap * 2 + brightOff.height + gap + brightOn.height
+        val out =
+            Pixmap(w, h, Pixmap.Format.RGBA8888).apply {
+                blending = Pixmap.Blending.None
+                setColor(0.09f, 0.09f, 0.12f, 1f)
+                fill()
+            }
+        var y = 0
+        out.drawPixmap(text, 0, y)
+        y += text.height + gap // TEXT scene
+        out.drawPixmap(tile, 0, y)
+        y += tile.height + gap * 2 // TILE scene
+        out.drawPixmap(brightOff, 0, y)
+        y += brightOff.height + gap // brightness off
+        out.drawPixmap(brightOn, 0, y) // brightness on
+
+        val path =
+            outPath.replaceAfterLast('/', "freetype-9x7.3-demo.png").let {
+                if (it == outPath) "$outPath.demo.png" else it
+            }
+        PixmapIO.writePNG(Gdx.files.absolute(path), out, Deflater.DEFAULT_COMPRESSION, false)
+        println("FTVERIFY wrote $path")
+        listOf(text, tile, brightOff, brightOn, out).forEach { it.dispose() }
+    }
+
+    /** One placed glyph in a demo grid: CP437 [slot] at grid ([col], [row]) tinted [fg]. */
+    private class Placed(val col: Int, val row: Int, val slot: Int, val fg: Color)
+
+    /**
+     * A tiny fixed dungeon scene at the given [fit]; used twice (TEXT vs TILE) for the demo image. The
+     * source is built at the exact px it is drawn ([SCENE_CELL]) and blitted 1:1 (see [renderGrid]), so
+     * the image shows the real glyph resolution rather than an upscale.
+     */
+    private fun renderScene(fit: GlyphFit): Pixmap {
+        val source = Fonts.ubuntuMono(SCENE_CELL, SCENE_CELL, fit = fit)
+        val wall = Color(0.62f, 0.6f, 0.7f, 1f)
+        val floor = Color(0.28f, 0.28f, 0.34f, 1f)
+        val hero = Color.WHITE
+        val kobold = Color.LIME
+        val dragon = Color.SCARLET
+        val potion = Color(0.9f, 0.4f, 0.95f, 1f)
+        val gold = Color.GOLD
+        val placed = ArrayList<Placed>()
+        // Box-drawing frame (slots: ╔201 ═205 ╗187 ║186 ╚200 ╝188), floor '.', @ hero, monsters, items.
+        for (c in 0 until SCENE_COLS) placed +=
+            Placed(
+                c, 0,
+                if (c == 0) {
+                    201
+                } else if (c == SCENE_COLS - 1) {
+                    187
+                } else {
+                    205
+                },
+                wall,
+            )
+        for (c in 0 until SCENE_COLS) placed +=
+            Placed(
+                c, SCENE_ROWS - 1,
+                if (c == 0) {
+                    200
+                } else if (c == SCENE_COLS - 1) {
+                    188
+                } else {
+                    205
+                },
+                wall,
+            )
+        for (r in 1 until SCENE_ROWS - 1) {
+            placed += Placed(0, r, 186, wall)
+            placed += Placed(SCENE_COLS - 1, r, 186, wall)
+            for (c in 1 until SCENE_COLS - 1) placed += Placed(c, r, '.'.code, floor)
+        }
+        // Overlay actors/items on the floor.
+        placed += Placed(3, 2, '@'.code, hero)
+        placed += Placed(11, 2, 'k'.code, kobold)
+        placed += Placed(5, 3, '!'.code, potion)
+        placed += Placed(13, 3, '$'.code, gold)
+        placed += Placed(9, 4, 'D'.code, dragon)
+        return renderGrid(source, SCENE_COLS, SCENE_ROWS, SCENE_CELL, SCENE_CELL, placed)
+    }
+
+    /**
+     * A one-row strip of thin/low-coverage glyphs (where the brightness curve is visible) at the given
+     * [glyphBrightness]. Built at [STRIP_CELL] px and blitted 1:1, like [renderScene].
+     */
+    private fun renderStrip(glyphBrightness: Float): Pixmap {
+        val source = Fonts.ubuntuMono(STRIP_CELL, STRIP_CELL, glyphBrightness = glyphBrightness)
+        val slots = intArrayOf(46, 44, 58, 59, 39, 96, 45, 61, 179, 196, 176, 250, 249, 'i'.code, 'l'.code, 't'.code)
+        val placed = slots.mapIndexed { i, slot -> Placed(i, 0, slot, Color.WHITE) }
+        return renderGrid(source, slots.size, 1, STRIP_CELL, STRIP_CELL, placed)
+    }
+
+    /**
+     * Renders a sample at **Brogue's exact tile pipeline** for a side-by-side crispness comparison
+     * (BrogueCE `src/platform/tiles.c`). Brogue's per-cell master is a fixed `TILE_WIDTH`×`TILE_HEIGHT` =
+     * 128×232 px image (aspect 16:29), downsampled to the on-screen cell (`outputWidth/COLS` ×
+     * `outputHeight/ROWS`, COLS=100 ROWS=34) in **linear colour space at gamma 2.0** (`dst += value*value`).
+     *
+     * kotile's master is `supersample × cell`, so the two cases below reproduce Brogue's 128×232 master
+     * exactly, at two on-screen cell sizes, with kotile's own gamma-correct linear-light downsample:
+     * - `16×29 @ ss8` → 128×232 master (Brogue at a ~16px screen cell — window ≈ 1600 wide)
+     * - `32×58 @ ss4` → 128×232 master (2× on-screen)
+     *
+     * Glyph *shapes* differ (Brogue ships its own tileset; this is Ubuntu Mono), so what's comparable is
+     * the antialiasing/downsample crispness, not the letterforms.
+     */
+    private fun renderBrogueSample(
+        cellW: Int,
+        cellH: Int,
+        supersample: Int,
+        snap: Boolean,
+    ): Pixmap {
+        val source =
+            FreeTypeGlyphSource(
+                Gdx.files.classpath("fonts/UbuntuMono-R.ttf"),
+                cellW,
+                cellH,
+                supersample,
+                snapToPixelGrid = snap,
+            )
+        val placed = ArrayList<Placed>()
+
+        fun text(
+            row: Int,
+            s: String,
+            color: Color,
+        ) = s.forEachIndexed { i, ch -> placed += Placed(i, row, ch.code, color) }
+        text(0, "The quick brown fox", Color.WHITE)
+        text(1, "jumped over @ dragon", Color.WHITE)
+        text(2, "0123456789 +-=*/!?%", Color.WHITE)
+        // Box-drawing frame + shade/block elements (explicit CP437 slots; ' ' = 32 gaps).
+        val box = intArrayOf(201, 205, 205, 187, 32, 186, 32, 200, 205, 205, 188, 32, 176, 177, 178, 219)
+        box.forEachIndexed { i, slot -> placed += Placed(i, 3, slot, Color.CYAN) }
+        // Pure black field to match Brogue's #000 (a grey field lowers contrast and reads dimmer).
+        return renderGrid(source, 20, 4, cellW, cellH, placed, bg = Color.BLACK)
+    }
+
+    /**
+     * Renders a few Brogue sidebar strings at Brogue's **measured on-screen cell** (31×53 device px in
+     * the reference screenshot), TEXT-fit + shift-search, white on black — so it can be stitched 1:1
+     * against a device-pixel crop of a real Brogue window (no viewer-zoom mismatch). Writes
+     * freetype-brogue-match.png; each source line occupies one 53px row.
+     */
+    private fun renderBrogueMatch(outPath: String) {
+        val cw = 31
+        val ch = 53
+        val src = FreeTypeGlyphSource(Gdx.files.classpath("fonts/UbuntuMono-R.ttf"), cw, ch, 8, snapToPixelGrid = true)
+        val lines = listOf("Str: 12  Armor: 3", "Stealth range: 14", "A scroll entitled")
+        val placed = ArrayList<Placed>()
+        lines.forEachIndexed {
+                r,
+                s,
+            ->
+            s.forEachIndexed { i, c -> if (c != ' ') placed += Placed(i, r, c.code, Color.WHITE) }
+        }
+        val pix = renderGrid(src, lines.maxOf { it.length }, lines.size, cw, ch, placed, bg = Color.BLACK)
+        val path =
+            outPath.replaceAfterLast('/', "freetype-brogue-match.png").let {
+                if (it == outPath) "$outPath.match.png" else it
+            }
+        PixmapIO.writePNG(Gdx.files.absolute(path), pix, Deflater.DEFAULT_COMPRESSION, false)
+        println("FTVERIFY wrote $path")
+        pix.dispose()
+    }
+
+    /**
+     * A Brogue-like showcase at kotile's crispest settings (Brogue's 32×58 cell, ss4 → 128×232 master,
+     * shift-search on) for a direct side-by-side with a real Brogue screenshot: a TEXT-fit message/status
+     * block over a TILE-fit dungeon map, on pure black. Writes freetype-brogue-showcase.png.
+     */
+    private fun renderBrogueShowcase(outPath: String) {
+        val cw = 32
+        val ch = 58
+        val wall = Color(0.55f, 0.55f, 0.62f, 1f)
+        val floor = Color(0.30f, 0.30f, 0.36f, 1f)
+        val door = Color(0.62f, 0.44f, 0.24f, 1f)
+        val tan = Color(0.85f, 0.78f, 0.55f, 1f)
+
+        // TEXT-fit block: messages + a status line (snap on).
+        val textSrc =
+            FreeTypeGlyphSource(Gdx.files.classpath("fonts/UbuntuMono-R.ttf"), cw, ch, 4, snapToPixelGrid = true)
+        val textPlaced = ArrayList<Placed>()
+
+        fun line(
+            row: Int,
+            s: String,
+            color: Color,
+        ) = s.forEachIndexed { i, c -> if (c != ' ') textPlaced += Placed(i, row, c.code, color) }
+        line(0, "Welcome, adventurer, to the Dungeons", tan)
+        line(1, "of Doom! The quick brown fox jumps.", Color.WHITE)
+        line(2, "@  HP:18/18   Str:16   Depth: 3", Color.LIME)
+        val textPanel = renderGrid(textSrc, 37, 3, cw, ch, textPlaced, bg = Color.BLACK)
+
+        // TILE-fit dungeon map (snap on): single glyph per cell, ink-centred.
+        val tileSrc =
+            FreeTypeGlyphSource(
+                Gdx.files.classpath("fonts/UbuntuMono-R.ttf"),
+                cw,
+                ch,
+                4,
+                fit = GlyphFit.TILE,
+                snapToPixelGrid = true,
+            )
+        val mapRows =
+            listOf(
+                "######################",
+                "#........#..........+.",
+                "#..@..k..#....!.....r.#",
+                "#........+..........=.#",
+                "#...r....#.....e......#",
+                "######################",
+            )
+        val colorOf = { c: Char ->
+            when (c) {
+                '@' -> Color.WHITE
+                'k' -> Color.LIME
+                'r' -> Color(0.82f, 0.52f, 0.24f, 1f)
+                'e' -> Color.CYAN
+                '!' -> Color(0.9f, 0.4f, 0.95f, 1f)
+                '=' -> Color.GOLD
+                '+' -> door
+                '#' -> wall
+                '.' -> floor
+                else -> Color.WHITE
+            }
+        }
+        val mapPlaced = ArrayList<Placed>()
+        mapRows.forEachIndexed {
+                r,
+                s,
+            ->
+            s.forEachIndexed { c, ch2 -> if (ch2 != ' ') mapPlaced += Placed(c, r, ch2.code, colorOf(ch2)) }
+        }
+        val mapPanel = renderGrid(tileSrc, 22, mapRows.size, cw, ch, mapPlaced, bg = Color.BLACK)
+
+        val gap = 20
+        val w = maxOf(textPanel.width, mapPanel.width)
+        val h = textPanel.height + gap + mapPanel.height
+        val out =
+            Pixmap(w, h, Pixmap.Format.RGBA8888).apply {
+                blending = Pixmap.Blending.None
+                setColor(Color.BLACK)
+                fill()
+            }
+        out.drawPixmap(textPanel, 0, 0)
+        out.drawPixmap(mapPanel, 0, textPanel.height + gap)
+        val path =
+            outPath.replaceAfterLast('/', "freetype-brogue-showcase.png").let {
+                if (it == outPath) "$outPath.show.png" else it
+            }
+        PixmapIO.writePNG(Gdx.files.absolute(path), out, Deflater.DEFAULT_COMPRESSION, false)
+        println("FTVERIFY wrote $path")
+        textPanel.dispose()
+        mapPanel.dispose()
+        out.dispose()
+    }
+
+    /**
+     * Stitches four Brogue-parameter panels (16×29 @ ss8 and 32×58 @ ss4 — both Brogue's exact 128×232
+     * master — each rendered without and with output-pixel snapping) into freetype-brogue.png, on pure
+     * black, for comparing crispness against a real Brogue screenshot.
+     */
+    private fun renderBrogueComparison(outPath: String) {
+        val panels =
+            listOf(
+                renderBrogueSample(16, 29, 8, snap = false),
+                renderBrogueSample(16, 29, 8, snap = true),
+                renderBrogueSample(32, 58, 4, snap = false),
+                renderBrogueSample(32, 58, 4, snap = true),
+            )
+        val gap = 12
+        val w = panels.maxOf { it.width }
+        val h = panels.sumOf { it.height } + gap * (panels.size - 1)
+        val out =
+            Pixmap(w, h, Pixmap.Format.RGBA8888).apply {
+                blending = Pixmap.Blending.None
+                setColor(Color.BLACK)
+                fill()
+            }
+        var y = 0
+        for (p in panels) {
+            out.drawPixmap(p, 0, y)
+            y += p.height + gap
+        }
+        // Objective crispness: Brogue's blur metric Σ sin(π·coverage) — smaller = fewer grey-edged pixels.
+        // The shift search minimises this per glyph, so snapped should be < unsnapped.
+        val b16Plain = panelBlur(panels[0])
+        val b16Snap = panelBlur(panels[1])
+        val b32Plain = panelBlur(panels[2])
+        val b32Snap = panelBlur(panels[3])
+        println(
+            "  BLUR 16px  unsnapped=%.0f  snapped=%.0f  (%.1f%% less)".format(
+                b16Plain,
+                b16Snap,
+                100 * (b16Plain - b16Snap) / b16Plain,
+            ),
+        )
+        println(
+            "  BLUR 32px  unsnapped=%.0f  snapped=%.0f  (%.1f%% less)".format(
+                b32Plain,
+                b32Snap,
+                100 * (b32Plain - b32Snap) / b32Plain,
+            ),
+        )
+        val path =
+            outPath.replaceAfterLast(
+                '/',
+                "freetype-brogue.png",
+            ).let { if (it == outPath) "$outPath.brogue.png" else it }
+        PixmapIO.writePNG(Gdx.files.absolute(path), out, Deflater.DEFAULT_COMPRESSION, false)
+        println("FTVERIFY wrote $path")
+        panels.forEach { it.dispose() }
+        out.dispose()
+    }
+
+    /** Brogue's blur metric over a white/coloured-on-black panel: Σ sin(π·coverage), coverage = max RGB channel. */
+    private fun panelBlur(pix: Pixmap): Double {
+        var blur = 0.0
+        for (y in 0 until pix.height) {
+            for (x in 0 until pix.width) {
+                val rgba = pix.getPixel(x, y)
+                val r = (rgba ushr 24) and 0xFF
+                val g = (rgba ushr 16) and 0xFF
+                val b = (rgba ushr 8) and 0xFF
+                val cov = maxOf(r, g, b) / 255.0
+                blur += kotlin.math.sin(Math.PI * cov)
+            }
+        }
+        return blur
+    }
+
+    /**
+     * Blits [placed] glyphs from [source] straight into a [cols]x[rows] grid of [cellW]x[cellH]px cells
+     * (1:1, no window, no HiDPI scaling — so the atlas px land on FBO px and the image is genuinely
+     * crisp). Each glyph is drawn tinted, over a uniform dark background, matching the source's own
+     * y-up→readback orientation (the same as `renderChart`). The [source] is disposed before returning.
+     */
+    private fun renderGrid(
+        source: FreeTypeGlyphSource,
+        cols: Int,
+        rows: Int,
+        cellW: Int,
+        cellH: Int,
+        placed: List<Placed>,
+        bg: Color = Color(0.09f, 0.09f, 0.12f, 1f),
+    ): Pixmap {
+        val w = cols * cellW
+        val h = rows * cellH
+        Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, 0)
+        val fbo = FrameBuffer(Pixmap.Format.RGBA8888, w, h, false)
+        fbo.begin()
+        Gdx.gl.glClearColor(bg.r, bg.g, bg.b, 1f)
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
+        val batch = SpriteBatch()
+        val cam =
+            OrthographicCamera().apply {
+                setToOrtho(false, w.toFloat(), h.toFloat())
+                update()
+            }
+        batch.projectionMatrix = cam.combined
+        batch.begin()
+        for (p in placed) {
+            val region = source.glyph(Char(p.slot)) ?: continue
+            batch.color = p.fg
+            batch.draw(
+                region,
+                (p.col * cellW).toFloat(),
+                (h - (p.row + 1) * cellH).toFloat(),
+                cellW.toFloat(),
+                cellH.toFloat(),
+            )
+        }
+        batch.end()
+        val raw = Pixmap.createFromFrameBuffer(0, 0, w, h)
+        fbo.end()
+        val flipped = Pixmap(w, h, Pixmap.Format.RGBA8888).apply { blending = Pixmap.Blending.None }
+        for (yy in 0 until h) for (xx in 0 until w) flipped.drawPixel(xx, yy, raw.getPixel(xx, h - 1 - yy))
+        raw.dispose()
+        fbo.dispose()
+        batch.dispose()
+        source.dispose()
+        return flipped
+    }
+
     /** Renders the 16×16 CP437 chart (slot per cell) through an AsciiTileWindow into a capture FBO. */
     private fun renderChart(source: FreeTypeGlyphSource): Pixmap {
         val w = WIN_W * hidpi
@@ -216,15 +631,15 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
             window.drawTile(slot % COLS, slot / COLS, StaticAsciiTile(Char(slot), Color.WHITE, Color.BLACK))
         }
         window.render()
-        // create() makes the window own `source`; we keep `source` alive for the readback and dispose
-        // it ourselves at the end, so deliberately do NOT dispose the window here (that would take the
-        // shared source with it). Its canvas/caches leak until process exit — fine for a one-shot harness.
         val raw = Pixmap.createFromFrameBuffer(0, 0, w, h)
         fbo.end()
         val flipped = Pixmap(w, h, Pixmap.Format.RGBA8888).apply { blending = Pixmap.Blending.None }
         for (yy in 0 until h) for (xx in 0 until w) flipped.drawPixel(xx, yy, raw.getPixel(xx, h - 1 - yy))
         raw.dispose()
         fbo.dispose()
+        // create() makes the window own `source`; readback is done, so dispose the window here — it
+        // releases its canvas/caches AND the source. Callers therefore must NOT dispose the source too.
+        window.dispose()
         return flipped
     }
 
@@ -239,8 +654,107 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         val chart = renderChart(ss8)
         val block = cellAvg(chart, 219)
         chart.dispose()
-        ss8.dispose()
+        // ss8 was disposed by renderChart's window.
         report("full block (ss=8) atlas upright, not flipped", block > 0.9f, "cellAvg(219)=$block")
+    }
+
+    /**
+     * krogue-9x7.3: verifies the TILE fit and the per-glyph brightness curve on real pixels, and dumps a
+     * TILE-mode CP437 page (freetype-tile.png) to eyeball placement/orientation. Prints stats so the
+     * committed GL specs can be pinned to the observed discriminators.
+     */
+    private fun verifyTileFitAndBrightness(outPath: String) {
+        val textSrc = Fonts.ubuntuMono(CELL, CELL) // TEXT, no brightness curve (the shipped default)
+        val tileSrc = Fonts.ubuntuMono(CELL, CELL, fit = GlyphFit.TILE)
+        val brightSrc = Fonts.ubuntuMono(CELL, CELL, glyphBrightness = 2f)
+        val bright4Src = Fonts.ubuntuMono(CELL, CELL, glyphBrightness = 4f) // max cap — blank must still stay blank
+
+        val textChart = renderChart(textSrc)
+        val tileChart = renderChart(tileSrc)
+        val brightChart = renderChart(brightSrc)
+        val bright4Chart = renderChart(bright4Src)
+
+        // TILE scale-fits each glyph, so a glyph fills more of its cell than TEXT's baseline layout.
+        for (slot in listOf(65, 64, 47, 84)) { // 'A' '@' '/' 'T'
+            val t = cellAvg(textChart, slot)
+            val l = cellAvg(tileChart, slot)
+            println("  FILL slot=$slot char='${Char(slot)}' TEXT=$t TILE=$l")
+        }
+        report("TILE fills 'A' more than TEXT", cellAvg(tileChart, 65) > cellAvg(textChart, 65), "")
+
+        // Orientation: 'F' is top-heavy (two bars up top). Ink-centred + upright => its top half
+        // out-inks its bottom half; a V-flipped atlas would invert that. (This is the discriminator the
+        // committed GL spec uses.)
+        val (fTop, fBot) = cellHalves(tileChart, 70) // 'F'
+        println("  ORIENT TILE 'F' top=$fTop bot=$fBot (expect top>bot)")
+        report("TILE 'F' upright (top-heavy, not flipped)", fTop > fBot + 0.03f, "top=$fTop bot=$fBot")
+
+        // Brightness curve lifts thin glyphs whose peak coverage is < full. Print several; assert on the
+        // ones that actually move (a stroke already at full ink is unchanged by peak-normalisation).
+        for (slot in listOf(46, 58, 250, 196, 176, 65, 219)) { // . : · ─ ░ A █
+            val b1 = cellAvg(textChart, slot)
+            val b2 = cellAvg(brightChart, slot)
+            println("  BRIGHT slot=$slot char='${Char(slot)}' off=$b1 on=$b2")
+        }
+        // The light shade (176) never reaches full ink, so the peak-normalising curve lifts it; the full
+        // block (219) is already solid, so it is untouched. (The discriminators the committed GL spec uses.)
+        report(
+            "brightness lifts the light shade (176)",
+            cellAvg(brightChart, 176) > cellAvg(textChart, 176) + 0.005f,
+            "",
+        )
+        // "Unchanged" means equal to the un-boosted baseline (a solid glyph's peak is already full, so
+        // boost = 1) — compare against textChart within a small tolerance, not just "still bright".
+        val block219Text = cellAvg(textChart, 219)
+        val block219Bright = cellAvg(brightChart, 219)
+        report(
+            "brightness leaves the full block (219) unchanged",
+            abs(block219Bright - block219Text) < 0.02f && block219Bright > 0.9f,
+            "text=$block219Text bright=$block219Bright",
+        )
+        // ADR-0029: a blank/keyed-out glyph (space, 32) must stay transparent even at the max cap.
+        report(
+            "brightness keeps a blank glyph (32) transparent at cap 4",
+            cellAvg(bright4Chart, 32) < 0.05f,
+            "avg=${cellAvg(bright4Chart, 32)}",
+        )
+
+        // snapToPixelGrid: the CPU shift-search downsample must still yield a sane atlas (mirrors the
+        // committed GL spec) — full block opaque, space empty.
+        val snapChart = renderChart(Fonts.ubuntuMono(CELL, CELL, snapToPixelGrid = true))
+        report("snap path: full block (219) opaque", cellAvg(snapChart, 219) > 0.9f, "avg=${cellAvg(snapChart, 219)}")
+        report("snap path: space (32) empty", cellAvg(snapChart, 32) < 0.1f, "avg=${cellAvg(snapChart, 32)}")
+        snapChart.dispose()
+
+        val tilePath =
+            outPath.replaceAfterLast(
+                '/',
+                "freetype-tile.png",
+            ).let { if (it == outPath) "$outPath.tile.png" else it }
+        PixmapIO.writePNG(Gdx.files.absolute(tilePath), tileChart, Deflater.DEFAULT_COMPRESSION, false)
+        println("FTVERIFY wrote $tilePath")
+
+        // The four sources were each consumed (and disposed) by their renderChart window; only the
+        // returned chart pixmaps are ours to release.
+        textChart.dispose()
+        tileChart.dispose()
+        brightChart.dispose()
+        bright4Chart.dispose()
+    }
+
+    /** Average red over the top half vs the bottom half of CP437 [slot]'s cell interior (upright pixmap). */
+    private fun cellHalves(
+        pixels: Pixmap,
+        slot: Int,
+    ): Pair<Float, Float> {
+        val cell = CELL * hidpi
+        val x0 = (slot % COLS) * cell
+        val y0 = (slot / COLS) * cell
+        val lx = x0 + cell / 4
+        val rx = x0 + 3 * cell / 4
+        val top = pixels.averageColor(lx, y0 + cell / 8, rx, y0 + cell / 2).r
+        val bot = pixels.averageColor(lx, y0 + cell / 2, rx, y0 + 7 * cell / 8).r
+        return top to bot
     }
 
     /** Average brightness (red channel) over the interior of CP437 [slot]'s cell in the chart pixmap. */

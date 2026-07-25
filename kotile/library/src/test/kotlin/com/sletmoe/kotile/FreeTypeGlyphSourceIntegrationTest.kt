@@ -2,13 +2,16 @@ package com.sletmoe.kotile
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.Pixmap
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
 import com.sletmoe.kotile.display.ascii.Fonts
 import com.sletmoe.kotile.display.ascii.FreeTypeGlyphSource
+import com.sletmoe.kotile.display.ascii.GlyphFit
 import com.sletmoe.kotile.display.ascii.StaticAsciiTile
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.doubles.plusOrMinus
 import io.kotest.matchers.doubles.shouldBeGreaterThan
+import io.kotest.matchers.doubles.shouldBeLessThan
 import io.kotest.matchers.shouldBe
 
 /**
@@ -181,4 +184,104 @@ class FreeTypeGlyphSourceIntegrationTest : FunSpec({
                 pixels.dispose()
             }
         }
+
+    // --- krogue-9x7.3: per-glyph TILE fit + brightness curve. Assertions are RELATIVE (one placement/
+    // setting vs another on the same glyph) so they hold regardless of the CI driver's exact AA or the
+    // runner's HiDPI ratio. Geometry mirrors the local :kotile:library:freetypeVerify harness (24px cell,
+    // single-cell render), which is where these were eyeballed on real pixels. ---
+
+    test("FreeTypeGlyphSource TILE fit: a glyph fills more of its cell than TEXT layout")
+        .config(enabled = HeadlessGl.available) {
+            // 'A' (slot 65) ink-centred and scaled to fit its cell covers more of the cell interior than
+            // the baseline TEXT layout at the same cell size.
+            val textFill = glyphCell(slot = 65, fit = GlyphFit.TEXT) { it.averageColor(6, 6, 18, 18).r }
+            val tileFill = glyphCell(slot = 65, fit = GlyphFit.TILE) { it.averageColor(6, 6, 18, 18).r }
+            tileFill.toDouble() shouldBeGreaterThan (textFill.toDouble() + 0.05)
+        }
+
+    test("FreeTypeGlyphSource TILE fit: glyphs render upright (top-heavy 'F' inks its top half more)")
+        .config(enabled = HeadlessGl.available) {
+            // Guards the TILE region-draw orientation (a raw page-region draw needs no extra V-flip). 'F'
+            // is top-heavy; upright, its top half out-inks its bottom half. A flipped atlas inverts that.
+            // Pixmap is top-left origin (y down), so the top half is the smaller-y band.
+            val (top, bottom) =
+                glyphCell(slot = 70, fit = GlyphFit.TILE) {
+                    it.averageColor(6, 3, 18, 12).r to it.averageColor(6, 12, 18, 21).r
+                }
+            top.toDouble() shouldBeGreaterThan (bottom.toDouble() + 0.03)
+        }
+
+    test("FreeTypeGlyphSource brightness curve: lifts a sub-peak glyph, leaves a solid one unchanged")
+        .config(enabled = HeadlessGl.available) {
+            // The light shade (176) never reaches full ink, so peak-normalisation lifts it; the full block
+            // (219) is already solid, so the curve is a no-op there (boost = 1).
+            val shadeOff = glyphCell(slot = 176, glyphBrightness = 1f) { it.averageColor(6, 6, 18, 18).r }
+            val shadeOn = glyphCell(slot = 176, glyphBrightness = 2f) { it.averageColor(6, 6, 18, 18).r }
+            shadeOn.toDouble() shouldBeGreaterThan (shadeOff.toDouble() + 0.005)
+
+            val blockOn = glyphCell(slot = 219, glyphBrightness = 2f) { it.averageColor(6, 6, 18, 18).r }
+            blockOn.toDouble() shouldBeGreaterThan 0.9
+        }
+
+    test("FreeTypeGlyphSource brightness curve: a blank glyph stays transparent (ADR-0029)")
+        .config(enabled = HeadlessGl.available) {
+            // Space (32) has no ink, so the MIN_INK_ALPHA guard must keep the curve a no-op even at the
+            // max cap — a keyed-out/blank glyph stays transparent (ADR-0029), never brightened into a stroke.
+            val spaceOn = glyphCell(slot = 32, glyphBrightness = 4f) { it.averageColor(6, 6, 18, 18).r }
+            spaceOn.toDouble() shouldBeLessThan 0.05
+        }
+
+    test("FreeTypeGlyphSource snapToPixelGrid: the shift-search downsample still yields a sane atlas")
+        .config(enabled = HeadlessGl.available) {
+            // The CPU shift-search path (Brogue optimizeTiles technique) replaces the GPU halving; sanity-
+            // check it produces a usable atlas — full block (219) opaque in its core, space (32) empty.
+            val block = glyphCell(slot = 219, snapToPixelGrid = true) { it.averageColor(6, 6, 18, 18).r }
+            val space = glyphCell(slot = 32, snapToPixelGrid = true) { it.averageColor(6, 6, 18, 18).r }
+            block.toDouble() shouldBeGreaterThan 0.9
+            space.toDouble() shouldBeLessThan 0.05
+        }
 })
+
+/**
+ * Renders CP437 [slot] into a single 24x24 cell through a fresh [FreeTypeGlyphSource] built with the
+ * given [fit]/[glyphBrightness], passes the captured pixels (top-left origin) to [sample], and disposes
+ * them. The window owns and disposes the source. Mirrors the harness's single-cell geometry so the
+ * committed assertions match what was eyeballed locally.
+ */
+private fun <T> glyphCell(
+    slot: Int,
+    fit: GlyphFit = GlyphFit.TEXT,
+    glyphBrightness: Float = 1f,
+    snapToPixelGrid: Boolean = false,
+    sample: (Pixmap) -> T,
+): T {
+    val pixels =
+        HeadlessGl.render(24, 24, Color.BLACK) {
+            val source =
+                Fonts.ubuntuMono(
+                    24,
+                    24,
+                    fit = fit,
+                    glyphBrightness = glyphBrightness,
+                    snapToPixelGrid = snapToPixelGrid,
+                )
+            val window =
+                AsciiTileWindow.create {
+                    glyphSource = source
+                    widthInTiles = 1
+                    heightInTiles = 1
+                    fitToWindow = false
+                }
+            try {
+                window.drawTile(0, 0, StaticAsciiTile(Char(slot), Color.WHITE, Color.BLACK))
+                window.render()
+            } finally {
+                window.dispose()
+            }
+        }
+    try {
+        return sample(pixels)
+    } finally {
+        pixels.dispose()
+    }
+}
