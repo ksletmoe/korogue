@@ -515,23 +515,32 @@ class FreeTypeGlyphSource(
      * Per-glyph brightness curve (krogue-9x7.3): for each [cellW] x [cellH] cell of [pix], find the
      * peak ink (max alpha) and scale every pixel's alpha by `min(glyphBrightness, 255/peak)` — lifting a
      * glyph whose densest pixel falls short of full opacity toward it, so thin/small glyphs read at a
-     * weight consistent with bold ones. A cell that is empty or already reaches full ink is left as-is.
-     * RGB is untouched (glyphs are straight-alpha white); [pix] must have blending off so writes overwrite.
+     * weight consistent with bold ones. A cell that is empty or already reaches full ink is left as-is
+     * (so a keyed-out/blank glyph — e.g. space — stays transparent per ADR-0029). RGB is untouched
+     * (glyphs are straight-alpha white).
+     *
+     * Works on [pix]'s backing [Pixmap.getPixels] buffer directly (RGBA8888 → 4 bytes/pixel, alpha last)
+     * rather than per-pixel `getPixel`/`drawPixel`: this pass runs on every `prepareForCellSize`
+     * rerasterise when the curve is on, so the JNI round-trip per pixel would show up on resize.
      */
     private fun applyPerGlyphBrightness(
         pix: Pixmap,
         cellW: Int,
         cellH: Int,
     ) {
+        val width = pix.width
+        val buf = pix.pixels // direct ByteBuffer over the atlas; absolute get/put leave its position alone
         for (slot in 0 until GLYPH_COUNT) {
             val cx = (slot % COLUMNS) * cellW
             val cy = (slot / COLUMNS) * cellH
 
             var peak = 0
             for (y in cy until cy + cellH) {
-                for (x in cx until cx + cellW) {
-                    val a = pix.getPixel(x, y) and 0xFF
+                var idx = (y * width + cx) * 4 + 3 // alpha byte of the row's first cell pixel
+                for (x in 0 until cellW) {
+                    val a = buf.get(idx).toInt() and 0xFF
                     if (a > peak) peak = a
+                    idx += 4
                 }
             }
             if (peak <= MIN_INK_ALPHA || peak >= 255) continue // empty cell, or already at full ink
@@ -539,12 +548,11 @@ class FreeTypeGlyphSource(
             val boost = minOf(glyphBrightness, 255f / peak)
             if (boost <= 1f) continue
             for (y in cy until cy + cellH) {
-                for (x in cx until cx + cellW) {
-                    val rgba = pix.getPixel(x, y)
-                    val a = rgba and 0xFF
-                    if (a == 0) continue
-                    val na = minOf(255, (a * boost).roundToInt())
-                    pix.drawPixel(x, y, (rgba and 0xFFFFFF00.toInt()) or na)
+                var idx = (y * width + cx) * 4 + 3
+                for (x in 0 until cellW) {
+                    val a = buf.get(idx).toInt() and 0xFF
+                    if (a != 0) buf.put(idx, minOf(255, (a * boost).roundToInt()).toByte())
+                    idx += 4
                 }
             }
         }

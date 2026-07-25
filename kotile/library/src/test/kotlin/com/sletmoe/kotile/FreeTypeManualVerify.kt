@@ -422,10 +422,12 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         val textSrc = Fonts.ubuntuMono(CELL, CELL) // TEXT, no brightness curve (the shipped default)
         val tileSrc = Fonts.ubuntuMono(CELL, CELL, fit = GlyphFit.TILE)
         val brightSrc = Fonts.ubuntuMono(CELL, CELL, glyphBrightness = 2f)
+        val bright4Src = Fonts.ubuntuMono(CELL, CELL, glyphBrightness = 4f) // max cap — blank must still stay blank
 
         val textChart = renderChart(textSrc)
         val tileChart = renderChart(tileSrc)
         val brightChart = renderChart(brightSrc)
+        val bright4Chart = renderChart(bright4Src)
 
         // TILE scale-fits each glyph, so a glyph fills more of its cell than TEXT's baseline layout.
         for (slot in listOf(65, 64, 47, 84)) { // 'A' '@' '/' 'T'
@@ -457,6 +459,12 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
             "",
         )
         report("brightness leaves the full block (219) unchanged", cellAvg(brightChart, 219) > 0.9f, "")
+        // ADR-0029: a blank/keyed-out glyph (space, 32) must stay transparent even at the max cap.
+        report(
+            "brightness keeps a blank glyph (32) transparent at cap 4",
+            cellAvg(bright4Chart, 32) < 0.05f,
+            "avg=${cellAvg(bright4Chart, 32)}",
+        )
 
         val tilePath =
             outPath.replaceAfterLast(
@@ -469,9 +477,11 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         textChart.dispose()
         tileChart.dispose()
         brightChart.dispose()
+        bright4Chart.dispose()
         textSrc.dispose()
         tileSrc.dispose()
         brightSrc.dispose()
+        bright4Src.dispose()
     }
 
     /** Average red over the top half vs the bottom half of CP437 [slot]'s cell interior (upright pixmap). */

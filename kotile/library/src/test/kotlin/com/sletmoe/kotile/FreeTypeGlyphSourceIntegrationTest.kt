@@ -11,6 +11,7 @@ import com.sletmoe.kotile.display.ascii.StaticAsciiTile
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.doubles.plusOrMinus
 import io.kotest.matchers.doubles.shouldBeGreaterThan
+import io.kotest.matchers.doubles.shouldBeLessThan
 import io.kotest.matchers.shouldBe
 
 /**
@@ -220,6 +221,14 @@ class FreeTypeGlyphSourceIntegrationTest : FunSpec({
 
             val blockOn = glyphCell(slot = 219, glyphBrightness = 2f) { it.averageColor(6, 6, 18, 18).r }
             blockOn.toDouble() shouldBeGreaterThan 0.9
+        }
+
+    test("FreeTypeGlyphSource brightness curve: a blank glyph stays transparent (ADR-0029)")
+        .config(enabled = HeadlessGl.available) {
+            // Space (32) has no ink, so the MIN_INK_ALPHA guard must keep the curve a no-op even at the
+            // max cap — a keyed-out/blank glyph stays transparent (ADR-0029), never brightened into a stroke.
+            val spaceOn = glyphCell(slot = 32, glyphBrightness = 4f) { it.averageColor(6, 6, 18, 18).r }
+            spaceOn.toDouble() shouldBeLessThan 0.05
         }
 })
 
