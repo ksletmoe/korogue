@@ -110,6 +110,7 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         renderDemoComparison(outPath)
         renderBrogueComparison(outPath)
         renderBrogueShowcase(outPath)
+        renderBrogueMatch(outPath)
 
         println(if (failures == 0) "FTVERIFY: ALL PASSED" else "FTVERIFY: $failures FAILED")
 
@@ -358,6 +359,34 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         box.forEachIndexed { i, slot -> placed += Placed(i, 3, slot, Color.CYAN) }
         // Pure black field to match Brogue's #000 (a grey field lowers contrast and reads dimmer).
         return renderGrid(source, 20, 4, cellW, cellH, placed, bg = Color.BLACK)
+    }
+
+    /**
+     * Renders a few Brogue sidebar strings at Brogue's **measured on-screen cell** (31×53 device px in
+     * the reference screenshot), TEXT-fit + shift-search, white on black — so it can be stitched 1:1
+     * against a device-pixel crop of a real Brogue window (no viewer-zoom mismatch). Writes
+     * freetype-brogue-match.png; each source line occupies one 53px row.
+     */
+    private fun renderBrogueMatch(outPath: String) {
+        val cw = 31
+        val ch = 53
+        val src = FreeTypeGlyphSource(Gdx.files.classpath("fonts/UbuntuMono-R.ttf"), cw, ch, 8, snapToPixelGrid = true)
+        val lines = listOf("Str: 12  Armor: 3", "Stealth range: 14", "A scroll entitled")
+        val placed = ArrayList<Placed>()
+        lines.forEachIndexed {
+                r,
+                s,
+            ->
+            s.forEachIndexed { i, c -> if (c != ' ') placed += Placed(i, r, c.code, Color.WHITE) }
+        }
+        val pix = renderGrid(src, lines.maxOf { it.length }, lines.size, cw, ch, placed, bg = Color.BLACK)
+        val path =
+            outPath.replaceAfterLast('/', "freetype-brogue-match.png").let {
+                if (it == outPath) "$outPath.match.png" else it
+            }
+        PixmapIO.writePNG(Gdx.files.absolute(path), pix, Deflater.DEFAULT_COMPRESSION, false)
+        println("FTVERIFY wrote $path")
+        pix.dispose()
     }
 
     /**
