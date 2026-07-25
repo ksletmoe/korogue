@@ -108,6 +108,7 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
 
         verifyTileFitAndBrightness(outPath)
         renderDemoComparison(outPath)
+        renderBrogueComparison(outPath)
 
         println(if (failures == 0) "FTVERIFY: ALL PASSED" else "FTVERIFY: $failures FAILED")
 
@@ -299,7 +300,7 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         placed += Placed(5, 3, '!'.code, potion)
         placed += Placed(13, 3, '$'.code, gold)
         placed += Placed(9, 4, 'D'.code, dragon)
-        return renderGrid(source, SCENE_COLS, SCENE_ROWS, SCENE_CELL, placed)
+        return renderGrid(source, SCENE_COLS, SCENE_ROWS, SCENE_CELL, SCENE_CELL, placed)
     }
 
     /**
@@ -310,24 +311,92 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         val source = Fonts.ubuntuMono(STRIP_CELL, STRIP_CELL, glyphBrightness = glyphBrightness)
         val slots = intArrayOf(46, 44, 58, 59, 39, 96, 45, 61, 179, 196, 176, 250, 249, 'i'.code, 'l'.code, 't'.code)
         val placed = slots.mapIndexed { i, slot -> Placed(i, 0, slot, Color.WHITE) }
-        return renderGrid(source, slots.size, 1, STRIP_CELL, placed)
+        return renderGrid(source, slots.size, 1, STRIP_CELL, STRIP_CELL, placed)
     }
 
     /**
-     * Blits [placed] glyphs from [source] straight into a [cols]x[rows] grid of [cell]px cells (1:1, no
-     * window, no HiDPI scaling — so the atlas px land on FBO px and the image is genuinely crisp). Each
-     * glyph is drawn tinted, over a uniform dark background, matching the source's own y-up→readback
-     * orientation (the same as `renderChart`). The [source] is disposed before returning.
+     * Renders a sample at **Brogue's exact tile pipeline** for a side-by-side crispness comparison
+     * (BrogueCE `src/platform/tiles.c`). Brogue's per-cell master is a fixed `TILE_WIDTH`×`TILE_HEIGHT` =
+     * 128×232 px image (aspect 16:29), downsampled to the on-screen cell (`outputWidth/COLS` ×
+     * `outputHeight/ROWS`, COLS=100 ROWS=34) in **linear colour space at gamma 2.0** (`dst += value*value`).
+     *
+     * kotile's master is `supersample × cell`, so the two cases below reproduce Brogue's 128×232 master
+     * exactly, at two on-screen cell sizes, with kotile's own gamma-correct linear-light downsample:
+     * - `16×29 @ ss8` → 128×232 master (Brogue at a ~16px screen cell — window ≈ 1600 wide)
+     * - `32×58 @ ss4` → 128×232 master (2× on-screen)
+     *
+     * Glyph *shapes* differ (Brogue ships its own tileset; this is Ubuntu Mono), so what's comparable is
+     * the antialiasing/downsample crispness, not the letterforms.
+     */
+    private fun renderBrogueSample(
+        cellW: Int,
+        cellH: Int,
+        supersample: Int,
+    ): Pixmap {
+        val source = FreeTypeGlyphSource(Gdx.files.classpath("fonts/UbuntuMono-R.ttf"), cellW, cellH, supersample)
+        val placed = ArrayList<Placed>()
+
+        fun text(
+            row: Int,
+            s: String,
+            color: Color,
+        ) = s.forEachIndexed { i, ch -> placed += Placed(i, row, ch.code, color) }
+        text(0, "The quick brown fox", Color.WHITE)
+        text(1, "jumped over @ dragon", Color.WHITE)
+        text(2, "0123456789 +-=*/!?%", Color.WHITE)
+        // Box-drawing frame + shade/block elements (explicit CP437 slots; ' ' = 32 gaps).
+        val box = intArrayOf(201, 205, 205, 187, 32, 186, 32, 200, 205, 205, 188, 32, 176, 177, 178, 219)
+        box.forEachIndexed { i, slot -> placed += Placed(i, 3, slot, Color.CYAN) }
+        return renderGrid(source, 20, 4, cellW, cellH, placed)
+    }
+
+    /**
+     * Stitches the two Brogue-parameter samples (16×29 @ ss8 and 32×58 @ ss4 — both Brogue's exact
+     * 128×232 master) into one PNG (freetype-brogue.png) for comparing crispness against a real Brogue
+     * screenshot. Small on top, 2× below, on a dark field.
+     */
+    private fun renderBrogueComparison(outPath: String) {
+        val small = renderBrogueSample(16, 29, 8)
+        val large = renderBrogueSample(32, 58, 4)
+        val gap = 10
+        val w = maxOf(small.width, large.width)
+        val h = small.height + gap + large.height
+        val out =
+            Pixmap(w, h, Pixmap.Format.RGBA8888).apply {
+                blending = Pixmap.Blending.None
+                setColor(0.09f, 0.09f, 0.12f, 1f)
+                fill()
+            }
+        out.drawPixmap(small, 0, 0)
+        out.drawPixmap(large, 0, small.height + gap)
+        val path =
+            outPath.replaceAfterLast(
+                '/',
+                "freetype-brogue.png",
+            ).let { if (it == outPath) "$outPath.brogue.png" else it }
+        PixmapIO.writePNG(Gdx.files.absolute(path), out, Deflater.DEFAULT_COMPRESSION, false)
+        println("FTVERIFY wrote $path")
+        small.dispose()
+        large.dispose()
+        out.dispose()
+    }
+
+    /**
+     * Blits [placed] glyphs from [source] straight into a [cols]x[rows] grid of [cellW]x[cellH]px cells
+     * (1:1, no window, no HiDPI scaling — so the atlas px land on FBO px and the image is genuinely
+     * crisp). Each glyph is drawn tinted, over a uniform dark background, matching the source's own
+     * y-up→readback orientation (the same as `renderChart`). The [source] is disposed before returning.
      */
     private fun renderGrid(
         source: FreeTypeGlyphSource,
         cols: Int,
         rows: Int,
-        cell: Int,
+        cellW: Int,
+        cellH: Int,
         placed: List<Placed>,
     ): Pixmap {
-        val w = cols * cell
-        val h = rows * cell
+        val w = cols * cellW
+        val h = rows * cellH
         Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, 0)
         val fbo = FrameBuffer(Pixmap.Format.RGBA8888, w, h, false)
         fbo.begin()
@@ -346,10 +415,10 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
             batch.color = p.fg
             batch.draw(
                 region,
-                (p.col * cell).toFloat(),
-                (h - (p.row + 1) * cell).toFloat(),
-                cell.toFloat(),
-                cell.toFloat(),
+                (p.col * cellW).toFloat(),
+                (h - (p.row + 1) * cellH).toFloat(),
+                cellW.toFloat(),
+                cellH.toFloat(),
             )
         }
         batch.end()
