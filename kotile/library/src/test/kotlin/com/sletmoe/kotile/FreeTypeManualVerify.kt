@@ -19,6 +19,7 @@ import com.sletmoe.kotile.display.ascii.StaticAsciiTile
 import com.sletmoe.kotile.rendering.FitScale
 import com.sletmoe.kotile.rendering.FractionalScaleMode
 import java.util.zip.Deflater
+import kotlin.math.abs
 
 /**
  * macOS-only manual verification for the tier-3 freetype glyph source
@@ -458,7 +459,15 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
             cellAvg(brightChart, 176) > cellAvg(textChart, 176) + 0.005f,
             "",
         )
-        report("brightness leaves the full block (219) unchanged", cellAvg(brightChart, 219) > 0.9f, "")
+        // "Unchanged" means equal to the un-boosted baseline (a solid glyph's peak is already full, so
+        // boost = 1) — compare against textChart within a small tolerance, not just "still bright".
+        val block219Text = cellAvg(textChart, 219)
+        val block219Bright = cellAvg(brightChart, 219)
+        report(
+            "brightness leaves the full block (219) unchanged",
+            abs(block219Bright - block219Text) < 0.02f && block219Bright > 0.9f,
+            "text=$block219Text bright=$block219Bright",
+        )
         // ADR-0029: a blank/keyed-out glyph (space, 32) must stay transparent even at the max cap.
         report(
             "brightness keeps a blank glyph (32) transparent at cap 4",
