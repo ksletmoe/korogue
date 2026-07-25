@@ -595,8 +595,11 @@ class FreeTypeGlyphSource(
 
     /**
      * Per-glyph sub-pixel **shift-search** downsample — the crispness core of [snapToPixelGrid]. A Kotlin
-     * re-implementation of the technique in **Brogue CE** (`tmewett/BrogueCE`, `src/platform/tiles.c`,
-     * `optimizeTiles`/`downscaleTile`, AGPL-3.0 — the algorithm, not its code).
+     * re-implementation of the *technique* in **Brogue CE** (`tmewett/BrogueCE`, `src/platform/tiles.c`,
+     * `optimizeTiles`/`downscaleTile`). Brogue is **AGPL-3.0**; kotile is **BSD-3-Clause**. This is
+     * independent original code (a summed-area table, not Brogue's per-candidate accumulation) expressing a
+     * non-copyrightable method — **no Brogue code is copied**, so it does not trigger AGPL. The credit is
+     * provenance, not a licence grant. See docs/adr/0037 for the full reasoning.
      *
      * For each CP437 cell of the supersampled [masterUp] (white glyph, coverage in alpha) it tries a grid
      * of sub-pixel offsets, box-downsamples the master cell to [w]x[h] at each, and keeps the offset that

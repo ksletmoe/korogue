@@ -80,8 +80,19 @@ algorithm, not its code — attributed in the source and KDoc.
     once at startup and caches them; kotile recomputes on each rasterise. Skipped
     because the primary use case (a fixed-size source) computes once anyway; a
     size-keyed cache is a clean follow-up that would pay off only for resize-heavy use.
-- **Licensing**: the Brogue CE origin (AGPL-3.0) is recorded at the call site and in
-  KDoc. The algorithm was re-implemented from its description; no code was copied.
+- **Licensing**: kotile is **BSD 3-Clause**; Brogue CE is **AGPL-3.0** (strong
+  copyleft, incompatible with copying into a permissive project). This is an
+  **independent implementation of the *technique*** — a min-blur shift search and its
+  metric — written in original Kotlin from a reading of Brogue's source, with a
+  different structure (a summed-area table for O(1) box averages vs Brogue's direct
+  per-candidate accumulation). **No Brogue code was copied or line-by-line ported.**
+  Copyright protects the specific code expression, not ideas/algorithms/methods (US
+  17 U.S.C. §102(b)) or mathematical formulas, so the independent implementation does
+  not create a derivative work of Brogue's code and does not trigger AGPL — kotile
+  stays BSD. The attribution in the source/KDoc records intellectual **provenance**;
+  crediting an AGPL project as the *source of an idea* is not a licence grant and
+  imposes no AGPL obligation. (Not legal advice; noted so the reasoning is on record.
+  Copying or closely porting the actual C would be a different matter and was avoided.)
 - Leaves ADR-0036's other deferrals intact: the band scaling, the cache, and the
   contrast curve remain unported (the last rejected outright here).
 
