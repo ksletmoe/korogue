@@ -332,8 +332,16 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         cellW: Int,
         cellH: Int,
         supersample: Int,
+        snap: Boolean,
     ): Pixmap {
-        val source = FreeTypeGlyphSource(Gdx.files.classpath("fonts/UbuntuMono-R.ttf"), cellW, cellH, supersample)
+        val source =
+            FreeTypeGlyphSource(
+                Gdx.files.classpath("fonts/UbuntuMono-R.ttf"),
+                cellW,
+                cellH,
+                supersample,
+                snapToPixelGrid = snap,
+            )
         val placed = ArrayList<Placed>()
 
         fun text(
@@ -347,28 +355,57 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         // Box-drawing frame + shade/block elements (explicit CP437 slots; ' ' = 32 gaps).
         val box = intArrayOf(201, 205, 205, 187, 32, 186, 32, 200, 205, 205, 188, 32, 176, 177, 178, 219)
         box.forEachIndexed { i, slot -> placed += Placed(i, 3, slot, Color.CYAN) }
-        return renderGrid(source, 20, 4, cellW, cellH, placed)
+        // Pure black field to match Brogue's #000 (a grey field lowers contrast and reads dimmer).
+        return renderGrid(source, 20, 4, cellW, cellH, placed, bg = Color.BLACK)
     }
 
     /**
-     * Stitches the two Brogue-parameter samples (16×29 @ ss8 and 32×58 @ ss4 — both Brogue's exact
-     * 128×232 master) into one PNG (freetype-brogue.png) for comparing crispness against a real Brogue
-     * screenshot. Small on top, 2× below, on a dark field.
+     * Stitches four Brogue-parameter panels (16×29 @ ss8 and 32×58 @ ss4 — both Brogue's exact 128×232
+     * master — each rendered without and with output-pixel snapping) into freetype-brogue.png, on pure
+     * black, for comparing crispness against a real Brogue screenshot.
      */
     private fun renderBrogueComparison(outPath: String) {
-        val small = renderBrogueSample(16, 29, 8)
-        val large = renderBrogueSample(32, 58, 4)
-        val gap = 10
-        val w = maxOf(small.width, large.width)
-        val h = small.height + gap + large.height
+        val panels =
+            listOf(
+                renderBrogueSample(16, 29, 8, snap = false),
+                renderBrogueSample(16, 29, 8, snap = true),
+                renderBrogueSample(32, 58, 4, snap = false),
+                renderBrogueSample(32, 58, 4, snap = true),
+            )
+        val gap = 12
+        val w = panels.maxOf { it.width }
+        val h = panels.sumOf { it.height } + gap * (panels.size - 1)
         val out =
             Pixmap(w, h, Pixmap.Format.RGBA8888).apply {
                 blending = Pixmap.Blending.None
-                setColor(0.09f, 0.09f, 0.12f, 1f)
+                setColor(Color.BLACK)
                 fill()
             }
-        out.drawPixmap(small, 0, 0)
-        out.drawPixmap(large, 0, small.height + gap)
+        var y = 0
+        for (p in panels) {
+            out.drawPixmap(p, 0, y)
+            y += p.height + gap
+        }
+        // Objective crispness: Brogue's blur metric Σ sin(π·coverage) — smaller = fewer grey-edged pixels.
+        // The shift search minimises this per glyph, so snapped should be < unsnapped.
+        val b16Plain = panelBlur(panels[0])
+        val b16Snap = panelBlur(panels[1])
+        val b32Plain = panelBlur(panels[2])
+        val b32Snap = panelBlur(panels[3])
+        println(
+            "  BLUR 16px  unsnapped=%.0f  snapped=%.0f  (%.1f%% less)".format(
+                b16Plain,
+                b16Snap,
+                100 * (b16Plain - b16Snap) / b16Plain,
+            ),
+        )
+        println(
+            "  BLUR 32px  unsnapped=%.0f  snapped=%.0f  (%.1f%% less)".format(
+                b32Plain,
+                b32Snap,
+                100 * (b32Plain - b32Snap) / b32Plain,
+            ),
+        )
         val path =
             outPath.replaceAfterLast(
                 '/',
@@ -376,9 +413,24 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
             ).let { if (it == outPath) "$outPath.brogue.png" else it }
         PixmapIO.writePNG(Gdx.files.absolute(path), out, Deflater.DEFAULT_COMPRESSION, false)
         println("FTVERIFY wrote $path")
-        small.dispose()
-        large.dispose()
+        panels.forEach { it.dispose() }
         out.dispose()
+    }
+
+    /** Brogue's blur metric over a white/coloured-on-black panel: Σ sin(π·coverage), coverage = max RGB channel. */
+    private fun panelBlur(pix: Pixmap): Double {
+        var blur = 0.0
+        for (y in 0 until pix.height) {
+            for (x in 0 until pix.width) {
+                val rgba = pix.getPixel(x, y)
+                val r = (rgba ushr 24) and 0xFF
+                val g = (rgba ushr 16) and 0xFF
+                val b = (rgba ushr 8) and 0xFF
+                val cov = maxOf(r, g, b) / 255.0
+                blur += kotlin.math.sin(Math.PI * cov)
+            }
+        }
+        return blur
     }
 
     /**
@@ -394,13 +446,14 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         cellW: Int,
         cellH: Int,
         placed: List<Placed>,
+        bg: Color = Color(0.09f, 0.09f, 0.12f, 1f),
     ): Pixmap {
         val w = cols * cellW
         val h = rows * cellH
         Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, 0)
         val fbo = FrameBuffer(Pixmap.Format.RGBA8888, w, h, false)
         fbo.begin()
-        Gdx.gl.glClearColor(0.09f, 0.09f, 0.12f, 1f)
+        Gdx.gl.glClearColor(bg.r, bg.g, bg.b, 1f)
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
         val batch = SpriteBatch()
         val cam =
@@ -543,6 +596,13 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
             cellAvg(bright4Chart, 32) < 0.05f,
             "avg=${cellAvg(bright4Chart, 32)}",
         )
+
+        // snapToPixelGrid: the CPU shift-search downsample must still yield a sane atlas (mirrors the
+        // committed GL spec) — full block opaque, space empty.
+        val snapChart = renderChart(Fonts.ubuntuMono(CELL, CELL, snapToPixelGrid = true))
+        report("snap path: full block (219) opaque", cellAvg(snapChart, 219) > 0.9f, "avg=${cellAvg(snapChart, 219)}")
+        report("snap path: space (32) empty", cellAvg(snapChart, 32) < 0.1f, "avg=${cellAvg(snapChart, 32)}")
+        snapChart.dispose()
 
         val tilePath =
             outPath.replaceAfterLast(

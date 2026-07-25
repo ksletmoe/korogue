@@ -230,6 +230,16 @@ class FreeTypeGlyphSourceIntegrationTest : FunSpec({
             val spaceOn = glyphCell(slot = 32, glyphBrightness = 4f) { it.averageColor(6, 6, 18, 18).r }
             spaceOn.toDouble() shouldBeLessThan 0.05
         }
+
+    test("FreeTypeGlyphSource snapToPixelGrid: the shift-search downsample still yields a sane atlas")
+        .config(enabled = HeadlessGl.available) {
+            // The CPU shift-search path (Brogue optimizeTiles technique) replaces the GPU halving; sanity-
+            // check it produces a usable atlas — full block (219) opaque in its core, space (32) empty.
+            val block = glyphCell(slot = 219, snapToPixelGrid = true) { it.averageColor(6, 6, 18, 18).r }
+            val space = glyphCell(slot = 32, snapToPixelGrid = true) { it.averageColor(6, 6, 18, 18).r }
+            block.toDouble() shouldBeGreaterThan 0.9
+            space.toDouble() shouldBeLessThan 0.05
+        }
 })
 
 /**
@@ -242,11 +252,19 @@ private fun <T> glyphCell(
     slot: Int,
     fit: GlyphFit = GlyphFit.TEXT,
     glyphBrightness: Float = 1f,
+    snapToPixelGrid: Boolean = false,
     sample: (Pixmap) -> T,
 ): T {
     val pixels =
         HeadlessGl.render(24, 24, Color.BLACK) {
-            val source = Fonts.ubuntuMono(24, 24, fit = fit, glyphBrightness = glyphBrightness)
+            val source =
+                Fonts.ubuntuMono(
+                    24,
+                    24,
+                    fit = fit,
+                    glyphBrightness = glyphBrightness,
+                    snapToPixelGrid = snapToPixelGrid,
+                )
             val window =
                 AsciiTileWindow.create {
                     glyphSource = source

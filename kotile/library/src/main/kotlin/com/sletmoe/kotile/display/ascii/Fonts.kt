@@ -251,12 +251,15 @@ object Fonts {
      * @param cellHeightPx initial cell height in pixels (default 16)
      * @param fit per-glyph placement strategy (default [GlyphFit.TEXT]); see [GlyphFit]
      * @param glyphBrightness per-glyph brightness-curve cap (default `1f` = off); see [FreeTypeGlyphSource]
+     * @param snapToPixelGrid snap glyph placement to whole on-screen pixels for crisper stems (default
+     *   `false`); see [FreeTypeGlyphSource]
      */
     fun ubuntuMono(
         cellWidthPx: Int = 16,
         cellHeightPx: Int = 16,
         fit: GlyphFit = GlyphFit.TEXT,
         glyphBrightness: Float = 1f,
+        snapToPixelGrid: Boolean = false,
     ): FreeTypeGlyphSource =
         FreeTypeGlyphSource(
             com.badlogic.gdx.Gdx.files.classpath("fonts/UbuntuMono-R.ttf"),
@@ -264,5 +267,6 @@ object Fonts {
             cellHeightPx,
             fit = fit,
             glyphBrightness = glyphBrightness,
+            snapToPixelGrid = snapToPixelGrid,
         )
 }

@@ -17,6 +17,7 @@ import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.utils.BufferUtils
 import com.sletmoe.kotile.rendering.GammaDownsample
 import kotlin.math.roundToInt
+import kotlin.math.sin
 
 /**
  * How [FreeTypeGlyphSource] places each glyph within its cell (ADR-0036 tier-3
@@ -117,6 +118,15 @@ enum class GlyphFit {
  *   strokes and small glyphs don't read as washed-out grey next to bold ones (most visible at small cell
  *   sizes). This value is the **cap** on that per-glyph boost, clamped to `[1, 4]`; `1` (the default)
  *   disables the curve. A glyph already reaching full ink, or an empty cell, is left untouched.
+ * @param snapToPixelGrid per-glyph output-pixel alignment (krogue-9x7.3) for crisper stems at small
+ *   sizes. When on, the downsample runs a **per-glyph sub-pixel shift search**: for each glyph it tries a
+ *   grid of sub-pixel offsets, box-downsamples the supersampled master at each, and keeps the offset that
+ *   **minimises a blur metric** (`Σ sin(π·coverage)` — fewest half-lit, grey-edged pixels), so stems land
+ *   on whole pixels rather than straddling them. This is a Kotlin re-implementation of the technique in
+ *   **Brogue CE** (`tmewett/BrogueCE`, `src/platform/tiles.c`, `optimizeTiles`/`downscaleTile`, AGPL-3.0)
+ *   — the algorithm, not its code. It is **not cheap** (a CPU search + downsample per glyph on every
+ *   rasterise, i.e. on each [prepareForCellSize] resize), so it is off by default; best for fixed-size
+ *   sources. Unlike Brogue it does translation only (no x-height band scaling) and no offline cache.
  */
 class FreeTypeGlyphSource(
     ttf: FileHandle,
@@ -125,6 +135,7 @@ class FreeTypeGlyphSource(
     supersample: Int = 4,
     private val fit: GlyphFit = GlyphFit.TEXT,
     glyphBrightness: Float = 1f,
+    private val snapToPixelGrid: Boolean = false,
 ) : GlyphSource {
     private val generator = FreeTypeFontGenerator(ttf)
 
@@ -248,29 +259,50 @@ class FreeTypeGlyphSource(
                     var buffer = FrameBuffer(Pixmap.Format.RGBA8888, atlasW * ss, atlasH * ss, false)
                     try {
                         renderGlyphs(buffer, font, w * ss, h * ss)
-                        // 2. Halve — gamma-correct, in linear light — until the atlas is at cell resolution.
-                        var scale = ss
-                        while (scale > 1) {
-                            val half = FrameBuffer(Pixmap.Format.RGBA8888, buffer.width / 2, buffer.height / 2, false)
-                            var halved = false
+                        if (snapToPixelGrid && ss > 1) {
+                            // 2a. Per-glyph shift-search downsample (Brogue's optimizeTiles technique): read
+                            // the supersampled master back and align each glyph to the output-pixel grid on
+                            // the CPU (see shiftSearchDownsample). Bypasses the GPU halving passes.
+                            buffer.begin()
+                            val rawMaster = Pixmap.createFromFrameBuffer(0, 0, atlasW * ss, atlasH * ss)
+                            buffer.end()
+                            val masterUp =
+                                try {
+                                    flipY(rawMaster)
+                                } finally {
+                                    rawMaster.dispose()
+                                }
                             try {
-                                gammaHalve(half, buffer)
-                                halved = true
+                                shiftSearchDownsample(masterUp, w, h, ss)
                             } finally {
-                                if (!halved) half.dispose() // gammaHalve threw; don't leak this FBO
+                                masterUp.dispose()
                             }
-                            buffer.dispose()
-                            buffer = half
-                            scale /= 2
-                        }
-                        // 3. Read the cell-resolution atlas back, upright (FBO pixels are bottom-up).
-                        buffer.begin()
-                        val raw = Pixmap.createFromFrameBuffer(0, 0, atlasW, atlasH)
-                        buffer.end()
-                        try {
-                            flipY(raw)
-                        } finally {
-                            raw.dispose()
+                        } else {
+                            // 2b. Halve — gamma-correct, in linear light — until the atlas is at cell resolution.
+                            var scale = ss
+                            while (scale > 1) {
+                                val half =
+                                    FrameBuffer(Pixmap.Format.RGBA8888, buffer.width / 2, buffer.height / 2, false)
+                                var halved = false
+                                try {
+                                    gammaHalve(half, buffer)
+                                    halved = true
+                                } finally {
+                                    if (!halved) half.dispose() // gammaHalve threw; don't leak this FBO
+                                }
+                                buffer.dispose()
+                                buffer = half
+                                scale /= 2
+                            }
+                            // 3. Read the cell-resolution atlas back, upright (FBO pixels are bottom-up).
+                            buffer.begin()
+                            val raw = Pixmap.createFromFrameBuffer(0, 0, atlasW, atlasH)
+                            buffer.end()
+                            try {
+                                flipY(raw)
+                            } finally {
+                                raw.dispose()
+                            }
                         }
                     } finally {
                         buffer.dispose()
@@ -452,6 +484,9 @@ class FreeTypeGlyphSource(
      * width, line height) in the cell. BitmapFont.draw places (x, y) at the top of the line and draws
      * downward in the y-up world, so all glyphs share a baseline and descenders hang — normal text
      * layout. Returns `false` (nothing drawn) for a glyph with no ink, e.g. space.
+     *
+     * The glyph is rendered at its natural sub-pixel position; when [snapToPixelGrid] is on, the
+     * per-glyph output-pixel alignment happens later in the downsample ([searchDownsampleCell]), not here.
      */
     private fun drawTextGlyph(
         font: BitmapFont,
@@ -556,6 +591,112 @@ class FreeTypeGlyphSource(
                 }
             }
         }
+    }
+
+    /**
+     * Per-glyph sub-pixel **shift-search** downsample — the crispness core of [snapToPixelGrid]. A Kotlin
+     * re-implementation of the technique in **Brogue CE** (`tmewett/BrogueCE`, `src/platform/tiles.c`,
+     * `optimizeTiles`/`downscaleTile`, AGPL-3.0 — the algorithm, not its code).
+     *
+     * For each CP437 cell of the supersampled [masterUp] (white glyph, coverage in alpha) it tries a grid
+     * of sub-pixel offsets, box-downsamples the master cell to [w]x[h] at each, and keeps the offset that
+     * **minimises Brogue's blur metric** `Σ sin(π·coverage)` — the sum is smallest when the fewest pixels
+     * are half-lit (grey-edged), i.e. when stems land squarely on output pixels. A per-cell summed-area
+     * table makes each box average O(1), so the whole search is one CPU pass rather than [ss]² GL
+     * readbacks. Coverage is straight-averaged, matching [GammaDownsample]'s alpha handling. Returns the
+     * cell-resolution atlas (white RGB, aligned alpha), upright.
+     */
+    private fun shiftSearchDownsample(
+        masterUp: Pixmap,
+        w: Int,
+        h: Int,
+        ss: Int,
+    ): Pixmap {
+        val atlasW = w * COLUMNS
+        val atlasH = h * ROWS
+        val out =
+            Pixmap(atlasW, atlasH, Pixmap.Format.RGBA8888).apply {
+                blending = Pixmap.Blending.None
+                setColor(0f, 0f, 0f, 0f)
+                fill()
+            }
+        val mW = w * ss // master cell width
+        val mH = h * ss // master cell height
+        val masterW = masterUp.width
+        val buf = masterUp.pixels // RGBA8888 ByteBuffer; alpha is the 4th byte of each pixel
+        val ssArea = (ss * ss).toFloat()
+        val step = (ss / 4).coerceAtLeast(1) // sub-pixel search resolution: quarter of an output pixel
+        val satW = mW + 1
+        val sat = IntArray(satW * (mH + 1)) // reused per-cell summed-area table of master alpha
+
+        for (slot in 0 until GLYPH_COUNT) {
+            val col = slot % COLUMNS
+            val row = slot / COLUMNS
+            val mx0 = col * mW
+            val my0 = row * mH
+
+            // Build this cell's summed-area table: sat[y*satW + x] = Σ alpha over master [0,x) x [0,y).
+            java.util.Arrays.fill(sat, 0)
+            for (my in 0 until mH) {
+                val srcBase = (my0 + my) * masterW + mx0
+                val satRow = (my + 1) * satW
+                val satPrev = my * satW
+                var rowSum = 0
+                for (mx in 0 until mW) {
+                    rowSum += buf.get((srcBase + mx) * 4 + 3).toInt() and 0xFF
+                    sat[satRow + mx + 1] = sat[satPrev + mx + 1] + rowSum
+                }
+            }
+
+            // Search the offset grid; keep the one with the least blur (fewest half-lit output pixels).
+            var bestSx = 0
+            var bestSy = 0
+            var bestBlur = Double.MAX_VALUE
+            var sy = 0
+            while (sy < ss) {
+                var sx = 0
+                while (sx < ss) {
+                    var blur = 0.0
+                    for (oy in 0 until h) {
+                        val y0 = (oy * ss + sy).coerceIn(0, mH)
+                        val y1 = (oy * ss + sy + ss).coerceIn(0, mH)
+                        val ry0 = y0 * satW
+                        val ry1 = y1 * satW
+                        for (ox in 0 until w) {
+                            val x0 = (ox * ss + sx).coerceIn(0, mW)
+                            val x1 = (ox * ss + sx + ss).coerceIn(0, mW)
+                            val sum = sat[ry1 + x1] - sat[ry0 + x1] - sat[ry1 + x0] + sat[ry0 + x0]
+                            blur += sin(Math.PI * (sum / ssArea / 255f))
+                        }
+                    }
+                    if (blur < bestBlur) {
+                        bestBlur = blur
+                        bestSx = sx
+                        bestSy = sy
+                    }
+                    sx += step
+                }
+                sy += step
+            }
+
+            // Emit the cell downsampled at the winning offset (white RGB, straight-averaged alpha).
+            val ox0 = col * w
+            val oy0 = row * h
+            for (oy in 0 until h) {
+                val y0 = (oy * ss + bestSy).coerceIn(0, mH)
+                val y1 = (oy * ss + bestSy + ss).coerceIn(0, mH)
+                val ry0 = y0 * satW
+                val ry1 = y1 * satW
+                for (ox in 0 until w) {
+                    val x0 = (ox * ss + bestSx).coerceIn(0, mW)
+                    val x1 = (ox * ss + bestSx + ss).coerceIn(0, mW)
+                    val sum = sat[ry1 + x1] - sat[ry0 + x1] - sat[ry1 + x0] + sat[ry0 + x0]
+                    val a = (sum / ssArea).roundToInt().coerceIn(0, 255)
+                    if (a != 0) out.drawPixel(ox0 + ox, oy0 + oy, 0xFFFFFF00.toInt() or a) // white RGB + aligned alpha
+                }
+            }
+        }
+        return out
     }
 
     /** Returns a vertically flipped copy of [src], one row per native blit (not per pixel). */

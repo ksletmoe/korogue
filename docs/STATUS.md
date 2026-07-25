@@ -345,10 +345,19 @@ then given a tested ECS foundation:
   applies a per-glyph **peak-normalising** curve on the downsampled atlas — lifts a
   glyph whose densest pixel falls short of full ink (thin/small glyphs at small cell
   sizes) up to the given cap `[1,4]`, leaving already-solid glyphs untouched; it is
-  deliberately near-a-no-op at large sizes (most glyphs already reach full ink). This
-  is the pragmatic form of Brogue's `optimizeTiles` (its offline shift/scale search
-  mostly rediscovers "centre the ink" for regular font glyphs — ADR-0036). **Deferred
-  (krogue-9x7.4):** seamless box-drawing tiling when the cell aspect ≠ the font's.
+  deliberately near-a-no-op at large sizes (most glyphs already reach full ink). (3)
+  `snapToPixelGrid = true` runs a **per-glyph sub-pixel shift search** in the downsample
+  (a Kotlin re-impl of Brogue CE's `optimizeTiles`/`downscaleTile` technique — AGPL-3.0,
+  algorithm not code): for each glyph it tries a grid of sub-pixel offsets, CPU
+  box-downsamples the supersampled master at each (O(1) via a per-cell summed-area
+  table), and keeps the offset minimising Brogue's blur metric `Σ sin(π·coverage)` (fewest
+  half-lit grey-edge pixels) so stems land on whole output pixels. Measured **~17–21%
+  less blur** on the Brogue-parameter sample (`:kotile:library:freetypeVerify`
+  `freetype-brogue.png`). It's a CPU search+downsample **per rasterise** (so per resize) —
+  hence off by default, best for fixed-size sources; translation-only (no x-height band
+  scaling / offline cache like Brogue). Verified crisp locally; a GL spec sanity-checks
+  the CPU path (block opaque, space empty). **Deferred (krogue-9x7.4):** seamless
+  box-drawing tiling when the cell aspect ≠ the font's.
 - **Layer model — grid + free (pixel-space) layers (ADR-0018).** `KotileCanvas.drawSprite(pxX,
   pxY, region, w, h, tint)` is the real drawing primitive (`drawTile` is grid-snapped sugar
   over it); a frame is an ordered list of `Layer`s composited back-to-front by a `LayerStack`
