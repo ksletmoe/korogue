@@ -319,6 +319,10 @@ private fun renderLowercaseRow(
 /**
  * Spread (max − min) of the bottom inked row across the [letters]-row cells whose character is in
  * [consider], in [pix] (a row of [BAND_CELL]-wide cells, char i at column i). Tight = a shared baseline.
+ *
+ * Fails fast if too few cells inked (a broken atlas, wrong threshold, or empty capture): otherwise an
+ * empty sample would yield a value that satisfies the spread assertions vacuously — coverage that isn't
+ * there. Every considered letter here has ink, so a healthy render measures ~all of them.
  */
 private fun baselineSpread(
     pix: Pixmap,
@@ -343,10 +347,18 @@ private fun baselineSpread(
         if (bottom >= 0) bottoms += bottom
     }
     pix.dispose()
-    return if (bottoms.isEmpty()) -1 else bottoms.max() - bottoms.min()
+    check(bottoms.size >= MIN_MEASURED_CELLS) {
+        "baselineSpread inked only ${bottoms.size} cells (need ≥ $MIN_MEASURED_CELLS) — atlas/capture broken"
+    }
+    return bottoms.max() - bottoms.min()
 }
 
 private const val BAND_CELL = 16
+
+// A healthy 16px render of the band-scale row inks a bottom row for every considered (descender-free)
+// letter — ~21 of them. This floor still catches a broken/empty atlas (0 inked) without being so tight a
+// single sub-threshold glyph on an unusual driver trips it.
+private const val MIN_MEASURED_CELLS = 12
 
 /**
  * Renders CP437 [slot] into a single 24x24 cell through a fresh [FreeTypeGlyphSource] built with the

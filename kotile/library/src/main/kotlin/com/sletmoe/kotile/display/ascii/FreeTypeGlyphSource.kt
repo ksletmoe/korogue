@@ -131,7 +131,7 @@ enum class GlyphFit {
  *   caps/digits (see [bandScaleDownsample]); [GlyphFit.TILE] stays translation-only (no shared baseline to
  *   align). No offline shift cache either way.
  */
-class FreeTypeGlyphSource(
+class FreeTypeGlyphSource internal constructor(
     ttf: FileHandle,
     cellWidthPx: Int,
     cellHeightPx: Int,
@@ -139,11 +139,37 @@ class FreeTypeGlyphSource(
     private val fit: GlyphFit = GlyphFit.TEXT,
     glyphBrightness: Float = 1f,
     private val snapToPixelGrid: Boolean = false,
-    // Test seam (krogue-9x7.5): force the translation-only shift search even for TEXT, bypassing the
-    // x-height/baseline band scaling, so a spec can A/B the two paths and prove band scaling is what
-    // reduces lowercase blur. Not exposed through [Fonts]; production always band-scales TEXT under snap.
-    disableBandScale: Boolean = false,
+    // Module-internal test seam (krogue-9x7.5): force the translation-only shift search even for TEXT,
+    // bypassing the x-height/baseline band scaling, so a same-module spec can A/B the two paths and prove
+    // band scaling is what reduces lowercase blur. It is a *required* (named) argument so production can
+    // only reach this constructor through the public one below (which passes `false`) — the test seam is
+    // never part of the published surface, mirroring the `effectiveSupersample` internal seam.
+    disableBandScale: Boolean,
 ) : GlyphSource {
+    /**
+     * Public production constructor (the published `com.sletmoe:kotile` surface). Identical to the
+     * primary but without the module-internal `disableBandScale` test seam, which it fixes to `false` —
+     * production always band-scales TEXT under [snapToPixelGrid]. See the class KDoc for the parameters.
+     */
+    constructor(
+        ttf: FileHandle,
+        cellWidthPx: Int,
+        cellHeightPx: Int,
+        supersample: Int = 4,
+        fit: GlyphFit = GlyphFit.TEXT,
+        glyphBrightness: Float = 1f,
+        snapToPixelGrid: Boolean = false,
+    ) : this(
+        ttf,
+        cellWidthPx,
+        cellHeightPx,
+        supersample,
+        fit,
+        glyphBrightness,
+        snapToPixelGrid,
+        disableBandScale = false,
+    )
+
     private val generator = FreeTypeFontGenerator(ttf)
 
     // The per-glyph peak-normalisation cap (see the constructor doc). Clamped to a sane range; 1 = off.
@@ -613,6 +639,70 @@ class FreeTypeGlyphSource(
     }
 
     /**
+     * Fills [sat] (size `(mW+1)·(mH+1)`, cleared first) with the per-cell summed-area table of master
+     * alpha for the cell at master origin ([mx0], [my0]) in the [masterW]-wide [buf]: `sat[y·(mW+1)+x] =
+     * Σ alpha over master `[0,x) × [0,y)``, so any axis-aligned box average over the cell is O(1). Shared
+     * by [shiftSearchDownsample] and [bandScaleDownsample].
+     */
+    private fun buildCellSat(
+        buf: java.nio.ByteBuffer,
+        sat: IntArray,
+        masterW: Int,
+        mx0: Int,
+        my0: Int,
+        mW: Int,
+        mH: Int,
+    ) {
+        val satW = mW + 1
+        java.util.Arrays.fill(sat, 0)
+        for (my in 0 until mH) {
+            val srcBase = (my0 + my) * masterW + mx0
+            val satRow = (my + 1) * satW
+            val satPrev = my * satW
+            var rowSum = 0
+            for (mx in 0 until mW) {
+                rowSum += buf.get((srcBase + mx) * 4 + 3).toInt() and 0xFF
+                sat[satRow + mx + 1] = sat[satPrev + mx + 1] + rowSum
+            }
+        }
+    }
+
+    /**
+     * For each of the [h] output rows, interpolates [sat] to the fractional y-band `[vy0, vy1]` and writes
+     * a horizontal prefix into [rowBand] (`rowBand[oy·(mW+1)+x] = Σ master alpha over cols `[0,x)` × that
+     * band`), so a box average over any x-span is one subtraction. The y-band edges are fractional master
+     * rows (the band-scale warp); the SAT's column prefix is lerp'd between the bracketing integer rows.
+     * The [bandScaleDownsample] inner-loop core, factored out to keep that function under detekt's limits.
+     */
+    private fun fillRowBand(
+        sat: IntArray,
+        rowBand: DoubleArray,
+        vy0: DoubleArray,
+        vy1: DoubleArray,
+        mW: Int,
+        mH: Int,
+        h: Int,
+    ) {
+        val satW = mW + 1
+        for (oy in 0 until h) {
+            val y0i = vy0[oy].toInt().coerceIn(0, mH)
+            val y1i = vy1[oy].toInt().coerceIn(0, mH)
+            val f0 = vy0[oy] - y0i
+            val f1 = vy1[oy] - y1i
+            val lo0 = y0i * satW
+            val lo1 = (y0i + 1).coerceAtMost(mH) * satW
+            val hi0 = y1i * satW
+            val hi1 = (y1i + 1).coerceAtMost(mH) * satW
+            val rb = oy * satW
+            for (x in 0..mW) {
+                val low = sat[lo0 + x] + (sat[lo1 + x] - sat[lo0 + x]) * f0
+                val high = sat[hi0 + x] + (sat[hi1 + x] - sat[hi0 + x]) * f1
+                rowBand[rb + x] = high - low
+            }
+        }
+    }
+
+    /**
      * Per-glyph sub-pixel **shift-search** downsample — the crispness core of [snapToPixelGrid]. A Kotlin
      * re-implementation of the *technique* in **Brogue CE** (`tmewett/BrogueCE`, `src/platform/tiles.c`,
      * `optimizeTiles`/`downscaleTile`). Brogue is **AGPL-3.0**; kotile is **BSD-3-Clause**. This is
@@ -657,18 +747,7 @@ class FreeTypeGlyphSource(
             val mx0 = col * mW
             val my0 = row * mH
 
-            // Build this cell's summed-area table: sat[y*satW + x] = Σ alpha over master [0,x) x [0,y).
-            java.util.Arrays.fill(sat, 0)
-            for (my in 0 until mH) {
-                val srcBase = (my0 + my) * masterW + mx0
-                val satRow = (my + 1) * satW
-                val satPrev = my * satW
-                var rowSum = 0
-                for (mx in 0 until mW) {
-                    rowSum += buf.get((srcBase + mx) * 4 + 3).toInt() and 0xFF
-                    sat[satRow + mx + 1] = sat[satPrev + mx + 1] + rowSum
-                }
-            }
+            buildCellSat(buf, sat, masterW, mx0, my0, mW, mH)
 
             // Search the offset grid; keep the one with the least blur (fewest half-lit output pixels).
             var bestSx = 0
@@ -807,36 +886,8 @@ class FreeTypeGlyphSource(
             val mx0 = col * mW
             val my0 = row * mH
 
-            // Build this cell's summed-area table: sat[y*satW + x] = Σ alpha over master [0,x) x [0,y).
-            java.util.Arrays.fill(sat, 0)
-            for (my in 0 until mH) {
-                val srcBaseIdx = (my0 + my) * masterW + mx0
-                val satRow = (my + 1) * satW
-                val satPrev = my * satW
-                var rowSum = 0
-                for (mx in 0 until mW) {
-                    rowSum += buf.get((srcBaseIdx + mx) * 4 + 3).toInt() and 0xFF
-                    sat[satRow + mx + 1] = sat[satPrev + mx + 1] + rowSum
-                }
-            }
-
-            // Per output row, interpolate the SAT to the fractional y-band and lay down a horizontal prefix.
-            for (oy in 0 until h) {
-                val y0i = vy0[oy].toInt().coerceIn(0, mH)
-                val y1i = vy1[oy].toInt().coerceIn(0, mH)
-                val f0 = vy0[oy] - y0i
-                val f1 = vy1[oy] - y1i
-                val lo0 = y0i * satW
-                val lo1 = (y0i + 1).coerceAtMost(mH) * satW
-                val hi0 = y1i * satW
-                val hi1 = (y1i + 1).coerceAtMost(mH) * satW
-                val rb = oy * satW
-                for (x in 0..mW) {
-                    val low = sat[lo0 + x] + (sat[lo1 + x] - sat[lo0 + x]) * f0
-                    val high = sat[hi0 + x] + (sat[hi1 + x] - sat[hi0 + x]) * f1
-                    rowBand[rb + x] = high - low
-                }
-            }
+            buildCellSat(buf, sat, masterW, mx0, my0, mW, mH)
+            fillRowBand(sat, rowBand, vy0, vy1, mW, mH, h)
 
             // Horizontal shift search: pick the x-offset with the least blur (fewest half-lit pixels).
             java.util.Arrays.fill(blur, 0.0)

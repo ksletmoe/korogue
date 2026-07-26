@@ -543,10 +543,12 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
 
     /**
      * krogue-9x7.5: reproduces the committed GL spec's EXACT shape on macOS (which the Kotest GL suite
-     * cannot run here) — a multi-cell AsciiTileWindow row at 16×16, supersample 8, band-scaled vs
+     * cannot run here) — a direct `renderGrid` SpriteBatch region blit of a 16×16, supersample 8 lowercase
+     * row (no AsciiTileWindow/compositor, matching the spec's `renderLowercaseRow`), band-scaled vs
      * translation-only — and asserts the same thing the spec does (band's baseline spread is strictly
      * smaller AND ≤ 1). Per CLAUDE.md: mirror the committed test's geometry/GL state, not just the logic,
-     * so a green harness actually predicts a green CI. Uses the same window path and letters as the spec.
+     * so a green harness predicts a green CI. Both were deliberately kept off the window path (ADR-0038);
+     * uses the same region-blit path and letters as the spec.
      */
     private fun verifyBandScaleCommittedShape() {
         val letters = "thequickbrownfoxjumpslazy"
