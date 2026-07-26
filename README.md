@@ -198,6 +198,11 @@ dependencies {
 }
 ```
 
+korogue draws through kotile, which offers three glyph/tile routes — a bitmap CP437
+`Font`, a smooth resolution-independent `FreeTypeGlyphSource`, and image sprite
+sheets. See [`kotile/README.md`](kotile/README.md) and [`docs/STATUS.md`](docs/STATUS.md)
+to pick one.
+
 ## Module layout
 
 A Gradle multi-project build ([ADR-0013](docs/adr/0013-monorepo-and-module-layout.md)); the root is

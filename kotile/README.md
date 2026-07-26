@@ -132,6 +132,31 @@ fun main() {
 }
 ```
 
+By default `AsciiTileWindow` uses a bundled **bitmap** CP437 font — crisp with
+integer scaling and zero extra setup. For **smooth, resolution-independent** glyphs —
+rasterised *at* the on-screen cell size rather than scaled from a fixed grid (the
+Brogue look) — plug in the freetype source instead:
+
+```kotlin
+import com.sletmoe.kotile.display.ascii.Fonts
+
+val window = AsciiTileWindow.create {
+    glyphSource = Fonts.ubuntuMono(cellWidthPx = 16, cellHeightPx = 16)
+    widthInTiles = 80
+    heightInTiles = 30
+}
+```
+
+`FreeTypeGlyphSource` has opt-in per-glyph refinements — `GlyphFit.TILE` (map-tile
+placement), `glyphBrightness` (lift thin glyphs), and `snapToPixelGrid` (pixel-grid
+crispness) — all off by default. See [`docs/STATUS.md`](../docs/STATUS.md) and
+ADR-0036/0037 for the crispness tiers and knobs. It needs the gdx-freetype native
+(see the dependency note above).
+
+So there are three routes to pick from: the **bitmap** `Font` (simplest), the
+**smooth** `FreeTypeGlyphSource` (crisp at any size), and image **sprite sheets**
+(next).
+
 ### Image sprite sheets
 
 ```kotlin
