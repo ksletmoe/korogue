@@ -551,9 +551,10 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
      * uses the same region-blit path and letters as the spec.
      */
     private fun verifyBandScaleCommittedShape() {
-        val letters = "thequickbrownfoxjumpslazy"
-        val flatBottom = "theuickbrownfoxmslaz" // baseline-sitting letters only: exclude descenders q,j,p,y
-        val cell = 16
+        // Reuse the committed spec's own shape literals (not copies) so this mirror can't drift from it.
+        val letters = BAND_LETTERS
+        val flatBottom = BAND_FLAT_BOTTOM
+        val cell = BAND_CELL
 
         fun rowSpread(disableBand: Boolean): Int {
             val source =
@@ -719,7 +720,12 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
             }
             if (bottom >= 0) bottoms += bottom
         }
-        return if (bottoms.isEmpty()) -1 else bottoms.max() - bottoms.min()
+        // Fail fast (as the committed spec's sibling does) rather than return a -1 sentinel that would
+        // slip past the spread checks: both callers measure ≥ 15 baseline-sitting cells on a good render.
+        check(bottoms.size >= MIN_MEASURED_CELLS) {
+            "baselineSpread inked only ${bottoms.size} cells (need ≥ $MIN_MEASURED_CELLS) — atlas/capture broken"
+        }
+        return bottoms.max() - bottoms.min()
     }
 
     /** Brogue's blur metric over a white/coloured-on-black panel: Σ sin(π·coverage), coverage = max RGB channel. */

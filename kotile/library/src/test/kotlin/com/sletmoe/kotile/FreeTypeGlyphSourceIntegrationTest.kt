@@ -258,8 +258,8 @@ class FreeTypeGlyphSourceIntegrationTest : FunSpec({
             // cell, where a 1px band misalignment is a large fraction of the ~7px x-height. Band scaling
             // pins every flat-bottom letter to the same snapped baseline; translation-only picks each
             // glyph's own vertical offset by minimising its blur, so differently-shaped letters diverge.
-            val letters = "thequickbrownfoxjumpslazy"
-            val flatBottom = "theuickbrownfoxmslaz" // baseline-sitting letters only: exclude descenders q,j,p,y
+            val letters = BAND_LETTERS
+            val flatBottom = BAND_FLAT_BOTTOM
             val bandSpread = baselineSpread(renderLowercaseRow(letters, disableBandScale = false), flatBottom, letters)
             val transSpread = baselineSpread(renderLowercaseRow(letters, disableBandScale = true), flatBottom, letters)
 
@@ -353,12 +353,17 @@ private fun baselineSpread(
     return bottoms.max() - bottoms.min()
 }
 
-private const val BAND_CELL = 16
+// The committed band-scale shape (krogue-9x7.5). Shared (internal) so the macOS `freetypeVerify` harness's
+// verifyBandScaleCommittedShape mirrors this spec from the *same* literals rather than drift-prone copies —
+// the harness exists to predict this GL spec, so its geometry must not diverge silently.
+internal const val BAND_CELL = 16
+internal const val BAND_LETTERS = "thequickbrownfoxjumpslazy"
+internal const val BAND_FLAT_BOTTOM = "theuickbrownfoxmslaz" // baseline-sitting letters only: exclude q,j,p,y
 
 // A healthy 16px render of the band-scale row inks a bottom row for every considered (descender-free)
 // letter — ~21 of them. This floor still catches a broken/empty atlas (0 inked) without being so tight a
 // single sub-threshold glyph on an unusual driver trips it.
-private const val MIN_MEASURED_CELLS = 12
+internal const val MIN_MEASURED_CELLS = 12
 
 /**
  * Renders CP437 [slot] into a single 24x24 cell through a fresh [FreeTypeGlyphSource] built with the
