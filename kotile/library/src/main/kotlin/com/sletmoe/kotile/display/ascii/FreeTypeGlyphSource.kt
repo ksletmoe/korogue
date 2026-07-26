@@ -126,7 +126,10 @@ enum class GlyphFit {
  *   **Brogue CE** (`tmewett/BrogueCE`, `src/platform/tiles.c`, `optimizeTiles`/`downscaleTile`, AGPL-3.0)
  *   — the algorithm, not its code. It is **not cheap** (a CPU search + downsample per glyph on every
  *   rasterise, i.e. on each [prepareForCellSize] resize), so it is off by default; best for fixed-size
- *   sources. Unlike Brogue it does translation only (no x-height band scaling) and no offline cache.
+ *   sources. For [GlyphFit.TEXT] it additionally **band-scales** the vertical resample (krogue-9x7.5): the
+ *   x-height top and baseline are snapped to whole output rows so **lowercase** is crisp, not just
+ *   caps/digits (see [bandScaleDownsample]); [GlyphFit.TILE] stays translation-only (no shared baseline to
+ *   align). No offline shift cache either way.
  */
 class FreeTypeGlyphSource(
     ttf: FileHandle,
@@ -136,6 +139,10 @@ class FreeTypeGlyphSource(
     private val fit: GlyphFit = GlyphFit.TEXT,
     glyphBrightness: Float = 1f,
     private val snapToPixelGrid: Boolean = false,
+    // Test seam (krogue-9x7.5): force the translation-only shift search even for TEXT, bypassing the
+    // x-height/baseline band scaling, so a spec can A/B the two paths and prove band scaling is what
+    // reduces lowercase blur. Not exposed through [Fonts]; production always band-scales TEXT under snap.
+    disableBandScale: Boolean = false,
 ) : GlyphSource {
     private val generator = FreeTypeFontGenerator(ttf)
 
@@ -145,6 +152,14 @@ class FreeTypeGlyphSource(
     // Snapped to a power of two so the atlas downsamples by exact 2:1 gamma halving passes. Higher =
     // smoother edges (closer to Brogue's high-res-master look) at the cost of a larger transient atlas.
     private val supersample: Int = supersample.takeHighestOneBit().coerceIn(1, 8)
+
+    // x-height/baseline band scaling (krogue-9x7.5, Brogue optimizeTiles part 2) applies only to TEXT
+    // fit under snapToPixelGrid: it warps the vertical resample so both the x-height top and the baseline
+    // land on whole output rows, which is what makes LOWERCASE crisp. It is baseline-relative, so it is
+    // meaningless for TILE fit (each glyph is ink-centred independently, no shared baseline). When on, the
+    // downsample runs bandScaleDownsample (warped vertical + horizontal shift search) instead of
+    // shiftSearchDownsample (uniform box + 2-D translation search).
+    private val bandScale: Boolean = snapToPixelGrid && fit == GlyphFit.TEXT && !disableBandScale
 
     override var charWidthPx: Int = cellWidthPx
         private set
@@ -273,7 +288,11 @@ class FreeTypeGlyphSource(
                                     rawMaster.dispose()
                                 }
                             try {
-                                shiftSearchDownsample(masterUp, w, h, ss)
+                                if (bandScale) {
+                                    bandScaleDownsample(masterUp, w, h, ss)
+                                } else {
+                                    shiftSearchDownsample(masterUp, w, h, ss)
+                                }
                             } finally {
                                 masterUp.dispose()
                             }
@@ -702,6 +721,213 @@ class FreeTypeGlyphSource(
         return out
     }
 
+    /**
+     * Per-glyph **x-height/baseline band-scaled** downsample — the lowercase-crispness core of
+     * [snapToPixelGrid] for TEXT fit (krogue-9x7.5, "Brogue optimizeTiles part 2"). Where
+     * [shiftSearchDownsample] aligns *one* horizontal reference by translation (caps/digits/box-drawing
+     * gain, lowercase less so), this warps the **vertical** resample so **two** references — the x-height
+     * top and the baseline — both land on whole output rows, so a lowercase letter's flat top and bottom
+     * edges sit on the pixel grid rather than straddling two rows. This is the mechanism ADR-0037
+     * deferred; a Kotlin re-implementation of the *technique* in **Brogue CE** (`tmewett/BrogueCE`,
+     * `src/platform/tiles.c`, `downscaleTile`'s `map2 = round(map2)` / `map3 = round(map3)` text-tile
+     * band snap), not its code — see [shiftSearchDownsample]'s note and docs/adr/0038.
+     *
+     * The shared baseline is inherent: [drawTextGlyph] lays every glyph out on one line at a constant
+     * top (libGDX's `GlyphLayout.height` is the font cap height for any single glyph), so the x-height top
+     * and baseline sit at the **same** master rows in every cell. We measure them once from the rendered
+     * `x` cell — exactly how Brogue defines `TEXT_X_HEIGHT` ("height of the 'x' outline") and
+     * `TEXT_BASELINE` — then build a piecewise-linear output→source vertical map that pins those two rows
+     * to their rounded output rows and stretches the x-band between them to fit, leaving ascenders and
+     * descenders at natural scale. Horizontally it keeps [shiftSearchDownsample]'s uniform-box **shift
+     * search** (Brogue keeps the horizontal search active for text). Each output pixel is a box average
+     * over an integer-width x-span and a **fractional-height** y-band (linearly interpolated through the
+     * per-cell summed-area table), divided by the actual box area. If `x` has no measurable ink it falls
+     * back to the uniform [shiftSearchDownsample]. Returns the cell-resolution atlas, upright.
+     */
+    private fun bandScaleDownsample(
+        masterUp: Pixmap,
+        w: Int,
+        h: Int,
+        ss: Int,
+    ): Pixmap {
+        val mW = w * ss
+        val mH = h * ss
+        val xBand = measureXBand(masterUp, mW, mH) ?: return shiftSearchDownsample(masterUp, w, h, ss)
+
+        // Source (master) rows of the x-height top and baseline, shared by every cell. Baseline sits just
+        // below the bottom inked row of `x`.
+        val srcXTop = xBand.first.toDouble()
+        val srcBase = (xBand.second + 1).toDouble()
+
+        // Snap both references to whole output rows (Brogue's round(map2)/round(map3)); keep at least one
+        // output row between them so the x-band never collapses.
+        val outXTop = Math.round(srcXTop / ss).toInt()
+        val outBase = Math.round(srcBase / ss).toInt().coerceAtLeast(outXTop + 1)
+
+        // Piecewise-linear output-row → source-master-row map: natural slope (ss) above the x-top and
+        // below the baseline, a stretched slope across the x-band so the two snapped references line up.
+        val bandSlope = (srcBase - srcXTop) / (outBase - outXTop)
+        val srcAt = { outY: Double ->
+            when {
+                outY <= outXTop -> srcXTop + (outY - outXTop) * ss
+                outY <= outBase -> srcXTop + (outY - outXTop) * bandSlope
+                else -> srcBase + (outY - outBase) * ss
+            }
+        }
+        // Per-output-row source band [vy0, vy1], clamped into the master; identical for every cell.
+        val vy0 = DoubleArray(h)
+        val vy1 = DoubleArray(h)
+        for (oy in 0 until h) {
+            vy0[oy] = srcAt(oy.toDouble()).coerceIn(0.0, mH.toDouble())
+            vy1[oy] = srcAt((oy + 1).toDouble()).coerceIn(0.0, mH.toDouble())
+        }
+
+        val atlasW = w * COLUMNS
+        val atlasH = h * ROWS
+        val out =
+            Pixmap(atlasW, atlasH, Pixmap.Format.RGBA8888).apply {
+                blending = Pixmap.Blending.None
+                setColor(0f, 0f, 0f, 0f)
+                fill()
+            }
+        val masterW = masterUp.width
+        val buf = masterUp.pixels
+        val step = (ss / 4).coerceAtLeast(1) // horizontal sub-pixel search resolution: quarter of a pixel
+        val sxs = (0 until ss step step).toList()
+        val satW = mW + 1
+        val sat = IntArray(satW * (mH + 1)) // reused per-cell summed-area table of master alpha
+        // rowBand[oy*(mW+1) + x] = Σ master alpha over cols [0,x) × the fractional y-band of output row oy.
+        // A horizontal prefix, so a box average over [x0,x1) is one subtraction. Rebuilt per cell.
+        val rowBand = DoubleArray(h * satW)
+        val blur = DoubleArray(sxs.size)
+
+        for (slot in 0 until GLYPH_COUNT) {
+            val col = slot % COLUMNS
+            val row = slot / COLUMNS
+            val mx0 = col * mW
+            val my0 = row * mH
+
+            // Build this cell's summed-area table: sat[y*satW + x] = Σ alpha over master [0,x) x [0,y).
+            java.util.Arrays.fill(sat, 0)
+            for (my in 0 until mH) {
+                val srcBaseIdx = (my0 + my) * masterW + mx0
+                val satRow = (my + 1) * satW
+                val satPrev = my * satW
+                var rowSum = 0
+                for (mx in 0 until mW) {
+                    rowSum += buf.get((srcBaseIdx + mx) * 4 + 3).toInt() and 0xFF
+                    sat[satRow + mx + 1] = sat[satPrev + mx + 1] + rowSum
+                }
+            }
+
+            // Per output row, interpolate the SAT to the fractional y-band and lay down a horizontal prefix.
+            for (oy in 0 until h) {
+                val y0i = vy0[oy].toInt().coerceIn(0, mH)
+                val y1i = vy1[oy].toInt().coerceIn(0, mH)
+                val f0 = vy0[oy] - y0i
+                val f1 = vy1[oy] - y1i
+                val lo0 = y0i * satW
+                val lo1 = (y0i + 1).coerceAtMost(mH) * satW
+                val hi0 = y1i * satW
+                val hi1 = (y1i + 1).coerceAtMost(mH) * satW
+                val rb = oy * satW
+                for (x in 0..mW) {
+                    val low = sat[lo0 + x] + (sat[lo1 + x] - sat[lo0 + x]) * f0
+                    val high = sat[hi0 + x] + (sat[hi1 + x] - sat[hi0 + x]) * f1
+                    rowBand[rb + x] = high - low
+                }
+            }
+
+            // Horizontal shift search: pick the x-offset with the least blur (fewest half-lit pixels).
+            java.util.Arrays.fill(blur, 0.0)
+            for (oy in 0 until h) {
+                val bandH = vy1[oy] - vy0[oy]
+                if (bandH <= 0.0) continue
+                val rb = oy * satW
+                for (i in sxs.indices) {
+                    val sx = sxs[i]
+                    var b = 0.0
+                    for (ox in 0 until w) {
+                        val x0 = (ox * ss + sx).coerceIn(0, mW)
+                        val x1 = (ox * ss + sx + ss).coerceIn(0, mW)
+                        val area = (x1 - x0) * bandH
+                        if (area <= 0.0) continue
+                        val cov = (rowBand[rb + x1] - rowBand[rb + x0]) / area / 255.0
+                        b += sin(Math.PI * cov)
+                    }
+                    blur[i] += b
+                }
+            }
+            var bestI = 0
+            for (i in sxs.indices) if (blur[i] < blur[bestI]) bestI = i
+            val bestSx = sxs[bestI]
+
+            // Emit the cell at the winning x-offset (white RGB, straight-averaged alpha).
+            val ox0 = col * w
+            val oy0 = row * h
+            for (oy in 0 until h) {
+                val bandH = vy1[oy] - vy0[oy]
+                if (bandH <= 0.0) continue
+                val rb = oy * satW
+                for (ox in 0 until w) {
+                    val x0 = (ox * ss + bestSx).coerceIn(0, mW)
+                    val x1 = (ox * ss + bestSx + ss).coerceIn(0, mW)
+                    val area = (x1 - x0) * bandH
+                    if (area <= 0.0) continue
+                    val a = ((rowBand[rb + x1] - rowBand[rb + x0]) / area).roundToInt().coerceIn(0, 255)
+                    if (a != 0) out.drawPixel(ox0 + ox, oy0 + oy, 0xFFFFFF00.toInt() or a)
+                }
+            }
+        }
+        return out
+    }
+
+    /**
+     * Measures the x-height band of the rendered master by scanning the `x` glyph's cell (CP437 slot
+     * [X_SLOT]): returns the top and bottom inked master rows (cell-local) at ≥ half the cell's peak
+     * coverage, or `null` if `x` has no ink. Mirrors Brogue's definition of the text band from the `x`
+     * outline. The half-peak threshold locks onto the solid stroke rather than faint anti-aliased tails,
+     * so the measured band matches the visible x-height. Since [drawTextGlyph] shares a baseline across
+     * all glyphs, this one measurement fixes the band for the whole page.
+     */
+    private fun measureXBand(
+        masterUp: Pixmap,
+        mW: Int,
+        mH: Int,
+    ): Pair<Int, Int>? {
+        val col = X_SLOT % COLUMNS
+        val row = X_SLOT / COLUMNS
+        val mx0 = col * mW
+        val my0 = row * mH
+        val masterW = masterUp.width
+        val buf = masterUp.pixels
+        var peak = 0
+        for (my in 0 until mH) {
+            val base = (my0 + my) * masterW + mx0
+            for (mx in 0 until mW) {
+                val a = buf.get((base + mx) * 4 + 3).toInt() and 0xFF
+                if (a > peak) peak = a
+            }
+        }
+        if (peak < MIN_INK_ALPHA) return null
+        val threshold = peak / 2
+        var top = -1
+        var bottom = -1
+        for (my in 0 until mH) {
+            val base = (my0 + my) * masterW + mx0
+            var rowMax = 0
+            for (mx in 0 until mW) {
+                val a = buf.get((base + mx) * 4 + 3).toInt() and 0xFF
+                if (a > rowMax) rowMax = a
+            }
+            if (rowMax >= threshold) {
+                if (top < 0) top = my
+                bottom = my
+            }
+        }
+        return if (top < 0) null else top to bottom
+    }
+
     /** Returns a vertically flipped copy of [src], one row per native blit (not per pixel). */
     private fun flipY(src: Pixmap): Pixmap {
         val dst = Pixmap(src.width, src.height, Pixmap.Format.RGBA8888).apply { blending = Pixmap.Blending.None }
@@ -746,6 +972,10 @@ class FreeTypeGlyphSource(
         // Below this peak alpha a cell is treated as empty (no ink to lift) by the brightness curve, so
         // stray near-zero downsample noise can't trigger a large boost. ~3% of full opacity.
         const val MIN_INK_ALPHA = 8
+
+        // CP437 slot of 'x' — the glyph the band-scale downsample measures the x-height/baseline from
+        // (Brogue's TEXT_X_HEIGHT is likewise "the height of the 'x' outline"). ASCII 'x' == slot 120.
+        const val X_SLOT = 120
 
         // TILE fit enlarges the page so a capital fills this fraction of the cell height (uniform em); a
         // small margin below 1 keeps ascenders/tall glyphs off the very edge. Full-em glyphs (block/box)

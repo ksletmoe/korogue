@@ -354,11 +354,18 @@ then given a tested ECS foundation:
   half-lit grey-edge pixels) so stems land on whole output pixels. Measured **~17–21%
   less blur** on the Brogue-parameter sample (`:kotile:library:freetypeVerify`
   `freetype-brogue.png`). It's a CPU search+downsample **per rasterise** (so per resize) —
-  hence off by default, best for fixed-size sources; translation-only (no x-height band
-  scaling / offline cache like Brogue). Verified crisp locally; a GL spec sanity-checks
-  the CPU path (block opaque, space empty). **Deferred (krogue-9x7.4):** seamless
-  box-drawing tiling when the cell aspect ≠ the font's. **Rationale + omissions
-  (no x-height band scaling, no offline cache):** ADR-0037.
+  hence off by default, best for fixed-size sources. For `GlyphFit.TEXT`, snap now also
+  **band-scales** the vertical resample (krogue-9x7.5, ADR-0038): it measures the
+  x-height/baseline from the master `x` cell and warps the downsample so **both** the
+  x-height top and the baseline land on whole output rows (Brogue's `round(map2)`/
+  `round(map3)` text-tile snap), giving **lowercase** a single shared baseline instead of
+  the per-glyph wander of the translation-only path — baseline-row spread 1→0 (16px) /
+  2→1 (32px) on the harness. `GlyphFit.TILE` stays translation-only (no shared baseline).
+  Verified crisp locally; GL specs sanity-check the CPU path (block opaque, space empty)
+  and assert the band-scaling baseline-consistency guarantee. **Deferred (krogue-9x7.4):**
+  seamless box-drawing tiling when the cell aspect ≠ the font's; **(krogue-9x7.6):** an
+  offline/size-keyed shift cache (still recomputed per rasterise). **Rationale:** ADR-0037
+  (shift search) + ADR-0038 (band scaling).
 - **Layer model — grid + free (pixel-space) layers (ADR-0018).** `KotileCanvas.drawSprite(pxX,
   pxY, region, w, h, tint)` is the real drawing primitive (`drawTile` is grid-snapped sugar
   over it); a frame is an ordered list of `Layer`s composited back-to-front by a `LayerStack`

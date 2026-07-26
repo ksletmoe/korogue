@@ -2,7 +2,9 @@ package com.sletmoe.kotile
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.Pixmap
+import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
 import com.sletmoe.kotile.display.ascii.Fonts
 import com.sletmoe.kotile.display.ascii.FreeTypeGlyphSource
@@ -12,6 +14,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.doubles.plusOrMinus
 import io.kotest.matchers.doubles.shouldBeGreaterThan
 import io.kotest.matchers.doubles.shouldBeLessThan
+import io.kotest.matchers.doubles.shouldBeLessThanOrEqual
 import io.kotest.matchers.shouldBe
 
 /**
@@ -240,7 +243,110 @@ class FreeTypeGlyphSourceIntegrationTest : FunSpec({
             block.toDouble() shouldBeGreaterThan 0.9
             space.toDouble() shouldBeLessThan 0.05
         }
+
+    // --- krogue-9x7.5: x-height/baseline band scaling for lowercase crispness (Brogue optimizeTiles
+    // part 2). TEXT + snapToPixelGrid warps the vertical resample so both the x-height top and the baseline
+    // land on whole output rows, with ONE shared vertical map for every cell. Its guaranteed, driver-
+    // independent effect is that flat-bottomed lowercase letters share a single baseline row; the per-glyph
+    // translation-only path (reachable via the `disableBandScale` seam — what the code did before this
+    // change) offsets each glyph on its own, so its baseline row wanders more. The finer blur/eyeball A/B
+    // across sizes lives in the :kotile:library:freetypeVerify harness (see renderBandScaleComparison). ---
+
+    test("FreeTypeGlyphSource band scaling: TEXT+snap shares one baseline row; translation-only wanders")
+        .config(enabled = HeadlessGl.available) {
+            // A varied lowercase row (mixing round o/e/c, flat n/u/r/w, and ascenders b/h/k/t) at a 16px
+            // cell, where a 1px band misalignment is a large fraction of the ~7px x-height. Band scaling
+            // pins every flat-bottom letter to the same snapped baseline; translation-only picks each
+            // glyph's own vertical offset by minimising its blur, so differently-shaped letters diverge.
+            val letters = "thequickbrownfoxjumpslazy"
+            val flatBottom = "theuickbrownfoxmslaz" // baseline-sitting letters only: exclude descenders q,j,p,y
+            val bandSpread = baselineSpread(renderLowercaseRow(letters, disableBandScale = false), flatBottom, letters)
+            val transSpread = baselineSpread(renderLowercaseRow(letters, disableBandScale = true), flatBottom, letters)
+
+            // Band scaling gives the tighter (more even) baseline. The strict inequality is the regression
+            // signal: with band scaling removed, TEXT+snap IS the translation path, so both rows would be
+            // rendered identically and the spreads would be equal — this assertion would then fail.
+            bandSpread.toDouble() shouldBeLessThan transSpread.toDouble()
+            // And the band baseline is essentially flat (only round-letter overshoot remains).
+            bandSpread.toDouble() shouldBeLessThanOrEqual 1.0
+        }
 })
+
+/**
+ * Renders a single row of [letters] (one CP437 slot per cell) by blitting a band-scaled or translation-only
+ * ([disableBandScale]) TEXT [FreeTypeGlyphSource]'s atlas regions **directly** into the capture FBO (a
+ * SpriteBatch, no AsciiTileWindow/compositor), white on black, and returns the captured pixels (top-left
+ * origin). The band scaling lives entirely in the source's atlas, so a direct region blit exercises it
+ * exactly as a window blit would — and mirrors the `:kotile:library:freetypeVerify` harness's `renderGrid`
+ * geometry 1:1 (where band=0 / translation=1 baseline spread was observed), avoiding the window-resize
+ * coupling that a windowed render would add.
+ */
+private fun renderLowercaseRow(
+    letters: String,
+    disableBandScale: Boolean,
+): Pixmap =
+    HeadlessGl.render(letters.length * BAND_CELL, BAND_CELL, Color.BLACK) {
+        val source =
+            FreeTypeGlyphSource(
+                Gdx.files.classpath("fonts/UbuntuMono-R.ttf"),
+                BAND_CELL,
+                BAND_CELL,
+                supersample = 8,
+                snapToPixelGrid = true,
+                disableBandScale = disableBandScale,
+            )
+        val batch = SpriteBatch()
+        val cam =
+            OrthographicCamera().apply {
+                setToOrtho(false, (letters.length * BAND_CELL).toFloat(), BAND_CELL.toFloat())
+                update()
+            }
+        batch.projectionMatrix = cam.combined
+        batch.color = Color.WHITE
+        batch.begin()
+        try {
+            letters.forEachIndexed { i, c ->
+                val region = source.glyph(c) ?: return@forEachIndexed
+                batch.draw(region, (i * BAND_CELL).toFloat(), 0f, BAND_CELL.toFloat(), BAND_CELL.toFloat())
+            }
+        } finally {
+            batch.end()
+            batch.dispose()
+            source.dispose()
+        }
+    }
+
+/**
+ * Spread (max − min) of the bottom inked row across the [letters]-row cells whose character is in
+ * [consider], in [pix] (a row of [BAND_CELL]-wide cells, char i at column i). Tight = a shared baseline.
+ */
+private fun baselineSpread(
+    pix: Pixmap,
+    consider: String,
+    letters: String,
+): Int {
+    val bottoms = ArrayList<Int>()
+    letters.forEachIndexed { i, c ->
+        if (c !in consider) return@forEachIndexed
+        val x0 = i * BAND_CELL
+        var bottom = -1
+        for (y in 0 until BAND_CELL) {
+            var inked = false
+            for (x in x0 + 2 until x0 + BAND_CELL - 2) {
+                if ((pix.getPixel(x, y) ushr 24 and 0xFF) > 96) {
+                    inked = true
+                    break
+                }
+            }
+            if (inked) bottom = y
+        }
+        if (bottom >= 0) bottoms += bottom
+    }
+    pix.dispose()
+    return if (bottoms.isEmpty()) -1 else bottoms.max() - bottoms.min()
+}
+
+private const val BAND_CELL = 16
 
 /**
  * Renders CP437 [slot] into a single 24x24 cell through a fresh [FreeTypeGlyphSource] built with the
