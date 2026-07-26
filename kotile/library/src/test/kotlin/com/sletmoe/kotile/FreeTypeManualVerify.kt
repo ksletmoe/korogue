@@ -107,7 +107,9 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         ri.dispose()
 
         verifyTileFitAndBrightness(outPath)
+        verifyBandScaleCommittedShape()
         renderDemoComparison(outPath)
+        renderBandScaleComparison(outPath)
         renderBrogueComparison(outPath)
         renderBrogueShowcase(outPath)
         renderBrogueMatch(outPath)
@@ -537,6 +539,193 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         println("FTVERIFY wrote $path")
         panels.forEach { it.dispose() }
         out.dispose()
+    }
+
+    /**
+     * krogue-9x7.5: reproduces the committed GL spec's EXACT shape on macOS (which the Kotest GL suite
+     * cannot run here) — a direct `renderGrid` SpriteBatch region blit of a 16×16, supersample 8 lowercase
+     * row (no AsciiTileWindow/compositor, matching the spec's `renderLowercaseRow`), band-scaled vs
+     * translation-only — and asserts the same thing the spec does (band's baseline spread is strictly
+     * smaller AND ≤ 1). Per CLAUDE.md: mirror the committed test's geometry/GL state, not just the logic,
+     * so a green harness predicts a green CI. Both were deliberately kept off the window path (ADR-0038);
+     * uses the same region-blit path and letters as the spec.
+     */
+    private fun verifyBandScaleCommittedShape() {
+        // Reuse the committed spec's own shape literals (not copies) so this mirror can't drift from it.
+        val letters = BAND_LETTERS
+        val flatBottom = BAND_FLAT_BOTTOM
+        val cell = BAND_CELL
+
+        fun rowSpread(disableBand: Boolean): Int {
+            val source =
+                FreeTypeGlyphSource(
+                    Gdx.files.classpath("fonts/UbuntuMono-R.ttf"),
+                    cell,
+                    cell,
+                    8,
+                    snapToPixelGrid = true,
+                    disableBandScale = disableBand,
+                )
+            val placed = letters.mapIndexed { i, c -> Placed(i, 0, c.code, Color.WHITE) }
+            val pix = renderGrid(source, letters.length, 1, cell, cell, placed, bg = Color.BLACK) // disposes source
+            val spread = baselineSpread(pix, letters, row = 0, cw = cell, ch = cell, consider = flatBottom)
+            pix.dispose()
+            return spread
+        }
+
+        val bandSpread = rowSpread(disableBand = false)
+        val transSpread = rowSpread(disableBand = true)
+        println("  BANDSCALE committed-shape 16x16 window  band=$bandSpread  translation=$transSpread")
+        report(
+            "band spread < translation spread (regression signal)",
+            bandSpread < transSpread,
+            "band=$bandSpread trans=$transSpread",
+        )
+        report("band spread <= 1 (baseline essentially flat)", bandSpread in 0..1, "band=$bandSpread")
+    }
+
+    /**
+     * krogue-9x7.5: lowercase-focused A/B of the vertical band scaling. Renders a lowercase-heavy line
+     * three ways at Brogue's 32×58 cell — snap off (uniform), translation-only shift search (band scaling
+     * bypassed via the `disableBandScale` seam), and the shipped band-scaled snap — and prints the blur
+     * metric of each, plus stitches them (freetype-bandscale.png) so the x-height/baseline snapping is
+     * eyeballable. Band-scaled should have the least blur; the point is that it beats translation-only on
+     * lowercase, which the ADR-0037 shift search could not.
+     */
+    private fun renderBandScaleComparison(outPath: String) {
+        val stitched = ArrayList<Pixmap>()
+        renderBandScaleAt(16, 29, ss = 8, into = stitched)
+        renderBandScaleAt(32, 58, ss = 4, into = stitched)
+        val gap = 20
+        val w = stitched.maxOf { it.width }
+        val h = stitched.sumOf { it.height } + gap * (stitched.size - 1)
+        val out =
+            Pixmap(w, h, Pixmap.Format.RGBA8888).apply {
+                blending = Pixmap.Blending.None
+                setColor(Color.BLACK)
+                fill()
+            }
+        var y = 0
+        for (p in stitched) {
+            out.drawPixmap(p, 0, y)
+            y += p.height + gap
+        }
+        val path =
+            outPath.replaceAfterLast('/', "freetype-bandscale.png").let {
+                if (it == outPath) "$outPath.band.png" else it
+            }
+        PixmapIO.writePNG(Gdx.files.absolute(path), out, Deflater.DEFAULT_COMPRESSION, false)
+        println("FTVERIFY wrote $path")
+        (stitched + out).forEach { it.dispose() }
+    }
+
+    /**
+     * One size's block of the band-scale comparison ([cw]×[ch] cell, [ss] supersample): renders a
+     * lowercase-heavy sample three ways (snap off, translation-only, band-scaled), prints blur + baseline
+     * spread, and appends the three panels to [into] for stitching.
+     */
+    private fun renderBandScaleAt(
+        cw: Int,
+        ch: Int,
+        ss: Int,
+        into: MutableList<Pixmap>,
+    ) {
+        fun panel(
+            snap: Boolean,
+            disableBand: Boolean,
+        ): Pixmap {
+            val source =
+                FreeTypeGlyphSource(
+                    Gdx.files.classpath("fonts/UbuntuMono-R.ttf"),
+                    cw,
+                    ch,
+                    ss,
+                    snapToPixelGrid = snap,
+                    disableBandScale = disableBand,
+                )
+            val lines = listOf("the quick brown fox", "jumps over lazy dog", "excellence adequacy")
+            val placed = ArrayList<Placed>()
+            lines.forEachIndexed { r, s ->
+                s.forEachIndexed { i, c -> if (c != ' ') placed += Placed(i, r, c.code, Color.WHITE) }
+            }
+            return renderGrid(source, lines.maxOf { it.length }, lines.size, cw, ch, placed, bg = Color.BLACK)
+        }
+        val off = panel(snap = false, disableBand = false)
+        val trans = panel(snap = true, disableBand = true) // translation-only (ADR-0037)
+        val band = panel(snap = true, disableBand = false) // band-scaled (krogue-9x7.5, shipped)
+        val bOff = panelBlur(off)
+        val bTrans = panelBlur(trans)
+        val bBand = panelBlur(band)
+        println("  BANDSCALE lowercase ${cw}x$ch  off=%.0f  translation=%.0f  band=%.0f".format(bOff, bTrans, bBand))
+        println(
+            "    band vs off: %.1f%% less   band vs translation-only: %.1f%% less".format(
+                100 * (bOff - bBand) / bOff,
+                100 * (bTrans - bBand) / bTrans,
+            ),
+        )
+        // The real band-scaling win: a CONSISTENT baseline across letters. Translation-only picks each
+        // glyph's own vertical offset, so flat-bottomed lowercase can sit on slightly different rows (an
+        // uneven line); band scaling pins them all to one snapped baseline row. Measure the spread of the
+        // bottom inked row over flat-bottomed x-height letters in row 0 ("the quick brown fox").
+        val flatBottom = "theuickbrownfox" // letters from row 0 without descenders/dots (skip q, i, ' ')
+        val transSpread = baselineSpread(trans, "the quick brown fox", row = 0, cw = cw, ch = ch, consider = flatBottom)
+        val bandSpread = baselineSpread(band, "the quick brown fox", row = 0, cw = cw, ch = ch, consider = flatBottom)
+        println("  BANDSCALE baseline-row spread ${cw}x$ch  translation=$transSpread  band=$bandSpread (band ~0)")
+        val gap = 12
+        val w = maxOf(off.width, trans.width, band.width)
+        val h = off.height + trans.height + band.height + gap * 2
+        val block =
+            Pixmap(w, h, Pixmap.Format.RGBA8888).apply {
+                blending = Pixmap.Blending.None
+                setColor(Color.BLACK)
+                fill()
+            }
+        var y = 0
+        for (p in listOf(off, trans, band)) {
+            block.drawPixmap(p, 0, y)
+            y += p.height + gap
+        }
+        into += block
+        listOf(off, trans, band).forEach { it.dispose() }
+    }
+
+    /**
+     * Spread (max − min) of the bottom inked row across the cells of [line]'s [row] whose character is in
+     * [consider], in the panel [pix] (a [cols]×… grid of [cw]×[ch] cells, char i at column i). A tight
+     * spread means every letter shares a baseline; a loose one means the line sits unevenly.
+     */
+    private fun baselineSpread(
+        pix: Pixmap,
+        line: String,
+        row: Int,
+        cw: Int,
+        ch: Int,
+        consider: String,
+    ): Int {
+        val bottoms = ArrayList<Int>()
+        line.forEachIndexed { i, c ->
+            if (c !in consider) return@forEachIndexed
+            val x0 = i * cw
+            val y0 = row * ch
+            var bottom = -1
+            for (y in 0 until ch) {
+                var inked = false
+                for (x in x0 + 2 until x0 + cw - 2) {
+                    if ((pix.getPixel(x, y0 + y) ushr 24 and 0xFF) > 96) {
+                        inked = true
+                        break
+                    }
+                }
+                if (inked) bottom = y
+            }
+            if (bottom >= 0) bottoms += bottom
+        }
+        // Fail fast (as the committed spec's sibling does) rather than return a -1 sentinel that would
+        // slip past the spread checks: both callers measure ≥ 15 baseline-sitting cells on a good render.
+        check(bottoms.size >= MIN_MEASURED_CELLS) {
+            "baselineSpread inked only ${bottoms.size} cells (need ≥ $MIN_MEASURED_CELLS) — atlas/capture broken"
+        }
+        return bottoms.max() - bottoms.min()
     }
 
     /** Brogue's blur metric over a white/coloured-on-black panel: Σ sin(π·coverage), coverage = max RGB channel. */

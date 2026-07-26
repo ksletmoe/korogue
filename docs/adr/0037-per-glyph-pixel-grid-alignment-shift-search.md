@@ -1,6 +1,7 @@
 # ADR-0037: Per-glyph pixel-grid alignment for tier-3 glyphs — opt-in min-blur shift search
 
-- **Status:** Accepted (partially revises ADR-0036's deferral of `optimizeTiles`)
+- **Status:** Accepted (partially revises ADR-0036's deferral of `optimizeTiles`). The
+  x-height/baseline band-scaling omission recorded below is resolved in ADR-0038.
 - **Date:** 2026-07-25
 
 ## Context
