@@ -568,7 +568,7 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
                 )
             val placed = letters.mapIndexed { i, c -> Placed(i, 0, c.code, Color.WHITE) }
             val pix = renderGrid(source, letters.length, 1, cell, cell, placed, bg = Color.BLACK) // disposes source
-            val spread = baselineSpread(pix, letters, row = 0, cell, cell, flatBottom)
+            val spread = baselineSpread(pix, letters, row = 0, cw = cell, ch = cell, consider = flatBottom)
             pix.dispose()
             return spread
         }
@@ -594,8 +594,8 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
      */
     private fun renderBandScaleComparison(outPath: String) {
         val stitched = ArrayList<Pixmap>()
-        renderBandScaleAt(16, 29, ss = 8, stitched)
-        renderBandScaleAt(32, 58, ss = 4, stitched)
+        renderBandScaleAt(16, 29, ss = 8, into = stitched)
+        renderBandScaleAt(32, 58, ss = 4, into = stitched)
         val gap = 20
         val w = stitched.maxOf { it.width }
         val h = stitched.sumOf { it.height } + gap * (stitched.size - 1)
@@ -668,8 +668,8 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         // uneven line); band scaling pins them all to one snapped baseline row. Measure the spread of the
         // bottom inked row over flat-bottomed x-height letters in row 0 ("the quick brown fox").
         val flatBottom = "theuickbrownfox" // letters from row 0 without descenders/dots (skip q, i, ' ')
-        val transSpread = baselineSpread(trans, "the quick brown fox", row = 0, cw, ch, flatBottom)
-        val bandSpread = baselineSpread(band, "the quick brown fox", row = 0, cw, ch, flatBottom)
+        val transSpread = baselineSpread(trans, "the quick brown fox", row = 0, cw = cw, ch = ch, consider = flatBottom)
+        val bandSpread = baselineSpread(band, "the quick brown fox", row = 0, cw = cw, ch = ch, consider = flatBottom)
         println("  BANDSCALE baseline-row spread ${cw}x$ch  translation=$transSpread  band=$bandSpread (band ~0)")
         val gap = 12
         val w = maxOf(off.width, trans.width, band.width)
