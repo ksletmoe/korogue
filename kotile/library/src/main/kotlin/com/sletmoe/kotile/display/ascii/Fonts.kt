@@ -161,6 +161,16 @@ class Font(
  * - [cp437_12x12] — 12×12
  * - [cp437_16x16] — 16×16
  *
+ * ## Bundled vector faces (freetype, resolution-independent)
+ *
+ * TrueType faces rasterised *at* the cell pixel size via [FreeTypeGlyphSource] (ADR-0036 tier 3),
+ * smooth at any size. Each has full or broad CP437 coverage and a permissive licence:
+ *
+ * - [cascadiaMono] — **recommended default**: Cascadia Mono Bold, complete CP437 coverage, crispest
+ *   downscale (OFL 1.1). Selected in krogue-9x7.8 / ADR-0039.
+ * - [dejaVuSansMono] — broad-coverage alternative: DejaVu Sans Mono Bold, complete CP437 coverage,
+ *   wider/heavier letterforms (DejaVu licence).
+ *
  * ## Custom fonts
  *
  * To use a font not listed here, construct a [Font] directly with the
@@ -224,29 +234,78 @@ object Fonts {
     @Suppress("ktlint:standard:function-naming")
     fun cp437_16x16(keyColor: Color? = Color.BLACK): Font = Font("cp437_16x16.png", 16, 16, keyColor)
 
+    // ── Vector (freetype) faces ────────────────────────────────────────────────────────────────────
+    // The tier-3, resolution-independent glyph sources (ADR-0036, krogue-9x7.2): a TrueType face
+    // rasterised *at* the cell pixel size rather than scaled from a fixed bitmap. Two faces are
+    // bundled; they share the [freeType] parameter contract below. Cascadia Mono is the recommended
+    // default (krogue-9x7.8 / ADR-0039) — complete CP437 coverage and the crispest downscale of the
+    // candidates; DejaVu Sans Mono is a broad-coverage alternative.
+
     /**
-     * Returns a [FreeTypeGlyphSource] on the bundled **Ubuntu Mono** TrueType face
-     * — the tier-3, resolution-independent glyph source (ADR-0036, krogue-9x7.2).
-     * Glyphs are rasterised *at* the [cellWidthPx] x [cellHeightPx] cell size
-     * (smooth at any size, re-rasterised on [GlyphSource.prepareForCellSize])
-     * rather than scaled from a fixed bitmap. Ubuntu Mono is chosen for its broad
-     * CP437 coverage — box-drawing, block/shade elements, and Greek — which most
-     * code-oriented monospace faces omit; a few CP437 symbols it lacks (e.g. ☺, ⌂,
-     * ∩, ≡, ■) fall back to the face's `.notdef` glyph.
+     * Returns a [FreeTypeGlyphSource] on the bundled **Cascadia Mono** (Bold) TrueType face — the
+     * **recommended default** vector glyph source (ADR-0036 tier 3, krogue-9x7.2; selected in
+     * krogue-9x7.8 / ADR-0039). Glyphs are rasterised *at* the [cellWidthPx] x [cellHeightPx] cell size
+     * (smooth at any size, re-rasterised on [GlyphSource.prepareForCellSize]) rather than scaled from a
+     * fixed bitmap.
      *
-     * Unlike the `cp437_*` bitmap fonts this is **not** free — it renders the whole
-     * 256-glyph page through an offscreen buffer, so build it once and reuse it.
-     * The caller owns the returned source and must [GlyphSource.dispose] it.
+     * Cascadia Mono is chosen for two reasons: **complete CP437 coverage** — all 253 distinct code
+     * points a CP437 grid needs (box-drawing, block/shade elements, the control-range symbols ☺☻♥♦♣♠♪♫,
+     * arrows, Greek, math), none falling back to `.notdef` — and its **Bold**, screen-tuned letterforms
+     * survive the gamma-correct downscale crisper than a regular-weight face at small cell sizes (the
+     * Brogue-fidelity goal). See [dejaVuSansMono] for a broad-coverage alternative.
      *
-     * Provenance: Ubuntu Mono, Ubuntu Font Licence 1.0; see `ubuntu-mono.license.txt`
-     * and `fonts/UbuntuMono-LICENCE.txt` on the classpath.
+     * Unlike the `cp437_*` bitmap fonts this is **not** free — it renders the whole 256-glyph page
+     * through an offscreen buffer, so build it once and reuse it. The caller owns the returned source and
+     * must [GlyphSource.dispose] it.
      *
-     * The [fit] and [glyphBrightness] refinements (krogue-9x7.3) are off by default
-     * (normal text layout, no brightness curve). Pass [GlyphFit.TILE] for a
-     * single-glyph map source (ink-centred, scale-fit per glyph) and/or a
-     * `glyphBrightness > 1` to lift thin glyphs at small sizes; see
+     * Provenance: Cascadia Mono, SIL Open Font Licence 1.1; see `cascadia-mono.license.txt` and
+     * `fonts/CascadiaMono-LICENSE.txt` on the classpath.
+     *
+     * See [freeType] for the [fit], [glyphBrightness], and [snapToPixelGrid] refinement parameters.
+     */
+    fun cascadiaMono(
+        cellWidthPx: Int = 16,
+        cellHeightPx: Int = 16,
+        fit: GlyphFit = GlyphFit.TEXT,
+        glyphBrightness: Float = 1f,
+        snapToPixelGrid: Boolean = false,
+    ): FreeTypeGlyphSource =
+        freeType("fonts/CascadiaMono-Bold.ttf", cellWidthPx, cellHeightPx, fit, glyphBrightness, snapToPixelGrid)
+
+    /**
+     * Returns a [FreeTypeGlyphSource] on the bundled **DejaVu Sans Mono** (Bold) TrueType face — a
+     * broad-coverage **alternative** to the default [cascadiaMono] (krogue-9x7.8 / ADR-0039). Like
+     * Cascadia Mono it has **complete CP437 coverage** (all 253 distinct code points, none `.notdef`)
+     * and a Bold weight that stays crisp under the downscale, but with a wider, heavier, more neutral
+     * letterform. Rasterised *at* the cell pixel size, same as [cascadiaMono].
+     *
+     * Not free (renders the whole page through an offscreen buffer); build once and reuse. The caller
+     * owns the returned source and must [GlyphSource.dispose] it.
+     *
+     * Provenance: DejaVu Sans Mono, the DejaVu (Bitstream Vera + Arev) licence; see
+     * `dejavu-sans-mono.license.txt` and `fonts/DejaVuSansMono-LICENSE.txt` on the classpath.
+     *
+     * See [freeType] for the [fit], [glyphBrightness], and [snapToPixelGrid] refinement parameters.
+     */
+    fun dejaVuSansMono(
+        cellWidthPx: Int = 16,
+        cellHeightPx: Int = 16,
+        fit: GlyphFit = GlyphFit.TEXT,
+        glyphBrightness: Float = 1f,
+        snapToPixelGrid: Boolean = false,
+    ): FreeTypeGlyphSource =
+        freeType("fonts/DejaVuSansMono-Bold.ttf", cellWidthPx, cellHeightPx, fit, glyphBrightness, snapToPixelGrid)
+
+    /**
+     * Shared builder for the bundled vector faces: a [FreeTypeGlyphSource] on the classpath TTF at
+     * [classpathTtf], rasterised at [cellWidthPx] x [cellHeightPx].
+     *
+     * The [fit] and [glyphBrightness] refinements (krogue-9x7.3) are off by default (normal text layout,
+     * no brightness curve). Pass [GlyphFit.TILE] for a single-glyph map source (ink-centred, scale-fit
+     * per glyph) and/or a `glyphBrightness > 1` to lift thin glyphs at small sizes; see
      * [FreeTypeGlyphSource].
      *
+     * @param classpathTtf classpath-relative path to the bundled TrueType face
      * @param cellWidthPx initial cell width in pixels (default 16)
      * @param cellHeightPx initial cell height in pixels (default 16)
      * @param fit per-glyph placement strategy (default [GlyphFit.TEXT]); see [GlyphFit]
@@ -254,15 +313,16 @@ object Fonts {
      * @param snapToPixelGrid snap glyph placement to whole on-screen pixels for crisper stems (default
      *   `false`); see [FreeTypeGlyphSource]
      */
-    fun ubuntuMono(
-        cellWidthPx: Int = 16,
-        cellHeightPx: Int = 16,
-        fit: GlyphFit = GlyphFit.TEXT,
-        glyphBrightness: Float = 1f,
-        snapToPixelGrid: Boolean = false,
+    private fun freeType(
+        classpathTtf: String,
+        cellWidthPx: Int,
+        cellHeightPx: Int,
+        fit: GlyphFit,
+        glyphBrightness: Float,
+        snapToPixelGrid: Boolean,
     ): FreeTypeGlyphSource =
         FreeTypeGlyphSource(
-            com.badlogic.gdx.Gdx.files.classpath("fonts/UbuntuMono-R.ttf"),
+            com.badlogic.gdx.Gdx.files.classpath(classpathTtf),
             cellWidthPx,
             cellHeightPx,
             fit = fit,

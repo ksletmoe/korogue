@@ -309,10 +309,14 @@ then given a tested ECS foundation:
   main-thread `:kotile:library:ssVerify` harness (which reproduces the specs'
   exact geometry and reads back ~0.735 at a 50/50 edge).
 - **Freetype glyph source — tier 3 (krogue-9x7.2, ADR-0036).** `FreeTypeGlyphSource`
-  (via `Fonts.ubuntuMono(...)`) is a resolution-independent `GlyphSource` that
-  rasterises a TrueType face (bundled **Ubuntu Mono**, Ubuntu Font Licence 1.0 —
-  chosen for broad CP437 box-drawing/block/Greek coverage — a few symbols it lacks
-  fall back to `.notdef`) into a 16×16 page atlas.
+  (via `Fonts.cascadiaMono(...)`) is a resolution-independent `GlyphSource` that
+  rasterises a TrueType face into a 16×16 page atlas. Two faces are bundled
+  (krogue-9x7.8, ADR-0039), both with **complete** CP437 coverage and a Bold weight
+  that survives the downscale crisper than a regular face: **Cascadia Mono Bold**
+  (OFL 1.1) is the recommended default (`Fonts.cascadiaMono`), **DejaVu Sans Mono
+  Bold** (DejaVu licence) a broad, wider-letterform alternative (`Fonts.dejaVuSansMono`).
+  The previous default Ubuntu Mono was removed: krogue-9x7.8 found its CP437 coverage
+  was actually incomplete (`.notdef` on ~41 slots incl. half-blocks and arrows).
   Indexed by `char.code` as a CP437 slot exactly like the bitmap `Font` (drop-in),
   mapping each slot to its Unicode glyph via `Cp437`. **Brogue-style smoothing:** it
   rasterises the page at `supersample`× the cell (default 4×, ~150px master per
@@ -332,7 +336,7 @@ then given a tested ECS foundation:
   via `:kotile:library:freetypeVerify` (full page chart + composition + res-indep
   banners, plus a TILE-fit page + brightness/orientation readbacks).
   **Per-glyph refinement (krogue-9x7.3, done).** Two opt-in knobs on
-  `FreeTypeGlyphSource`/`Fonts.ubuntuMono(...)`, both off by default (so existing
+  `FreeTypeGlyphSource`/`Fonts.cascadiaMono(...)`, both off by default (so existing
   behaviour is unchanged): (1) `fit = GlyphFit.TILE` ink-centres each glyph in its
   cell and enlarges the **whole page by one uniform factor** (a capital fills
   `TILE_CAP_FILL`≈82% of the cell, clamped per-glyph so full-em glyphs/wide glyphs

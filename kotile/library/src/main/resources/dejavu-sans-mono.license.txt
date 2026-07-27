@@ -1,0 +1,27 @@
+fonts/DejaVuSansMono-Bold.ttf
+
+Source:  DejaVu Sans Mono (Bold), by the DejaVu fonts project —
+         https://dejavu-fonts.github.io
+         A monospaced typeface with COMPLETE CP437 coverage: all 253 distinct
+         code points a code-page-437 grid needs — box-drawing (U+2500–257F),
+         block elements and shades (U+2580–259F), the control-range symbols,
+         arrows, Greek, math, and accented ranges — none falling back to
+         .notdef. Bundled as an alternative to the default Cascadia Mono
+         (Fonts.dejaVuSansMono; selected in krogue-9x7.8 / ADR-0039): a wider,
+         heavier, more neutral letterform than Cascadia. The Bold weight is
+         bundled for the same downscale-crispness reason.
+
+License: Bitstream Vera Fonts Copyright + Arev Fonts Copyright + public-domain
+         changes (the DejaVu licence). A permissive, BSD-style free-software
+         font licence: it grants the right to use, copy, merge, embed, and
+         redistribute the Font Software, including bundling it with (and selling
+         it as part of) other software. Its naming restrictions are that a
+         renamed/derived font may not use the words "Bitstream" or "Vera", and
+         the names of the copyright holders (Bitstream Inc., the Gnome
+         Foundation) may not be used to promote it without prior written
+         authorization. The font is bundled and used as-is (unmodified).
+
+The complete, unmodified DejaVu licence text (Bitstream Vera + Arev copyrights
+and terms) ships alongside the font in this JAR at:
+
+    fonts/DejaVuSansMono-LICENSE.txt

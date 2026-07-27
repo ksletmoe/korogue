@@ -1,0 +1,33 @@
+fonts/CascadiaMono-Bold.ttf
+
+Source:  Cascadia Mono (Bold), by Microsoft Corporation —
+         https://github.com/microsoft/cascadia-code
+         A screen-/terminal-tuned monospaced typeface with COMPLETE CP437
+         coverage: every one of the 253 distinct code points a code-page-437
+         grid needs — box-drawing (U+2500–257F), block elements and shades
+         (U+2580–259F, incl. U+2588 full block), the control-range symbols
+         (☺☻ U+263A/B, hearts/suits U+2660–2666, ♪♫ U+266A/B, arrows
+         U+2190–2195, …), Greek, math, and the accented ranges — with none
+         falling back to .notdef. It is the DEFAULT (recommended) TrueType face
+         for the tier-3 freetype glyph source (FreeTypeGlyphSource /
+         Fonts.cascadiaMono), rasterized at the cell pixel size (ADR-0036 tier
+         3, krogue-9x7.2; selected in krogue-9x7.8 / ADR-0039). The "Mono"
+         (no-ligature) Bold static instance is bundled; the Bold weight and its
+         high edge contrast survive the gamma-correct downscale crisper than a
+         regular-weight face at small cell sizes.
+
+License: SIL Open Font License, Version 1.1
+         Copyright (c) 2019 - Present, Microsoft Corporation, with Reserved Font
+         Name Cascadia Code.
+
+The complete, unmodified SIL Open Font License 1.1 text (with the copyright and
+Reserved Font Name notice) ships alongside the font in this JAR at:
+
+    fonts/CascadiaMono-LICENSE.txt
+
+Per the licence, that file accompanies the bundled font. The font is used as-is
+(not renamed or modified); it is embedded and rasterized at runtime by
+gdx-freetype. The OFL permits the Font Software to be bundled, embedded, and
+redistributed freely, including with software sold for a fee; see the licence
+for the full terms, including that a modified version may not use the Reserved
+Font Name "Cascadia Code".
