@@ -68,10 +68,10 @@ Ubuntu Mono outright.
   slot renders a real glyph — no more `.notdef` arrows/half-blocks.
 - **Breaking API change:** consumers calling `Fonts.ubuntuMono(...)` must switch to
   `Fonts.cascadiaMono(...)` (identical signature). Acceptable pre-1.0.
-- JAR grows by ~0.9 MB for two extra TTFs (Cascadia Bold ~570 KB, DejaVu Bold ~325 KB),
-  partly offset by dropping Ubuntu Mono (~200 KB). A follow-up could subset each face to
-  the CP437 repertoire to shrink this (filed as needed); bundling full faces keeps the
-  OFL/DejaVu "used as-is, unmodified" position simplest.
+- Two extra TTFs add ~895 KB (Cascadia Bold ~570 KB + DejaVu Bold ~325 KB), less the
+  ~200 KB Ubuntu Mono removed — a **net ~695 KB** JAR increase. A follow-up could subset
+  each face to the CP437 repertoire to shrink this (filed as needed); bundling full faces
+  keeps the OFL/DejaVu "used as-is, unmodified" position simplest.
 - `FontEval.kt` + the `fontEval` Gradle task remain as the reproducible method for any
   future font comparison.
 

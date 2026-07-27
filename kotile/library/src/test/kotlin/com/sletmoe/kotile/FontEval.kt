@@ -42,7 +42,7 @@ private class FontEval(private val fontsDir: File, private val outDir: File) : A
 
         val candidates =
             listOf(
-                "UbuntuMono-R (current default)" to "UbuntuMono-R.ttf",
+                "UbuntuMono-R (former default)" to "UbuntuMono-R.ttf",
                 "UbuntuMono-Bold" to "UbuntuMono-Bold.ttf",
                 "JetBrainsMono-Medium" to "JetBrainsMono-Medium.ttf",
                 "JetBrainsMono-SemiBold" to "JetBrainsMono-SemiBold.ttf",
@@ -448,34 +448,50 @@ private class FontEval(private val fontsDir: File, private val outDir: File) : A
 
         Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, 0)
         val fbo = FrameBuffer(Pixmap.Format.RGBA8888, stripW, stripH, false)
-        fbo.begin()
-        Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
         val batch = SpriteBatch()
-        val cam =
-            OrthographicCamera().apply {
-                setToOrtho(false, stripW.toFloat(), stripH.toFloat())
-                update()
+        // finally releases every hoisted source + the FBO/batch even if a draw/readback throws.
+        val flipped =
+            try {
+                fbo.begin()
+                Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
+                Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
+                val cam =
+                    OrthographicCamera().apply {
+                        setToOrtho(false, stripW.toFloat(), stripH.toFloat())
+                        update()
+                    }
+                batch.projectionMatrix = cam.combined
+                batch.begin()
+                sources.forEachIndexed { idx, src ->
+                    val yTop = stripH - (idx + 1) * rowH
+                    batch.color = Color.WHITE
+                    sample.forEachIndexed { i, slot ->
+                        val region = src.glyph(Char(slot)) ?: return@forEachIndexed
+                        batch.draw(
+                            region,
+                            ((labelCols + i) * cell).toFloat(),
+                            yTop.toFloat(),
+                            cell.toFloat(),
+                            cell.toFloat(),
+                        )
+                    }
+                }
+                batch.end()
+                val raw = Pixmap.createFromFrameBuffer(0, 0, stripW, stripH)
+                fbo.end()
+                try {
+                    Pixmap(stripW, stripH, Pixmap.Format.RGBA8888).apply {
+                        blending = Pixmap.Blending.None
+                        for (yy in 0 until stripH) drawPixmap(raw, 0, yy, 0, stripH - 1 - yy, stripW, 1)
+                    }
+                } finally {
+                    raw.dispose()
+                }
+            } finally {
+                batch.dispose()
+                fbo.dispose()
+                sources.forEach { it.dispose() }
             }
-        batch.projectionMatrix = cam.combined
-        batch.begin()
-        sources.forEachIndexed { idx, src ->
-            val yTop = stripH - (idx + 1) * rowH
-            batch.color = Color.WHITE
-            sample.forEachIndexed { i, slot ->
-                val region = src.glyph(Char(slot)) ?: return@forEachIndexed
-                batch.draw(region, ((labelCols + i) * cell).toFloat(), yTop.toFloat(), cell.toFloat(), cell.toFloat())
-            }
-        }
-        batch.end()
-        val raw = Pixmap.createFromFrameBuffer(0, 0, stripW, stripH)
-        fbo.end()
-        batch.dispose()
-        sources.forEach { it.dispose() }
-        val flipped = Pixmap(stripW, stripH, Pixmap.Format.RGBA8888).apply { blending = Pixmap.Blending.None }
-        for (yy in 0 until stripH) flipped.drawPixmap(raw, 0, yy, 0, stripH - 1 - yy, stripW, 1)
-        raw.dispose()
-        fbo.dispose()
         val big = upscale(flipped, 3)
         flipped.dispose()
         val out = File(outDir, "eval-scene-strip.png")
