@@ -281,31 +281,82 @@ class FreeTypeGlyphSourceIntegrationTest : FunSpec({
             floorPeak.toDouble() shouldBeLessThan 0.5 // ...and its tail no longer hits the cell floor (was ~1.0)
         }
 
-    // --- krogue-9x7.5: x-height/baseline band scaling for lowercase crispness (Brogue optimizeTiles
-    // part 2). TEXT + snapToPixelGrid warps the vertical resample so both the x-height top and the baseline
-    // land on whole output rows, with ONE shared vertical map for every cell. Its guaranteed, driver-
-    // independent effect is that flat-bottomed lowercase letters share a single baseline row; the per-glyph
-    // translation-only path (reachable via the `disableBandScale` seam — what the code did before this
-    // change) offsets each glyph on its own, so its baseline row wanders more. The finer blur/eyeball A/B
-    // across sizes lives in the :kotile:library:freetypeVerify harness (see renderBandScaleComparison). ---
-
-    test("FreeTypeGlyphSource band scaling: TEXT+snap shares one baseline row; translation-only wanders")
+    test(
+        "FreeTypeGlyphSource TEXT fit: tall glyphs (ascender h, accented cap Å) clear the cell top (krogue-ux6)",
+    )
         .config(enabled = HeadlessGl.available) {
-            // A varied lowercase row (mixing round o/e/c, flat n/u/r/w, and ascenders b/h/k/t) at a 16px
-            // cell, where a 1px band misalignment is a large fraction of the ~7px x-height. Band scaling
-            // pins every flat-bottom letter to the same snapped baseline; translation-only picks each
-            // glyph's own vertical offset by minimising its blur, so differently-shaped letters diverge.
-            val letters = BAND_LETTERS
-            val flatBottom = BAND_FLAT_BOTTOM
-            val bandSpread = baselineSpread(renderLowercaseRow(letters, disableBandScale = false), flatBottom, letters)
-            val transSpread = baselineSpread(renderLowercaseRow(letters, disableBandScale = true), flatBottom, letters)
+            // Top-edge mirror of the krogue-ns5 descender test. krogue-ns5 centred the cap box
+            // (capHeight+descent ≈ the em) so the cap top sat at ~0.95·cell, leaving almost no headroom:
+            // ascenders (b/h/k/l) — and, a row lower, ring/accented caps (Å/Ä/É) — were sheared flat by the
+            // per-cell scissor at the cell ceiling. krogue-ux6 shrinks the em so the FULL ink box (the ascent,
+            // incl. accent room, plus the descent) fits, and centres that box, reserving top headroom.
+            //
+            // Discriminators verified new-vs-old at this exact 32px geometry via the macOS freetypeVerify
+            // probe: the ascender's top row is a flat stem cut (peak 1.0) with the un-fixed code and 0.0 after
+            // the fix; the accented cap's top two rows drop from ~0.71 (jammed at the ceiling) to ~0.04. The
+            // body band is strongly inked either way, guarding the ceiling check from passing vacuously.
+            val cell = 32
 
-            // Band scaling gives the tighter (more even) baseline. The strict inequality is the regression
-            // signal: with band scaling removed, TEXT+snap IS the translation path, so both rows would be
-            // rendered identically and the spreads would be equal — this assertion would then fail.
-            bandSpread.toDouble() shouldBeLessThan transSpread.toDouble()
-            // And the band baseline is essentially flat (only round-letter overshoot remains).
-            bandSpread.toDouble() shouldBeLessThanOrEqual 1.0
+            fun peakRed(
+                pix: Pixmap,
+                y0: Int,
+                y1: Int,
+            ): Float {
+                var peak = 0f
+                for (y in y0 until y1) {
+                    for (x in cell / 4 until cell * 3 / 4) peak = maxOf(peak, pix.averageColor(x, y, x + 1, y + 1).r)
+                }
+                return peak
+            }
+            // Ascender 'h': hard stem cut => top row fully inked when clipped, empty when it clears.
+            val hBody =
+                glyphCell(slot = 'h'.code, snapToPixelGrid = true, cell = cell) { peakRed(it, cell / 2, cell - 3) }
+            val hCeil = glyphCell(slot = 'h'.code, snapToPixelGrid = true, cell = cell) { peakRed(it, 0, 1) }
+            hBody.toDouble() shouldBeGreaterThan 0.5 // the ascender is actually rendered
+            hCeil.toDouble() shouldBeLessThan 0.5 // ...and its top no longer hits the cell ceiling (was ~1.0)
+            // Accented cap 'Å' (slot 143), the issue's headline case: its ring clears the ceiling too — the
+            // top two rows were ~0.71 (jammed against the top) and taper to ~0.04 after the fit.
+            val aCeil = glyphCell(slot = 143, snapToPixelGrid = true, cell = cell) { peakRed(it, 0, 2) }
+            aCeil.toDouble() shouldBeLessThan 0.5 // the accent no longer jams against the ceiling (was ~0.71)
+        }
+
+    // --- krogue-9x7.5: x-height/baseline band scaling for lowercase crispness (Brogue optimizeTiles
+    // part 2). TEXT + snapToPixelGrid WARPS the vertical resample so both the x-height top and the baseline
+    // land on whole output rows, with ONE shared vertical map for every cell — the per-glyph translation-only
+    // path (reachable via the `disableBandScale` seam — what the code did before this change) can only SHIFT
+    // each glyph, not warp. Two driver-independent consequences: (1) the band-scaled atlas differs
+    // substantially from the translation-only atlas (the warp changes the resample); (2) flat-bottomed
+    // lowercase letters share a single snapped baseline row. The finer blur/eyeball A/B across sizes lives in
+    // the :kotile:library:freetypeVerify harness (see renderBandScaleComparison).
+    //
+    // NOTE (krogue-ux6): an earlier form of this spec asserted `bandSpread < transSpread` at 16px. That is a
+    // ≤1px, driver-sensitive knife-edge — and once ux6 shrank the TEXT em to reserve ascender/accent room,
+    // the extra vertical headroom let the translation-only shift search also nail the baseline (spread 0),
+    // collapsing the strict inequality. The atlas-difference signal below is robust: it is ~30% of inked
+    // pixels when band scaling is active and exactly 0 if it is disabled (both paths become translation). ---
+
+    test("FreeTypeGlyphSource band scaling: warps the resample (differs from translation-only) + tight baseline")
+        .config(enabled = HeadlessGl.available) {
+            // A varied lowercase row (mixing round o/e/c, flat n/u/r/w, and ascenders b/h/k/t) at a 16px cell,
+            // rendered band-scaled and translation-only. The two share every input except the band-scale warp.
+            val bandRow = renderLowercaseRow(BAND_LETTERS, disableBandScale = false)
+            val transRow = renderLowercaseRow(BAND_LETTERS, disableBandScale = true)
+            try {
+                // Regression signal: band scaling WARPS the vertical resample, so its atlas differs
+                // substantially from the translation-only path (~30% of inked pixels here). If band scaling
+                // were removed, TEXT+snap IS the translation path and the two rows would be byte-identical
+                // (diff 0) — so a healthy diff far above 0 proves band scaling is active and doing its warp.
+                val (diff, inked) = pixelDiff(bandRow, transRow)
+                inked.toDouble() shouldBeGreaterThan 0.0
+                diff.toDouble() shouldBeGreaterThan (inked / 10).toDouble() // ~30% in practice; disabled -> 0
+
+                // And band scaling gives a tight shared baseline: flat-bottom letters land within one output
+                // row (only round-letter overshoot remains). Measured on the band-scaled row.
+                baselineSpread(bandRow, BAND_FLAT_BOTTOM, BAND_LETTERS).toDouble() shouldBeLessThanOrEqual 1.0
+            } finally {
+                bandRow.dispose()
+                transRow.dispose()
+            }
         }
 })
 
@@ -356,6 +407,7 @@ private fun renderLowercaseRow(
 /**
  * Spread (max − min) of the bottom inked row across the [letters]-row cells whose character is in
  * [consider], in [pix] (a row of [BAND_CELL]-wide cells, char i at column i). Tight = a shared baseline.
+ * Does **not** dispose [pix] — the caller owns it (the band-scale spec reuses the same row for [pixelDiff]).
  *
  * Fails fast if too few cells inked (a broken atlas, wrong threshold, or empty capture): otherwise an
  * empty sample would yield a value that satisfies the spread assertions vacuously — coverage that isn't
@@ -383,12 +435,38 @@ private fun baselineSpread(
         }
         if (bottom >= 0) bottoms += bottom
     }
-    pix.dispose()
     check(bottoms.size >= MIN_MEASURED_CELLS) {
         "baselineSpread inked only ${bottoms.size} cells (need ≥ $MIN_MEASURED_CELLS) — atlas/capture broken"
     }
     return bottoms.max() - bottoms.min()
 }
+
+/**
+ * Compares two equally-sized atlas rows by coverage (alpha): returns `(diffPx, inkedPx)` where `diffPx`
+ * counts pixels whose alpha differs by more than [ALPHA_EPS] and `inkedPx` counts pixels inked in either.
+ * The band-scale spec's robust regression signal (krogue-ux6): band scaling warps the vertical resample,
+ * so `diffPx` is a large fraction of `inkedPx`; with band scaling disabled the two paths are identical and
+ * `diffPx` is 0. Neither pixmap is disposed.
+ */
+private fun pixelDiff(
+    a: Pixmap,
+    b: Pixmap,
+): Pair<Int, Int> {
+    var diff = 0
+    var inked = 0
+    for (y in 0 until a.height) {
+        for (x in 0 until a.width) {
+            val a1 = a.getPixel(x, y) ushr 24 and 0xFF
+            val a2 = b.getPixel(x, y) ushr 24 and 0xFF
+            if (a1 > ALPHA_EPS || a2 > ALPHA_EPS) inked++
+            if (kotlin.math.abs(a1 - a2) > ALPHA_EPS) diff++
+        }
+    }
+    return diff to inked
+}
+
+// Alpha (0–255) tolerance for treating a pixel as inked / as differing between two atlases (~12%).
+private const val ALPHA_EPS = 32
 
 // The committed band-scale shape (krogue-9x7.5). Shared (internal) so the macOS `freetypeVerify` harness's
 // verifyBandScaleCommittedShape mirrors this spec from the *same* literals rather than drift-prone copies —

@@ -341,7 +341,14 @@ then given a tested ECS foundation:
   cell and enlarges the **whole page by one uniform factor** (a capital fills
   `TILE_CAP_FILL`≈82% of the cell, clamped per-glyph so full-em glyphs/wide glyphs
   fill exactly rather than overflow) for single-glyph **map tiles** — vs the default
-  `GlyphFit.TEXT` baseline layout that running text needs. Uniform-em keeps *relative*
+  `GlyphFit.TEXT` baseline layout that running text needs. **TEXT-fit vertical placement**
+  centres the face's *full ink box* in the cell — the ascent (cap height **plus** the
+  ascender/ring-accent room above it) above the baseline and the descent below it —
+  rasterising at a slightly shrunk em (a face constant × cell, with a ~5% breathing margin)
+  so that box fits: `g/j/p/q/y` tails clear the floor (krogue-ns5) **and** `b/d/f/h/k/l/t`
+  and `Å/Ä/É` tops clear the ceiling (krogue-ux6), both previously sheared flat by the
+  per-cell scissor. `GlyphFit.TILE` is unaffected (it scale-fits each glyph and keeps the
+  full em). Uniform-em keeps *relative*
   glyph sizes, so punctuation used as terrain (floor `.`) stays a small centred dot
   instead of ballooning to fill the cell. The tile path draws the glyph's page region
   directly with **no extra V-flip** (BitmapFont pages are already y-up-oriented —
@@ -363,10 +370,13 @@ then given a tested ECS foundation:
   x-height/baseline from the master `x` cell and warps the downsample so **both** the
   x-height top and the baseline land on whole output rows (Brogue's `round(map2)`/
   `round(map3)` text-tile snap), giving **lowercase** a single shared baseline instead of
-  the per-glyph wander of the translation-only path — baseline-row spread 1→0 (16px) /
-  2→1 (32px) on the harness. `GlyphFit.TILE` stays translation-only (no shared baseline).
-  Verified crisp locally; GL specs sanity-check the CPU path (block opaque, space empty)
-  and assert the band-scaling baseline-consistency guarantee. **Deferred (krogue-9x7.4):**
+  the per-glyph wander of the translation-only path. `GlyphFit.TILE` stays translation-only
+  (no shared baseline). Verified crisp locally; GL specs sanity-check the CPU path (block
+  opaque, space empty) and assert the band-scaling guarantee via a **robust** discriminator
+  (krogue-ux6): the band-scaled atlas differs substantially (~30% of inked px) from the
+  translation-only atlas — 0 if band-scaling were disabled — plus flat-bottom baseline
+  spread ≤1. (The earlier strict `bandSpread < transSpread` at 16px was a ≤1px
+  driver-sensitive knife-edge that the ux6 em-shrink collapsed to 0-vs-0.) **Deferred (krogue-9x7.4):**
   seamless box-drawing tiling when the cell aspect ≠ the font's; **(krogue-9x7.6):** an
   offline/size-keyed shift cache (still recomputed per rasterise). **Rationale:** ADR-0037
   (shift search) + ADR-0038 (band scaling).

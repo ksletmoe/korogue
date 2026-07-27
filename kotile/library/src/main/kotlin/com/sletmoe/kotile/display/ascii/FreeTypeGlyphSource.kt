@@ -188,6 +188,11 @@ class FreeTypeGlyphSource internal constructor(
     // shiftSearchDownsample (uniform box + 2-D translation search).
     private val bandScale: Boolean = snapToPixelGrid && fit == GlyphFit.TEXT && !disableBandScale
 
+    // Cached full-ink-box / em ratio for this face (krogue-ux6), measured once from a reference
+    // rasterisation (see [faceInkBoxRatio]) and reused every rasterise — it is a face constant, so the
+    // TEXT em-shrink never pays for a second full-page generation on resize.
+    private var cachedInkBoxRatio: Float? = null
+
     override var charWidthPx: Int = cellWidthPx
         private set
 
@@ -274,23 +279,14 @@ class FreeTypeGlyphSource internal constructor(
         }
         effectiveSupersample = ss
 
-        val font =
-            generator.generateFont(
-                FreeTypeFontGenerator.FreeTypeFontParameter().apply {
-                    size = h * ss
-                    color = Color.WHITE
-                    // gdx-freetype only rasterises the requested characters; its default set omits the
-                    // box-drawing/block/Greek ranges CP437 needs, so ask for the whole page explicitly.
-                    characters = Cp437.repertoire
-                    // Supersampling wants the true outline, not grid-fitted stems — hinting off is what
-                    // gives the smooth, high-res-master look. At ss=1 (no downsample) keep light hinting
-                    // for legibility at small sizes.
-                    hinting = if (ss > 1) FreeTypeFontGenerator.Hinting.None else FreeTypeFontGenerator.Hinting.Slight
-                    minFilter = Texture.TextureFilter.Linear
-                    magFilter = Texture.TextureFilter.Linear
-                    genMipMaps = false
-                },
-            )
+        // TEXT fit centres the font's *full ink box* (ascender-to-descender, incl. ring/accented caps) in
+        // the cell (see [drawTextGlyph]). That box is taller than the em for typical faces, so rasterising
+        // straight at the em (`h * ss`) would overflow the cell and the per-cell scissor would clip the
+        // TOP of ascenders and accented caps — krogue-ux6 (the top-edge mirror of the krogue-ns5 descender
+        // clip). Shrink the rasterised em so the ink box fits. TILE fit already scale-fits each glyph per
+        // cell, so it keeps the full em — a smaller master would only blur its per-glyph upscale.
+        val em = if (fit == GlyphFit.TEXT) textEmSize(h * ss) else h * ss
+        val font = generateGlyphFont(em, ss)
 
         // Each intermediate FBO / the font / the read-back pixmap is released even if a GL step throws
         // (an allocation or incomplete-FBO GdxRuntimeException) — the caller has no handle to these.
@@ -375,6 +371,75 @@ class FreeTypeGlyphSource internal constructor(
         charWidthPx = w
         charHeightPx = h
     }
+
+    /**
+     * Rasterises the whole CP437 page of this face at the given pixel [em] size (with [ss]-dependent
+     * hinting). Factored out of [rasterize] so the TEXT em-fit ([textEmSize]) and the raw em share one
+     * parameter block.
+     */
+    private fun generateGlyphFont(
+        em: Int,
+        ss: Int,
+    ): BitmapFont =
+        generator.generateFont(
+            FreeTypeFontGenerator.FreeTypeFontParameter().apply {
+                size = em
+                color = Color.WHITE
+                // gdx-freetype only rasterises the requested characters; its default set omits the
+                // box-drawing/block/Greek ranges CP437 needs, so ask for the whole page explicitly.
+                characters = Cp437.repertoire
+                // Supersampling wants the true outline, not grid-fitted stems — hinting off is what
+                // gives the smooth, high-res-master look. At ss=1 (no downsample) keep light hinting
+                // for legibility at small sizes.
+                hinting = if (ss > 1) FreeTypeFontGenerator.Hinting.None else FreeTypeFontGenerator.Hinting.Slight
+                minFilter = Texture.TextureFilter.Linear
+                magFilter = Texture.TextureFilter.Linear
+                genMipMaps = false
+            },
+        )
+
+    /**
+     * The rasterised em size for a TEXT-fit cell [masterCellH] px tall (krogue-ux6): the em shrunk just
+     * enough that the face's **full ink box** — cap height plus the ascent above it (the tallest glyph,
+     * incl. ring/accented caps like Å/Ä/É) plus the descent below the baseline — fits within the cell, so
+     * [drawTextGlyph] can centre that whole box without the per-cell scissor clipping ascender/accent
+     * tops. A small top+bottom breathing margin ([TEXT_MARGIN_FRAC]) is held back so the tallest accent
+     * doesn't sit flush against the ceiling and the deepest descender clears the floor (preserving
+     * krogue-ns5). [faceInkBoxRatio] is the ink-box height as a fraction of the em (typically > 1). Never
+     * returns < 1 and never larger than the em.
+     */
+    private fun textEmSize(masterCellH: Int): Int {
+        val fitPx = masterCellH * (1f - 2f * TEXT_MARGIN_FRAC)
+        return (fitPx / faceInkBoxRatio()).toInt().coerceIn(1, masterCellH)
+    }
+
+    /**
+     * Height of this face's full ink box (cap height + ascent above the cap + descent below the baseline)
+     * as a fraction of the em, measured once from a small reference rasterisation and cached. Faces whose
+     * ascender/descender exceed the em (most, once ring/accented-cap room is counted) return > 1, driving
+     * the TEXT em-shrink in [textEmSize]. Uses the default character set (which includes the capitals
+     * gdx-freetype measures `capHeight` from); the value is a face constant, independent of cell size.
+     */
+    private fun faceInkBoxRatio(): Float {
+        cachedInkBoxRatio?.let { return it }
+        val ref = generateGlyphFontMetricsOnly()
+        val ratio =
+            try {
+                (ref.capHeight + ref.ascent.coerceAtLeast(0f) + abs(ref.descent)) / REF_METRIC_EM
+            } finally {
+                ref.dispose()
+            }
+        return ratio.also { cachedInkBoxRatio = it }
+    }
+
+    /** A cheap metrics-only rasterisation at [REF_METRIC_EM] (default chars, no page) for [faceInkBoxRatio]. */
+    private fun generateGlyphFontMetricsOnly(): BitmapFont =
+        generator.generateFont(
+            FreeTypeFontGenerator.FreeTypeFontParameter().apply {
+                size = REF_METRIC_EM
+                hinting = FreeTypeFontGenerator.Hinting.None
+            },
+        )
 
     /**
      * Draws every CP437 glyph into [target] with **blending disabled**, so each glyph's straight-alpha
@@ -530,17 +595,16 @@ class FreeTypeGlyphSource internal constructor(
      * all glyphs align and descenders hang — normal text layout. BitmapFont.draw takes (x, y) at the top
      * of the cap line and draws downward in the y-up world, so `baseline = drawY - capHeight`.
      *
-     * **Descender room (krogue-ns5):** the cell is centred on the font's *line box* — cap height above
-     * the baseline plus the descent below it — rather than on the cap box alone, so the baseline sits
-     * `descent` (+ half the spare) above the cell floor and `g/j/p/q/y` tails fall inside the cell instead
-     * of being clipped by the per-cell scissor. capHeight and descent are the same for every glyph, so the
-     * baseline is identical across the whole page — the invariant the band-scale downsample relies on
-     * ([bandScaleDownsample] measures the baseline once from the rendered `x`). Returns `false` (nothing
-     * drawn) for a glyph with no ink, e.g. space.
-     *
-     * This holds only while the line box fits the cell (`capHeight + descent <= h`); when a glyph exceeds
-     * the cell height `spare` clamps to `0` and it is the **top** that the scissor cuts (tall ascenders /
-     * ring-accented caps — the krogue-ux6 follow-up), not the descender.
+     * **Ink-box fit (krogue-ns5 + krogue-ux6):** the cell is centred on the font's *full ink box* — the
+     * ascent above the baseline (cap height plus the ascender/accent room above the cap, i.e. the tallest
+     * glyph: ascenders `b d f h k l t`, ring/accented caps `Å Ä É`) and the descent below it — rather than
+     * on the cap box alone. ns5 reserved the descent so `g/j/p/q/y` tails clear the floor; ux6 reserves the
+     * full ascent (not just the cap) so those tall tops clear the ceiling. Both edges are the per-cell
+     * scissor, so reserving both keeps every glyph inside its cell. The em is shrunk upstream ([textEmSize])
+     * so this ink box fits the cell, giving `spare >= 0`. ascent, capHeight and descent are the same for
+     * every glyph, so the baseline is identical across the whole page — the invariant the band-scale
+     * downsample relies on ([bandScaleDownsample] measures the baseline once from the rendered `x`).
+     * Returns `false` (nothing drawn) for a glyph with no ink, e.g. space.
      *
      * The glyph is rendered at its natural sub-pixel position; when [snapToPixelGrid] is on, the
      * per-glyph output-pixel alignment happens later in the downsample, not here.
@@ -559,13 +623,15 @@ class FreeTypeGlyphSource internal constructor(
         layout.setText(font, String(Character.toChars(codePoint)))
         if (layout.width <= 0f && layout.height <= 0f) return false // nothing to draw (e.g. space)
         val drawX = (col * w) + (w - layout.width) / 2f
-        // Centre the line box (capHeight + descent) in the cell; baseline = drawY - capHeight, so derive
-        // drawY from the baseline sitting `descent + spare/2` above the cell floor. font.descent is
-        // negative (below baseline), hence abs().
-        val capHeight = layout.height
+        // Centre the full ink box (ascent + descent) in the cell; BitmapFont.draw takes y at the cap line,
+        // so baseline = drawY - capHeight. Reserve `ascentPx` above the baseline (cap + ascender/accent
+        // room, so tall tops clear the ceiling — ux6) and `descentPx` below it (so tails clear the floor —
+        // ns5). font.ascent is the room ABOVE the cap; font.descent is negative (below baseline), hence abs.
+        val capHeight = font.capHeight
+        val ascentPx = capHeight + font.ascent.coerceAtLeast(0f)
         val descentPx = abs(font.descent)
         val cellBottom = (atlasH - (row + 1) * h).toFloat()
-        val spare = (h - (capHeight + descentPx)).coerceAtLeast(0f)
+        val spare = (h - (ascentPx + descentPx)).coerceAtLeast(0f)
         val baseline = cellBottom + descentPx + spare / 2f
         font.draw(batch, layout, drawX, baseline + capHeight)
         return true
@@ -1042,6 +1108,17 @@ class FreeTypeGlyphSource internal constructor(
         // Below this peak alpha a cell is treated as empty (no ink to lift) by the brightness curve, so
         // stray near-zero downsample noise can't trigger a large boost. ~3% of full opacity.
         const val MIN_INK_ALPHA = 8
+
+        // Reference em (px) for the one-off face ink-box ratio measurement (krogue-ux6, [faceInkBoxRatio]).
+        // Large enough that capHeight/ascent/descent round cleanly; the ratio is a size-independent face
+        // constant, so any generously-sized reference works.
+        const val REF_METRIC_EM = 256
+
+        // TEXT fit holds back this fraction of the cell height at the top AND bottom as breathing margin
+        // (krogue-ux6): enough that the tallest accent (Å/Ä) clears the ceiling and the deepest descender
+        // (g/j/p/q/y) clears the floor rather than sitting flush against the per-cell scissor edge. Applied
+        // by shrinking the rasterised em ([textEmSize]); the placement then centres the ink box in the cell.
+        const val TEXT_MARGIN_FRAC = 0.05f
 
         // CP437 slot of 'x' — the glyph the band-scale downsample measures the x-height/baseline from
         // (Brogue's TEXT_X_HEIGHT is likewise "the height of the 'x' outline"). ASCII 'x' == slot 120.
