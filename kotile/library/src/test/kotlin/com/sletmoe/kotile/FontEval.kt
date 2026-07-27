@@ -147,7 +147,9 @@ private class FontEval(private val fontsDir: File, private val outDir: File) : A
 
     /** A framed dungeon + status screen rendered through the bundled default `Fonts.cascadiaMono`. */
     private fun renderShowcase() {
-        val cell = 24
+        // Rasterised at this cell px and written 1:1 (no viewer upscale) so the PNG is the engine's true
+        // output pixels — a nearest upscale would magnify the downsample's edge AA and read as "soft".
+        val cell = 40
         val cols = 34
         val rows = 19
         val src = com.sletmoe.kotile.display.ascii.Fonts.cascadiaMono(cell, cell, snapToPixelGrid = true)
@@ -250,12 +252,27 @@ private class FontEval(private val fontsDir: File, private val outDir: File) : A
 
         val pix = renderColored(src, cols, rows, cell, p, Color(0.06f, 0.06f, 0.09f, 1f))
         src.dispose()
-        val big = upscale(pix, 2)
-        pix.dispose()
         val out = File(outDir, "cascadia-showcase.png")
-        PixmapIO.writePNG(Gdx.files.absolute(out.absolutePath), big, Deflater.DEFAULT_COMPRESSION, false)
-        big.dispose()
-        println("wrote ${out.name}")
+        PixmapIO.writePNG(Gdx.files.absolute(out.absolutePath), pix, Deflater.DEFAULT_COMPRESSION, false)
+        pix.dispose()
+
+        // Descender probe: a large TEXT-fit row of descender-heavy glyphs, each cell outlined, so any
+        // baseline/descender clipping by the per-cell scissor is unmistakable.
+        val big = 96
+        val probeSrc = com.sletmoe.kotile.display.ascii.Fonts.cascadiaMono(big, big, snapToPixelGrid = true)
+        val probe = "Rogue gjpqy Happy".map { it.code }
+        val pp = ArrayList<ColoredPlaced>()
+        probe.forEachIndexed { i, ch -> if (ch != 32) pp += ColoredPlaced(i, 0, ch, Color.WHITE) }
+        val probePix = renderColored(probeSrc, probe.size, 1, big, pp, Color(0.10f, 0.10f, 0.13f, 1f))
+        probeSrc.dispose()
+        // Draw a 1px cell-floor guide line so the eye can see the baseline/descender vs the cell edge.
+        probePix.setColor(0.9f, 0.3f, 0.3f, 1f)
+        probePix.drawLine(0, big - 1, probePix.width - 1, big - 1)
+        val probeOut = File(outDir, "cascadia-descenders.png")
+        PixmapIO.writePNG(Gdx.files.absolute(probeOut.absolutePath), probePix, Deflater.DEFAULT_COMPRESSION, false)
+        probePix.dispose()
+        println("wrote ${probeOut.name}")
+        println("wrote ${out.name} (${cols * cell}x${rows * cell}, native 1:1)")
     }
 
     /** Draws [placed] (per-glyph coloured CP437 slots) into a [cols]x[rows] grid of [cell]px on [bg]. */

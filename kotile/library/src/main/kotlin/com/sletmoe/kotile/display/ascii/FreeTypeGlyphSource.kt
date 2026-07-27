@@ -16,6 +16,7 @@ import com.badlogic.gdx.graphics.glutils.FrameBuffer
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.utils.BufferUtils
 import com.sletmoe.kotile.rendering.GammaDownsample
+import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
@@ -525,13 +526,20 @@ class FreeTypeGlyphSource internal constructor(
     }
 
     /**
-     * [GlyphFit.TEXT] placement: measure [codePoint] with [layout] and centre its metric box (advance
-     * width, line height) in the cell. BitmapFont.draw places (x, y) at the top of the line and draws
-     * downward in the y-up world, so all glyphs share a baseline and descenders hang — normal text
-     * layout. Returns `false` (nothing drawn) for a glyph with no ink, e.g. space.
+     * [GlyphFit.TEXT] placement: measure [codePoint] with [layout] and place it on a shared baseline so
+     * all glyphs align and descenders hang — normal text layout. BitmapFont.draw takes (x, y) at the top
+     * of the cap line and draws downward in the y-up world, so `baseline = drawY - capHeight`.
+     *
+     * **Descender room (krogue-ns5):** the cell is centred on the font's *line box* — cap height above
+     * the baseline plus the descent below it — rather than on the cap box alone, so the baseline sits
+     * `descent` (+ half the spare) above the cell floor and `g/j/p/q/y` tails fall inside the cell instead
+     * of being clipped by the per-cell scissor. capHeight and descent are the same for every glyph, so the
+     * baseline is identical across the whole page — the invariant the band-scale downsample relies on
+     * ([bandScaleDownsample] measures the baseline once from the rendered `x`). Returns `false` (nothing
+     * drawn) for a glyph with no ink, e.g. space.
      *
      * The glyph is rendered at its natural sub-pixel position; when [snapToPixelGrid] is on, the
-     * per-glyph output-pixel alignment happens later in the downsample ([searchDownsampleCell]), not here.
+     * per-glyph output-pixel alignment happens later in the downsample, not here.
      */
     private fun drawTextGlyph(
         font: BitmapFont,
@@ -547,8 +555,15 @@ class FreeTypeGlyphSource internal constructor(
         layout.setText(font, String(Character.toChars(codePoint)))
         if (layout.width <= 0f && layout.height <= 0f) return false // nothing to draw (e.g. space)
         val drawX = (col * w) + (w - layout.width) / 2f
-        val drawY = (atlasH - row * h) - (h - layout.height) / 2f
-        font.draw(batch, layout, drawX, drawY)
+        // Centre the line box (capHeight + descent) in the cell; baseline = drawY - capHeight, so derive
+        // drawY from the baseline sitting `descent + spare/2` above the cell floor. font.descent is
+        // negative (below baseline), hence abs().
+        val capHeight = layout.height
+        val descentPx = abs(font.descent)
+        val cellBottom = (atlasH - (row + 1) * h).toFloat()
+        val spare = (h - (capHeight + descentPx)).coerceAtLeast(0f)
+        val baseline = cellBottom + descentPx + spare / 2f
+        font.draw(batch, layout, drawX, baseline + capHeight)
         return true
     }
 
