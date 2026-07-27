@@ -32,7 +32,7 @@ exact 253-code-point repertoire from `Cp437.kt`:
 The surprise: the incumbent Ubuntu Mono `.notdef`s ~41 slots — including the half-blocks
 and every arrow — so its original "broad coverage" rationale did not hold.
 
-**Gate 3 — crispness under downscale** (metrics over the downsampled page; lower
+**Gate 2 — crispness under downscale** (metrics over the downsampled page; lower
 blurRatio and grey% = sharper, higher weight/solid% = bolder), at a hard 16px cell:
 
 | Face | weight | solid% | grey% | blurRatio |

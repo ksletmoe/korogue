@@ -538,6 +538,10 @@ class FreeTypeGlyphSource internal constructor(
      * ([bandScaleDownsample] measures the baseline once from the rendered `x`). Returns `false` (nothing
      * drawn) for a glyph with no ink, e.g. space.
      *
+     * This holds only while the line box fits the cell (`capHeight + descent <= h`); when a glyph exceeds
+     * the cell height `spare` clamps to `0` and it is the **top** that the scissor cuts (tall ascenders /
+     * ring-accented caps — the krogue-ux6 follow-up), not the descender.
+     *
      * The glyph is rendered at its natural sub-pixel position; when [snapToPixelGrid] is on, the
      * per-glyph output-pixel alignment happens later in the downsample, not here.
      */

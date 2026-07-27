@@ -431,6 +431,21 @@ private class FontEval(private val fontsDir: File, private val outDir: File) : A
         val stripW = (labelCols + cols) * cell
         val stripH = candidates.size * rowH
 
+        // Build every source up front — each construction runs a full rasterise (its own FBO + batch), so
+        // doing it inside the strip's bound FBO / active batch would nest GL passes and rely on rasterise's
+        // state save/restore. Construct outside the pass, draw, then dispose.
+        val sources =
+            candidates.map {
+                FreeTypeGlyphSource(
+                    Gdx.files.absolute(it.file.absolutePath),
+                    cell,
+                    cell,
+                    4,
+                    fit = GlyphFit.TEXT,
+                    snapToPixelGrid = true,
+                )
+            }
+
         Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, 0)
         val fbo = FrameBuffer(Pixmap.Format.RGBA8888, stripW, stripH, false)
         fbo.begin()
@@ -444,29 +459,19 @@ private class FontEval(private val fontsDir: File, private val outDir: File) : A
             }
         batch.projectionMatrix = cam.combined
         batch.begin()
-        candidates.forEachIndexed { idx, c ->
-            val src =
-                FreeTypeGlyphSource(
-                    Gdx.files.absolute(c.file.absolutePath),
-                    cell,
-                    cell,
-                    4,
-                    fit = GlyphFit.TEXT,
-                    snapToPixelGrid = true,
-                )
+        sources.forEachIndexed { idx, src ->
             val yTop = stripH - (idx + 1) * rowH
             batch.color = Color.WHITE
             sample.forEachIndexed { i, slot ->
                 val region = src.glyph(Char(slot)) ?: return@forEachIndexed
                 batch.draw(region, ((labelCols + i) * cell).toFloat(), yTop.toFloat(), cell.toFloat(), cell.toFloat())
             }
-            batch.flush()
-            src.dispose()
         }
         batch.end()
         val raw = Pixmap.createFromFrameBuffer(0, 0, stripW, stripH)
         fbo.end()
         batch.dispose()
+        sources.forEach { it.dispose() }
         val flipped = Pixmap(stripW, stripH, Pixmap.Format.RGBA8888).apply { blending = Pixmap.Blending.None }
         for (yy in 0 until stripH) flipped.drawPixmap(raw, 0, yy, 0, stripH - 1 - yy, stripW, 1)
         raw.dispose()
@@ -481,8 +486,10 @@ private class FontEval(private val fontsDir: File, private val outDir: File) : A
 }
 
 fun main() {
-    val fontsDir = File(System.getProperty("kotile.fonteval.fonts") ?: error("set -Dkotile.fonteval.fonts"))
-    val outDir = File(System.getProperty("kotile.fonteval.out") ?: fontsDir.parentFile.absolutePath)
+    val fontsDir =
+        File(System.getProperty("kotile.fonteval.fonts") ?: error("set -Dkotile.fonteval.fonts")).absoluteFile
+    // A bare relative -PfontsDir has a null parentFile; fall back to the fonts dir itself.
+    val outDir = File(System.getProperty("kotile.fonteval.out") ?: (fontsDir.parentFile ?: fontsDir).absolutePath)
     outDir.mkdirs()
     val config =
         Lwjgl3ApplicationConfiguration().apply {

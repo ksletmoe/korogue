@@ -63,7 +63,7 @@ class FreeTypeGlyphSourceIntegrationTest : FunSpec({
                 spaceHasGlyph shouldBe true
                 outOfRangeGlyph shouldBe false
                 // Cell 0 (full block) is opaque in its core; cell 1 (space) stays black. Sample the
-                // central half only: glyph placement centres each glyph's cap box, so cell-filling
+                // central half only: glyph placement centres each glyph in its cell, so cell-filling
                 // glyphs don't reach the cell edges yet (seams — the krogue-9x7.4 follow-up), which a
                 // full-cell sample would (correctly) catch.
                 pixels.averageColor(4, 4, 12, 12).r.toDouble() shouldBe (1.0 plusOrMinus 0.1)
@@ -244,6 +244,43 @@ class FreeTypeGlyphSourceIntegrationTest : FunSpec({
             space.toDouble() shouldBeLessThan 0.05
         }
 
+    test("FreeTypeGlyphSource TEXT fit: a descender (g) is not clipped at the cell floor (krogue-ns5)")
+        .config(enabled = HeadlessGl.available) {
+            // Regression for krogue-ns5. The old placement centred each glyph's CAP box, dropping the
+            // baseline so low that a descender was scissored FLAT at the cell floor — leaving the very
+            // bottom row fully inked (the cut cross-section, coverage ~1.0). The fix centres the font's
+            // LINE box (capHeight + descent), so the tail tapers to nothing at/above the floor. A 32px
+            // cell gives the fix room to end the tail above the floor.
+            //
+            // Discriminator, verified new-vs-old at this exact single-'g' 32px geometry via the macOS
+            // fontEval probe: peak coverage in the bottom row is 1.0 with the un-fixed code (hard clip)
+            // and 0.0 after the fix. The body band above the floor is strongly inked either way, so it
+            // guards the floor check against being satisfied vacuously by an empty/failed render.
+            val cell = 32
+
+            fun peakRed(
+                pix: Pixmap,
+                y0: Int,
+                y1: Int,
+            ): Float {
+                var peak = 0f
+                for (y in y0 until y1) {
+                    for (x in cell / 4 until cell * 3 / 4) peak = maxOf(peak, pix.averageColor(x, y, x + 1, y + 1).r)
+                }
+                return peak
+            }
+            val bodyPeak =
+                glyphCell(slot = 'g'.code, snapToPixelGrid = true, cell = cell) {
+                    peakRed(it, cell * 5 / 8, cell - 3)
+                }
+            val floorPeak =
+                glyphCell(slot = 'g'.code, snapToPixelGrid = true, cell = cell) {
+                    peakRed(it, cell - 1, cell)
+                }
+            bodyPeak.toDouble() shouldBeGreaterThan 0.5 // the descender is actually rendered
+            floorPeak.toDouble() shouldBeLessThan 0.5 // ...and its tail no longer hits the cell floor (was ~1.0)
+        }
+
     // --- krogue-9x7.5: x-height/baseline band scaling for lowercase crispness (Brogue optimizeTiles
     // part 2). TEXT + snapToPixelGrid warps the vertical resample so both the x-height top and the baseline
     // land on whole output rows, with ONE shared vertical map for every cell. Its guaranteed, driver-
@@ -366,24 +403,25 @@ internal const val BAND_FLAT_BOTTOM = "theuickbrownfoxmslaz" // baseline-sitting
 internal const val MIN_MEASURED_CELLS = 12
 
 /**
- * Renders CP437 [slot] into a single 24x24 cell through a fresh [FreeTypeGlyphSource] built with the
- * given [fit]/[glyphBrightness], passes the captured pixels (top-left origin) to [sample], and disposes
- * them. The window owns and disposes the source. Mirrors the harness's single-cell geometry so the
- * committed assertions match what was eyeballed locally.
+ * Renders CP437 [slot] into a single [cell]x[cell] cell through a fresh [FreeTypeGlyphSource] built with
+ * the given [fit]/[glyphBrightness], passes the captured pixels (top-left origin) to [sample], and
+ * disposes them. The window owns and disposes the source. Mirrors the harness's single-cell geometry so
+ * the committed assertions match what was eyeballed locally.
  */
 private fun <T> glyphCell(
     slot: Int,
     fit: GlyphFit = GlyphFit.TEXT,
     glyphBrightness: Float = 1f,
     snapToPixelGrid: Boolean = false,
+    cell: Int = 24,
     sample: (Pixmap) -> T,
 ): T {
     val pixels =
-        HeadlessGl.render(24, 24, Color.BLACK) {
+        HeadlessGl.render(cell, cell, Color.BLACK) {
             val source =
                 Fonts.cascadiaMono(
-                    24,
-                    24,
+                    cell,
+                    cell,
                     fit = fit,
                     glyphBrightness = glyphBrightness,
                     snapToPixelGrid = snapToPixelGrid,
