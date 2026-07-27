@@ -115,6 +115,21 @@ tasks.register<JavaExec>("freetypeVerify") {
     doFirst { logger.lifecycle("Rendering freetype chart to: $outFile") }
 }
 
+// macOS-only font-evaluation harness (krogue-9x7.8): renders candidate faces through FreeTypeGlyphSource
+// at small cell sizes with snap on, prints crispness/weight metrics, and dumps comparison PNGs. Throwaway
+// tooling — not part of the shipped suite. Fonts are read from an absolute -PfontsDir.
+tasks.register<JavaExec>("fontEval") {
+    group = "verification"
+    description = "Evaluates candidate fonts through FreeTypeGlyphSource (macOS main-thread GL)."
+    mainClass.set("com.sletmoe.kotile.FontEvalKt")
+    classpath = sourceSets["test"].runtimeClasspath
+    if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
+        jvmArgs("-XstartOnFirstThread")
+    }
+    (project.findProperty("fontsDir") as? String)?.let { systemProperty("kotile.fonteval.fonts", it) }
+    (project.findProperty("outDir") as? String)?.let { systemProperty("kotile.fonteval.out", it) }
+}
+
 publishing {
     publications {
         create<MavenPublication>("maven") {

@@ -102,7 +102,7 @@ enum class GlyphFit {
  * through an offscreen [FrameBuffer]). Owns a GPU texture and the freetype
  * generator; [dispose] releases them.
  *
- * @param ttf the TrueType face to rasterise (see [Fonts.ubuntuMono] for the
+ * @param ttf the TrueType face to rasterise (see [Fonts.cascadiaMono] for the
  *   bundled default). Read once at construction; the caller may free the handle after.
  * @param cellWidthPx initial cell width in pixels
  * @param cellHeightPx initial cell height in pixels

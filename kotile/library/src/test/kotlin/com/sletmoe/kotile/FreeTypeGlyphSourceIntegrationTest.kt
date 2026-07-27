@@ -33,7 +33,7 @@ class FreeTypeGlyphSourceIntegrationTest : FunSpec({
             var outOfRangeGlyph = true
             val pixels =
                 HeadlessGl.render(64, 16, Color.BLACK) {
-                    val source = Fonts.ubuntuMono(16, 16)
+                    val source = Fonts.cascadiaMono(16, 16)
                     val window =
                         AsciiTileWindow.create {
                             glyphSource = source
@@ -80,7 +80,7 @@ class FreeTypeGlyphSourceIntegrationTest : FunSpec({
             var blockAfter = -1 to -1
             HeadlessGl
                 .render(1, 1, Color.BLACK) {
-                    val source = Fonts.ubuntuMono(16, 16)
+                    val source = Fonts.cascadiaMono(16, 16)
                     try {
                         before = source.charWidthPx to source.charHeightPx
                         source.prepareForCellSize(24, 28)
@@ -113,7 +113,7 @@ class FreeTypeGlyphSourceIntegrationTest : FunSpec({
             HeadlessGl
                 .render(40, 20, Color.BLACK) {
                     hidpi = (Gdx.graphics.backBufferWidth / Gdx.graphics.width.coerceAtLeast(1)).coerceAtLeast(1)
-                    val source = Fonts.ubuntuMono(16, 16)
+                    val source = Fonts.cascadiaMono(16, 16)
                     val window =
                         AsciiTileWindow.create {
                             glyphSource = source
@@ -158,7 +158,7 @@ class FreeTypeGlyphSourceIntegrationTest : FunSpec({
             val pixels =
                 HeadlessGl.render(16, 16, Color.BLACK) {
                     val source =
-                        FreeTypeGlyphSource(Gdx.files.classpath("fonts/UbuntuMono-R.ttf"), 16, 16, supersample = 8)
+                        FreeTypeGlyphSource(Gdx.files.classpath("fonts/CascadiaMono-Bold.ttf"), 16, 16, supersample = 8)
                     effectiveSs = source.effectiveSupersample
                     val window =
                         AsciiTileWindow.create {
@@ -288,7 +288,7 @@ private fun renderLowercaseRow(
     HeadlessGl.render(letters.length * BAND_CELL, BAND_CELL, Color.BLACK) {
         val source =
             FreeTypeGlyphSource(
-                Gdx.files.classpath("fonts/UbuntuMono-R.ttf"),
+                Gdx.files.classpath("fonts/CascadiaMono-Bold.ttf"),
                 BAND_CELL,
                 BAND_CELL,
                 supersample = 8,
@@ -381,7 +381,7 @@ private fun <T> glyphCell(
     val pixels =
         HeadlessGl.render(24, 24, Color.BLACK) {
             val source =
-                Fonts.ubuntuMono(
+                Fonts.cascadiaMono(
                     24,
                     24,
                     fit = fit,

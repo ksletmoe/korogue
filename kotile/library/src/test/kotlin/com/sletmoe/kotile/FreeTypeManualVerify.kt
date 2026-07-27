@@ -55,7 +55,7 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         hidpi = (Gdx.graphics.backBufferWidth / Gdx.graphics.width).coerceAtLeast(1)
         println("FTVERIFY logical=${Gdx.graphics.width}x${Gdx.graphics.height} hidpi=$hidpi")
 
-        val source = Fonts.ubuntuMono(CELL, CELL)
+        val source = Fonts.cascadiaMono(CELL, CELL)
         report(
             "prepareForCellSize starts at requested size",
             source.charWidthPx == CELL && source.charHeightPx == CELL,
@@ -136,7 +136,7 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
 
         // 48px master, 20x10 grid -> 960x480 native, FitScale into the 384px window -> ~0.4x (downscale).
-        val master = Fonts.ubuntuMono(48, 48)
+        val master = Fonts.cascadiaMono(48, 48)
         val window =
             AsciiTileWindow.create {
                 glyphSource = master
@@ -183,7 +183,7 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         val window =
             AsciiTileWindow.create {
                 glyphSource =
-                    FreeTypeGlyphSource(Gdx.files.classpath("fonts/UbuntuMono-R.ttf"), 16, 16, supersample)
+                    FreeTypeGlyphSource(Gdx.files.classpath("fonts/CascadiaMono-Bold.ttf"), 16, 16, supersample)
                 widthInTiles = 20
                 heightInTiles = 10
                 resolutionIndependent = true
@@ -259,7 +259,7 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
      * the image shows the real glyph resolution rather than an upscale.
      */
     private fun renderScene(fit: GlyphFit): Pixmap {
-        val source = Fonts.ubuntuMono(SCENE_CELL, SCENE_CELL, fit = fit)
+        val source = Fonts.cascadiaMono(SCENE_CELL, SCENE_CELL, fit = fit)
         val wall = Color(0.62f, 0.6f, 0.7f, 1f)
         val floor = Color(0.28f, 0.28f, 0.34f, 1f)
         val hero = Color.WHITE
@@ -312,7 +312,7 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
      * [glyphBrightness]. Built at [STRIP_CELL] px and blitted 1:1, like [renderScene].
      */
     private fun renderStrip(glyphBrightness: Float): Pixmap {
-        val source = Fonts.ubuntuMono(STRIP_CELL, STRIP_CELL, glyphBrightness = glyphBrightness)
+        val source = Fonts.cascadiaMono(STRIP_CELL, STRIP_CELL, glyphBrightness = glyphBrightness)
         val slots = intArrayOf(46, 44, 58, 59, 39, 96, 45, 61, 179, 196, 176, 250, 249, 'i'.code, 'l'.code, 't'.code)
         val placed = slots.mapIndexed { i, slot -> Placed(i, 0, slot, Color.WHITE) }
         return renderGrid(source, slots.size, 1, STRIP_CELL, STRIP_CELL, placed)
@@ -329,7 +329,7 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
      * - `16×29 @ ss8` → 128×232 master (Brogue at a ~16px screen cell — window ≈ 1600 wide)
      * - `32×58 @ ss4` → 128×232 master (2× on-screen)
      *
-     * Glyph *shapes* differ (Brogue ships its own tileset; this is Ubuntu Mono), so what's comparable is
+     * Glyph *shapes* differ (Brogue ships its own tileset; this is Cascadia Mono), so what's comparable is
      * the antialiasing/downsample crispness, not the letterforms.
      */
     private fun renderBrogueSample(
@@ -340,7 +340,7 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
     ): Pixmap {
         val source =
             FreeTypeGlyphSource(
-                Gdx.files.classpath("fonts/UbuntuMono-R.ttf"),
+                Gdx.files.classpath("fonts/CascadiaMono-Bold.ttf"),
                 cellW,
                 cellH,
                 supersample,
@@ -372,7 +372,8 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
     private fun renderBrogueMatch(outPath: String) {
         val cw = 31
         val ch = 53
-        val src = FreeTypeGlyphSource(Gdx.files.classpath("fonts/UbuntuMono-R.ttf"), cw, ch, 8, snapToPixelGrid = true)
+        val src =
+            FreeTypeGlyphSource(Gdx.files.classpath("fonts/CascadiaMono-Bold.ttf"), cw, ch, 8, snapToPixelGrid = true)
         val lines = listOf("Str: 12  Armor: 3", "Stealth range: 14", "A scroll entitled")
         val placed = ArrayList<Placed>()
         lines.forEachIndexed {
@@ -406,7 +407,7 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
 
         // TEXT-fit block: messages + a status line (snap on).
         val textSrc =
-            FreeTypeGlyphSource(Gdx.files.classpath("fonts/UbuntuMono-R.ttf"), cw, ch, 4, snapToPixelGrid = true)
+            FreeTypeGlyphSource(Gdx.files.classpath("fonts/CascadiaMono-Bold.ttf"), cw, ch, 4, snapToPixelGrid = true)
         val textPlaced = ArrayList<Placed>()
 
         fun line(
@@ -422,7 +423,7 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         // TILE-fit dungeon map (snap on): single glyph per cell, ink-centred.
         val tileSrc =
             FreeTypeGlyphSource(
-                Gdx.files.classpath("fonts/UbuntuMono-R.ttf"),
+                Gdx.files.classpath("fonts/CascadiaMono-Bold.ttf"),
                 cw,
                 ch,
                 4,
@@ -559,7 +560,7 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         fun rowSpread(disableBand: Boolean): Int {
             val source =
                 FreeTypeGlyphSource(
-                    Gdx.files.classpath("fonts/UbuntuMono-R.ttf"),
+                    Gdx.files.classpath("fonts/CascadiaMono-Bold.ttf"),
                     cell,
                     cell,
                     8,
@@ -636,7 +637,7 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         ): Pixmap {
             val source =
                 FreeTypeGlyphSource(
-                    Gdx.files.classpath("fonts/UbuntuMono-R.ttf"),
+                    Gdx.files.classpath("fonts/CascadiaMono-Bold.ttf"),
                     cw,
                     ch,
                     ss,
@@ -839,7 +840,7 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
      * which would mis-scale here since the harness window isn't resized per-check.
      */
     private fun fullBlockOrientationCheck() {
-        val ss8 = FreeTypeGlyphSource(Gdx.files.classpath("fonts/UbuntuMono-R.ttf"), CELL, CELL, 8)
+        val ss8 = FreeTypeGlyphSource(Gdx.files.classpath("fonts/CascadiaMono-Bold.ttf"), CELL, CELL, 8)
         val chart = renderChart(ss8)
         val block = cellAvg(chart, 219)
         chart.dispose()
@@ -853,10 +854,10 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
      * committed GL specs can be pinned to the observed discriminators.
      */
     private fun verifyTileFitAndBrightness(outPath: String) {
-        val textSrc = Fonts.ubuntuMono(CELL, CELL) // TEXT, no brightness curve (the shipped default)
-        val tileSrc = Fonts.ubuntuMono(CELL, CELL, fit = GlyphFit.TILE)
-        val brightSrc = Fonts.ubuntuMono(CELL, CELL, glyphBrightness = 2f)
-        val bright4Src = Fonts.ubuntuMono(CELL, CELL, glyphBrightness = 4f) // max cap — blank must still stay blank
+        val textSrc = Fonts.cascadiaMono(CELL, CELL) // TEXT, no brightness curve (the shipped default)
+        val tileSrc = Fonts.cascadiaMono(CELL, CELL, fit = GlyphFit.TILE)
+        val brightSrc = Fonts.cascadiaMono(CELL, CELL, glyphBrightness = 2f)
+        val bright4Src = Fonts.cascadiaMono(CELL, CELL, glyphBrightness = 4f) // max cap — blank must still stay blank
 
         val textChart = renderChart(textSrc)
         val tileChart = renderChart(tileSrc)
@@ -910,7 +911,7 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
 
         // snapToPixelGrid: the CPU shift-search downsample must still yield a sane atlas (mirrors the
         // committed GL spec) — full block opaque, space empty.
-        val snapChart = renderChart(Fonts.ubuntuMono(CELL, CELL, snapToPixelGrid = true))
+        val snapChart = renderChart(Fonts.cascadiaMono(CELL, CELL, snapToPixelGrid = true))
         report("snap path: full block (219) opaque", cellAvg(snapChart, 219) > 0.9f, "avg=${cellAvg(snapChart, 219)}")
         report("snap path: space (32) empty", cellAvg(snapChart, 32) < 0.1f, "avg=${cellAvg(snapChart, 32)}")
         snapChart.dispose()

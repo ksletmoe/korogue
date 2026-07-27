@@ -54,7 +54,7 @@ dependencies {
     implementation("com.badlogicgames.gdx:gdx-backend-lwjgl3:1.14.1")
     runtimeOnly("com.badlogicgames.gdx:gdx-platform:1.14.1:natives-desktop")
 
-    // Only if you use the freetype glyph source (Fonts.ubuntuMono / FreeTypeGlyphSource):
+    // Only if you use the freetype glyph source (Fonts.cascadiaMono / FreeTypeGlyphSource):
     // the freetype native must be on the runtime classpath alongside the backend native above.
     runtimeOnly("com.badlogicgames.gdx:gdx-freetype-platform:1.14.1:natives-desktop")
 }
@@ -141,7 +141,7 @@ Brogue look) — plug in the freetype source instead:
 import com.sletmoe.kotile.display.ascii.Fonts
 
 val window = AsciiTileWindow.create {
-    glyphSource = Fonts.ubuntuMono(cellWidthPx = 16, cellHeightPx = 16)
+    glyphSource = Fonts.cascadiaMono(cellWidthPx = 16, cellHeightPx = 16)
     widthInTiles = 80
     heightInTiles = 30
 }
