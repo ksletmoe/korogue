@@ -376,10 +376,24 @@ then given a tested ECS foundation:
   (krogue-ux6): the band-scaled atlas differs substantially (~30% of inked px) from the
   translation-only atlas — 0 if band-scaling were disabled — plus flat-bottom baseline
   spread ≤1. (The earlier strict `bandSpread < transSpread` at 16px was a ≤1px
-  driver-sensitive knife-edge that the ux6 em-shrink collapsed to 0-vs-0.) **Deferred (krogue-9x7.4):**
-  seamless box-drawing tiling when the cell aspect ≠ the font's; **(krogue-9x7.6):** an
-  offline/size-keyed shift cache (still recomputed per rasterise). **Rationale:** ADR-0037
-  (shift search) + ADR-0038 (band scaling).
+  driver-sensitive knife-edge that the ux6 em-shrink collapsed to 0-vs-0.)
+  **Cell-filling glyphs are edge-snapped (krogue-9x7.4, ADR-0040).** Box drawing and
+  block/shade slots (`0xB0–0xDF` — Unicode `U+2500–U+259F`) are cell-*filling* by design,
+  so under **both** fits they skip the centring entirely: the face's **design cell** —
+  measured from its own `█` ink box, inset 1 master px for the AA fringe — is mapped
+  affinely (per axis) onto the whole cell rect, and every member is drawn through that one
+  map. Strokes therefore reach the cell edges and neighbouring cells join, at *any* cell
+  aspect; the cost of an aspect mismatch becomes a stroke-**weight** difference between the
+  axes rather than a gap. They are also exempt from snap's shift search **and** band warp
+  (plain offset-free box downsample) — either would shave the trailing output pixel at the
+  clamp and re-open the seam. Not a knob: the old behaviour left frames with holes in them.
+  Measured before → after at a square 24px cell (Cascadia is a tall face — the mismatched
+  case): weakest column of a 2-cell `─` strip **0 → 255**, weakest row of a stacked `│`
+  **5 → 255**, `█` cell coverage **0.42 → 0.998**, `▄`/`▀` half-fill 0.39/0.42 → 0.998,
+  same with snap on. **Deferred:** box-stroke *interior* crispness under snap (the exemption
+  gives up the shift search for this class — needs an edge-pinning warp within the cell);
+  **(krogue-9x7.6):** an offline/size-keyed shift cache (still recomputed per rasterise).
+  **Rationale:** ADR-0037 (shift search) + ADR-0038 (band scaling) + ADR-0040 (cell-filling).
 - **Layer model — grid + free (pixel-space) layers (ADR-0018).** `KotileCanvas.drawSprite(pxX,
   pxY, region, w, h, tint)` is the real drawing primitive (`drawTile` is grid-snapped sugar
   over it); a frame is an ordered list of `Layer`s composited back-to-front by a `LayerStack`

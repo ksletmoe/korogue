@@ -15,6 +15,8 @@ import io.kotest.matchers.doubles.plusOrMinus
 import io.kotest.matchers.doubles.shouldBeGreaterThan
 import io.kotest.matchers.doubles.shouldBeLessThan
 import io.kotest.matchers.doubles.shouldBeLessThanOrEqual
+import io.kotest.matchers.ints.shouldBeGreaterThan
+import io.kotest.matchers.ints.shouldBeLessThan
 import io.kotest.matchers.shouldBe
 
 /**
@@ -62,11 +64,11 @@ class FreeTypeGlyphSourceIntegrationTest : FunSpec({
                 blockRegionSize shouldBe (16 to 16)
                 spaceHasGlyph shouldBe true
                 outOfRangeGlyph shouldBe false
-                // Cell 0 (full block) is opaque in its core; cell 1 (space) stays black. Sample the
-                // central half only: glyph placement centres each glyph in its cell, so cell-filling
-                // glyphs don't reach the cell edges yet (seams — the krogue-9x7.4 follow-up), which a
-                // full-cell sample would (correctly) catch.
-                pixels.averageColor(4, 4, 12, 12).r.toDouble() shouldBe (1.0 plusOrMinus 0.1)
+                // Cell 0 (full block) is opaque across its WHOLE cell; cell 1 (space) stays black. The
+                // full-cell sample is the point: cell-filling glyphs are edge-snapped (krogue-9x7.4), so
+                // the block reaches the cell edges and tiles with its neighbours. Before that it was
+                // ink-centred and a full-cell sample failed here — hence the older central-half samples.
+                pixels.averageColor(0, 0, 16, 16).r.toDouble() shouldBe (1.0 plusOrMinus 0.1)
                 pixels.averageColor(20, 4, 28, 12).r.toDouble() shouldBe (0.0 plusOrMinus 0.1)
             } finally {
                 pixels.dispose()
@@ -179,12 +181,10 @@ class FreeTypeGlyphSourceIntegrationTest : FunSpec({
                 // Guard against a low-GL_MAX_TEXTURE_SIZE driver capping ss down to an even pass count:
                 // if it did, this spec would pass WITH the bug present. 8 (3 passes, odd) must survive.
                 effectiveSs shouldBe 8
-                // Upright: the full block is solid in its core (~0.9). Flipped: a sparse '+' glyph, far
-                // dimmer (~0.2-0.3). Sample the central half (the block doesn't reach the cell edges — see
-                // the full-block test's note) so this discriminates orientation, not edge coverage. The
-                // 0.8 gate (was 0.9) leaves room for the krogue-ux6 TEXT em-shrink, which makes the
-                // cell-filling block a little smaller — its central-half coverage is ~0.90 here — while
-                // still cleanly separating the upright block from the flipped '+'.
+                // Upright: the full block is solid in its core. Flipped: a sparse '+' glyph, far dimmer
+                // (~0.2-0.3). Sample the central half so this discriminates ORIENTATION rather than edge
+                // coverage (which the krogue-9x7.4 seam specs own). The 0.8 gate still cleanly separates
+                // the upright block from the flipped '+'.
                 pixels.averageColor(4, 4, 12, 12).r.toDouble() shouldBeGreaterThan 0.8
             } finally {
                 pixels.dispose()
@@ -366,7 +366,166 @@ class FreeTypeGlyphSourceIntegrationTest : FunSpec({
                 transRow.dispose()
             }
         }
+
+    // --- krogue-9x7.4: cell-filling glyphs (box drawing + blocks) edge-snap to the cell rect so they tile
+    // seamlessly at a cell aspect the face doesn't share. Every spec below renders at a SQUARE [SEAM_CELL]
+    // cell, which Cascadia Mono's tall design cell does not match — the case that used to leave a gap. ---
+
+    test("FreeTypeGlyphSource: box drawing tiles seamlessly across cell boundaries (krogue-9x7.4)")
+        .config(enabled = HeadlessGl.available) {
+            // '─' (196) in two horizontally adjacent cells: the stroke must reach both cell edges, so EVERY
+            // column of the two-cell strip carries it — including the pair straddling the seam. Un-fixed,
+            // the glyph was laid out at its natural advance width and centred, so ~4 columns each side of
+            // the boundary were empty (peak 0) — this is the seam the issue is about.
+            val horizontal = renderSlotGrid(listOf(196, 196), cols = 2, rows = 1)
+            try {
+                columnPeaks(horizontal).min() shouldBeGreaterThan SEAM_INKED_PEAK
+                // ...and it is a LINE, not a filled/blank cell: rows away from the stroke stay dark, so the
+                // column assertion above can't be satisfied by an all-white (or all-black, min 0) render.
+                rowPeaks(horizontal).min() shouldBeLessThan SEAM_BLANK_PEAK
+            } finally {
+                horizontal.dispose()
+            }
+
+            // '│' (179) in two vertically adjacent cells — the same, one axis over.
+            val vertical = renderSlotGrid(listOf(179, 179), cols = 1, rows = 2)
+            try {
+                rowPeaks(vertical).min() shouldBeGreaterThan SEAM_INKED_PEAK
+                columnPeaks(vertical).min() shouldBeLessThan SEAM_BLANK_PEAK
+            } finally {
+                vertical.dispose()
+            }
+        }
+
+    test("FreeTypeGlyphSource: box-drawing seams survive the snapToPixelGrid downsample (krogue-9x7.4)")
+        .config(enabled = HeadlessGl.available) {
+            // Same strips under snapToPixelGrid, where the downsample re-samples each cell: the sub-pixel
+            // shift search (and, for TEXT, the band-scale warp) slides the sampling window, and the clamp at
+            // the master edge then shaves the trailing output pixel — re-opening the seam. Cell-filling
+            // glyphs are exempt from both (offset-free box downsample), which is what this pins.
+            val horizontal = renderSlotGrid(listOf(196, 196), cols = 2, rows = 1, snapToPixelGrid = true)
+            try {
+                columnPeaks(horizontal).min() shouldBeGreaterThan SEAM_INKED_PEAK
+                rowPeaks(horizontal).min() shouldBeLessThan SEAM_BLANK_PEAK
+            } finally {
+                horizontal.dispose()
+            }
+
+            val vertical = renderSlotGrid(listOf(179, 179), cols = 1, rows = 2, snapToPixelGrid = true)
+            try {
+                rowPeaks(vertical).min() shouldBeGreaterThan SEAM_INKED_PEAK
+                columnPeaks(vertical).min() shouldBeLessThan SEAM_BLANK_PEAK
+            } finally {
+                vertical.dispose()
+            }
+        }
+
+    test("FreeTypeGlyphSource: the full block fills its whole cell, half blocks exactly their half")
+        .config(enabled = HeadlessGl.available) {
+            // '█' (219) edge to edge — the glyph the design-cell map is measured from, so it is the
+            // placement's identity case. Un-fixed it stopped well short of the cell on the axis that
+            // didn't bind (which is why the older specs sample only the central half).
+            val block = renderSlotGrid(listOf(219), cols = 1, rows = 1)
+            try {
+                block.averageColor(0, 0, SEAM_CELL, SEAM_CELL).r.toDouble() shouldBeGreaterThan 0.95
+            } finally {
+                block.dispose()
+            }
+
+            // Half blocks pin the map's ORIENTATION as well as its extent: '▄' (220) must ink the cell's
+            // bottom half and nothing above it, '▀' (223) the mirror. A vertically mirrored map (reading
+            // Glyph.yoffset as a y-DOWN offset) would swap the two and still fill the cell, so a fill-only
+            // assertion would miss it. One row of slack around the midpoint for the boundary's antialiasing.
+            val half = SEAM_CELL / 2
+            val lower = renderSlotGrid(listOf(220), cols = 1, rows = 1)
+            try {
+                lower.averageColor(0, half + 1, SEAM_CELL, SEAM_CELL).r.toDouble() shouldBeGreaterThan 0.95
+                lower.averageColor(0, 0, SEAM_CELL, half - 1).r.toDouble() shouldBeLessThan 0.05
+            } finally {
+                lower.dispose()
+            }
+            val upper = renderSlotGrid(listOf(223), cols = 1, rows = 1)
+            try {
+                upper.averageColor(0, 0, SEAM_CELL, half - 1).r.toDouble() shouldBeGreaterThan 0.95
+                upper.averageColor(0, half + 1, SEAM_CELL, SEAM_CELL).r.toDouble() shouldBeLessThan 0.05
+            } finally {
+                upper.dispose()
+            }
+        }
 })
+
+/**
+ * Renders a [cols] x [rows] grid of CP437 [slots] (row-major, one slot per cell) at a square [SEAM_CELL]
+ * cell by blitting the source's atlas regions **directly** into the capture FBO (a SpriteBatch, no
+ * AsciiTileWindow/compositor), white on black, and returns the captured pixels (top-left origin).
+ *
+ * The cell-filling placement lives entirely in the source's atlas, so a 1:1 region blit exercises it
+ * exactly as a window blit would — and mirrors the `:kotile:library:freetypeVerify` harness's `renderGrid`
+ * geometry 1:1 (`verifyCellFillSeamsCommittedShape`, where these discriminators were read off real pixels),
+ * which a windowed render could not.
+ */
+private fun renderSlotGrid(
+    slots: List<Int>,
+    cols: Int,
+    rows: Int,
+    fit: GlyphFit = GlyphFit.TEXT,
+    snapToPixelGrid: Boolean = false,
+): Pixmap =
+    HeadlessGl.render(cols * SEAM_CELL, rows * SEAM_CELL, Color.BLACK) {
+        val source =
+            Fonts.cascadiaMono(SEAM_CELL, SEAM_CELL, fit = fit, snapToPixelGrid = snapToPixelGrid)
+        val batch = SpriteBatch()
+        val cam =
+            OrthographicCamera().apply {
+                setToOrtho(false, (cols * SEAM_CELL).toFloat(), (rows * SEAM_CELL).toFloat())
+                update()
+            }
+        batch.projectionMatrix = cam.combined
+        batch.color = Color.WHITE
+        batch.begin()
+        try {
+            slots.forEachIndexed { i, slot ->
+                val region = source.glyph(Char(slot)) ?: return@forEachIndexed
+                val x = ((i % cols) * SEAM_CELL).toFloat()
+                val y = ((rows - (i / cols) - 1) * SEAM_CELL).toFloat() // y-up: row 0 is the top row
+                batch.draw(region, x, y, SEAM_CELL.toFloat(), SEAM_CELL.toFloat())
+            }
+        } finally {
+            batch.end()
+            batch.dispose()
+            source.dispose()
+        }
+    }
+
+// columnPeaks/rowPeaks are internal so the macOS `freetypeVerify` harness mirror measures the seam the
+// same way this spec does (it has to render through its own main-thread GL path, so the measurement is
+// the part that can be shared rather than re-implemented).
+
+/** Peak intensity (0–255) of each column of [pix] — a horizontal stroke's continuity profile. */
+internal fun columnPeaks(pix: Pixmap): List<Int> =
+    (0 until pix.width).map { x ->
+        (0 until pix.height).maxOf { y -> pix.getPixel(x, y) ushr 24 and 0xFF }
+    }
+
+/** Peak intensity (0–255) of each row of [pix] — a vertical stroke's continuity profile. */
+internal fun rowPeaks(pix: Pixmap): List<Int> =
+    (0 until pix.height).map { y ->
+        (0 until pix.width).maxOf { x -> pix.getPixel(x, y) ushr 24 and 0xFF }
+    }
+
+// The committed cell-filling/seam shape (krogue-9x7.4). Shared (internal) so the macOS `freetypeVerify`
+// harness's verifyCellFillSeamsCommittedShape mirrors this spec from the *same* literals rather than
+// drift-prone copies — the harness exists to predict this GL spec, so its geometry must not diverge.
+//
+// A SQUARE cell is the point: Cascadia Mono's own cell is tall (advance ≈ 0.6 × line height), so 24x24 is
+// exactly the "cell aspect != the font's" case where ink-centred box drawing left a gap.
+internal const val SEAM_CELL = 24
+
+// A column/row carrying the stroke peaks near full ink; one that lost it is near zero. The thresholds sit
+// either side of that gulf rather than on a knife-edge: observed on real pixels, a continuous stroke's
+// weakest line is ~255 and the un-fixed code's seam columns are 0.
+internal const val SEAM_INKED_PEAK = 128
+internal const val SEAM_BLANK_PEAK = 32
 
 /**
  * Renders a single row of [letters] (one CP437 slot per cell) by blitting a band-scaled or translation-only

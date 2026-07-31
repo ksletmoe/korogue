@@ -49,3 +49,8 @@ Point-in-time records of **why** significant or hard-to-reverse decisions were m
 | [0033](0033-tilesurface-carries-the-dynamic-tile-branch.md) | `TileSurface` carries kotile's dynamic-tile branch, with a static fallback | Accepted |
 | [0034](0034-vector2int-canonical-coordinate.md) | `Vector2Int` is the canonical 2D coordinate across the public API | Accepted |
 | [0035](0035-model-and-presentation-colour-types.md) | Two colour types — `NormalizedRgb` is the model, GDX `Color` is the presentation | Accepted |
+| [0036](0036-tiered-glyph-tile-crispness.md) | Tiers of glyph/tile crispness — fixed bitmap, supersample-downscale, high-res source | Accepted |
+| [0037](0037-per-glyph-pixel-grid-alignment-shift-search.md) | Per-glyph pixel-grid alignment — opt-in min-blur shift search | Accepted (partially revises ADR-0036) |
+| [0038](0038-xheight-baseline-band-scaling.md) | x-height/baseline band scaling for lowercase crispness | Accepted (completes ADR-0037) |
+| [0039](0039-bundled-freetype-face-cascadia-dejavu.md) | Bundle Cascadia Mono + DejaVu Sans Mono (Bold), drop Ubuntu Mono | Accepted |
+| [0040](0040-cell-filling-glyphs-edge-snapped.md) | Box-drawing and block glyphs are edge-snapped to the cell, not ink-centred | Accepted |

@@ -109,6 +109,7 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         verifyTileFitAndBrightness(outPath)
         verifyBandScaleCommittedShape()
         verifyTopClipCommittedShape()
+        verifyCellFillSeamsCommittedShape()
         renderDemoComparison(outPath)
         renderBandScaleComparison(outPath)
         renderBrogueComparison(outPath)
@@ -958,6 +959,78 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         tileChart.dispose()
         brightChart.dispose()
         bright4Chart.dispose()
+    }
+
+    /**
+     * krogue-9x7.4: reproduces the committed cell-filling/seam GL specs' shape on macOS (which the Kotest
+     * GL suite cannot run here). The committed specs render through [renderSlotGrid] — a 1:1 SpriteBatch
+     * blit of the source's atlas regions onto black, no AsciiTileWindow — which is exactly what [renderGrid]
+     * does here, so the two agree on geometry: same [SEAM_CELL] square cell, same 2-cell strips, same
+     * single-cell blocks, and the same measurements ([columnPeaks]/[rowPeaks]/[averageColor], shared with
+     * the spec rather than re-implemented) against the same shared thresholds.
+     *
+     * The square cell is the whole point: Cascadia Mono's design cell is tall, so a square target cell is
+     * the "cell aspect != the font's" case the edge-snapped placement exists for.
+     */
+    private fun verifyCellFillSeamsCommittedShape() {
+        fun grid(
+            slots: List<Int>,
+            cols: Int,
+            rows: Int,
+            snap: Boolean = false,
+        ): Pixmap {
+            val source =
+                Fonts.cascadiaMono(SEAM_CELL, SEAM_CELL, snapToPixelGrid = snap)
+            val placed = slots.mapIndexed { i, slot -> Placed(i % cols, i / cols, slot, Color.WHITE) }
+            return renderGrid(source, cols, rows, SEAM_CELL, SEAM_CELL, placed, bg = Color.BLACK) // disposes source
+        }
+
+        for (snap in listOf(false, true)) {
+            val tag = if (snap) "snap" else "plain"
+            // '─' across two horizontally adjacent cells: every column must carry the stroke (min peak high),
+            // and rows away from it must stay dark (so the check can't pass on an all-white render).
+            val h = grid(listOf(196, 196), cols = 2, rows = 1, snap = snap)
+            val hCols = columnPeaks(h).min()
+            val hRows = rowPeaks(h).min()
+            h.dispose()
+            report("9x7.4 [$tag]: '─' unbroken across the cell seam", hCols > SEAM_INKED_PEAK, "minCol=$hCols")
+            report("9x7.4 [$tag]: '─' is a line, not a filled cell", hRows < SEAM_BLANK_PEAK, "minRow=$hRows")
+
+            // '│' down two vertically adjacent cells — the same, one axis over.
+            val v = grid(listOf(179, 179), cols = 1, rows = 2, snap = snap)
+            val vRows = rowPeaks(v).min()
+            val vCols = columnPeaks(v).min()
+            v.dispose()
+            report("9x7.4 [$tag]: '│' unbroken across the cell seam", vRows > SEAM_INKED_PEAK, "minRow=$vRows")
+            report("9x7.4 [$tag]: '│' is a line, not a filled cell", vCols < SEAM_BLANK_PEAK, "minCol=$vCols")
+            println("  CELLFILL $tag ${SEAM_CELL}px  ─[minCol=$hCols minRow=$hRows]  │[minRow=$vRows minCol=$vCols]")
+        }
+
+        // '█' fills its whole cell; '▄'/'▀' fill exactly their half (which also pins the map's orientation —
+        // a y-mirrored read of Glyph.yoffset would swap them and still fill the cell).
+        val block = grid(listOf(219), cols = 1, rows = 1)
+        val blockFill = block.averageColor(0, 0, SEAM_CELL, SEAM_CELL).r
+        block.dispose()
+        report("9x7.4: '█' fills its whole cell (>0.95)", blockFill > 0.95f, "fill=$blockFill")
+
+        val half = SEAM_CELL / 2
+        val lower = grid(listOf(220), cols = 1, rows = 1)
+        val lowerBottom = lower.averageColor(0, half + 1, SEAM_CELL, SEAM_CELL).r
+        val lowerTop = lower.averageColor(0, 0, SEAM_CELL, half - 1).r
+        lower.dispose()
+        report("9x7.4: '▄' inks the cell's bottom half (>0.95)", lowerBottom > 0.95f, "bottom=$lowerBottom")
+        report("9x7.4: '▄' leaves the top half empty (<0.05)", lowerTop < 0.05f, "top=$lowerTop")
+
+        val upper = grid(listOf(223), cols = 1, rows = 1)
+        val upperTop = upper.averageColor(0, 0, SEAM_CELL, half - 1).r
+        val upperBottom = upper.averageColor(0, half + 1, SEAM_CELL, SEAM_CELL).r
+        upper.dispose()
+        report("9x7.4: '▀' inks the cell's top half (>0.95)", upperTop > 0.95f, "top=$upperTop")
+        report("9x7.4: '▀' leaves the bottom half empty (<0.05)", upperBottom < 0.05f, "bottom=$upperBottom")
+        println(
+            "  CELLFILL blocks  █=$blockFill  ▄[bottom=$lowerBottom top=$lowerTop]" +
+                " ▀[top=$upperTop bottom=$upperBottom]",
+        )
     }
 
     /**

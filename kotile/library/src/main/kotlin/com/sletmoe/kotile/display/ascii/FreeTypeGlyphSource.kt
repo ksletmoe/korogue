@@ -95,6 +95,19 @@ enum class GlyphFit {
  * `.notdef` is (typically a blank or a box); `char.code` outside 0–255 yields
  * `null`, as with [Font].
  *
+ * ## Box drawing and blocks tile seamlessly
+ *
+ * The box-drawing and block/shade slots (`0xB0–0xDF`: `─ │ ┼ ╔ █ ▄ ░ ▒ ▓`) are
+ * *cell-filling* — a frame or a wall only looks right if each glyph's strokes run
+ * edge to edge and meet the neighbouring cell's. Centring them by ink cannot do
+ * that once the target cell's aspect differs from the face's own (a square cell
+ * with a tall mono face leaves a gap on one axis), so this source places that
+ * whole class differently: it maps the face's design cell — measured from its full
+ * block — onto the cell rect and draws them through it, edge-snapped
+ * ([drawCellFillingGlyph], krogue-9x7.4). Every other glyph keeps its [fit]
+ * placement. An aspect mismatch then shows up as horizontal and vertical strokes
+ * differing in weight rather than as a seam.
+ *
  * ## Cost and lifetime
  *
  * Rasterisation builds a 16×16 atlas of the whole page and is **not** cheap; it
@@ -544,6 +557,10 @@ class FreeTypeGlyphSource internal constructor(
      * origin — has its top edge at world y `atlasH - row*h`. Placement follows [fit]: [GlyphFit.TEXT]
      * lays glyphs out on a shared baseline at a uniform em ([drawTextGlyph]); [GlyphFit.TILE] ink-centres
      * and scale-fits each glyph in its cell ([drawTileGlyph]).
+     *
+     * **Except** for the *cell-filling* glyphs — box drawing and block/shade elements ([isCellFilling]) —
+     * which both fits place by [drawCellFillingGlyph] instead: edge-snapped to the cell rect, so they tile
+     * seamlessly across neighbouring cells at any cell aspect (krogue-9x7.4).
      */
     private fun drawAllGlyphs(
         font: BitmapFont,
@@ -573,6 +590,9 @@ class FreeTypeGlyphSource internal constructor(
             // is resolution-independent; guard a font that reports no capHeight.
             val tileEmScale =
                 if (fit == GlyphFit.TILE && font.capHeight > 0f) TILE_CAP_FILL * h / font.capHeight else 1f
+            // The face's design cell, measured from its full block (krogue-9x7.4); null if the face has no
+            // inked █, in which case box drawing falls back to the ordinary per-fit placement.
+            val designCell = measureDesignCell(font)
             for (slot in 0 until GLYPH_COUNT) {
                 val codePoint = Cp437.toUnicode(slot)
                 if (codePoint < 0) continue
@@ -583,9 +603,12 @@ class FreeTypeGlyphSource internal constructor(
                 // atlasH - (row+1)*h).
                 Gdx.gl.glScissor(col * w, atlasH - (row + 1) * h, w, h)
                 val drew =
-                    when (fit) {
-                        GlyphFit.TEXT -> drawTextGlyph(font, batch, layout, codePoint, col, row, w, h, atlasH)
-                        GlyphFit.TILE -> drawTileGlyph(font, batch, codePoint, col, row, w, h, atlasH, tileEmScale)
+                    when {
+                        designCell != null && isCellFilling(codePoint) ->
+                            drawCellFillingGlyph(font, batch, codePoint, col, row, w, h, atlasH, designCell)
+                        fit == GlyphFit.TEXT ->
+                            drawTextGlyph(font, batch, layout, codePoint, col, row, w, h, atlasH)
+                        else -> drawTileGlyph(font, batch, codePoint, col, row, w, h, atlasH, tileEmScale)
                     }
                 if (drew) batch.flush() // land this cell's geometry while its scissor is active
             }
@@ -646,12 +669,13 @@ class FreeTypeGlyphSource internal constructor(
      * [GlyphFit.TILE] placement: draw [codePoint]'s rendered **ink box** directly, ink-centred in the
      * cell at the page-wide [emScale] (uniform enlargement — see [GlyphFit.TILE]), clamped down per glyph
      * so nothing overflows its cell. The uniform scale keeps relative glyph sizes (a period stays a small
-     * dot; a capital fills), while the clamp lets a full-em glyph (block, box-drawing) fill exactly rather
-     * than overflow-and-clip. The glyph's page region ([BitmapFont.Glyph]) is drawn with **no extra
-     * V-flip**: BitmapFont already stores its pages oriented for a y-up batch (which is why the
-     * [GlyphFit.TEXT] `font.draw` path lands upright through the same downstream passes), so a raw region
-     * draw matches it as-is; flipping here would render every glyph upside-down. Returns `false` when the
-     * face has no inked glyph for the slot (e.g. space, or a missing glyph).
+     * dot; a capital fills), while the clamp lets a tall glyph fill exactly rather than overflow-and-clip.
+     * The glyph's page region comes from [glyphRegion] (no extra V-flip — see there). Returns `false` when
+     * the face has no inked glyph for the slot (e.g. space, or a missing glyph).
+     *
+     * Cell-*filling* glyphs (box drawing, blocks, shades) never reach here: ink-centring leaves them short
+     * of the cell edge on whichever axis doesn't bind, so they are edge-snapped by [drawCellFillingGlyph]
+     * instead (krogue-9x7.4).
      */
     private fun drawTileGlyph(
         font: BitmapFont,
@@ -673,13 +697,135 @@ class FreeTypeGlyphSource internal constructor(
         val scale = minOf(emScale, w.toFloat() / glyph.width, h.toFloat() / glyph.height)
         val drawW = glyph.width * scale
         val drawH = glyph.height * scale
-        val region =
-            TextureRegion(font.getRegion(glyph.page).texture, glyph.srcX, glyph.srcY, glyph.width, glyph.height)
         val drawX = (col * w) + (w - drawW) / 2f
         val drawY = (atlasH - (row + 1) * h) + (h - drawH) / 2f // y-up: cell's bottom edge + vertical centre
-        batch.draw(region, drawX, drawY, drawW, drawH)
+        batch.draw(glyphRegion(font, glyph), drawX, drawY, drawW, drawH)
         return true
     }
+
+    /**
+     * Is [codePoint] a **cell-filling** glyph — one the face draws to the edges of its design cell so that
+     * neighbouring cells join (krogue-9x7.4)?
+     *
+     * The class is Unicode's two cell-filling blocks: **Box Drawing** `U+2500–U+257F` (`─ │ ┼ ╔ ╣ …`) and
+     * **Block Elements** `U+2580–U+259F` (`█ ▀ ▄ ▌ ▐`, the shades `░ ▒ ▓`). In CP437 that is exactly slots
+     * 176–223 (`0xB0–0xDF`). Deliberately *not* included: glyphs that merely look blocky but are centred
+     * ornaments the face never meant to tile — `■ U+25A0` (slot 254), `▬ U+25AC` (slot 22), the arrows and
+     * triangles — which keep the ordinary ink-centred placement.
+     *
+     * Members are placed by [drawCellFillingGlyph] and are exempt from the [snapToPixelGrid] sub-pixel
+     * shift search and band-scale warp, both of which would pull ink off a pinned cell edge (see [emitCell]).
+     */
+    private fun isCellFilling(codePoint: Int): Boolean = codePoint in BOX_DRAWING_FIRST..BLOCK_ELEMENTS_LAST
+
+    /** [isCellFilling] by CP437 slot — the form the per-slot downsample loops need. */
+    private fun isCellFillingSlot(slot: Int): Boolean = isCellFilling(Cp437.toUnicode(slot))
+
+    /**
+     * The face's **design cell**: the rect a cell-filling glyph occupies in the font, in the pen-relative
+     * y-up frame `BitmapFont.Glyph` metrics use (x from the pen, y up from the draw line; see
+     * [drawCellFillingGlyph]). Measured from the rendered **full block** U+2588 — the one glyph that is,
+     * by definition, exactly the design cell — rather than assumed from `advance`/`lineHeight`, so it
+     * self-calibrates to whatever box the face actually draws its block/box elements in.
+     */
+    private class DesignCell(
+        val x: Float,
+        val y: Float,
+        val w: Float,
+        val h: Float,
+    )
+
+    /**
+     * Measures this face's [DesignCell] from its full block (U+2588), or `null` if the face has no inked
+     * block glyph — in which case the cell-filling placement is skipped entirely and box drawing keeps the
+     * ordinary per-[fit] placement (the pre-krogue-9x7.4 behaviour). Both bundled faces have it.
+     *
+     * What `Glyph` reports is the **rasterised bitmap** box, which FreeType expands to whole master pixels
+     * — so up to one master pixel per side is *antialiasing fringe* rather than solid ink (whenever the
+     * block's outline edge doesn't land on a master pixel boundary, which vertically it generally doesn't:
+     * the ascent/descent are not integers). Mapping that box onto the cell would put the fringe, not the
+     * solid edge, at the cell boundary, and the outermost output pixel would come out short of full ink —
+     * measured at ~85% on Cascadia Mono's top/bottom, i.e. a faint lattice along the joins instead of a
+     * clean one. So the box is inset by [FRINGE_MASTER_PX] per side: the **solid** part maps to the cell
+     * and the fringe spills just past it, where the per-cell scissor drops it. What spills is at most one
+     * master pixel — a fraction of an output pixel — off a flat run, which is exactly the part of a
+     * cell-filling glyph that carries no detail.
+     */
+    private fun measureDesignCell(font: BitmapFont): DesignCell? {
+        val block = font.data.getGlyph(FULL_BLOCK) ?: return null
+        if (block.width <= 0 || block.height <= 0) return null
+        // Never inset a box away to nothing (a degenerate//tiny block glyph): keep at least one master px.
+        val inset = 2 * FRINGE_MASTER_PX
+        val w = (block.width - inset).coerceAtLeast(1f)
+        val h = (block.height - inset).coerceAtLeast(1f)
+        return DesignCell(
+            block.xoffset + (block.width - w) / 2f,
+            block.yoffset + (block.height - h) / 2f,
+            w,
+            h,
+        )
+    }
+
+    /**
+     * **Cell-filling placement (krogue-9x7.4)** — how box-drawing and block/shade glyphs ([isCellFilling])
+     * are placed under *both* fits, so they tile seamlessly.
+     *
+     * These glyphs are cell-*filling* in the face: `─` spans the whole design cell horizontally, `│`
+     * vertically, `█` both, `▄` its bottom half. Adjacent cells only join if each glyph's ink reaches the
+     * cell edge — which ink-centring (the [GlyphFit.TILE] scale-fit) and baseline text layout
+     * ([drawTextGlyph], whose em is shrunk to reserve ascender/descender room) both fail to do whenever the
+     * target cell's aspect differs from the face's `advance : line-height`: the glyph is scaled by whichever
+     * axis binds, leaving a gap on the other. That is the seam this placement closes.
+     *
+     * So instead of centring, the face's [DesignCell] (from `█`) is mapped **affinely onto the whole cell
+     * rect** — independently per axis — and every cell-filling glyph is drawn through that same map. Edges
+     * therefore land on cell edges (`█` fills exactly, `▄` is exactly the bottom half, `├`'s arm ends flush
+     * at the right edge), and because neighbouring cells share the map, strokes meet with matching position
+     * and weight. The cost of an aspect mismatch moves from a *gap* to a *stroke-weight* difference between
+     * the two axes, which is the trade the issue asks for. A glyph whose ink overshoots the design cell
+     * (some faces overshoot deliberately) simply spills and is clipped by the per-cell scissor — still
+     * seamless.
+     *
+     * `Glyph.xoffset`/`yoffset` are the ink box's left edge and its *bottom* edge relative to the pen, in
+     * libGDX's y-up draw frame (`BitmapFontCache.addGlyph` places the quad at `y + yoffset` and spans
+     * upward from there) — the same frame the block was measured in, so the shared pen origin cancels and
+     * only differences from the design cell matter. Returns `false` when the face has no inked glyph for
+     * the slot.
+     */
+    private fun drawCellFillingGlyph(
+        font: BitmapFont,
+        batch: SpriteBatch,
+        codePoint: Int,
+        col: Int,
+        row: Int,
+        w: Int,
+        h: Int,
+        atlasH: Int,
+        cell: DesignCell,
+    ): Boolean {
+        // codePoint is always in the BMP here (every Cp437 entry is < U+FFFF), so a single Char indexes it.
+        val glyph = font.data.getGlyph(codePoint.toChar()) ?: return false
+        if (glyph.width == 0 || glyph.height == 0) return false // no ink (or a missing glyph)
+
+        val scaleX = w / cell.w
+        val scaleY = h / cell.h
+        val drawX = (col * w) + (glyph.xoffset - cell.x) * scaleX
+        val drawY = (atlasH - (row + 1) * h) + (glyph.yoffset - cell.y) * scaleY // y-up from the cell's floor
+        batch.draw(glyphRegion(font, glyph), drawX, drawY, glyph.width * scaleX, glyph.height * scaleY)
+        return true
+    }
+
+    /**
+     * [glyph]'s slice of its [font] page as a drawable region. Drawn with **no extra V-flip**: BitmapFont
+     * already stores its pages oriented for a y-up batch (which is why the [GlyphFit.TEXT] `font.draw` path
+     * lands upright through the same downstream passes), so a raw region draw matches it as-is; flipping
+     * here would render every glyph upside-down.
+     */
+    private fun glyphRegion(
+        font: BitmapFont,
+        glyph: BitmapFont.Glyph,
+    ): TextureRegion =
+        TextureRegion(font.getRegion(glyph.page).texture, glyph.srcX, glyph.srcY, glyph.width, glyph.height)
 
     /**
      * Per-glyph brightness curve (krogue-9x7.3): for each [cellW] x [cellH] cell of [pix], find the
@@ -840,54 +986,83 @@ class FreeTypeGlyphSource internal constructor(
             buildCellSat(buf, sat, masterW, mx0, my0, mW, mH)
 
             // Search the offset grid; keep the one with the least blur (fewest half-lit output pixels).
+            // Cell-filling glyphs are exempt (offset 0) — see [isCellFilling].
             var bestSx = 0
             var bestSy = 0
-            var bestBlur = Double.MAX_VALUE
-            var sy = 0
-            while (sy < ss) {
-                var sx = 0
-                while (sx < ss) {
-                    var blur = 0.0
-                    for (oy in 0 until h) {
-                        val y0 = (oy * ss + sy).coerceIn(0, mH)
-                        val y1 = (oy * ss + sy + ss).coerceIn(0, mH)
-                        val ry0 = y0 * satW
-                        val ry1 = y1 * satW
-                        for (ox in 0 until w) {
-                            val x0 = (ox * ss + sx).coerceIn(0, mW)
-                            val x1 = (ox * ss + sx + ss).coerceIn(0, mW)
-                            val sum = sat[ry1 + x1] - sat[ry0 + x1] - sat[ry1 + x0] + sat[ry0 + x0]
-                            blur += sin(Math.PI * (sum / ssArea / 255f))
+            if (!isCellFillingSlot(slot)) {
+                var bestBlur = Double.MAX_VALUE
+                var sy = 0
+                while (sy < ss) {
+                    var sx = 0
+                    while (sx < ss) {
+                        var blur = 0.0
+                        for (oy in 0 until h) {
+                            val y0 = (oy * ss + sy).coerceIn(0, mH)
+                            val y1 = (oy * ss + sy + ss).coerceIn(0, mH)
+                            val ry0 = y0 * satW
+                            val ry1 = y1 * satW
+                            for (ox in 0 until w) {
+                                val x0 = (ox * ss + sx).coerceIn(0, mW)
+                                val x1 = (ox * ss + sx + ss).coerceIn(0, mW)
+                                val sum = sat[ry1 + x1] - sat[ry0 + x1] - sat[ry1 + x0] + sat[ry0 + x0]
+                                blur += sin(Math.PI * (sum / ssArea / 255f))
+                            }
                         }
+                        if (blur < bestBlur) {
+                            bestBlur = blur
+                            bestSx = sx
+                            bestSy = sy
+                        }
+                        sx += step
                     }
-                    if (blur < bestBlur) {
-                        bestBlur = blur
-                        bestSx = sx
-                        bestSy = sy
-                    }
-                    sx += step
+                    sy += step
                 }
-                sy += step
             }
 
-            // Emit the cell downsampled at the winning offset (white RGB, straight-averaged alpha).
-            val ox0 = col * w
-            val oy0 = row * h
-            for (oy in 0 until h) {
-                val y0 = (oy * ss + bestSy).coerceIn(0, mH)
-                val y1 = (oy * ss + bestSy + ss).coerceIn(0, mH)
-                val ry0 = y0 * satW
-                val ry1 = y1 * satW
-                for (ox in 0 until w) {
-                    val x0 = (ox * ss + bestSx).coerceIn(0, mW)
-                    val x1 = (ox * ss + bestSx + ss).coerceIn(0, mW)
-                    val sum = sat[ry1 + x1] - sat[ry0 + x1] - sat[ry1 + x0] + sat[ry0 + x0]
-                    val a = (sum / ssArea).roundToInt().coerceIn(0, 255)
-                    if (a != 0) out.drawPixel(ox0 + ox, oy0 + oy, 0xFFFFFF00.toInt() or a) // white RGB + aligned alpha
-                }
-            }
+            emitCell(out, sat, col, row, w, h, ss, bestSx, bestSy)
         }
         return out
+    }
+
+    /**
+     * Emits one cell of the output atlas [out] at grid ([col], [row]) by box-averaging the per-cell
+     * summed-area table [sat] at the sub-pixel offset ([sx], [sy]) — the shared emit step of the
+     * [snapToPixelGrid] downsamples (white RGB, straight-averaged alpha; a zero-alpha pixel is left
+     * untouched so blank cells stay transparent per ADR-0029). The offset shifts the sampling window, so
+     * the trailing output pixel's box is clamped at the master edge and loses a proportional slice of its
+     * coverage: correct for a glyph that floats inside its cell, and exactly why cell-filling glyphs must
+     * be emitted at offset (0, 0) — see [isCellFilling].
+     */
+    private fun emitCell(
+        out: Pixmap,
+        sat: IntArray,
+        col: Int,
+        row: Int,
+        w: Int,
+        h: Int,
+        ss: Int,
+        sx: Int,
+        sy: Int,
+    ) {
+        val mW = w * ss
+        val mH = h * ss
+        val satW = mW + 1
+        val ssArea = (ss * ss).toFloat()
+        val ox0 = col * w
+        val oy0 = row * h
+        for (oy in 0 until h) {
+            val y0 = (oy * ss + sy).coerceIn(0, mH)
+            val y1 = (oy * ss + sy + ss).coerceIn(0, mH)
+            val ry0 = y0 * satW
+            val ry1 = y1 * satW
+            for (ox in 0 until w) {
+                val x0 = (ox * ss + sx).coerceIn(0, mW)
+                val x1 = (ox * ss + sx + ss).coerceIn(0, mW)
+                val sum = sat[ry1 + x1] - sat[ry0 + x1] - sat[ry1 + x0] + sat[ry0 + x0]
+                val a = (sum / ssArea).roundToInt().coerceIn(0, 255)
+                if (a != 0) out.drawPixel(ox0 + ox, oy0 + oy, 0xFFFFFF00.toInt() or a) // white RGB + aligned alpha
+            }
+        }
     }
 
     /**
@@ -977,6 +1152,15 @@ class FreeTypeGlyphSource internal constructor(
             val my0 = row * mH
 
             buildCellSat(buf, sat, masterW, mx0, my0, mW, mH)
+
+            // Cell-filling glyphs sit out both the band warp and the shift search: their edges are already
+            // pinned to the cell rect, and either transform would pull ink off one of them — see
+            // [isCellFilling]. A plain, offset-free box downsample keeps them flush.
+            if (isCellFillingSlot(slot)) {
+                emitCell(out, sat, col, row, w, h, ss, 0, 0)
+                continue
+            }
+
             fillRowBand(sat, rowBand, vy0, vy1, mW, mH, h)
 
             // Horizontal shift search: pick the x-offset with the least blur (fewest half-lit pixels).
@@ -1130,6 +1314,20 @@ class FreeTypeGlyphSource internal constructor(
         // CP437 slot of 'x' — the glyph the band-scale downsample measures the x-height/baseline from
         // (Brogue's TEXT_X_HEIGHT is likewise "the height of the 'x' outline"). ASCII 'x' == slot 120.
         const val X_SLOT = 120
+
+        // The cell-filling glyph class (krogue-9x7.4, [isCellFilling]): Unicode's Box Drawing block through
+        // the end of Block Elements, i.e. U+2500–U+259F — contiguous, so one range covers both.
+        const val BOX_DRAWING_FIRST = 0x2500
+        const val BLOCK_ELEMENTS_LAST = 0x259F
+
+        // U+2588 FULL BLOCK: the glyph that *is* the face's design cell, which [measureDesignCell] measures
+        // the cell-filling placement's mapping from.
+        const val FULL_BLOCK = '█'
+
+        // How much of a rasterised glyph's bitmap box is antialiasing fringe rather than solid ink, per
+        // side, in MASTER pixels. FreeType expands a bitmap to whole pixels, so a fractional outline edge
+        // partially covers at most its one outermost pixel — hence 1. See [measureDesignCell].
+        const val FRINGE_MASTER_PX = 1f
 
         // TILE fit enlarges the page so a capital fills this fraction of the cell height (uniform em); a
         // small margin below 1 keeps ascenders/tall glyphs off the very edge. Full-em glyphs (block/box)
