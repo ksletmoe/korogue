@@ -108,6 +108,7 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
 
         verifyTileFitAndBrightness(outPath)
         verifyBandScaleCommittedShape()
+        verifyTopClipCommittedShape()
         renderDemoComparison(outPath)
         renderBandScaleComparison(outPath)
         renderBrogueComparison(outPath)
@@ -543,13 +544,15 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
     }
 
     /**
-     * krogue-9x7.5: reproduces the committed GL spec's EXACT shape on macOS (which the Kotest GL suite
-     * cannot run here) — a direct `renderGrid` SpriteBatch region blit of a 16×16, supersample 8 lowercase
-     * row (no AsciiTileWindow/compositor, matching the spec's `renderLowercaseRow`), band-scaled vs
-     * translation-only — and asserts the same thing the spec does (band's baseline spread is strictly
-     * smaller AND ≤ 1). Per CLAUDE.md: mirror the committed test's geometry/GL state, not just the logic,
-     * so a green harness predicts a green CI. Both were deliberately kept off the window path (ADR-0038);
-     * uses the same region-blit path and letters as the spec.
+     * krogue-9x7.5 (+ krogue-ux6): reproduces the committed GL spec's EXACT shape on macOS (which the
+     * Kotest GL suite cannot run here) — a direct `renderGrid` SpriteBatch region blit of a 16×16,
+     * supersample 8 lowercase row (no AsciiTileWindow/compositor, matching the spec's `renderLowercaseRow`),
+     * band-scaled vs translation-only — and asserts what the spec asserts: the band-scaled atlas differs
+     * substantially from the translation-only one (the warp; 0 if band scaling were disabled) AND the
+     * band-scaled baseline is tight (≤ 1 output row). Per CLAUDE.md: mirror the committed test's
+     * geometry/GL state, not just the logic, so a green harness predicts a green CI. (The prior strict
+     * `bandSpread < transSpread` signal was a ≤1px knife-edge that ux6's em-shrink collapsed — see the
+     * spec's note.)
      */
     private fun verifyBandScaleCommittedShape() {
         // Reuse the committed spec's own shape literals (not copies) so this mirror can't drift from it.
@@ -557,7 +560,7 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         val flatBottom = BAND_FLAT_BOTTOM
         val cell = BAND_CELL
 
-        fun rowSpread(disableBand: Boolean): Int {
+        fun row(disableBand: Boolean): Pixmap {
             val source =
                 FreeTypeGlyphSource(
                     Gdx.files.classpath("fonts/CascadiaMono-Bold.ttf"),
@@ -568,19 +571,32 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
                     disableBandScale = disableBand,
                 )
             val placed = letters.mapIndexed { i, c -> Placed(i, 0, c.code, Color.WHITE) }
-            val pix = renderGrid(source, letters.length, 1, cell, cell, placed, bg = Color.BLACK) // disposes source
-            val spread = baselineSpread(pix, letters, row = 0, cw = cell, ch = cell, consider = flatBottom)
-            pix.dispose()
-            return spread
+            return renderGrid(source, letters.length, 1, cell, cell, placed, bg = Color.BLACK) // disposes source
         }
 
-        val bandSpread = rowSpread(disableBand = false)
-        val transSpread = rowSpread(disableBand = true)
-        println("  BANDSCALE committed-shape 16x16 window  band=$bandSpread  translation=$transSpread")
+        val bandRow = row(disableBand = false)
+        val transRow = row(disableBand = true)
+        var diff = 0
+        var inked = 0
+        for (y in 0 until bandRow.height) {
+            for (x in 0 until bandRow.width) {
+                val a1 = bandRow.getPixel(x, y) ushr 24 and 0xFF
+                val a2 = transRow.getPixel(x, y) ushr 24 and 0xFF
+                if (a1 > ALPHA_EPS || a2 > ALPHA_EPS) inked++
+                if (abs(a1 - a2) > ALPHA_EPS) diff++
+            }
+        }
+        val bandSpread = baselineSpread(bandRow, letters, row = 0, cw = cell, ch = cell, consider = flatBottom)
+        bandRow.dispose()
+        transRow.dispose()
+        val pct = 100 * diff / inked.coerceAtLeast(1)
+        println(
+            "  BANDSCALE committed-shape 16x16  band-vs-translation diff=$diff/$inked ($pct%)  bandSpread=$bandSpread",
+        )
         report(
-            "band spread < translation spread (regression signal)",
-            bandSpread < transSpread,
-            "band=$bandSpread trans=$transSpread",
+            "band scaling differs from translation-only (regression signal; 0 if disabled)",
+            inked > 0 && diff > inked / 10,
+            "diff=$diff inked=$inked",
         )
         report("band spread <= 1 (baseline essentially flat)", bandSpread in 0..1, "band=$bandSpread")
     }
@@ -845,7 +861,19 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         val block = cellAvg(chart, 219)
         chart.dispose()
         // ss8 was disposed by renderChart's window.
-        report("full block (ss=8) atlas upright, not flipped", block > 0.9f, "cellAvg(219)=$block")
+        report("full block (ss=8) atlas upright, not flipped", block > 0.8f, "cellAvg(219)=$block")
+
+        // Mirror the committed odd-supersample spec's EXACT geometry (16px cell, ss=8, snap off), which the
+        // CELL=24 chart above does not — the ux6 TEXT em-shrink makes the full block a little smaller, and
+        // at 16px its central-half coverage lands just under the old 0.9 gate (was 0.897 on CI). Sample the
+        // block's central half the same way the spec does (averageColor(4,4,12,12) within its cell).
+        val ss8At16 = FreeTypeGlyphSource(Gdx.files.classpath("fonts/CascadiaMono-Bold.ttf"), 16, 16, 8)
+        val page = renderPageDirect(ss8At16, 16)
+        val bx = (219 % COLS) * 16
+        val by = (219 / COLS) * 16
+        val block16 = page.averageColor(bx + 4, by + 4, bx + 12, by + 12).r
+        page.dispose()
+        report("full block (ss=8, 16px) central-half opaque (committed spec geometry)", block16 > 0.8f, "avg=$block16")
     }
 
     /**
@@ -930,6 +958,112 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         tileChart.dispose()
         brightChart.dispose()
         bright4Chart.dispose()
+    }
+
+    /**
+     * krogue-ux6: reproduces the committed top-clip GL spec's shape on macOS (which the Kotest GL suite
+     * cannot run here). The clip the spec guards against happens **in the atlas** — the per-cell scissor in
+     * rasterize — and the committed `glyphCell` just blits that atlas region 1:1 into a cell-sized buffer
+     * (on CI, hidpi=1). So a direct 1:1 region blit of the atlas at cell px (no AsciiTileWindow, no HiDPI
+     * scaling) measures exactly what CI's `glyphCell` measures. Renders the CP437 page at a 32px cell and
+     * asserts the ascender 'h' and the accented cap 'Å' clear the ceiling (top-row / top-two-row peak below
+     * the threshold) while their bodies stay strongly inked. Verified new-vs-old at this geometry: the
+     * ascender's top row is a flat stem cut (peak 1.0) with the un-fixed cap-box centring and 0.0 after the
+     * em-fit; the accented cap's top two rows drop ~0.71 -> ~0.04.
+     */
+    private fun verifyTopClipCommittedShape() {
+        val cell = 32
+        val page = renderPageDirect(Fonts.cascadiaMono(cell, cell, snapToPixelGrid = true), cell)
+
+        fun peakRow(
+            slot: Int,
+            y0: Int,
+            y1: Int,
+        ): Float {
+            val cx = (slot % COLS) * cell
+            val cy = (slot / COLS) * cell
+            var peak = 0f
+            for (y in y0 until y1) {
+                for (x in cell / 4 until cell * 3 / 4) {
+                    peak = maxOf(peak, page.averageColor(cx + x, cy + y, cx + x + 1, cy + y + 1).r)
+                }
+            }
+            return peak
+        }
+
+        // Ascender 'h': hard stem cut => top row fully inked when clipped, empty when it clears.
+        val hBody = peakRow('h'.code, cell / 2, cell - 3)
+        val hCeil = peakRow('h'.code, 0, 1)
+        report("ux6: ascender 'h' body inked (>0.5)", hBody > 0.5f, "body=$hBody")
+        report("ux6: ascender 'h' clears the ceiling (<0.5, was ~1.0)", hCeil < 0.5f, "ceil=$hCeil")
+        // Accented cap 'Å' (slot 143), the headline case: its ring clears the ceiling too — the top two rows
+        // were ~0.71 (jammed against the top) and taper to ~0.04 after the fit.
+        val aBody = peakRow(143, 4, cell * 3 / 8)
+        val aCeil = peakRow(143, 0, 2)
+        report("ux6: accented cap 'Å' body inked (>0.4)", aBody > 0.4f, "body=$aBody")
+        report("ux6: accented cap 'Å' clears the ceiling (<0.5, was ~0.71)", aCeil < 0.5f, "ceil=$aCeil")
+        // Descender 'g' floor (ns5, still held by ux6): tail tapers above the floor rather than a flat cut.
+        val gFloor = peakRow('g'.code, cell - 1, cell)
+        report("ux6/ns5: descender 'g' still clears the floor (<0.5)", gFloor < 0.5f, "floor=$gFloor")
+        println(
+            "  UX6 top-clip 32px  h[body=%.2f ceil=%.2f]  Å[body=%.2f ceil=%.2f]  g[floor=%.2f]".format(
+                hBody,
+                hCeil,
+                aBody,
+                aCeil,
+                gFloor,
+            ),
+        )
+        page.dispose()
+    }
+
+    /**
+     * Draws all 256 CP437 slots of [source] white-on-black 1:1 at [cell] px into an FBO via a direct
+     * SpriteBatch region blit (no AsciiTileWindow, no HiDPI scaling — the FBO is exactly COLS·[cell] ×
+     * ROWS·[cell] and the ortho matches, so atlas px land on FBO px). Returns the upright page pixmap and
+     * **disposes [source]**. This is the atlas the window blits, so it mirrors what CI's `glyphCell` /
+     * page-render specs measure (hidpi=1). Build [source] BEFORE calling (its rasterise binds its own FBOs).
+     */
+    private fun renderPageDirect(
+        source: FreeTypeGlyphSource,
+        cell: Int,
+    ): Pixmap {
+        val w = COLS * cell
+        val h = ROWS * cell
+        Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, 0)
+        val fbo = FrameBuffer(Pixmap.Format.RGBA8888, w, h, false)
+        fbo.begin()
+        Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
+        val batch = SpriteBatch()
+        val cam =
+            OrthographicCamera().apply {
+                setToOrtho(false, w.toFloat(), h.toFloat())
+                update()
+            }
+        batch.projectionMatrix = cam.combined
+        batch.color = Color.WHITE
+        batch.begin()
+        for (slot in 0 until 256) {
+            val region = source.glyph(Char(slot)) ?: continue
+            batch.draw(
+                region,
+                ((slot % COLS) * cell).toFloat(),
+                (h - (slot / COLS + 1) * cell).toFloat(),
+                cell.toFloat(),
+                cell.toFloat(),
+            )
+        }
+        batch.end()
+        val raw = Pixmap.createFromFrameBuffer(0, 0, w, h)
+        fbo.end()
+        batch.dispose()
+        source.dispose()
+        val flipped = Pixmap(w, h, Pixmap.Format.RGBA8888).apply { blending = Pixmap.Blending.None }
+        for (yy in 0 until h) flipped.drawPixmap(raw, 0, yy, 0, h - 1 - yy, w, 1)
+        raw.dispose()
+        fbo.dispose()
+        return flipped
     }
 
     /** Average red over the top half vs the bottom half of CP437 [slot]'s cell interior (upright pixmap). */
