@@ -520,12 +520,20 @@ private fun <T> glyphCell(
                     glyphBrightness = glyphBrightness,
                     snapToPixelGrid = snapToPixelGrid,
                 )
+            // Ownership transfers to the window (ownsGlyphSource defaults true), so `window.dispose()` below
+            // disposes `source` — disposing it again here would double-free the native FreeType face. The one
+            // gap is create() itself throwing, where nothing has taken ownership yet: dispose and rethrow.
             val window =
-                AsciiTileWindow.create {
-                    glyphSource = source
-                    widthInTiles = 1
-                    heightInTiles = 1
-                    fitToWindow = false
+                try {
+                    AsciiTileWindow.create {
+                        glyphSource = source
+                        widthInTiles = 1
+                        heightInTiles = 1
+                        fitToWindow = false
+                    }
+                } catch (t: Throwable) {
+                    source.dispose()
+                    throw t
                 }
             try {
                 window.drawTile(0, 0, StaticAsciiTile(Char(slot), Color.WHITE, Color.BLACK))
