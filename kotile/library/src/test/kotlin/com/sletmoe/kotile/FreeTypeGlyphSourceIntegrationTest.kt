@@ -460,6 +460,12 @@ private fun pixelDiff(
     a: Pixmap,
     b: Pixmap,
 ): Pair<Int, Int> {
+    // Enforce the "equally-sized" precondition rather than trusting it: Pixmap.getPixel returns 0 outside
+    // the bitmap instead of throwing, so a mismatch would silently deflate both counts — and a deflated
+    // `inked` is exactly what would let the diff ratio below pass vacuously.
+    require(a.width == b.width && a.height == b.height) {
+        "pixelDiff needs equally-sized pixmaps, got ${a.width}x${a.height} vs ${b.width}x${b.height}"
+    }
     var diff = 0
     var inked = 0
     for (y in 0 until a.height) {
