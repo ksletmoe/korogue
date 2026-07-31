@@ -179,10 +179,13 @@ class FreeTypeGlyphSourceIntegrationTest : FunSpec({
                 // Guard against a low-GL_MAX_TEXTURE_SIZE driver capping ss down to an even pass count:
                 // if it did, this spec would pass WITH the bug present. 8 (3 passes, odd) must survive.
                 effectiveSs shouldBe 8
-                // Upright: the full block is solid in its core (~1). Flipped: a sparse '+' glyph, far
-                // dimmer. Sample the central half (the block doesn't reach the cell edges — see the
-                // full-block test's note) so this discriminates orientation, not edge coverage.
-                pixels.averageColor(4, 4, 12, 12).r.toDouble() shouldBeGreaterThan 0.9
+                // Upright: the full block is solid in its core (~0.9). Flipped: a sparse '+' glyph, far
+                // dimmer (~0.2-0.3). Sample the central half (the block doesn't reach the cell edges — see
+                // the full-block test's note) so this discriminates orientation, not edge coverage. The
+                // 0.8 gate (was 0.9) leaves room for the krogue-ux6 TEXT em-shrink, which makes the
+                // cell-filling block a little smaller — its central-half coverage is ~0.90 here — while
+                // still cleanly separating the upright block from the flipped '+'.
+                pixels.averageColor(4, 4, 12, 12).r.toDouble() shouldBeGreaterThan 0.8
             } finally {
                 pixels.dispose()
             }
@@ -466,7 +469,9 @@ private fun pixelDiff(
 }
 
 // Alpha (0–255) tolerance for treating a pixel as inked / as differing between two atlases (~12%).
-private const val ALPHA_EPS = 32
+// Internal so the `:kotile:library:freetypeVerify` harness mirror (verifyBandScaleCommittedShape) uses the
+// same threshold rather than a drifting copy.
+internal const val ALPHA_EPS = 32
 
 // The committed band-scale shape (krogue-9x7.5). Shared (internal) so the macOS `freetypeVerify` harness's
 // verifyBandScaleCommittedShape mirrors this spec from the *same* literals rather than drift-prone copies —

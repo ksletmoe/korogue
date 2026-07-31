@@ -582,8 +582,8 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
             for (x in 0 until bandRow.width) {
                 val a1 = bandRow.getPixel(x, y) ushr 24 and 0xFF
                 val a2 = transRow.getPixel(x, y) ushr 24 and 0xFF
-                if (a1 > 32 || a2 > 32) inked++
-                if (abs(a1 - a2) > 32) diff++
+                if (a1 > ALPHA_EPS || a2 > ALPHA_EPS) inked++
+                if (abs(a1 - a2) > ALPHA_EPS) diff++
             }
         }
         val bandSpread = baselineSpread(bandRow, letters, row = 0, cw = cell, ch = cell, consider = flatBottom)
@@ -861,7 +861,19 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         val block = cellAvg(chart, 219)
         chart.dispose()
         // ss8 was disposed by renderChart's window.
-        report("full block (ss=8) atlas upright, not flipped", block > 0.9f, "cellAvg(219)=$block")
+        report("full block (ss=8) atlas upright, not flipped", block > 0.8f, "cellAvg(219)=$block")
+
+        // Mirror the committed odd-supersample spec's EXACT geometry (16px cell, ss=8, snap off), which the
+        // CELL=24 chart above does not — the ux6 TEXT em-shrink makes the full block a little smaller, and
+        // at 16px its central-half coverage lands just under the old 0.9 gate (was 0.897 on CI). Sample the
+        // block's central half the same way the spec does (averageColor(4,4,12,12) within its cell).
+        val ss8At16 = FreeTypeGlyphSource(Gdx.files.classpath("fonts/CascadiaMono-Bold.ttf"), 16, 16, 8)
+        val page = renderPageDirect(ss8At16, 16)
+        val bx = (219 % COLS) * 16
+        val by = (219 / COLS) * 16
+        val block16 = page.averageColor(bx + 4, by + 4, bx + 12, by + 12).r
+        page.dispose()
+        report("full block (ss=8, 16px) central-half opaque (committed spec geometry)", block16 > 0.8f, "avg=$block16")
     }
 
     /**
@@ -961,7 +973,7 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
      */
     private fun verifyTopClipCommittedShape() {
         val cell = 32
-        val page = renderPageDirect(cell)
+        val page = renderPageDirect(Fonts.cascadiaMono(cell, cell, snapToPixelGrid = true), cell)
 
         fun peakRow(
             slot: Int,
@@ -1006,13 +1018,16 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
     }
 
     /**
-     * Draws all 256 CP437 slots white-on-black 1:1 at [cell] px into an FBO via a direct SpriteBatch region
-     * blit (no AsciiTileWindow, no HiDPI scaling — the FBO is exactly COLS·[cell] × ROWS·[cell] and the ortho
-     * matches, so atlas px land on FBO px). Returns the upright page pixmap. This is the atlas the window
-     * blits, so it mirrors what CI's `glyphCell` measures (hidpi=1).
+     * Draws all 256 CP437 slots of [source] white-on-black 1:1 at [cell] px into an FBO via a direct
+     * SpriteBatch region blit (no AsciiTileWindow, no HiDPI scaling — the FBO is exactly COLS·[cell] ×
+     * ROWS·[cell] and the ortho matches, so atlas px land on FBO px). Returns the upright page pixmap and
+     * **disposes [source]**. This is the atlas the window blits, so it mirrors what CI's `glyphCell` /
+     * page-render specs measure (hidpi=1). Build [source] BEFORE calling (its rasterise binds its own FBOs).
      */
-    private fun renderPageDirect(cell: Int): Pixmap {
-        val source = Fonts.cascadiaMono(cell, cell, snapToPixelGrid = true)
+    private fun renderPageDirect(
+        source: FreeTypeGlyphSource,
+        cell: Int,
+    ): Pixmap {
         val w = COLS * cell
         val h = ROWS * cell
         Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, 0)

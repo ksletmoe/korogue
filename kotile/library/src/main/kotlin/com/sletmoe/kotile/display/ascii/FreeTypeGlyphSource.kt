@@ -409,8 +409,13 @@ class FreeTypeGlyphSource internal constructor(
      * returns < 1 and never larger than the em.
      */
     private fun textEmSize(masterCellH: Int): Int {
+        val ratio = faceInkBoxRatio()
+        // A face that reports no usable metrics gives a ratio of 0 (or negative); don't shrink then, and
+        // never divide by it. (Not `coerceAtLeast(1f)`: a ratio in (0,1) means the ink box already fits the
+        // em, so we must divide by the true ratio — clamping it to 1 would shrink a face that needs no shrink.)
+        if (ratio <= 0f) return masterCellH
         val fitPx = masterCellH * (1f - 2f * TEXT_MARGIN_FRAC)
-        return (fitPx / faceInkBoxRatio()).toInt().coerceIn(1, masterCellH)
+        return (fitPx / ratio).toInt().coerceIn(1, masterCellH)
     }
 
     /**
@@ -1111,7 +1116,9 @@ class FreeTypeGlyphSource internal constructor(
 
         // Reference em (px) for the one-off face ink-box ratio measurement (krogue-ux6, [faceInkBoxRatio]).
         // Large enough that capHeight/ascent/descent round cleanly; the ratio is a size-independent face
-        // constant, so any generously-sized reference works.
+        // constant, so any generously-sized reference works. Kept at 256 (not shrunk for the small one-time
+        // cost) because CI validated the ux6/band-scale GL specs at this value and the integer metric
+        // rounding a smaller em introduces would perturb the shipped ink-box ratio unverifiably here.
         const val REF_METRIC_EM = 256
 
         // TEXT fit holds back this fraction of the cell height at the top AND bottom as breathing margin
