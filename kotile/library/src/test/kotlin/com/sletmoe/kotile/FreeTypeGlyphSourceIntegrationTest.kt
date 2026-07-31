@@ -318,9 +318,14 @@ class FreeTypeGlyphSourceIntegrationTest : FunSpec({
             hBody.toDouble() shouldBeGreaterThan 0.5 // the ascender is actually rendered
             hCeil.toDouble() shouldBeLessThan 0.5 // ...and its top no longer hits the cell ceiling (was ~1.0)
             // Accented cap 'Å' (slot 143), the issue's headline case: its ring clears the ceiling too — the
-            // top two rows were ~0.71 (jammed against the top) and taper to ~0.04 after the fit.
+            // top two rows were ~0.71 (jammed against the top) and taper to ~0.04 after the fit. The band
+            // just below the ceiling holds the ring itself, so it guards the ceiling check the same way
+            // hBody guards 'h' (thresholds mirror the freetypeVerify probe's aBody/aCeil discriminators).
+            val aBody =
+                glyphCell(slot = 143, snapToPixelGrid = true, cell = cell) { peakRed(it, 4, cell * 3 / 8) }
             val aCeil = glyphCell(slot = 143, snapToPixelGrid = true, cell = cell) { peakRed(it, 0, 2) }
-            aCeil.toDouble() shouldBeLessThan 0.5 // the accent no longer jams against the ceiling (was ~0.71)
+            aBody.toDouble() shouldBeGreaterThan 0.4 // the ring/accent is actually rendered
+            aCeil.toDouble() shouldBeLessThan 0.5 // ...and no longer jams against the ceiling (was ~0.71)
         }
 
     // --- krogue-9x7.5: x-height/baseline band scaling for lowercase crispness (Brogue optimizeTiles
