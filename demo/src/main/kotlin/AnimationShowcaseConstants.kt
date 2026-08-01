@@ -41,11 +41,11 @@ internal const val TOTAL_COLS = SPRITE_COLS + GLYPH_COLS
 internal const val ROWS = 7 // roughly a quarter of the original 25 — less empty floor to cross
 internal const val MID_ROW = ROWS / 2
 
-// The window is sized in LOGICAL px from the art's own scale, not from the master ([TILE_PX]):
-// the master is deliberately larger than the window so there is detail for the backbuffer to
-// resolve down to. FitScale then maps the master onto whatever the backbuffer is.
-internal const val WINDOW_W_PX = TOTAL_COLS * DAWNLIKE_SRC_PX * DISPLAY_SCALE
-internal const val WINDOW_H_PX = ROWS * DAWNLIKE_SRC_PX * DISPLAY_SCALE
+// The window is exactly the native grid — TOTAL_COLS x ROWS cells of [TILE_PX] — so the
+// fixed-grid IntegerScale policy picks a clean whole-number factor onto the backbuffer: no
+// letterboxing, no fractional-scale blur. That factor is 2 on a 2x HiDPI backbuffer, 1 otherwise.
+internal const val WINDOW_W_PX = TOTAL_COLS * TILE_PX
+internal const val WINDOW_H_PX = ROWS * TILE_PX
 
 /** Advance steps and per-step delta applied before the snapshot, so animated tiles are mid-cycle. */
 internal const val PRE_ADVANCE_STEPS = 10

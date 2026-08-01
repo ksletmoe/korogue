@@ -55,11 +55,16 @@ x-height band.
   both axes) master rect. Bilinear interpolation of the SAT is *exact* for that rect —
   the master is constant within a pixel, so its integral is bilinear in the sub-pixel
   offsets — so the warp reuses the SAT rather than re-integrating the master.
-- **Fall back to the identity** — i.e. to ADR-0040's offset-free `emitCell` — when an
-  axis has nothing to snap: an empty cell, a **uniform** axis (`─` across x, `█` across
-  either), or a cell-filling **pattern** whose edges exceed a cap (the shades
-  `░ ▒ ▓`, whose periodic dither there is no point snapping). `█`, `▄`, `│`'s rows and
-  `─`'s columns therefore go down byte-for-byte the pre-tg5 path.
+- **Fall back, at two levels.** An axis with nothing to snap keeps its natural slope: an
+  empty axis, a **uniform** one (`─` across x, `│` across y, `█` across either), or a
+  cell-filling **pattern** whose edges exceed a cap (the shades `░ ▒ ▓`, whose periodic
+  dither there is no point snapping). Such an axis is still emitted *through the warp*,
+  with an identity map. Only when **both** axes come back empty does the cell skip the warp
+  entirely and defer to ADR-0040's offset-free `emitCell`, which is what makes that case
+  byte-for-byte the pre-tg5 path. Instrumented over the whole class, exactly four glyphs
+  take it — `█` and the three shades `░ ▒ ▓`. Everything else warps at least one axis,
+  including `▄`, whose half-boundary *is* an interior stroke edge, and `─`/`│`, which snap
+  the one axis that varies.
 
 Rounding the **width** rather than both edges independently is the one non-obvious
 choice, and it was made on measured pixels. Independent rounding quantises the width to

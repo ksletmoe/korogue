@@ -401,8 +401,11 @@ then given a tested ECS foundation:
   and its closing edge a **rounded width** away (rounding both independently quantises the
   width by up to a whole pixel — it made `│`'s 5.35px stem 89% grey), and the emit is a
   2-D fractionally-bounded box average via *exact* bilinear SAT sampling. An axis with
-  nothing to snap (`█`, `▄`, `│`'s rows, `─`'s columns, the shades' periodic dither) falls
-  back to the 9x7.4 offset-free `emitCell` byte-for-byte. Measured at the same 24px square
+  nothing to snap (a uniform one, or the shades' periodic dither) keeps its natural slope
+  but is still emitted through the warp; only when **both** axes are empty does the cell
+  skip the warp for the 9x7.4 offset-free `emitCell`, byte-for-byte — instrumented, that is
+  `█` and the shades `░ ▒ ▓` and nothing else (`▄` snaps its y axis, `─`/`│` the one axis
+  that varies). Measured at the same 24px square
   cell: `─` rows **175/255/157 → 17/240/241/17**, `│` columns
   **5/216/255/255/255/255/120 → 23/238/255/255/255/225/26**; half-lit lines across cell
   sizes 12–32 go 1–2 per glyph → **0**, with the 9x7.4 seam numbers intact and `─`/`┼`

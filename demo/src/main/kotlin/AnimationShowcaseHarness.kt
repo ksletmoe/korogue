@@ -313,7 +313,7 @@ internal class AnimationShowcaseHarness(private val outPath: String?) : Applicat
             VisualEvent.FloatingText(
                 at = scorpionCell,
                 text = "-4",
-                font = glyphs,
+                glyphSource = glyphs,
                 charWidthPx = canvas.layout.tileWidthPx * 0.6f,
                 charHeightPx = canvas.layout.tileHeightPx * 0.6f,
             ),
