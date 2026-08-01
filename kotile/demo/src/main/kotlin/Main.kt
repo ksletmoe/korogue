@@ -33,6 +33,12 @@ class KotileDemo : ApplicationAdapter() {
             AsciiTileWindow.create {
                 widthInTiles = 80
                 heightInTiles = 30
+                // This window is drawn *over* the sprite pane, so it must composite rather than
+                // REPLACE-erase (krogue-a24): REPLACE is authoritative and blits every cell of the
+                // grid, including the empty ones, which wiped the whole sprite showcase underneath —
+                // labels rendered, sprites did not. The animation showcase demo hit exactly this and
+                // was fixed when `sharesCanvas` was introduced; these kotile demos were missed.
+                sharesCanvas = true
             }
 
         drawSprites()

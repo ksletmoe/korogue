@@ -64,13 +64,18 @@ private class SpriteRenderHarness(private val outPath: String) : ApplicationAdap
     override fun create() {
         sheet = TileSheet(Gdx.files.classpath("vaarn-8x8.png"), 8, 8)
         canvas = KotileCanvas(TILE_PX, TILE_PX)
-        sprites = SpriteTileRenderer(canvas, sheet)
+        // Both renderers draw into the ONE canvas below, so each must composite over the other
+        // rather than REPLACE-erase it (krogue-a24). Without this the second render() blits its
+        // whole grid — empty cells included — over the first, and everything from the vaarn sheet
+        // vanished behind `layered`'s blank cells. The scene is rebuilt every frame, which is what
+        // makes NORMAL compositing correct here.
+        sprites = SpriteTileRenderer(canvas, sheet, sharesCanvas = true)
         // A synthetic two-tile sheet for the alpha-layering demonstration:
         // tile (0,0) is an opaque green "terrain" tile, tile (1,0) is a red
         // diamond on a transparent surround (a "creature" sprite). Shares the
         // one canvas via a second renderer.
         layeredSheet = TileSheet(Gdx.files.absolute(buildLayeredSheet()), LAYER_SRC_PX, LAYER_SRC_PX)
-        layered = SpriteTileRenderer(canvas, layeredSheet)
+        layered = SpriteTileRenderer(canvas, layeredSheet, sharesCanvas = true)
         buildScene()
     }
 
