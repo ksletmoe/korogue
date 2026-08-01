@@ -106,7 +106,9 @@ enum class GlyphFit {
  * block — onto the cell rect and draws them through it, edge-snapped
  * ([drawCellFillingGlyph], krogue-9x7.4). Every other glyph keeps its [fit]
  * placement. An aspect mismatch then shows up as horizontal and vertical strokes
- * differing in weight rather than as a seam.
+ * differing in weight rather than as a seam. Under [snapToPixelGrid] the class gets
+ * its own alignment too — a warp that holds the cell edges still and snaps the
+ * *stroke* edges between them ([emitCellFillingCell], krogue-tg5).
  *
  * ## Cost and lifetime
  *
@@ -715,6 +717,8 @@ class FreeTypeGlyphSource internal constructor(
      *
      * Members are placed by [drawCellFillingGlyph] and are exempt from the [snapToPixelGrid] sub-pixel
      * shift search and band-scale warp, both of which would pull ink off a pinned cell edge (see [emitCell]).
+     * They get their own alignment instead — [emitCellFillingCell]'s edge-pinning warp, which snaps the
+     * *stroke* edges inside the cell without moving the cell edges.
      */
     private fun isCellFilling(codePoint: Int): Boolean = codePoint in BOX_DRAWING_FIRST..BLOCK_ELEMENTS_LAST
 
@@ -985,38 +989,42 @@ class FreeTypeGlyphSource internal constructor(
 
             buildCellSat(buf, sat, masterW, mx0, my0, mW, mH)
 
+            // Cell-filling glyphs sit out the translation search — it would slide ink off a pinned cell
+            // edge — and get the edge-pinning stroke warp instead (see [emitCellFillingCell]).
+            if (isCellFillingSlot(slot)) {
+                emitCellFillingCell(out, sat, col, row, w, h, ss)
+                continue
+            }
+
             // Search the offset grid; keep the one with the least blur (fewest half-lit output pixels).
-            // Cell-filling glyphs are exempt (offset 0) — see [isCellFilling].
             var bestSx = 0
             var bestSy = 0
-            if (!isCellFillingSlot(slot)) {
-                var bestBlur = Double.MAX_VALUE
-                var sy = 0
-                while (sy < ss) {
-                    var sx = 0
-                    while (sx < ss) {
-                        var blur = 0.0
-                        for (oy in 0 until h) {
-                            val y0 = (oy * ss + sy).coerceIn(0, mH)
-                            val y1 = (oy * ss + sy + ss).coerceIn(0, mH)
-                            val ry0 = y0 * satW
-                            val ry1 = y1 * satW
-                            for (ox in 0 until w) {
-                                val x0 = (ox * ss + sx).coerceIn(0, mW)
-                                val x1 = (ox * ss + sx + ss).coerceIn(0, mW)
-                                val sum = sat[ry1 + x1] - sat[ry0 + x1] - sat[ry1 + x0] + sat[ry0 + x0]
-                                blur += sin(Math.PI * (sum / ssArea / 255f))
-                            }
+            var bestBlur = Double.MAX_VALUE
+            var sy = 0
+            while (sy < ss) {
+                var sx = 0
+                while (sx < ss) {
+                    var blur = 0.0
+                    for (oy in 0 until h) {
+                        val y0 = (oy * ss + sy).coerceIn(0, mH)
+                        val y1 = (oy * ss + sy + ss).coerceIn(0, mH)
+                        val ry0 = y0 * satW
+                        val ry1 = y1 * satW
+                        for (ox in 0 until w) {
+                            val x0 = (ox * ss + sx).coerceIn(0, mW)
+                            val x1 = (ox * ss + sx + ss).coerceIn(0, mW)
+                            val sum = sat[ry1 + x1] - sat[ry0 + x1] - sat[ry1 + x0] + sat[ry0 + x0]
+                            blur += sin(Math.PI * (sum / ssArea / 255f))
                         }
-                        if (blur < bestBlur) {
-                            bestBlur = blur
-                            bestSx = sx
-                            bestSy = sy
-                        }
-                        sx += step
                     }
-                    sy += step
+                    if (blur < bestBlur) {
+                        bestBlur = blur
+                        bestSx = sx
+                        bestSy = sy
+                    }
+                    sx += step
                 }
+                sy += step
             }
 
             emitCell(out, sat, col, row, w, h, ss, bestSx, bestSy)
@@ -1063,6 +1071,326 @@ class FreeTypeGlyphSource internal constructor(
                 if (a != 0) out.drawPixel(ox0 + ox, oy0 + oy, 0xFFFFFF00.toInt() or a) // white RGB + aligned alpha
             }
         }
+    }
+
+    /**
+     * Emits one cell-filling glyph's cell (box drawing, blocks — [isCellFilling]) under [snapToPixelGrid]
+     * with an **edge-pinning stroke warp** (krogue-tg5): the cell edges stay pinned to the cell rect, while
+     * the glyph's *interior* stroke edges are snapped to whole output rows/columns.
+     *
+     * This is ADR-0038's band-scale idea — pin two references and stretch between them — applied per axis
+     * to a box glyph's stroke edges instead of the x-height band. krogue-9x7.4 had to exempt this class from
+     * both [snapToPixelGrid] transforms, because a *translation* (the shift search) or a baseline-relative
+     * warp (the band scale) slides the sampling window and the master-edge clamp then shaves the trailing
+     * output pixel, re-opening the seam the class exists to close. A warp that pins `out 0 → master 0` and
+     * `out n → master n` has no such clamp: it only redistributes rows *between* the cell edges, so the
+     * seams survive by construction and a 1-output-pixel-and-a-half stroke stops straddling two rows and
+     * reading grey.
+     *
+     * Per axis: [strokeSnapMap] measures the stroke edges from this cell's own master (they are per-glyph,
+     * unlike the page-wide text baseline), rounds each to its nearest output boundary, and returns the
+     * piecewise-linear output→master map through those knots; a `null` means "nothing to snap" (a uniform
+     * axis like `─`'s horizontal, or a pattern with too many edges — the shades) and that axis keeps its
+     * natural slope. With **both** axes natural the map is the identity, so it defers to [emitCell] at
+     * offset `(0, 0)` — byte-for-byte the pre-tg5 emit, which is what keeps `█`/`│`/`─`'s measured seam
+     * numbers unchanged.
+     *
+     * Neighbouring cells still join because the snap is a deterministic function of the master position of
+     * the stroke, and the cell-filling placement gives every member of the class the *same* master stroke
+     * positions ([drawCellFillingGlyph] maps one design cell onto every cell): `─`'s stroke and `┼`'s
+     * cross-bar snap to the same output rows. And a warp that is monotone with both ends pinned leaves a
+     * *uniform* run uniform, so an axis one glyph warps and its neighbour doesn't (`┬`'s stem column vs `─`'s
+     * flat horizontal) still matches along the shared edge.
+     */
+    private fun emitCellFillingCell(
+        out: Pixmap,
+        sat: IntArray,
+        col: Int,
+        row: Int,
+        w: Int,
+        h: Int,
+        ss: Int,
+    ) {
+        val mW = w * ss
+        val mH = h * ss
+        val srcX = strokeSnapMap(sat, mW, mH, w, ss, vertical = false)
+        val srcY = strokeSnapMap(sat, mW, mH, h, ss, vertical = true)
+        if (srcX == null && srcY == null) {
+            emitCell(out, sat, col, row, w, h, ss, 0, 0)
+            return
+        }
+        emitWarpedCell(
+            out,
+            sat,
+            col,
+            row,
+            w,
+            h,
+            mW,
+            mH,
+            srcX ?: naturalMap(w, ss),
+            srcY ?: naturalMap(h, ss),
+        )
+    }
+
+    /** The unwarped output→master boundary map for an axis of [outN] output pixels at [ss]× supersampling. */
+    private fun naturalMap(
+        outN: Int,
+        ss: Int,
+    ): DoubleArray = DoubleArray(outN + 1) { (it * ss).toDouble() }
+
+    /**
+     * The output→master boundary map for one axis of a cell-filling glyph, with the glyph's stroke edges
+     * snapped to whole output boundaries and the two cell edges pinned — or `null` when there is nothing to
+     * snap on this axis, in which case the caller keeps the natural slope ([naturalMap]).
+     *
+     * `null` covers three cases, all of which must fall back rather than warp: an empty cell; a **uniform**
+     * axis (`─` along x, `█` along either — a single run spanning the whole extent yields no *interior*
+     * edge); and a cell-filling **pattern** (the shades `░ ▒ ▓`), whose many edges exceed
+     * [MAX_STROKE_EDGES] — snapping a periodic dither is neither needed nor well-defined, so it keeps the
+     * uniform resample it had before.
+     */
+    private fun strokeSnapMap(
+        sat: IntArray,
+        mW: Int,
+        mH: Int,
+        outN: Int,
+        ss: Int,
+        vertical: Boolean,
+    ): DoubleArray? {
+        val n = if (vertical) mH else mW
+        val edges = strokeEdges(axisProfile(sat, mW, mH, vertical)) ?: return null
+        val outK = snapEdgesToOutput(edges, outN, ss) ?: return null
+        return piecewiseMap(edges.at, outK, outN, n)
+    }
+
+    /**
+     * The coverage profile of a cell across one axis, read straight off its summed-area table [sat]: total
+     * master alpha per master row ([vertical]) or per master column. A horizontal stroke shows up as a run
+     * of near-full rows; the thin ink a crossing stem contributes to the rows between strokes is a small
+     * fraction of that, which is what makes a half-peak threshold separate them ([strokeEdges]).
+     */
+    private fun axisProfile(
+        sat: IntArray,
+        mW: Int,
+        mH: Int,
+        vertical: Boolean,
+    ): DoubleArray {
+        val satW = mW + 1
+        if (vertical) {
+            return DoubleArray(mH) { my -> (sat[(my + 1) * satW + mW] - sat[my * satW + mW]).toDouble() }
+        }
+        val lastRow = mH * satW
+        return DoubleArray(mW) { mx -> (sat[lastRow + mx + 1] - sat[lastRow + mx]).toDouble() }
+    }
+
+    /**
+     * The **interior** stroke edges of one axis: their fractional master positions [at], and for each,
+     * whether it closes a stroke whose opening edge is the previous entry ([closesStroke]) — the pairing
+     * [snapEdgesToOutput] needs to round a stroke's *width* rather than its two edges independently.
+     */
+    private class StrokeEdges(
+        val at: DoubleArray,
+        val closesStroke: BooleanArray,
+    )
+
+    /**
+     * The **interior** stroke edges of a coverage profile [p], or `null` if there is nothing snappable
+     * (see [strokeSnapMap]).
+     *
+     * A stroke is a run of samples at or above half the profile's own peak — Brogue's rule for the x-height
+     * band ([measureXBand]) applied across the cell — and its two edges are that run's boundaries. The
+     * threshold is peak-relative, not absolute, so a stroke that spans only part of the cell (`├`'s arm
+     * reaches ~60% of the width, `─`'s the whole width) still resolves against its own glyph, and both then
+     * snap to the same rows because the *shape* of the antialiasing across the edge is the same.
+     *
+     * Each boundary is refined below one master pixel by conserving ink: an edge inside sample `a` leaves
+     * `a` covered `p[a] / peak`, so the edge sits that far into the sample. Without the refinement the edge
+     * would be quantised to a whole master pixel — a quarter of an output pixel at the default 4×
+     * supersample, enough to round to the wrong output row. Runs touching the cell boundary contribute only
+     * their inner edge; the cell edges are pinned by the caller and must not become knots (and such a run
+     * has no interior *width*, so its edge is never paired).
+     */
+    private fun strokeEdges(p: DoubleArray): StrokeEdges? {
+        val n = p.size
+        var peak = 0.0
+        for (v in p) if (v > peak) peak = v
+        if (peak <= 0.0) return null
+        val threshold = peak / 2.0
+        val at = ArrayList<Double>()
+        val closes = ArrayList<Boolean>()
+        var i = 0
+        while (i < n) {
+            if (p[i] < threshold) {
+                i++
+                continue
+            }
+            var b = i
+            while (b + 1 < n && p[b + 1] >= threshold) b++
+            val opened = i > 0
+            if (opened) {
+                at += i + (1.0 - p[i] / peak) - p[i - 1] / peak
+                closes += false
+            }
+            if (b < n - 1) {
+                at += (b + 1) - (1.0 - p[b] / peak) + p[b + 1] / peak
+                closes += opened
+            }
+            if (at.size > MAX_STROKE_EDGES) return null
+            i = b + 1
+        }
+        if (at.isEmpty()) return null
+        // Two edges closer than half a master pixel would make a zero- or negative-height band; that is a
+        // stroke too thin for this to be meaningful, so keep the uniform resample rather than warping.
+        for (k in 1 until at.size) {
+            if (at[k] - at[k - 1] < MIN_EDGE_GAP_MASTER) return null
+        }
+        return StrokeEdges(at.toDoubleArray(), closes.toBooleanArray())
+    }
+
+    /**
+     * Places each stroke edge on a whole output boundary — the knots the warp pins ([piecewiseMap]).
+     *
+     * A stroke's **opening** edge goes to its nearest boundary (ADR-0038's `round(map2)`); its **closing**
+     * edge is then placed a *rounded width* away, rather than at its own nearest boundary. Rounding the two
+     * edges independently would quantise the width to `round(e1) - round(e0)`, which differs from the true
+     * width by up to a whole output pixel: measured on Cascadia Mono at a square 24px cell, `│`'s 5.35px
+     * stem landed in a 6px band and every column came out at 89% — a stroke made *greyer* by the snap it
+     * was supposed to sharpen. Rounding the width instead keeps the band's average coverage at the stroke's
+     * own density (5.35px of ink in 5px reads solid), which is the point of snapping: turn partial coverage
+     * spread over two pixels into whole pixels, never dilute it across more.
+     *
+     * Knots are then forced strictly increasing and strictly inside `(0, outN)`, so neither a stroke nor a
+     * cell edge can collapse — a stroke narrower than one output pixel becomes exactly one rather than
+     * vanishing. Returns `null` if they cannot be separated in the space available (more strokes than
+     * output pixels), in which case the axis keeps its natural slope.
+     */
+    private fun snapEdgesToOutput(
+        edges: StrokeEdges,
+        outN: Int,
+        ss: Int,
+    ): IntArray? {
+        val at = edges.at
+        val k = IntArray(at.size)
+        for (i in at.indices) {
+            k[i] =
+                if (edges.closesStroke[i]) {
+                    k[i - 1] + Math.round((at[i] - at[i - 1]) / ss).toInt().coerceAtLeast(1)
+                } else {
+                    Math.round(at[i] / ss).toInt()
+                }
+        }
+        var prev = 0
+        for (i in k.indices) {
+            if (k[i] <= prev) k[i] = prev + 1
+            prev = k[i]
+        }
+        var next = outN
+        for (i in k.indices.reversed()) {
+            if (k[i] >= next) k[i] = next - 1
+            next = k[i]
+        }
+        if (k.first() < 1) return null
+        for (i in 1 until k.size) if (k[i] <= k[i - 1]) return null
+        return k
+    }
+
+    /**
+     * The piecewise-linear output→master boundary map through the knots `(0, 0)`, `(outK[i], edges[i])…`,
+     * `(outN, n)`: `src[o]` is the master coordinate of output boundary `o`. Each segment gets its own
+     * constant slope, so the natural scale is preserved except where a stroke had to move to land on the
+     * grid — and both cell edges are exact, which is what keeps the seams closed.
+     */
+    private fun piecewiseMap(
+        edges: DoubleArray,
+        outK: IntArray,
+        outN: Int,
+        n: Int,
+    ): DoubleArray {
+        val src = DoubleArray(outN + 1)
+        var o0 = 0
+        var s0 = 0.0
+        for (i in 0..edges.size) {
+            val o1 = if (i < edges.size) outK[i] else outN
+            val s1 = if (i < edges.size) edges[i] else n.toDouble()
+            val slope = (s1 - s0) / (o1 - o0)
+            for (o in o0..o1) src[o] = s0 + (o - o0) * slope
+            o0 = o1
+            s0 = s1
+        }
+        src[0] = 0.0
+        src[outN] = n.toDouble()
+        return src
+    }
+
+    /**
+     * Emits one cell by box-averaging the master over the warped boundary maps [srcX] / [srcY] — output
+     * pixel `(ox, oy)` covers the master rect `[srcX[ox], srcX[ox+1]] × [srcY[oy], srcY[oy+1]]`, whose
+     * corners are fractional on **both** axes (where [emitCell] has an integer box and [bandScaleDownsample]
+     * a fractional y-band only). Bilinear interpolation of the summed-area table is *exact* for that rect —
+     * the master is piecewise-constant per pixel, so the SAT is bilinear within a pixel — which is what lets
+     * the warp reuse the SAT rather than re-integrating the master. Per output row the two interpolated
+     * boundary prefixes are computed once, so each pixel is one subtraction, as elsewhere.
+     */
+    private fun emitWarpedCell(
+        out: Pixmap,
+        sat: IntArray,
+        col: Int,
+        row: Int,
+        w: Int,
+        h: Int,
+        mW: Int,
+        mH: Int,
+        srcX: DoubleArray,
+        srcY: DoubleArray,
+    ) {
+        val satW = mW + 1
+        val ox0 = col * w
+        val oy0 = row * h
+        val lo = DoubleArray(w + 1) // SAT at (srcX[i], band top)
+        val hi = DoubleArray(w + 1) // SAT at (srcX[i], band bottom)
+        for (oy in 0 until h) {
+            val bandH = srcY[oy + 1] - srcY[oy]
+            if (bandH <= 0.0) continue
+            for (i in 0..w) {
+                lo[i] = satBilinear(sat, satW, mW, mH, srcX[i], srcY[oy])
+                hi[i] = satBilinear(sat, satW, mW, mH, srcX[i], srcY[oy + 1])
+            }
+            for (ox in 0 until w) {
+                val area = (srcX[ox + 1] - srcX[ox]) * bandH
+                if (area <= 0.0) continue
+                val sum = (hi[ox + 1] - lo[ox + 1]) - (hi[ox] - lo[ox])
+                val a = (sum / area).roundToInt().coerceIn(0, 255)
+                if (a != 0) out.drawPixel(ox0 + ox, oy0 + oy, 0xFFFFFF00.toInt() or a)
+            }
+        }
+    }
+
+    /**
+     * The summed-area table [sat] sampled at a fractional master position ([x], [y]) by bilinear
+     * interpolation — i.e. the exact integral of master alpha over `[0, x) × [0, y)`. Exact rather than
+     * approximate because the master is constant within each pixel, which makes its integral bilinear in
+     * the sub-pixel offsets, matching what the interpolation computes. Positions are clamped into the cell.
+     */
+    private fun satBilinear(
+        sat: IntArray,
+        satW: Int,
+        mW: Int,
+        mH: Int,
+        x: Double,
+        y: Double,
+    ): Double {
+        val xc = x.coerceIn(0.0, mW.toDouble())
+        val yc = y.coerceIn(0.0, mH.toDouble())
+        val x0 = xc.toInt().coerceIn(0, mW - 1)
+        val y0 = yc.toInt().coerceIn(0, mH - 1)
+        val fx = xc - x0
+        val fy = yc - y0
+        val i00 = y0 * satW + x0
+        val i10 = i00 + satW
+        val top = sat[i00] + (sat[i00 + 1] - sat[i00]) * fx
+        val bottom = sat[i10] + (sat[i10 + 1] - sat[i10]) * fx
+        return top + (bottom - top) * fy
     }
 
     /**
@@ -1153,11 +1481,12 @@ class FreeTypeGlyphSource internal constructor(
 
             buildCellSat(buf, sat, masterW, mx0, my0, mW, mH)
 
-            // Cell-filling glyphs sit out both the band warp and the shift search: their edges are already
-            // pinned to the cell rect, and either transform would pull ink off one of them — see
-            // [isCellFilling]. A plain, offset-free box downsample keeps them flush.
+            // Cell-filling glyphs sit out both the band warp and the shift search: their cell edges are
+            // already pinned to the cell rect, and either transform would pull ink off one of them — see
+            // [isCellFilling]. They get the edge-pinning stroke warp instead ([emitCellFillingCell]), which
+            // snaps their *interior* stroke edges while leaving the cell edges where they are.
             if (isCellFillingSlot(slot)) {
-                emitCell(out, sat, col, row, w, h, ss, 0, 0)
+                emitCellFillingCell(out, sat, col, row, w, h, ss)
                 continue
             }
 
@@ -1323,6 +1652,17 @@ class FreeTypeGlyphSource internal constructor(
         // U+2588 FULL BLOCK: the glyph that *is* the face's design cell, which [measureDesignCell] measures
         // the cell-filling placement's mapping from.
         const val FULL_BLOCK = '█'
+
+        // Most interior stroke edges an axis may have before the edge-pinning warp (krogue-tg5,
+        // [strokeEdges]) gives up and keeps the uniform resample. Box drawing tops out at two strokes per
+        // axis — a double line, `╬`/`╔` — i.e. 4 edges; 8 leaves headroom for a face that draws an extra
+        // detail while still rejecting a cell-filling *pattern* (the shades `░ ▒ ▓`, dozens of edges), whose
+        // periodic dither there is no point snapping.
+        const val MAX_STROKE_EDGES = 8
+
+        // Two stroke edges closer than this (in MASTER px) are treated as unsnappable — a stroke thinner
+        // than half a master pixel is antialiasing noise, and snapping it would build a degenerate band.
+        const val MIN_EDGE_GAP_MASTER = 0.5
 
         // How much of a rasterised glyph's bitmap box is antialiasing fringe rather than solid ink, per
         // side, in MASTER pixels. FreeType expands a bitmap to whole pixels, so a fractional outline edge

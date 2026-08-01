@@ -390,10 +390,28 @@ then given a tested ECS foundation:
   Measured before → after at a square 24px cell (Cascadia is a tall face — the mismatched
   case): weakest column of a 2-cell `─` strip **0 → 255**, weakest row of a stacked `│`
   **5 → 255**, `█` cell coverage **0.42 → 0.998**, `▄`/`▀` half-fill 0.39/0.42 → 0.998,
-  same with snap on. **Deferred:** box-stroke *interior* crispness under snap (the exemption
-  gives up the shift search for this class — needs an edge-pinning warp within the cell);
-  **(krogue-9x7.6):** an offline/size-keyed shift cache (still recomputed per rasterise).
-  **Rationale:** ADR-0037 (shift search) + ADR-0038 (band scaling) + ADR-0040 (cell-filling).
+  same with snap on.
+  **Cell-filling stroke edges snap too (krogue-tg5, ADR-0041).** The 9x7.4 exemption above
+  kept the seams but left this class without *any* alignment, so a 2.3-output-row `─`
+  straddled the grid and read grey. It is no longer exempt but differently aligned: the cell
+  edges stay **pinned** (a warp with both ends pinned has no master-edge clamp to lose ink
+  to — that was only ever a problem for *translation*) while the glyph's **stroke** edges are
+  snapped to whole output rows/columns per axis. Stroke runs are measured off the per-cell
+  SAT at half the profile's own peak, a stroke's opening edge goes to its nearest boundary
+  and its closing edge a **rounded width** away (rounding both independently quantises the
+  width by up to a whole pixel — it made `│`'s 5.35px stem 89% grey), and the emit is a
+  2-D fractionally-bounded box average via *exact* bilinear SAT sampling. An axis with
+  nothing to snap (`█`, `▄`, `│`'s rows, `─`'s columns, the shades' periodic dither) falls
+  back to the 9x7.4 offset-free `emitCell` byte-for-byte. Measured at the same 24px square
+  cell: `─` rows **175/255/157 → 17/240/241/17**, `│` columns
+  **5/216/255/255/255/255/120 → 23/238/255/255/255/225/26**; half-lit lines across cell
+  sizes 12–32 go 1–2 per glyph → **0**, with the 9x7.4 seam numbers intact and `─`/`┼`
+  (and `═`/`╬`) agreeing on which rows the shared arm occupies. Residual: the outermost
+  snapped pixel reads ~225–240, not 255 — the master's own ~2-master-px AA ramp centred on
+  the boundary, which needs *sharpening* rather than edge-pinning to close.
+  **Deferred (krogue-9x7.6):** an offline/size-keyed shift cache (still recomputed per
+  rasterise). **Rationale:** ADR-0037 (shift search) + ADR-0038 (band scaling) +
+  ADR-0040 (cell-filling) + ADR-0041 (stroke edge snap).
 - **Layer model — grid + free (pixel-space) layers (ADR-0018).** `KotileCanvas.drawSprite(pxX,
   pxY, region, w, h, tint)` is the real drawing primitive (`drawTile` is grid-snapped sugar
   over it); a frame is an ordered list of `Layer`s composited back-to-front by a `LayerStack`
