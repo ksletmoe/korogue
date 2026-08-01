@@ -524,7 +524,180 @@ class FreeTypeGlyphSourceIntegrationTest : FunSpec({
                 upper.dispose()
             }
         }
+
+    // --- krogue-9x7.6: the per-glyph shift search is memoised per rasterise geometry, so a resize back to a
+    // cell size this source has already built pays only the downsample. It is a pure memoisation — the atlas
+    // is unchanged, so `lastShiftSearchCount` is the only place a hit is visible, and the exact pixel
+    // comparison is what proves the cached offsets are the SAME offsets rather than merely cheaper ones.
+    // Un-cached, the return leg re-searches the whole searchable page (count == atFirst); cached it is 0. ---
+
+    test("FreeTypeGlyphSource snapToPixelGrid: revisiting a cell size reuses its cached shift search (krogue-9x7.6)")
+        .config(enabled = HeadlessGl.available) {
+            // TEXT fit: the production snap path (band-scaled vertical + horizontal shift search).
+            val (counts, pages) = shiftCacheRoundTrip(GlyphFit.TEXT)
+            val (atFirst, atOther, onReturn) = counts
+            val (before, after) = pages
+            try {
+                withClue("a fresh cell size must actually run the search: $counts") {
+                    atFirst shouldBeGreaterThan 0
+                }
+                withClue("the cache is keyed by geometry, so a DIFFERENT cell size still searches: $counts") {
+                    atOther shouldBeGreaterThan 0
+                }
+                withClue("a cell size already rasterised must not search again: $counts") {
+                    onReturn shouldBe 0
+                }
+                val (diff, inked) = exactDiff(before, after)
+                // Ink first: an empty (or failed) render would make the zero-diff assertion vacuous.
+                withClue("the CP437 page must have ink to compare") { inked shouldBeGreaterThan 0 }
+                withClue("cached offsets must reproduce the atlas exactly (differing px of $inked inked)") {
+                    diff shouldBe 0
+                }
+            } finally {
+                before.dispose()
+                after.dispose()
+            }
+        }
+
+    test("FreeTypeGlyphSource snapToPixelGrid TILE: the translation-only search is cached per size (krogue-9x7.6)")
+        .config(enabled = HeadlessGl.available) {
+            // TILE fit takes the other downsample — the 2-D translation search, no band scaling — which
+            // caches through the same key with its own `bandScaled` flag, so it needs its own round trip.
+            val (counts, pages) = shiftCacheRoundTrip(GlyphFit.TILE)
+            val (atFirst, atOther, onReturn) = counts
+            val (before, after) = pages
+            try {
+                withClue("a fresh cell size must actually run the search: $counts") {
+                    atFirst shouldBeGreaterThan 0
+                }
+                withClue("a DIFFERENT cell size still searches: $counts") { atOther shouldBeGreaterThan 0 }
+                withClue("a cell size already rasterised must not search again: $counts") {
+                    onReturn shouldBe 0
+                }
+                val (diff, inked) = exactDiff(before, after)
+                withClue("the CP437 page must have ink to compare") { inked shouldBeGreaterThan 0 }
+                withClue("cached offsets must reproduce the atlas exactly (differing px of $inked inked)") {
+                    diff shouldBe 0
+                }
+            } finally {
+                before.dispose()
+                after.dispose()
+            }
+        }
 })
+
+// Cell sizes for the krogue-9x7.6 cache round trip: build at CACHE_CELL, resize away to CACHE_OTHER_CELL,
+// then back. Small (a 16px cell is a 256x256 page at ss=4) because the assertion is about *whether* the
+// search runs, not about how it looks — the crispness specs above own that at their own sizes. Internal so
+// the macOS `:kotile:library:freetypeVerify` mirror runs the round trip at the same geometry this does.
+internal const val CACHE_CELL = 16
+internal const val CACHE_OTHER_CELL = 20
+
+/**
+ * Rasterises a `snapToPixelGrid` source at [CACHE_CELL], walks it to [CACHE_OTHER_CELL] and back, and
+ * returns the [FreeTypeGlyphSource.lastShiftSearchCount] after each of the three rasterises together with
+ * the CP437 page captured **before** and **after** the round trip (both at [CACHE_CELL]; caller disposes).
+ *
+ * One source across both captures is the whole point — the cache is per-instance, so a fresh source per
+ * capture would measure nothing. The page is blitted 1:1 from the atlas regions (a SpriteBatch, no
+ * AsciiTileWindow), so the two captures differ only if the atlas itself differs.
+ */
+private fun shiftCacheRoundTrip(fit: GlyphFit): Pair<Triple<Int, Int, Int>, Pair<Pixmap, Pixmap>> {
+    val page = COLUMNS_PER_PAGE * CACHE_CELL
+    var source: FreeTypeGlyphSource? = null
+    var atFirst = -1
+    var atOther = -1
+    var onReturn = -1
+
+    val before =
+        HeadlessGl.render(page, page, Color.BLACK) {
+            val src = Fonts.cascadiaMono(CACHE_CELL, CACHE_CELL, fit = fit, snapToPixelGrid = true)
+            source = src
+            atFirst = src.lastShiftSearchCount
+            blitPage(src, CACHE_CELL)
+        }
+    val after =
+        HeadlessGl.render(page, page, Color.BLACK) {
+            val src = source!!
+            try {
+                src.prepareForCellSize(CACHE_OTHER_CELL, CACHE_OTHER_CELL)
+                atOther = src.lastShiftSearchCount
+                src.prepareForCellSize(CACHE_CELL, CACHE_CELL)
+                onReturn = src.lastShiftSearchCount
+                blitPage(src, CACHE_CELL)
+            } finally {
+                src.dispose() // on the GL thread, inside the render, like the other helpers here
+            }
+        }
+    return Triple(atFirst, atOther, onReturn) to (before to after)
+}
+
+/**
+ * Draws all 256 CP437 slots of [source] white-on-black at [cell] px into the currently bound capture FBO
+ * (row-major, row 0 at the top), 1:1 from the atlas regions. Mirrors the `freetypeVerify` harness's
+ * `renderPageDirect` geometry, minus its FBO management — [HeadlessGl] already owns that here.
+ */
+private fun blitPage(
+    source: FreeTypeGlyphSource,
+    cell: Int,
+) {
+    val page = COLUMNS_PER_PAGE * cell
+    val batch = SpriteBatch()
+    val cam =
+        OrthographicCamera().apply {
+            setToOrtho(false, page.toFloat(), page.toFloat())
+            update()
+        }
+    batch.projectionMatrix = cam.combined
+    batch.color = Color.WHITE
+    batch.begin()
+    try {
+        for (slot in 0 until 256) {
+            val region = source.glyph(Char(slot)) ?: continue
+            val x = ((slot % COLUMNS_PER_PAGE) * cell).toFloat()
+            val y = (page - (slot / COLUMNS_PER_PAGE + 1) * cell).toFloat() // y-up: slot 0 is the top-left
+            batch.draw(region, x, y, cell.toFloat(), cell.toFloat())
+        }
+    } finally {
+        batch.end()
+        batch.dispose()
+    }
+}
+
+/** Columns (and rows) of the 16x16 CP437 page atlas. */
+private const val COLUMNS_PER_PAGE = 16
+
+/**
+ * Exact per-pixel comparison of two equally-sized captures: `(differing, inked)`. Unlike [pixelDiff] this
+ * compares the whole RGBA word with **no** tolerance, because the cache spec's claim is that a cached
+ * rasterise is bit-for-bit what the search produced — a tolerance would let a genuinely different
+ * downsample pass. `inked` counts pixels carrying ink in either capture (the high byte of libGDX's
+ * RGBA8888 word — red, which on these white-on-black captures *is* the coverage; the captures are opaque
+ * throughout, so alpha would count every pixel), so an empty or failed render cannot satisfy a zero diff
+ * vacuously.
+ *
+ * Internal so the macOS `freetypeVerify` harness mirror measures the round trip with this exact comparison
+ * rather than a drifting copy.
+ */
+internal fun exactDiff(
+    a: Pixmap,
+    b: Pixmap,
+): Pair<Int, Int> {
+    require(a.width == b.width && a.height == b.height) {
+        "exactDiff needs equally-sized pixmaps, got ${a.width}x${a.height} vs ${b.width}x${b.height}"
+    }
+    var diff = 0
+    var inked = 0
+    for (y in 0 until a.height) {
+        for (x in 0 until a.width) {
+            val pa = a.getPixel(x, y)
+            val pb = b.getPixel(x, y)
+            if ((pa ushr 24 and 0xFF) > 0 || (pb ushr 24 and 0xFF) > 0) inked++
+            if (pa != pb) diff++
+        }
+    }
+    return diff to inked
+}
 
 /**
  * Renders a [cols] x [rows] grid of CP437 [slots] (row-major, one slot per cell) at a square [SEAM_CELL]
