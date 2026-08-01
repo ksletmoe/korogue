@@ -21,6 +21,12 @@ dependencies {
     // libGDX LWJGL3 desktop backend + native libraries to actually launch the window.
     implementation("com.badlogicgames.gdx:gdx-backend-lwjgl3:1.14.1")
     runtimeOnly("com.badlogicgames.gdx:gdx-platform:1.14.1:natives-desktop")
+    // The freetype NATIVE, for FreeTypeGlyphSource (the animation showcase's TTF glyph half). kotile
+    // exposes gdx-freetype's Java side as `api`, but deliberately leaves the native to the consumer —
+    // see FreeTypeGlyphSource's KDoc — so a consumer that rasterises a TTF has to add this itself.
+    // Without it the Java side loads fine and the app dies at runtime on
+    // SharedLibraryLoadRuntimeException for libgdx-freetype<arch>.dylib/.so.
+    runtimeOnly("com.badlogicgames.gdx:gdx-freetype-platform:1.14.1:natives-desktop")
 }
 
 kotlin {

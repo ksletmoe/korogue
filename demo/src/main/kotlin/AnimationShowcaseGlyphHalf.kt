@@ -23,15 +23,23 @@ internal fun AnimationShowcaseHarness.buildGlyphRoom(elapsedMs: Long) {
             asciiWindow.drawTile(x, y, StaticAsciiTile('.', lit, glow))
         }
     }
+    // Room border in double-line box drawing rather than a row of '#' (krogue-tg5). These are
+    // cell-filling glyphs, so each cell's strokes run edge to edge and meet the next cell's: the run
+    // reads as one continuous wall. There is no LEFT edge — the glyph half's left boundary is the
+    // rendering seam with the sprite half (see the harness's class doc), not a wall, so the horizontal
+    // runs simply continue off that side. Only the right edge gets corners.
+    val rightCol = TOTAL_COLS - 1
     for (x in SPRITE_COLS until TOTAL_COLS) {
         val topLit = lighting.litColor(wallColor, x, 0, GLYPH_TORCH_POSITIONS, elapsedMs)
-        asciiWindow.drawTile(x, 0, StaticAsciiTile('#', topLit, Color.BLACK))
+        val topGlyph = if (x == rightCol) WALL_CORNER_TOP_RIGHT else WALL_HORIZONTAL
+        asciiWindow.drawTile(x, 0, StaticAsciiTile(topGlyph, topLit, Color.BLACK))
         val bottomLit = lighting.litColor(wallColor, x, ROWS - 1, GLYPH_TORCH_POSITIONS, elapsedMs)
-        asciiWindow.drawTile(x, ROWS - 1, StaticAsciiTile('#', bottomLit, Color.BLACK))
+        val bottomGlyph = if (x == rightCol) WALL_CORNER_BOTTOM_RIGHT else WALL_HORIZONTAL
+        asciiWindow.drawTile(x, ROWS - 1, StaticAsciiTile(bottomGlyph, bottomLit, Color.BLACK))
     }
     for (y in 1 until ROWS - 1) {
-        val lit = lighting.litColor(wallColor, TOTAL_COLS - 1, y, GLYPH_TORCH_POSITIONS, elapsedMs)
-        asciiWindow.drawTile(TOTAL_COLS - 1, y, StaticAsciiTile('#', lit, Color.BLACK))
+        val lit = lighting.litColor(wallColor, rightCol, y, GLYPH_TORCH_POSITIONS, elapsedMs)
+        asciiWindow.drawTile(rightCol, y, StaticAsciiTile(WALL_VERTICAL, lit, Color.BLACK))
     }
 
     // Brogue-style torch flicker: the background shifts to simulate an unsteady flame; no sprite

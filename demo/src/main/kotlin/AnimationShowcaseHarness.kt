@@ -16,8 +16,9 @@ import com.sletmoe.korogue.ui.WindowSurface
 import com.sletmoe.kotile.display.KotileCanvas
 import com.sletmoe.kotile.display.ascii.AnimatedAsciiTile
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
-import com.sletmoe.kotile.display.ascii.Font
 import com.sletmoe.kotile.display.ascii.Fonts
+import com.sletmoe.kotile.display.ascii.FreeTypeGlyphSource
+import com.sletmoe.kotile.display.ascii.GlyphFit
 import com.sletmoe.kotile.display.ascii.StaticAsciiTile
 import com.sletmoe.kotile.rendering.IntegerScale
 import com.sletmoe.kotile.rendering.SpriteTileRenderer
@@ -73,7 +74,7 @@ internal class AnimationShowcaseHarness(private val outPath: String?) : Applicat
     private val assetsDir = File(System.getProperty("korogue.demo.assetsDir", "demo/assets/dawnlike")).absoluteFile
 
     internal lateinit var canvas: KotileCanvas
-    private lateinit var font: Font
+    private lateinit var glyphs: FreeTypeGlyphSource
     internal lateinit var asciiWindow: AsciiTileWindow
 
     private lateinit var wallSheet: TileSheet
@@ -168,9 +169,19 @@ internal class AnimationShowcaseHarness(private val outPath: String?) : Applicat
 
     override fun create() {
         canvas = KotileCanvas(TILE_PX, TILE_PX)
-        font = Fonts.cp437_10x10()
+        // A TTF face rasterised AT the canvas's cell px (ADR-0036 tier 3) rather than the fixed
+        // 10x10 CP437 bitmap sheet, so the glyph half is drawn from real outlines. Two settings
+        // matter for the room border (see AnimationShowcaseConstants' wall glyphs):
+        //  - TILE fit ink-centres and scale-fits each glyph, which is what single-glyph map cells
+        //    want (a '.' stays a small dot, an '@' fills) — TEXT's shared baseline is for prose.
+        //  - snapToPixelGrid aligns each glyph to the output pixel grid, and for the cell-filling
+        //    box-drawing class snaps the stroke edges to whole rows/columns (ADR-0041). At this
+        //    small a square cell with a tall face that is the difference between a crisp masonry
+        //    line and a grey one. It costs a CPU pass per rasterise, which here happens once: the
+        //    grid is fixed, so nothing re-rasterises after create().
+        glyphs = Fonts.cascadiaMono(GLYPH_CELL_PX, GLYPH_CELL_PX, fit = GlyphFit.TILE, snapToPixelGrid = true)
         asciiWindow =
-            AsciiTileWindow.createWithCanvas(canvas, font) {
+            AsciiTileWindow.createWithCanvas(canvas, glyphs) {
                 widthInTiles = TOTAL_COLS
                 heightInTiles = ROWS
                 fitToWindow = false
@@ -205,7 +216,7 @@ internal class AnimationShowcaseHarness(private val outPath: String?) : Applicat
     }
 
     private fun sheet(relativePath: String): TileSheet =
-        TileSheet(Gdx.files.absolute(File(assetsDir, relativePath).path), TILE_PX, TILE_PX)
+        TileSheet(Gdx.files.absolute(File(assetsDir, relativePath).path), DAWNLIKE_SRC_PX, DAWNLIKE_SRC_PX)
 
     // -------------------------------------------------------------------------
     // Combat script (drives both halves)
@@ -302,7 +313,7 @@ internal class AnimationShowcaseHarness(private val outPath: String?) : Applicat
             VisualEvent.FloatingText(
                 at = scorpionCell,
                 text = "-4",
-                font = font,
+                font = glyphs,
                 charWidthPx = canvas.layout.tileWidthPx * 0.6f,
                 charHeightPx = canvas.layout.tileHeightPx * 0.6f,
             ),
@@ -377,9 +388,9 @@ internal class AnimationShowcaseHarness(private val outPath: String?) : Applicat
         floorRenderer.dispose()
         wallRenderer.dispose()
         overlayRenderer.dispose()
-        asciiWindow.dispose() // shared canvas + font not owned by the window
+        asciiWindow.dispose() // shared canvas + glyph source not owned by the window
         canvas.dispose()
-        font.dispose()
+        glyphs.dispose()
         wallSheet.dispose()
         floorSheet.dispose()
         ammoSheet.dispose()
