@@ -10,6 +10,7 @@ import com.sletmoe.kotile.display.ascii.Fonts
 import com.sletmoe.kotile.display.ascii.FreeTypeGlyphSource
 import com.sletmoe.kotile.display.ascii.GlyphFit
 import com.sletmoe.kotile.display.ascii.StaticAsciiTile
+import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.doubles.plusOrMinus
 import io.kotest.matchers.doubles.shouldBeGreaterThan
@@ -420,6 +421,77 @@ class FreeTypeGlyphSourceIntegrationTest : FunSpec({
             }
         }
 
+    // --- krogue-tg5: under snapToPixelGrid, a cell-filling glyph's INTERIOR stroke edges are snapped to
+    // whole output rows/columns by a warp that leaves the cell edges pinned (so the 9x7.4 seams above still
+    // hold). krogue-9x7.4 had to exempt this class from both snap transforms — a translation or a
+    // baseline-relative warp slides the sampling window and the master-edge clamp re-opens the seam — which
+    // left the strokes wherever the uniform downsample put them. ---
+
+    test("FreeTypeGlyphSource: box-drawing stroke edges land on whole output rows/columns (krogue-tg5)")
+        .config(enabled = HeadlessGl.available) {
+            // '─' in one cell under snap: every row is either solid or blank, never half-lit. Un-fixed, the
+            // stroke's 2.3-output-row height straddled the grid and the flanking rows read 175/157 — the
+            // grey the issue is about. The warp lands the edges on row boundaries: 240/241 with 17 spill.
+            val horizontal = renderSlotGrid(listOf(196), cols = 1, rows = 1, snapToPixelGrid = true)
+            try {
+                val peaks = rowPeaks(horizontal)
+                // Not vacuous: there IS a stroke (a solid row) and there IS background (a blank row), so
+                // neither an empty cell nor a filled one can satisfy the "no half-lit row" assertion.
+                peaks.count { it >= SNAP_SOLID_PEAK } shouldBeGreaterThan 0
+                peaks.count { it <= SNAP_BLANK_PEAK } shouldBeGreaterThan 0
+                peaks.count { it in (SNAP_BLANK_PEAK + 1) until SNAP_SOLID_PEAK } shouldBe 0
+            } finally {
+                horizontal.dispose()
+            }
+
+            // '│' the same, one axis over (its columns; un-fixed the trailing column read 120).
+            val vertical = renderSlotGrid(listOf(179), cols = 1, rows = 1, snapToPixelGrid = true)
+            try {
+                val peaks = columnPeaks(vertical)
+                peaks.count { it >= SNAP_SOLID_PEAK } shouldBeGreaterThan 0
+                peaks.count { it <= SNAP_BLANK_PEAK } shouldBeGreaterThan 0
+                peaks.count { it in (SNAP_BLANK_PEAK + 1) until SNAP_SOLID_PEAK } shouldBe 0
+            } finally {
+                vertical.dispose()
+            }
+        }
+
+    test("FreeTypeGlyphSource: snapped strokes still meet across a MIXED box-drawing seam (krogue-tg5)")
+        .config(enabled = HeadlessGl.available) {
+            // The warp is measured per glyph, so the new failure mode it could introduce is two DIFFERENT
+            // box-drawing glyphs snapping their shared stroke to different rows — a frame that steps at
+            // every junction. They must not: the cell-filling placement gives every member of the class the
+            // same master stroke positions, so the snap (a function of those) has to agree. Single line
+            // '─ ┼ ─' and double line '═ ╬ ═' (two runs per axis, the harder case): each strip's horizontal
+            // stroke rows, measured away from the cross's stem, must be the same rows in all three cells,
+            // and the strip must stay unbroken across both seams.
+            for (family in listOf(listOf(196, 197, 196), listOf(205, 206, 205))) {
+                val strip = renderSlotGrid(family, cols = 3, rows = 1, snapToPixelGrid = true)
+                try {
+                    withClue("family=$family") {
+                        // Ink on both sides of each cell boundary. Only the SEAM columns, not every column:
+                        // '╬' is four corner pieces around a hollow centre, so its middle columns are
+                        // legitimately blank and a whole-strip minimum would fail on a correct render.
+                        val cols = columnPeaks(strip)
+                        for (seam in listOf(SEAM_CELL, 2 * SEAM_CELL)) {
+                            cols[seam - 1] shouldBeGreaterThan SEAM_INKED_PEAK
+                            cols[seam] shouldBeGreaterThan SEAM_INKED_PEAK
+                        }
+                        // Sample each cell's left quarter — clear of the cross's centre stem, which would
+                        // otherwise ink every row and make this about the stem rather than the arm.
+                        val quarter = SEAM_CELL / 4
+                        val rows =
+                            (0 until 3).map { i -> strokeRows(strip, i * SEAM_CELL, i * SEAM_CELL + quarter) }
+                        rows[0].size shouldBeGreaterThan 0 // the arm is actually there to compare
+                        rows[1] shouldBe rows[0]
+                        rows[2] shouldBe rows[0]
+                    }
+                } finally {
+                    strip.dispose()
+                }
+            }
+        }
+
     test("FreeTypeGlyphSource: the full block fills its whole cell, half blocks exactly their half")
         .config(enabled = HeadlessGl.available) {
             // '█' (219) edge to edge — the glyph the design-cell map is measured from, so it is the
@@ -512,6 +584,32 @@ internal fun rowPeaks(pix: Pixmap): List<Int> =
     (0 until pix.height).map { y ->
         (0 until pix.width).maxOf { x -> pix.getPixel(x, y) ushr 24 and 0xFF }
     }
+
+/**
+ * The rows of [pix] whose **mean** coverage over columns `[x0, x1)` is solid — the horizontal stroke rows
+ * of a box-drawing cell, measured away from any vertical stem so a crossing stroke doesn't ink every row
+ * (`┼`'s stem makes its per-row *peak* 255 everywhere, which is why this averages instead).
+ *
+ * Internal so the macOS `freetypeVerify` harness measures the mixed-glyph seam exactly as this spec does.
+ */
+internal fun strokeRows(
+    pix: Pixmap,
+    x0: Int,
+    x1: Int,
+): List<Int> =
+    (0 until pix.height).filter { y ->
+        var sum = 0
+        for (x in x0 until x1) sum += pix.getPixel(x, y) ushr 24 and 0xFF
+        sum.toDouble() / (x1 - x0) >= SNAP_SOLID_PEAK
+    }
+
+// The committed stroke-snap shape (krogue-tg5). A stroke edge that lands on a whole output row/column
+// leaves every line of the cell either solid or blank; one that straddles leaves a half-lit line. These
+// bracket that: on real pixels at SEAM_CELL, the un-fixed (offset-free box downsample) code leaves '─'
+// rows at 175/157 and '│' columns at 120, and the edge-pinning warp leaves 240/241 and 225+ with the
+// spill below 26. Internal so the `freetypeVerify` harness mirror shares the literals.
+internal const val SNAP_SOLID_PEAK = 191 // >= this is a solid line (0.75)
+internal const val SNAP_BLANK_PEAK = 64 // <= this is blank (0.25); anything between straddles
 
 // The committed cell-filling/seam shape (krogue-9x7.4). Shared (internal) so the macOS `freetypeVerify`
 // harness's verifyCellFillSeamsCommittedShape mirrors this spec from the *same* literals rather than

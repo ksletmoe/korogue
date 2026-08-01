@@ -238,7 +238,7 @@ internal class FloatingTextSequence(private val event: VisualEvent.FloatingText)
         val pxY = screenY * l.tileHeightPx - event.charHeightPx - riseOffsetPx
 
         for (character in event.text) {
-            val region = event.font.glyph(character) ?: continue
+            val region = event.glyphSource.glyph(character) ?: continue
             canvas.drawSprite(
                 pxX = pxX,
                 pxY = pxY,

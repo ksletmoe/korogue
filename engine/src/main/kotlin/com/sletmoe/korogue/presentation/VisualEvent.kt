@@ -2,7 +2,7 @@ package com.sletmoe.korogue.presentation
 
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.TextureRegion
-import com.sletmoe.kotile.display.ascii.Font
+import com.sletmoe.kotile.display.ascii.GlyphSource
 import com.sletmoe.kotile.utilities.Vector2Int
 
 /**
@@ -111,13 +111,17 @@ interface VisualEvent {
 
     /**
      * [text] rising and fading above [at] over [durationMs] (e.g. a floating damage number) —
-     * sprite-space only, drawn character-by-character via [font]'s glyph regions through
+     * sprite-space only, drawn character-by-character via [glyphSource]'s glyph regions through
      * [com.sletmoe.kotile.display.KotileCanvas.drawSprite]. No glyph/[com.sletmoe.korogue.ui.TileSurface]
      * counterpart yet — not because one is structurally impossible ("-4" over two ASCII cells,
      * background-color fade instead of a true rise, is a plausible approximation), just because
      * nothing has needed it so far; add one if/when a game does.
      *
-     * @property font glyph source (caller-owned; this event borrows it, never disposes it)
+     * @property glyphSource any [GlyphSource] (caller-owned; this event borrows it, never disposes it) — the
+     *   bundled bitmap [com.sletmoe.kotile.display.ascii.Font] or a resolution-independent
+     *   [com.sletmoe.kotile.display.ascii.FreeTypeGlyphSource]. Widened from `Font` (krogue-tg5) once the
+     *   showcase moved to a TTF face: [FloatingTextSequence] only ever calls `glyph()`, which is the
+     *   interface's own method, so nothing here needed the bitmap type.
      * @property charWidthPx/[charHeightPx] on-screen size (content pixels — the same space as
      *   [com.sletmoe.kotile.rendering.GridLayout.tileWidthPx]) to draw each character at
      * @property riseDistancePx how far up (content pixels) the text drifts over the full
@@ -126,7 +130,7 @@ interface VisualEvent {
     data class FloatingText(
         val at: Vector2Int,
         val text: String,
-        val font: Font,
+        val glyphSource: GlyphSource,
         val charWidthPx: Float,
         val charHeightPx: Float,
         val color: Color = Color.RED,

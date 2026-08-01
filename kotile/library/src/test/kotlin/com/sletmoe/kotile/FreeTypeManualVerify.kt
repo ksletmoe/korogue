@@ -110,11 +110,14 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         verifyBandScaleCommittedShape()
         verifyTopClipCommittedShape()
         verifyCellFillSeamsCommittedShape()
+        verifyStrokeSnapCommittedShape()
         renderDemoComparison(outPath)
         renderBandScaleComparison(outPath)
         renderBrogueComparison(outPath)
         renderBrogueShowcase(outPath)
         renderBrogueMatch(outPath)
+        renderShowcase(outPath)
+        renderDescenderProbe(outPath)
 
         println(if (failures == 0) "FTVERIFY: ALL PASSED" else "FTVERIFY: $failures FAILED")
 
@@ -763,6 +766,155 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
     }
 
     /**
+     * A framed dungeon + status screen through the bundled default face — the "what the engine actually
+     * looks like" image. Exercises the coverage a face has to have for a roguelike: double-line box drawing
+     * (which must tile — ADR-0040/0041), the shades, hearts and arrows, Greek/math, and ordinary text.
+     *
+     * Lived in the `fontEval` harness until krogue-tg5. That harness requires `-PfontsDir` (it exists to
+     * compare *candidate* faces), so this image — which only ever used the bundled face — could not be
+     * regenerated without one, and went stale silently: a copy rendered before krogue-9x7.4 was still
+     * showing the pre-ADR-0040 gaps at every cell boundary long after they were fixed. It belongs here,
+     * where every run refreshes it.
+     *
+     * Rasterised at [cell] px and written **1:1** (no viewer upscale) so the PNG is the engine's true
+     * output pixels — a nearest upscale would magnify the downsample's edge AA and read as "soft".
+     */
+    private fun renderShowcase(outPath: String) {
+        val cell = 40
+        val cols = 34
+        val rows = 19
+
+        val wall = Color(0.62f, 0.60f, 0.68f, 1f)
+        val floor = Color(0.34f, 0.34f, 0.40f, 1f)
+        val hero = Color.WHITE
+        val gold = Color(0.95f, 0.80f, 0.30f, 1f)
+        val red = Color(0.90f, 0.30f, 0.30f, 1f)
+        val green = Color(0.50f, 0.85f, 0.45f, 1f)
+        val cyan = Color(0.45f, 0.85f, 0.95f, 1f)
+        val magenta = Color(0.85f, 0.45f, 0.95f, 1f)
+        val tan = Color(0.86f, 0.78f, 0.56f, 1f)
+
+        val p = ArrayList<Placed>()
+
+        fun put(
+            c: Int,
+            r: Int,
+            slot: Int,
+            col: Color,
+        ) {
+            if (slot != 32) p += Placed(c, r, slot, col)
+        }
+
+        fun text(
+            c: Int,
+            r: Int,
+            s: String,
+            col: Color,
+        ) = s.forEachIndexed { i, ch -> put(c + i, r, ch.code, col) }
+
+        text(1, 0, "korogue  ·  Cascadia Mono Bold", tan)
+
+        // Framed map panel (cols 1..30, rows 2..14) with double-line box drawing.
+        val left = 1
+        val right = 30
+        val top = 2
+        val bot = 14
+        put(left, top, 201, wall)
+        put(right, top, 187, wall)
+        put(left, bot, 200, wall)
+        put(right, bot, 188, wall)
+        for (c in left + 1 until right) {
+            put(c, top, 205, wall)
+            put(c, bot, 205, wall)
+        }
+        for (r in top + 1 until bot) {
+            put(left, r, 186, wall)
+            put(right, r, 186, wall)
+        }
+        // Floor fill.
+        for (r in top + 1 until bot) for (c in left + 1 until right) put(c, r, '.'.code, floor)
+        // Rubble/fog shades (light/medium/dark: slots 176/177/178).
+        put(3, 4, 176, floor)
+        put(4, 4, 177, floor)
+        put(5, 4, 178, wall)
+        put(26, 11, 176, floor)
+        put(27, 11, 177, floor)
+        // Inner wall studs.
+        for (r in 6..9) put(15, r, '#'.code, wall)
+        put(16, 6, '+'.code, gold) // a door
+        // Actors + items.
+        put(6, 5, '@'.code, hero)
+        put(10, 7, 'k'.code, green) // kobold
+        put(20, 6, 'r'.code, red) // rat
+        put(24, 9, 'D'.code, red) // dragon
+        put(12, 10, 'e'.code, cyan) // floating eye
+        put(8, 8, '!'.code, magenta) // potion
+        put(18, 9, '$'.code, gold) // gold
+        put(22, 4, '='.code, gold) // ring
+        put(27, 5, '?'.code, cyan) // scroll
+        put(4, 12, '<'.code, tan)
+        put(28, 12, '>'.code, tan) // stairs
+
+        // Status block below the panel — hearts, arrows, ± the symbols the old face .notdef'd.
+        text(1, 15, "Rodney the Rogue", hero)
+        put(18, 15, 24, green)
+        text(19, 15, "Level 3", green) // ↑ up-arrow
+        // HP hearts (slot 3) + numbers.
+        text(1, 16, "HP", red)
+        for (i in 0 until 5) put(4 + i, 16, 3, red)
+        text(10, 16, "18/18", red)
+        text(17, 16, "Str 16", tan)
+        text(25, 16, "Gold 240", gold)
+        put(33, 16, '$'.code, gold)
+        // Movement legend with arrows (←↑→↓ = slots 27 24 26 25) + a ~ water ripple (≈ = 247).
+        text(1, 17, "Move", cyan)
+        put(6, 17, 27, cyan)
+        put(7, 17, 24, cyan)
+        put(8, 17, 26, cyan)
+        put(9, 17, 25, cyan)
+        text(11, 17, "You see water", cyan)
+        put(24, 17, 247, cyan)
+        // Greek + math run placed by CP437 slot (glyph() is slot-indexed): Γ Σ Ω ∞ ≤ ≥ ½ ¼.
+        val dim = Color(0.6f, 0.6f, 0.66f, 1f)
+        intArrayOf(226, 228, 234, 32, 236, 243, 242, 32, 171, 172)
+            .forEachIndexed { i, s -> put(1 + i, 18, s, dim) }
+        text(13, 18, "complete CP437", dim)
+
+        val src = Fonts.cascadiaMono(cell, cell, snapToPixelGrid = true)
+        val pix = renderGrid(src, cols, rows, cell, cell, p, bg = Color(0.06f, 0.06f, 0.09f, 1f)) // disposes src
+        val path =
+            outPath.replaceAfterLast('/', "cascadia-showcase.png").let {
+                if (it == outPath) "$outPath.showcase.png" else it
+            }
+        PixmapIO.writePNG(Gdx.files.absolute(path), pix, Deflater.DEFAULT_COMPRESSION, false)
+        pix.dispose()
+        println("FTVERIFY wrote $path (${cols * cell}x${rows * cell}, native 1:1)")
+    }
+
+    /**
+     * Descender probe: a large TEXT-fit row of descender-heavy glyphs over a 1px cell-floor guide line, so
+     * any baseline/descender clipping by the per-cell scissor (krogue-ns5) is unmistakable. Moved out of
+     * `fontEval` alongside [renderShowcase] for the same reason — it only uses the bundled face.
+     */
+    private fun renderDescenderProbe(outPath: String) {
+        val big = 96
+        val probe = "Rogue gjpqy Happy".map { it.code }
+        val placed = probe.mapIndexedNotNull { i, ch -> if (ch == 32) null else Placed(i, 0, ch, Color.WHITE) }
+        val src = Fonts.cascadiaMono(big, big, snapToPixelGrid = true)
+        val pix =
+            renderGrid(src, probe.size, 1, big, big, placed, bg = Color(0.10f, 0.10f, 0.13f, 1f)) // disposes src
+        pix.setColor(0.9f, 0.3f, 0.3f, 1f)
+        pix.drawLine(0, big - 1, pix.width - 1, big - 1)
+        val path =
+            outPath.replaceAfterLast('/', "cascadia-descenders.png").let {
+                if (it == outPath) "$outPath.desc.png" else it
+            }
+        PixmapIO.writePNG(Gdx.files.absolute(path), pix, Deflater.DEFAULT_COMPRESSION, false)
+        pix.dispose()
+        println("FTVERIFY wrote $path")
+    }
+
+    /**
      * Blits [placed] glyphs from [source] straight into a [cols]x[rows] grid of [cellW]x[cellH]px cells
      * (1:1, no window, no HiDPI scaling — so the atlas px land on FBO px and the image is genuinely
      * crisp). Each glyph is drawn tinted, over a uniform dark background, matching the source's own
@@ -1031,6 +1183,77 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
             "  CELLFILL blocks  █=$blockFill  ▄[bottom=$lowerBottom top=$lowerTop]" +
                 " ▀[top=$upperTop bottom=$upperBottom]",
         )
+    }
+
+    /**
+     * krogue-tg5: reproduces the committed stroke-snap GL specs' shape on macOS (which the Kotest GL suite
+     * cannot run here). Those specs render through `renderSlotGrid` — a 1:1 SpriteBatch blit of the source's
+     * atlas regions onto black, no AsciiTileWindow — which is exactly what [renderGrid] does, so the two
+     * agree on geometry: same square [SEAM_CELL] cell, same single cells and `─ ┼ ─` strip, and the same
+     * measurements ([rowPeaks]/[columnPeaks]/[strokeRows]) against the same shared thresholds.
+     *
+     * Also sweeps cell sizes and prints the half-lit (neither solid nor blank) line count per size, which is
+     * how the committed thresholds were chosen: run this with the production change stashed to see the
+     * un-fixed numbers it is supposed to fail on.
+     */
+    private fun verifyStrokeSnapCommittedShape() {
+        fun grid(
+            slots: List<Int>,
+            cols: Int,
+            cell: Int = SEAM_CELL,
+        ): Pixmap {
+            val source = Fonts.cascadiaMono(cell, cell, snapToPixelGrid = true)
+            val placed = slots.mapIndexed { i, slot -> Placed(i, 0, slot, Color.WHITE) }
+            return renderGrid(source, cols, 1, cell, cell, placed, bg = Color.BLACK) // disposes source
+        }
+
+        fun halfLit(peaks: List<Int>) = peaks.count { it in (SNAP_BLANK_PEAK + 1) until SNAP_SOLID_PEAK }
+
+        // The committed single-cell assertions: every line of the cell is solid or blank, never half-lit —
+        // and both kinds are present, so an empty or a filled cell can't satisfy it vacuously.
+        val hCell = grid(listOf(196), cols = 1)
+        val hPeaks = rowPeaks(hCell)
+        hCell.dispose()
+        val vCell = grid(listOf(179), cols = 1)
+        val vPeaks = columnPeaks(vCell)
+        vCell.dispose()
+        for ((tag, peaks) in listOf("─ rows" to hPeaks, "│ cols" to vPeaks)) {
+            report("tg5: '$tag' has a solid line", peaks.count { it >= SNAP_SOLID_PEAK } > 0, "$peaks")
+            report("tg5: '$tag' has a blank line", peaks.count { it <= SNAP_BLANK_PEAK } > 0, "$peaks")
+            report("tg5: '$tag' has no half-lit line", halfLit(peaks) == 0, "halfLit=${halfLit(peaks)} $peaks")
+        }
+
+        // The committed mixed-seam assertions: a cross must snap the arm it shares with the plain line to
+        // the SAME rows, or a frame would step at every junction. Single line, then double line (two runs
+        // per axis). Measured in each cell's left quarter, clear of the cross's stem.
+        for (family in listOf(listOf(196, 197, 196), listOf(205, 206, 205))) {
+            val tag = family.joinToString("") { Char(it).toString() }
+            val strip = grid(family, cols = 3)
+            val quarter = SEAM_CELL / 4
+            val rows = (0 until 3).map { i -> strokeRows(strip, i * SEAM_CELL, i * SEAM_CELL + quarter) }
+            // Only the SEAM columns: '╬' is four corner pieces around a hollow centre, so its middle
+            // columns are legitimately blank and a whole-strip minimum would fail on a correct render.
+            val cols = columnPeaks(strip)
+            val seams = listOf(SEAM_CELL, 2 * SEAM_CELL).flatMap { listOf(cols[it - 1], cols[it]) }
+            strip.dispose()
+            report("tg5: '$tag' arm is present to compare", rows[0].isNotEmpty(), "${rows[0]}")
+            report("tg5: '$tag' arms agree across both seams", rows[1] == rows[0] && rows[2] == rows[0], "$rows")
+            report("tg5: '$tag' inked on both sides of each seam", seams.min() > SEAM_INKED_PEAK, "$seams")
+        }
+
+        // Size sweep (evidence, not an assertion): half-lit line counts across cell sizes.
+        for (cell in listOf(12, 16, 20, SEAM_CELL, 30, 32)) {
+            val h = grid(listOf(196), cols = 1, cell = cell)
+            val hp = rowPeaks(h)
+            h.dispose()
+            val v = grid(listOf(179), cols = 1, cell = cell)
+            val vp = columnPeaks(v)
+            v.dispose()
+            println(
+                "  STROKESNAP cell=$cell halfLit ─=${halfLit(hp)} │=${halfLit(vp)}" +
+                    "  ─${hp.filter { it > 0 }} │${vp.filter { it > 0 }}",
+            )
+        }
     }
 
     /**

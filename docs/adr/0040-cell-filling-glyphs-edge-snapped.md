@@ -1,6 +1,8 @@
 # ADR-0040: Box-drawing and block glyphs are edge-snapped to the cell, not ink-centred
 
-- **Status:** Accepted
+- **Status:** Accepted. The stroke-crispness-under-`snapToPixelGrid` omission recorded
+  below is resolved in ADR-0041, which replaces this class's *exemption* from the snap
+  transforms with a warp that pins the cell edges and snaps the stroke edges between them.
 - **Date:** 2026-07-30
 
 ## Context
