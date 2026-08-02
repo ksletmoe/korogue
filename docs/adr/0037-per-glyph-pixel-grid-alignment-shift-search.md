@@ -1,7 +1,11 @@
 # ADR-0037: Per-glyph pixel-grid alignment for tier-3 glyphs — opt-in min-blur shift search
 
 - **Status:** Accepted (partially revises ADR-0036's deferral of `optimizeTiles`). The
-  x-height/baseline band-scaling omission recorded below is resolved in ADR-0038.
+  x-height/baseline band-scaling omission recorded below is resolved in ADR-0038; the
+  shift-cache omission is narrowed (not by a new ADR — the decision here is unchanged) in
+  krogue-9x7.6, which memoises the winning offsets per rasterise geometry on the source, so a
+  revisited cell size skips the search. Still no *offline* all-sizes precompute. Measured
+  effect and its limits are in `docs/STATUS.md`.
 - **Date:** 2026-07-25
 
 ## Context

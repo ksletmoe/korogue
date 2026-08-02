@@ -145,7 +145,10 @@ enum class GlyphFit {
  *   sources. For [GlyphFit.TEXT] it additionally **band-scales** the vertical resample (krogue-9x7.5): the
  *   x-height top and baseline are snapped to whole output rows so **lowercase** is crisp, not just
  *   caps/digits (see [bandScaleDownsample]); [GlyphFit.TILE] stays translation-only (no shared baseline to
- *   align). No offline shift cache either way.
+ *   align). The winning offsets are **cached per cell size** (krogue-9x7.6, see [shiftCache]), so a size
+ *   this source has already rasterised pays only the downsample, not the search — a resize that walks back
+ *   over sizes it has seen gets most of the cost back. There is still no *offline* cache (Brogue
+ *   precomputes every size at startup); the cache is per-instance and fills as sizes are visited.
  */
 class FreeTypeGlyphSource internal constructor(
     ttf: FileHandle,
@@ -246,6 +249,43 @@ class FreeTypeGlyphSource internal constructor(
     internal var effectiveSupersample: Int = 0
         private set
 
+    /**
+     * How many glyphs the **last** [rasterize] actually ran the [snapToPixelGrid] shift search for: the
+     * full searchable page on a cell size this source has not rasterised before, and **0** on one already
+     * in [shiftCache] (or when the snap path did not run at all). Exposed (module-internal) for tests,
+     * because it is the only place the cache is observable — it is a pure memoisation, so the atlas it
+     * produces is identical either way and no pixel assertion could tell a hit from a miss.
+     */
+    internal var lastShiftSearchCount: Int = 0
+        private set
+
+    /**
+     * Per-glyph shift-search results, keyed by the rasterise geometry (krogue-9x7.6). The search is a
+     * deterministic function of the supersampled master, and for a fixed face that master is determined by
+     * the cell size and the effective supersample — so a size this source has rasterised before can reuse
+     * its winning offsets and skip the search outright. That is exactly the resize-heavy
+     * `resolutionIndependent` case ADR-0037 called out: a window drag walks back over sizes it has already
+     * seen. Access-ordered and capped at [SHIFT_CACHE_MAX_SIZES], so a long drag across hundreds of sizes
+     * evicts the least recently used rather than growing without bound.
+     */
+    private val shiftCache =
+        object : LinkedHashMap<Long, ShiftPlan>(16, 0.75f, true) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Long, ShiftPlan>): Boolean =
+                size > SHIFT_CACHE_MAX_SIZES
+        }
+
+    /**
+     * One rasterise geometry's winning shift offsets: [shifts]`[slot]` packs the sub-pixel x offset in the
+     * high 16 bits and the y offset in the low 16 (the band-scale path warps the vertical resample rather
+     * than translating it, so its y is always 0). Cell-filling slots take the edge-pinning warp instead of
+     * a shift ([emitCellFillingCell]) and leave their entry at 0, unread. [bandScaled] records which
+     * downsample produced the plan, so the two paths can never read each other's offsets for the same key.
+     */
+    private class ShiftPlan(
+        val bandScaled: Boolean,
+        val shifts: IntArray,
+    )
+
     init {
         // Nothing the caller can reach holds a dispose() for this half-built object, so release what we
         // allocated (the generator, plus anything rasterize published) if the first rasterise throws.
@@ -293,6 +333,7 @@ class FreeTypeGlyphSource internal constructor(
             ss /= 2
         }
         effectiveSupersample = ss
+        lastShiftSearchCount = 0
 
         // TEXT fit centres the font's *full ink box* (ascender-to-descender, incl. ring/accented caps) in
         // the cell (see [drawTextGlyph]). That box is taller than the em for typical faces, so rasterising
@@ -943,6 +984,27 @@ class FreeTypeGlyphSource internal constructor(
     }
 
     /**
+     * The [shiftCache] key for a rasterise geometry: cell [w] x [h] at effective supersample [ss]. Packed
+     * into a Long rather than boxing a triple — cell dimensions are bounded by `GL_MAX_TEXTURE_SIZE / ss`
+     * and the supersample by 8, so all three fit their fields with room to spare.
+     */
+    private fun shiftKey(
+        w: Int,
+        h: Int,
+        ss: Int,
+    ): Long = (w.toLong() shl 40) or (h.toLong() shl 16) or ss.toLong()
+
+    /**
+     * The cached winning offsets for rasterise geometry [key], or `null` if this size has not been searched
+     * yet (or was searched by the *other* downsample path — [bandScaled] must match, so the band-scale
+     * fallback to [shiftSearchDownsample] cannot pick up band-scaled offsets or vice versa).
+     */
+    private fun cachedShifts(
+        key: Long,
+        bandScaled: Boolean,
+    ): IntArray? = shiftCache[key]?.takeIf { it.bandScaled == bandScaled }?.shifts
+
+    /**
      * Per-glyph sub-pixel **shift-search** downsample — the crispness core of [snapToPixelGrid]. A Kotlin
      * re-implementation of the *technique* in **Brogue CE** (`tmewett/BrogueCE`, `src/platform/tiles.c`,
      * `optimizeTiles`/`downscaleTile`). Brogue is **AGPL-3.0**; kotile is **BSD-3-Clause**. This is
@@ -957,6 +1019,9 @@ class FreeTypeGlyphSource internal constructor(
      * table makes each box average O(1), so the whole search is one CPU pass rather than [ss]² GL
      * readbacks. Coverage is straight-averaged, matching [GammaDownsample]'s alpha handling. Returns the
      * cell-resolution atlas (white RGB, aligned alpha), upright.
+     *
+     * The winning offsets are memoised in [shiftCache] under this geometry (krogue-9x7.6): a repeat of a
+     * cell size skips the search and goes straight to [emitCell] with the offsets it won last time.
      */
     private fun shiftSearchDownsample(
         masterUp: Pixmap,
@@ -980,6 +1045,11 @@ class FreeTypeGlyphSource internal constructor(
         val step = (ss / 4).coerceAtLeast(1) // sub-pixel search resolution: quarter of an output pixel
         val satW = mW + 1
         val sat = IntArray(satW * (mH + 1)) // reused per-cell summed-area table of master alpha
+        // A previously rasterised cell size already knows every glyph's winning offset (krogue-9x7.6); on a
+        // miss the same array is filled as we go and published to the cache below.
+        val key = shiftKey(w, h, ss)
+        val cached = cachedShifts(key, bandScaled = false)
+        val shifts = cached ?: IntArray(GLYPH_COUNT)
 
         for (slot in 0 until GLYPH_COUNT) {
             val col = slot % COLUMNS
@@ -996,39 +1066,45 @@ class FreeTypeGlyphSource internal constructor(
                 continue
             }
 
-            // Search the offset grid; keep the one with the least blur (fewest half-lit output pixels).
-            var bestSx = 0
-            var bestSy = 0
-            var bestBlur = Double.MAX_VALUE
-            var sy = 0
-            while (sy < ss) {
-                var sx = 0
-                while (sx < ss) {
-                    var blur = 0.0
-                    for (oy in 0 until h) {
-                        val y0 = (oy * ss + sy).coerceIn(0, mH)
-                        val y1 = (oy * ss + sy + ss).coerceIn(0, mH)
-                        val ry0 = y0 * satW
-                        val ry1 = y1 * satW
-                        for (ox in 0 until w) {
-                            val x0 = (ox * ss + sx).coerceIn(0, mW)
-                            val x1 = (ox * ss + sx + ss).coerceIn(0, mW)
-                            val sum = sat[ry1 + x1] - sat[ry0 + x1] - sat[ry1 + x0] + sat[ry0 + x0]
-                            blur += sin(Math.PI * (sum / ssArea / 255f))
+            if (cached == null) {
+                // Search the offset grid; keep the one with the least blur (fewest half-lit output pixels).
+                var bestSx = 0
+                var bestSy = 0
+                var bestBlur = Double.MAX_VALUE
+                var sy = 0
+                while (sy < ss) {
+                    var sx = 0
+                    while (sx < ss) {
+                        var blur = 0.0
+                        for (oy in 0 until h) {
+                            val y0 = (oy * ss + sy).coerceIn(0, mH)
+                            val y1 = (oy * ss + sy + ss).coerceIn(0, mH)
+                            val ry0 = y0 * satW
+                            val ry1 = y1 * satW
+                            for (ox in 0 until w) {
+                                val x0 = (ox * ss + sx).coerceIn(0, mW)
+                                val x1 = (ox * ss + sx + ss).coerceIn(0, mW)
+                                val sum = sat[ry1 + x1] - sat[ry0 + x1] - sat[ry1 + x0] + sat[ry0 + x0]
+                                blur += sin(Math.PI * (sum / ssArea / 255f))
+                            }
                         }
+                        if (blur < bestBlur) {
+                            bestBlur = blur
+                            bestSx = sx
+                            bestSy = sy
+                        }
+                        sx += step
                     }
-                    if (blur < bestBlur) {
-                        bestBlur = blur
-                        bestSx = sx
-                        bestSy = sy
-                    }
-                    sx += step
+                    sy += step
                 }
-                sy += step
+                shifts[slot] = (bestSx shl 16) or bestSy
+                lastShiftSearchCount++
             }
 
-            emitCell(out, sat, col, row, w, h, ss, bestSx, bestSy)
+            val packed = shifts[slot]
+            emitCell(out, sat, col, row, w, h, ss, packed ushr 16, packed and 0xFFFF)
         }
+        if (cached == null) shiftCache[key] = ShiftPlan(bandScaled = false, shifts = shifts)
         return out
     }
 
@@ -1472,6 +1548,12 @@ class FreeTypeGlyphSource internal constructor(
         // A horizontal prefix, so a box average over [x0,x1) is one subtraction. Rebuilt per cell.
         val rowBand = DoubleArray(h * satW)
         val blur = DoubleArray(sxs.size)
+        // Same size-keyed memoisation as the translation path (krogue-9x7.6); here only the x offset is
+        // searched, so the packed y half is always 0. The vertical band map is shared by every cell and
+        // cheap to recompute, so it is not cached — only the per-glyph search is.
+        val key = shiftKey(w, h, ss)
+        val cached = cachedShifts(key, bandScaled = true)
+        val shifts = cached ?: IntArray(GLYPH_COUNT)
 
         for (slot in 0 until GLYPH_COUNT) {
             val col = slot % COLUMNS
@@ -1492,29 +1574,33 @@ class FreeTypeGlyphSource internal constructor(
 
             fillRowBand(sat, rowBand, vy0, vy1, mW, mH, h)
 
-            // Horizontal shift search: pick the x-offset with the least blur (fewest half-lit pixels).
-            java.util.Arrays.fill(blur, 0.0)
-            for (oy in 0 until h) {
-                val bandH = vy1[oy] - vy0[oy]
-                if (bandH <= 0.0) continue
-                val rb = oy * satW
-                for (i in sxs.indices) {
-                    val sx = sxs[i]
-                    var b = 0.0
-                    for (ox in 0 until w) {
-                        val x0 = (ox * ss + sx).coerceIn(0, mW)
-                        val x1 = (ox * ss + sx + ss).coerceIn(0, mW)
-                        val area = (x1 - x0) * bandH
-                        if (area <= 0.0) continue
-                        val cov = (rowBand[rb + x1] - rowBand[rb + x0]) / area / 255.0
-                        b += sin(Math.PI * cov)
+            if (cached == null) {
+                // Horizontal shift search: pick the x-offset with the least blur (fewest half-lit pixels).
+                java.util.Arrays.fill(blur, 0.0)
+                for (oy in 0 until h) {
+                    val bandH = vy1[oy] - vy0[oy]
+                    if (bandH <= 0.0) continue
+                    val rb = oy * satW
+                    for (i in sxs.indices) {
+                        val sx = sxs[i]
+                        var b = 0.0
+                        for (ox in 0 until w) {
+                            val x0 = (ox * ss + sx).coerceIn(0, mW)
+                            val x1 = (ox * ss + sx + ss).coerceIn(0, mW)
+                            val area = (x1 - x0) * bandH
+                            if (area <= 0.0) continue
+                            val cov = (rowBand[rb + x1] - rowBand[rb + x0]) / area / 255.0
+                            b += sin(Math.PI * cov)
+                        }
+                        blur[i] += b
                     }
-                    blur[i] += b
                 }
+                var bestI = 0
+                for (i in sxs.indices) if (blur[i] < blur[bestI]) bestI = i
+                shifts[slot] = sxs[bestI] shl 16
+                lastShiftSearchCount++
             }
-            var bestI = 0
-            for (i in sxs.indices) if (blur[i] < blur[bestI]) bestI = i
-            val bestSx = sxs[bestI]
+            val bestSx = shifts[slot] ushr 16
 
             // Emit the cell at the winning x-offset (white RGB, straight-averaged alpha).
             val ox0 = col * w
@@ -1533,6 +1619,7 @@ class FreeTypeGlyphSource internal constructor(
                 }
             }
         }
+        if (cached == null) shiftCache[key] = ShiftPlan(bandScaled = true, shifts = shifts)
         return out
     }
 
@@ -1609,6 +1696,7 @@ class FreeTypeGlyphSource internal constructor(
 
     /** Disposes the atlas texture, the render batch, the downsample shader, and the freetype generator. */
     override fun dispose() {
+        shiftCache.clear()
         atlas?.dispose()
         atlas = null
         renderBatch?.dispose()
@@ -1668,6 +1756,12 @@ class FreeTypeGlyphSource internal constructor(
         // side, in MASTER pixels. FreeType expands a bitmap to whole pixels, so a fractional outline edge
         // partially covers at most its one outermost pixel — hence 1. See [measureDesignCell].
         const val FRINGE_MASTER_PX = 1f
+
+        // How many rasterise geometries [shiftCache] keeps before evicting the least recently used
+        // (krogue-9x7.6). Each entry is one int per CP437 slot — 1 KiB — so 64 sizes is ~64 KiB, negligible
+        // next to a single page atlas, while still covering a full window drag's worth of distinct cell
+        // sizes (a resolution-independent window steps through a few dozen at most, and revisits them).
+        const val SHIFT_CACHE_MAX_SIZES = 64
 
         // TILE fit enlarges the page so a capital fills this fraction of the cell height (uniform em); a
         // small margin below 1 keeps ascenders/tall glyphs off the very edge. Full-em glyphs (block/box)

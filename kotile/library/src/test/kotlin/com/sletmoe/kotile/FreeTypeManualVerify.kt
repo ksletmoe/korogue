@@ -20,6 +20,7 @@ import com.sletmoe.kotile.rendering.FitScale
 import com.sletmoe.kotile.rendering.FractionalScaleMode
 import java.util.zip.Deflater
 import kotlin.math.abs
+import kotlin.system.measureNanoTime
 
 /**
  * macOS-only manual verification for the tier-3 freetype glyph source
@@ -111,6 +112,7 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         verifyTopClipCommittedShape()
         verifyCellFillSeamsCommittedShape()
         verifyStrokeSnapCommittedShape()
+        verifyShiftCacheCommittedShape()
         renderDemoComparison(outPath)
         renderBandScaleComparison(outPath)
         renderBrogueComparison(outPath)
@@ -1314,15 +1316,88 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
     }
 
     /**
+     * krogue-9x7.6: reproduces the committed shift-cache GL specs' shape on macOS (which the Kotest GL suite
+     * cannot run here). Same source config (`Fonts.cascadiaMono` at [CACHE_CELL] with `snapToPixelGrid`,
+     * TEXT then TILE), the same one-source [CACHE_CELL] → [CACHE_OTHER_CELL] → [CACHE_CELL] round trip, the
+     * same shared literals, the same 1:1 CP437 page blit into an FBO the source's own rasterise re-binds
+     * across (the spec's capture FBO is likewise bound while `prepareForCellSize` runs), and the same
+     * [exactDiff]. The spec reads `lastShiftSearchCount` after each rasterise and requires
+     * `first > 0, other > 0, return == 0` with a zero pixel diff; so does this.
+     *
+     * Also prints the wall-clock of the searching vs the cached rasterise — evidence for the bead's premise
+     * (the search is the expensive part of a resize), not an assertion: it is one untimed run on a warm JIT,
+     * not a benchmark.
+     */
+    private fun verifyShiftCacheCommittedShape() {
+        for (fit in listOf(GlyphFit.TEXT, GlyphFit.TILE)) {
+            val src = Fonts.cascadiaMono(CACHE_CELL, CACHE_CELL, fit = fit, snapToPixelGrid = true)
+            val atFirst = src.lastShiftSearchCount
+            val before = renderPageDirect(src, CACHE_CELL, disposeSource = false)
+
+            val searchedNanos =
+                measureNanoTime { src.prepareForCellSize(CACHE_OTHER_CELL, CACHE_OTHER_CELL) }
+            val atOther = src.lastShiftSearchCount
+            src.prepareForCellSize(CACHE_CELL, CACHE_CELL)
+            val onReturn = src.lastShiftSearchCount
+            // Same size as the timed searching rasterise above, now a cache hit — the only apples-to-apples
+            // pair (CACHE_CELL and CACHE_OTHER_CELL rasterise different amounts of pixels).
+            val cachedNanos =
+                measureNanoTime { src.prepareForCellSize(CACHE_OTHER_CELL, CACHE_OTHER_CELL) }
+            src.prepareForCellSize(CACHE_CELL, CACHE_CELL) // back to the captured geometry
+
+            val after = renderPageDirect(src, CACHE_CELL, disposeSource = true)
+            val (diff, inked) = exactDiff(before, after)
+            before.dispose()
+            after.dispose()
+
+            val counts = "first=$atFirst other=$atOther return=$onReturn"
+            report("9x7.6[$fit]: a fresh cell size runs the search", atFirst > 0, counts)
+            report("9x7.6[$fit]: a different cell size searches again", atOther > 0, counts)
+            report("9x7.6[$fit]: a revisited cell size does not search", onReturn == 0, counts)
+            report("9x7.6[$fit]: the page has ink to compare", inked > 0, "inked=$inked")
+            report("9x7.6[$fit]: cached offsets reproduce the atlas exactly", diff == 0, "diff=$diff/$inked")
+            println(
+                "  SHIFTCACHE fit=$fit  %dpx rasterise: searched=%.0fms cached=%.0fms".format(
+                    CACHE_OTHER_CELL,
+                    searchedNanos / 1e6,
+                    cachedNanos / 1e6,
+                ),
+            )
+        }
+
+        // Size sweep (evidence, not an assertion): the same searched-vs-cached pair at larger cells, where
+        // the search's ss² × cell² grid is a bigger share of the rasterise. A fresh source per size so the
+        // first rasterise is a genuine miss; the scratch size in between forces the re-rasterise.
+        for (cell in listOf(24, 32, 48)) {
+            // Construct at the SCRATCH size: constructing at `cell` would rasterise (and cache) it, and the
+            // "searched" timing below would silently be a cache hit.
+            val src = Fonts.cascadiaMono(cell + 1, cell + 1, snapToPixelGrid = true)
+            val searched = measureNanoTime { src.prepareForCellSize(cell, cell) }
+            src.prepareForCellSize(cell + 1, cell + 1)
+            val cached = measureNanoTime { src.prepareForCellSize(cell, cell) }
+            println(
+                "  SHIFTCACHE sweep cell=%d  searched=%.0fms  cached=%.0fms".format(
+                    cell,
+                    searched / 1e6,
+                    cached / 1e6,
+                ),
+            )
+            src.dispose()
+        }
+    }
+
+    /**
      * Draws all 256 CP437 slots of [source] white-on-black 1:1 at [cell] px into an FBO via a direct
      * SpriteBatch region blit (no AsciiTileWindow, no HiDPI scaling — the FBO is exactly COLS·[cell] ×
      * ROWS·[cell] and the ortho matches, so atlas px land on FBO px). Returns the upright page pixmap and
-     * **disposes [source]**. This is the atlas the window blits, so it mirrors what CI's `glyphCell` /
-     * page-render specs measure (hidpi=1). Build [source] BEFORE calling (its rasterise binds its own FBOs).
+     * **disposes [source]** unless [disposeSource] is false. This is the atlas the window blits, so it
+     * mirrors what CI's `glyphCell` / page-render specs measure (hidpi=1). Build [source] BEFORE calling
+     * (its rasterise binds its own FBOs).
      */
     private fun renderPageDirect(
         source: FreeTypeGlyphSource,
         cell: Int,
+        disposeSource: Boolean = true,
     ): Pixmap {
         val w = COLS * cell
         val h = ROWS * cell
@@ -1354,7 +1429,8 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         val raw = Pixmap.createFromFrameBuffer(0, 0, w, h)
         fbo.end()
         batch.dispose()
-        source.dispose()
+        // The shift-cache mirror (krogue-9x7.6) captures the SAME source twice, so it keeps it alive.
+        if (disposeSource) source.dispose()
         val flipped = Pixmap(w, h, Pixmap.Format.RGBA8888).apply { blending = Pixmap.Blending.None }
         for (yy in 0 until h) flipped.drawPixmap(raw, 0, yy, 0, h - 1 - yy, w, 1)
         raw.dispose()

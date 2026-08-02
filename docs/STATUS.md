@@ -412,9 +412,22 @@ then given a tested ECS foundation:
   (and `═`/`╬`) agreeing on which rows the shared arm occupies. Residual: the outermost
   snapped pixel reads ~225–240, not 255 — the master's own ~2-master-px AA ramp centred on
   the boundary, which needs *sharpening* rather than edge-pinning to close.
-  **Deferred (krogue-9x7.6):** an offline/size-keyed shift cache (still recomputed per
-  rasterise). **Rationale:** ADR-0037 (shift search) + ADR-0038 (band scaling) +
-  ADR-0040 (cell-filling) + ADR-0041 (stroke edge snap).
+  **Size-keyed shift cache (krogue-9x7.6, done).** The winning offsets are memoised on the
+  source per rasterise geometry (cell w × h × *effective* supersample, with the band-scale
+  and translation paths' plans kept apart), access-ordered and capped at 64 sizes (~1 KiB
+  each), so a resize back to a size this source has already built skips the search outright
+  and pays only the downsample. It is a **pure memoisation** — the atlas is bit-identical,
+  which is what the GL spec asserts (0-pixel exact diff across a 16 → 20 → 16 round trip on
+  one source, with the per-rasterise search count 208 → 208 → **0** on the return leg, both
+  fits). Measured on macOS (`:kotile:library:freetypeVerify` mirror, warm JVM, single run —
+  evidence, not a benchmark): a 20px rasterise **42 → 30 ms** for TILE (the 2-D search, 16
+  candidates at ss=4) and **27 → 26 ms** for TEXT (the band path searches x only, ~4
+  candidates); 48px cell 122 → 112 ms. So the search is a **minority** of a resize's cost —
+  the FreeType page generation, GL render, master readback, per-cell SAT and emit dominate,
+  and anyone chasing resize-heavy `resolutionIndependent` cost should profile those next.
+  Still no *offline* all-sizes precompute (Brogue's `optimizeTiles` startup pass); this
+  cache is per-instance and fills as sizes are visited. **Rationale:** ADR-0037 (shift
+  search) + ADR-0038 (band scaling) + ADR-0040 (cell-filling) + ADR-0041 (stroke edge snap).
 - **Layer model — grid + free (pixel-space) layers (ADR-0018).** `KotileCanvas.drawSprite(pxX,
   pxY, region, w, h, tint)` is the real drawing primitive (`drawTile` is grid-snapped sugar
   over it); a frame is an ordered list of `Layer`s composited back-to-front by a `LayerStack`
