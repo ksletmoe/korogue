@@ -601,6 +601,11 @@ internal const val CACHE_OTHER_CELL = 20
  * One source across both captures is the whole point — the cache is per-instance, so a fresh source per
  * capture would measure nothing. The page is blitted 1:1 from the atlas regions (a SpriteBatch, no
  * AsciiTileWindow), so the two captures differ only if the atlas itself differs.
+ *
+ * That splits the source's lifetime across two renders, which is the one place this file departs from its
+ * usual construct-and-dispose-in-one-`try/finally` shape: the second render owns the dispose, so if the
+ * FIRST throws it has to dispose before rethrowing or the atlas leaks into [HeadlessGl]'s shared, one-per-
+ * JVM GL context and outlives the failing test. Both paths dispose exactly once, on the GL thread.
  */
 private fun shiftCacheRoundTrip(fit: GlyphFit): Pair<Triple<Int, Int, Int>, Pair<Pixmap, Pixmap>> {
     val page = COLUMNS_PER_PAGE * CACHE_CELL
@@ -612,9 +617,16 @@ private fun shiftCacheRoundTrip(fit: GlyphFit): Pair<Triple<Int, Int, Int>, Pair
     val before =
         HeadlessGl.render(page, page, Color.BLACK) {
             val src = Fonts.cascadiaMono(CACHE_CELL, CACHE_CELL, fit = fit, snapToPixelGrid = true)
-            source = src
-            atFirst = src.lastShiftSearchCount
-            blitPage(src, CACHE_CELL)
+            try {
+                source = src
+                atFirst = src.lastShiftSearchCount
+                blitPage(src, CACHE_CELL)
+            } catch (t: Throwable) {
+                // The second render — which owns the dispose — will never run, so hand it back here.
+                source = null
+                src.dispose()
+                throw t
+            }
         }
     val after =
         HeadlessGl.render(page, page, Color.BLACK) {
