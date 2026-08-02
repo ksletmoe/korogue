@@ -56,3 +56,4 @@ Point-in-time records of **why** significant or hard-to-reverse decisions were m
 | [0040](0040-cell-filling-glyphs-edge-snapped.md) | Box-drawing and block glyphs are edge-snapped to the cell, not ink-centred | Accepted |
 | [0041](0041-cell-filling-stroke-edge-snap.md) | Cell-filling glyphs snap their stroke edges by a cell-edge-pinning warp | Accepted (completes ADR-0040) |
 | [0042](0042-bundled-faces-stay-unsubset.md) | The bundled vector faces stay whole — no CP437 subsetting | Accepted (settles ADR-0039's open trade) |
+| [0043](0043-artist-tilesheet-glyph-source.md) | An artist tilesheet is a coverage mask, downscaled by a fractional box filter | Accepted (extends ADR-0036) |

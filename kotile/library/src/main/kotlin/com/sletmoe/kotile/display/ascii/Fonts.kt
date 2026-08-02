@@ -13,12 +13,18 @@ import com.sletmoe.kotile.tiles.TileSheet
  * foreground colour).
  *
  * This is the seam (ADR-0036, krogue-9x7) that lets [AsciiTileWindow] hold a
- * glyph provider without knowing which kind it is. [Font] is the bundled bitmap
- * implementation and the only one today; resolution-independent sources — a
- * gdx-freetype face rasterised at the cell size, or an SDF atlas — will plug in
- * here. Those add a size-parametric rasterisation hook when they land
- * (krogue-9x7.2); the bitmap [Font] is size-agnostic — its glyphs are a fixed
- * pixel grid, scaled by the window's [com.sletmoe.kotile.rendering.ScalePolicy].
+ * glyph provider without knowing which kind it is. Three implementations ship:
+ *
+ * - [Font] — a fixed bitmap CP437 sheet, size-agnostic: its glyphs are a fixed
+ *   pixel grid, scaled by the window's
+ *   [com.sletmoe.kotile.rendering.ScalePolicy]. The default.
+ * - [FreeTypeGlyphSource] — a TrueType face rasterised *at* the cell size
+ *   (ADR-0036 tier 3, krogue-9x7.2), smooth at any size.
+ * - [TileSheetGlyphSource] — a high-resolution artist tilesheet downscaled to the
+ *   cell size (ADR-0043, krogue-9x7.7), for drawn tiles a font cannot give.
+ *
+ * The two resolution-independent sources rebuild themselves through the
+ * size-parametric [prepareForCellSize] hook, which [Font] ignores.
  *
  * Owns GPU resources; [dispose] releases them (see [AsciiTileWindow]'s ownership
  * contract for who calls it).
