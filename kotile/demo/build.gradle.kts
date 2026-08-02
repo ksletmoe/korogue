@@ -159,6 +159,44 @@ tasks.register<JavaExec>("uiHarness") {
     doFirst { logger.lifecycle("Rendering UI harness scene to: $outFile") }
 }
 
+// Artist-tilesheet showcase (krogue-9x7.7, ADR-0042): draws a synthetic 128px-per-tile "artist" sheet,
+// resolves it through TileSheetGlyphSource at many cell sizes / inks / options, and dumps a labelled PNG
+// chart of true 1:1 output pixels.
+//
+//   ./gradlew :kotile:demo:tileSheetHarness                     # -> demo/build/tilesheet-harness.png
+//   ./gradlew :kotile:demo:tileSheetHarness -PoutFile=/tmp/t.png
+tasks.register<JavaExec>("tileSheetHarness") {
+    group = "verification"
+    description = "Renders the hi-res tilesheet glyph source (cell sizes, inks, snap, aspect) to a PNG."
+    mainClass.set("TileSheetHarnessKt")
+    classpath = sourceSets["main"].runtimeClasspath
+    if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
+        jvmArgs("-XstartOnFirstThread")
+    }
+    val outFile =
+        (project.findProperty("outFile") as String?)
+            ?: layout.buildDirectory.file("tilesheet-harness.png").get().asFile.absolutePath
+    systemProperty("kotile.harness.out", outFile)
+    doFirst { logger.lifecycle("Rendering tilesheet showcase to: $outFile") }
+}
+
+// Live counterpart to tileSheetHarness (krogue-9x7.7, ADR-0042): a resizable window whose map is drawn
+// from the hi-res synthetic sheet through a resolutionIndependent AsciiTileWindow, so every resize
+// re-resolves the 128px masters at the new cell px. SPACE toggles snapToPixelGrid, C toggles the ink.
+//
+//   ./gradlew :kotile:demo:tileSheetDemo
+//   ./gradlew :kotile:demo:tileSheetDemo -Psnapshot=/tmp/live.png   # render 3 frames, dump, exit
+tasks.register<JavaExec>("tileSheetDemo") {
+    group = "application"
+    description = "Runs the live, resizable hi-res tilesheet map (resolution-independent re-rasterise)."
+    mainClass.set("TileSheetLiveDemoKt")
+    classpath = sourceSets["main"].runtimeClasspath
+    if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
+        jvmArgs("-XstartOnFirstThread")
+    }
+    (project.findProperty("snapshot") as String?)?.let { systemProperty("kotile.demo.snapshot", it) }
+}
+
 // Empirical check for krogue-m05 (drawSprite rotation): four quadrant-colored copies at
 // 0/90/180/270 degrees, to eyeball the rotation direction/sign convention (this machine has no
 // DISPLAY, so the headless-GL integration tests that assert on this are skipped locally).
