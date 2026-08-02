@@ -35,6 +35,11 @@ import kotlin.math.abs
  * When this and the committed spec disagree, neither result stands: investigate both.
  */
 private class TileSheetManualVerify : ApplicationAdapter() {
+    private companion object {
+        /** Frames a requested window size gets before the harness stops waiting for the WM and proceeds. */
+        const val RESIZE_FRAMES = 120
+    }
+
     private class Check(
         val name: String,
         val width: Int,
@@ -45,6 +50,7 @@ private class TileSheetManualVerify : ApplicationAdapter() {
     private var failures = 0
     private var index = 0
     private var settled = 0
+    private var waited = 0
     private var sheet: FileHandle? = null
     private val shots = mutableListOf<Pair<String, Pixmap>>()
 
@@ -66,13 +72,24 @@ private class TileSheetManualVerify : ApplicationAdapter() {
         }
         val check = checks[index]
         // Resize and let the resize settle, so each check runs at its spec's window size (HeadlessGl
-        // resizes the shared window the same way before every render).
+        // resizes the shared window the same way before every render). A window manager is free to refuse
+        // a size — the 1x1 checks are the obvious candidates, since most WMs clamp to a minimum — so give
+        // up waiting after a deadline and run anyway rather than spinning here forever. The capture FBO is
+        // sized from the check, not the window, so a refused size only costs the geometry parity the
+        // harness is otherwise careful about; it is reported so a mismatched result is never read as clean.
         if (Gdx.graphics.width != check.width || Gdx.graphics.height != check.height) {
-            Gdx.graphics.setWindowedMode(check.width, check.height)
-            settled = 0
-            return
+            if (waited++ < RESIZE_FRAMES) {
+                Gdx.graphics.setWindowedMode(check.width, check.height)
+                settled = 0
+                return
+            }
+            println(
+                "TSVERIFY NOTE: window stayed ${Gdx.graphics.width}x${Gdx.graphics.height}, " +
+                    "wanted ${check.width}x${check.height} for '${check.name}' -- running anyway",
+            )
         }
         if (settled++ < 2) return
+        waited = 0
         val hidpi = (Gdx.graphics.backBufferWidth / Gdx.graphics.width).coerceAtLeast(1)
         if (index == 0) {
             println("TSVERIFY logical=${Gdx.graphics.width}x${Gdx.graphics.height} hidpi=$hidpi")
@@ -264,17 +281,27 @@ private class TileSheetManualVerify : ApplicationAdapter() {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
 
         val fbo = FrameBuffer(Pixmap.Format.RGBA8888, width * hidpi, height * hidpi, false)
-        fbo.begin()
-        Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
-        draw()
-        val raw = Pixmap.createFromFrameBuffer(0, 0, width * hidpi, height * hidpi)
-        fbo.end()
-        fbo.dispose()
-        return try {
-            flipY(raw)
+        // render() catches per check and moves on, so a throwing draw() must not leave this framebuffer
+        // bound: every later check would then capture into it and read the wrong pixels.
+        var begun = false
+        try {
+            fbo.begin()
+            begun = true
+            Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
+            Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
+            draw()
+            val raw = Pixmap.createFromFrameBuffer(0, 0, width * hidpi, height * hidpi)
+            return try {
+                flipY(raw)
+            } finally {
+                raw.dispose()
+            }
         } finally {
-            raw.dispose()
+            try {
+                if (begun) fbo.end()
+            } finally {
+                fbo.dispose()
+            }
         }
     }
 
@@ -303,7 +330,8 @@ private class TileSheetManualVerify : ApplicationAdapter() {
                 setColor(Color.BLUE)
                 fillRectangle(64, 64, 64, 64)
             }
-        val file = Gdx.files.absolute(File.createTempFile("kotile-tilesheet", ".png").absolutePath)
+        val temp = File.createTempFile("kotile-tilesheet", ".png").apply { deleteOnExit() }
+        val file = Gdx.files.absolute(temp.absolutePath)
         try {
             PixmapIO.writePNG(file, pixmap)
         } finally {
@@ -314,16 +342,19 @@ private class TileSheetManualVerify : ApplicationAdapter() {
 
     /** Writes each check's capture next to the configured output path, for eyeballing. */
     private fun dumpShots() {
-        val out = System.getProperty("kotile.tsverify.out") ?: return
-        val base = File(out)
-        base.parentFile?.mkdirs()
-        shots.forEach { (name, pixmap) ->
-            val file = File(base.parentFile, "${base.nameWithoutExtension}-$name.png")
-            PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), pixmap)
-            println("TSVERIFY wrote $file")
-            pixmap.dispose()
+        val out = System.getProperty("kotile.tsverify.out")
+        try {
+            val base = out?.let { File(it) } ?: return // nowhere to write; the finally still frees them
+            base.parentFile?.mkdirs()
+            shots.forEach { (name, pixmap) ->
+                val file = File(base.parentFile, "${base.nameWithoutExtension}-$name.png")
+                PixmapIO.writePNG(Gdx.files.absolute(file.absolutePath), pixmap)
+                println("TSVERIFY wrote $file")
+            }
+        } finally {
+            shots.forEach { (_, pixmap) -> pixmap.dispose() }
+            shots.clear()
         }
-        shots.clear()
     }
 
     private fun near(

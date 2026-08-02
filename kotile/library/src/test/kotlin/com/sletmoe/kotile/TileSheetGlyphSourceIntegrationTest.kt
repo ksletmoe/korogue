@@ -45,7 +45,8 @@ class TileSheetGlyphSourceIntegrationTest : FunSpec({
                 setColor(Color.BLUE)
                 fillRectangle(64, 64, 64, 64)
             }
-        val file = Gdx.files.absolute(File.createTempFile("kotile-tilesheet", ".png").absolutePath)
+        val temp = File.createTempFile("kotile-tilesheet", ".png").apply { deleteOnExit() }
+        val file = Gdx.files.absolute(temp.absolutePath)
         try {
             PixmapIO.writePNG(file, pixmap)
         } finally {
@@ -222,15 +223,21 @@ class TileSheetGlyphSourceIntegrationTest : FunSpec({
     test("TileSheetGlyphSource: a sheet that does not divide into whole tiles is rejected")
         .config(enabled = HeadlessGl.available) {
             var message: String? = null
+            var type: String? = null
             HeadlessGl
                 .render(1, 1, Color.BLACK) {
-                    message =
+                    val failure =
                         runCatching {
                             // 128x128 sheet, 5 columns: 128 / 5 is not a whole tile.
                             TileSheetGlyphSource(writeSheet(), columns = 5, rows = 2, 16, 16)
-                        }.exceptionOrNull()?.message
+                        }.exceptionOrNull()
+                    message = failure?.message
+                    // The type matters as much as the text: runCatching swallows anything, so without it a
+                    // GL failure before validation could masquerade as the rejection under test.
+                    type = failure?.let { it::class.simpleName }
                 }.dispose()
 
+            type shouldBe "IllegalArgumentException"
             message shouldBe "sheet 128x128 does not divide into 5x2 whole tiles"
         }
 })

@@ -50,10 +50,10 @@ interface GlyphSource : Disposable {
      * The default is a **no-op**: the bundled bitmap [Font] is size-agnostic — its
      * glyphs are a fixed pixel grid scaled by the window's
      * [com.sletmoe.kotile.rendering.ScalePolicy] — so it ignores this. A
-     * resolution-independent source (the freetype face,
-     * [com.sletmoe.kotile.display.ascii.FreeTypeGlyphSource]) regenerates its atlas
-     * at the requested size and updates [charWidthPx]/[charHeightPx] to match, so
-     * glyphs are rasterised at — rather than scaled to — the on-screen cell size.
+     * resolution-independent source regenerates its glyphs at the requested size and
+     * updates [charWidthPx]/[charHeightPx] to match, so they are produced at — rather
+     * than scaled to — the on-screen cell size: [FreeTypeGlyphSource] re-rasterises the
+     * TrueType face, and [TileSheetGlyphSource] re-downscales its hi-res sheet.
      *
      * Calling with the current size is a no-op (implementations short-circuit an
      * unchanged size), so a caller may invoke it every resize cheaply.

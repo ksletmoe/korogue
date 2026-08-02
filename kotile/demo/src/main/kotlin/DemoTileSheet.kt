@@ -32,6 +32,12 @@ internal fun writeDemoSheet(coloured: Boolean): FileHandle {
     val ink = { slot: Int -> if (coloured) PALETTE[slot] else Color.WHITE }
     val clear = Color(0f, 0f, 0f, 0f)
 
+    /**
+     * Fills a rect in tile [slot]'s own coordinates, **clipped to that tile**. The clip is the point:
+     * Pixmap has no clip rect, so a rect that overhangs a tile's edge lands in its neighbour in a shared
+     * sheet. Clamping the origin instead is not enough — that just parks the overhang on the last column
+     * and lets its width spill anyway, which is precisely what the mortar joints did.
+     */
     fun rect(
         slot: Int,
         x: Int,
@@ -39,9 +45,14 @@ internal fun writeDemoSheet(coloured: Boolean): FileHandle {
         w: Int,
         h: Int,
         color: Color,
-    ) = pixmap.run {
-        setColor(color)
-        fillRectangle(slot * master + x, y, w, h)
+    ) {
+        val x0 = x.coerceIn(0, master)
+        val y0 = y.coerceIn(0, master)
+        val x1 = (x + w).coerceIn(0, master)
+        val y1 = (y + h).coerceIn(0, master)
+        if (x1 <= x0 || y1 <= y0) return
+        pixmap.setColor(color)
+        pixmap.fillRectangle(slot * master + x0, y0, x1 - x0, y1 - y0)
     }
 
     // 0: brick wall -- full-bleed, so it must tile edge to edge (and sits out the shift search).
@@ -50,7 +61,7 @@ internal fun writeDemoSheet(coloured: Boolean): FileHandle {
         val offset = if (row % 2 == 0) 0 else 8
         rect(0, 0, row * 16 + 14, master, 2, clear) // mortar course
         for (brick in 0..8) {
-            rect(0, (brick * 32 + offset - 2).coerceIn(0, master - 1), row * 16, 2, 14, clear)
+            rect(0, brick * 32 + offset - 2, row * 16, 2, 14, clear) // clipped to the tile by rect()
         }
     }
 
@@ -119,7 +130,8 @@ internal fun writeDemoSheet(coloured: Boolean): FileHandle {
     pixmap.fillCircle(7 * master + 64, 68, 40)
     pixmap.fillRectangle(7 * master + 24, 68, 80, 60)
 
-    val file = Gdx.files.absolute(File.createTempFile("kotile-demo-sheet", ".png").absolutePath)
+    val temp = File.createTempFile("kotile-demo-sheet", ".png").apply { deleteOnExit() }
+    val file = Gdx.files.absolute(temp.absolutePath)
     try {
         PixmapIO.writePNG(file, pixmap)
     } finally {

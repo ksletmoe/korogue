@@ -111,7 +111,10 @@ enum class TileScaling {
  *
  * The atlas is one cell-resolution page of the whole sheet (`columns × cell` by `rows × cell`), so a
  * large grid at a large cell can exceed `GL_MAX_TEXTURE_SIZE`; that is checked and reported rather than
- * left to render as garbage.
+ * left to render as garbage. Tiles are packed with **no gutter** and the page is `Linear`-filtered, which
+ * matches [FreeTypeGlyphSource] and carries the same known limitation (krogue-wcw): drawn at a scale other
+ * than 1:1, a bilinear sample at a full-bleed tile's outer edge can reach a texel into its neighbour. The
+ * resolution-independent path is exact and unaffected; the fix belongs to both atlases at once.
  *
  * @param sheet the tilesheet PNG (any format libGDX can read; converted to RGBA8888 on load). Read once at
  *   construction — the caller may free the handle after.
