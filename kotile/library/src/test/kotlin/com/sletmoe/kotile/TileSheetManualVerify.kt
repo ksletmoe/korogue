@@ -17,6 +17,7 @@ import com.sletmoe.kotile.display.ascii.TileScaling
 import com.sletmoe.kotile.display.ascii.TileSheetGlyphSource
 import java.io.File
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /**
  * macOS-only manual verification for the artist-tilesheet glyph source (krogue-9x7.7). The Kotest GL specs
@@ -90,7 +91,13 @@ private class TileSheetManualVerify : ApplicationAdapter() {
         }
         if (settled++ < 2) return
         waited = 0
-        val hidpi = (Gdx.graphics.backBufferWidth / Gdx.graphics.width).coerceAtLeast(1)
+        // Round the backbuffer:logical ratio instead of truncating it: integer division turns a 1.5x
+        // display scale into 1, so the capture FBO would be built at half the resolution the window
+        // actually renders and every sample rect would read the wrong pixels.
+        val hidpi =
+            (Gdx.graphics.backBufferWidth.toFloat() / Gdx.graphics.width.coerceAtLeast(1))
+                .roundToInt()
+                .coerceAtLeast(1)
         if (index == 0) {
             println("TSVERIFY logical=${Gdx.graphics.width}x${Gdx.graphics.height} hidpi=$hidpi")
         }
