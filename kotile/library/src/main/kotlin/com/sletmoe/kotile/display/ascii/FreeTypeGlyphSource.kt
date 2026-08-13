@@ -315,20 +315,34 @@ class FreeTypeGlyphSource internal constructor(
      * high-resolution master downsampled in linear light, *not* stems hinted onto the pixel grid — this
      * rasterises the page at [supersample]× the cell size with **hinting off**, then shrinks it to cell
      * resolution by repeated **gamma-correct 2:1 halving** ([GammaDownsample]). If the downsample shader
-     * is unavailable it falls back to rasterising directly at the cell px. The result is read into an
-     * upright texture whose 256 cell regions become [regions].
+     * is unavailable it falls back to rasterising directly at the cell px. The result is read back upright,
+     * repacked with a per-cell gutter ([GlyphAtlasPadding]), and uploaded as the texture whose 256 cell
+     * regions become [regions].
      */
     private fun rasterize(
         w: Int,
         h: Int,
     ) {
+        val maxTex = maxTextureSize()
+        // The PADDED page is what finally gets uploaded, and no amount of dropping supersample shrinks it
+        // — so a cell too large for the GPU is a hard failure, checked before ANY of the arithmetic or
+        // allocation below (krogue-y1o; mirrors TileSheetGlyphSource's own check). The gutter costs two px
+        // per cell per axis, so the boundary sits COLUMNS*2 px below the tight page's. Long spans, so a
+        // cell size large enough to wrap an Int product cannot slip under the limit as a negative.
+        val pageW = GlyphAtlasPadding.pageSpanPx(w, COLUMNS)
+        val pageH = GlyphAtlasPadding.pageSpanPx(h, ROWS)
+        check(pageW <= maxTex && pageH <= maxTex) {
+            "glyph atlas ${pageW}x$pageH exceeds GL_MAX_TEXTURE_SIZE ($maxTex) at a ${w}x$h cell " +
+                "(a ${COLUMNS}x$ROWS page, each cell gutter-padded by ${GlyphAtlasPadding.GUTTER_PX}px); " +
+                "use a smaller cell"
+        }
+        // Past the guard every span fits an Int comfortably, so the tight master's arithmetic is safe.
         val atlasW = w * COLUMNS
         val atlasH = h * ROWS
         // Supersample only if the linear-light downsampler is available; otherwise 1:1 at the cell px.
         var ss = if (supersample > 1 && ensureDownsampleShader()) supersample else 1
         // Cap so the whole-page master atlas stays within GL_MAX_TEXTURE_SIZE — a master that exceeds it
         // fails to allocate and renders garbage. Halve until it fits (keeps the 2:1 downsample exact).
-        val maxTex = maxTextureSize()
         while (ss > 1 && (atlasW * ss > maxTex || atlasH * ss > maxTex)) {
             ss /= 2
         }
@@ -414,15 +428,35 @@ class FreeTypeGlyphSource internal constructor(
         // glyphs aren't dim. Runs on the small cell-resolution atlas, once per rasterise; 1f = no-op.
         if (glyphBrightness > 1f) applyPerGlyphBrightness(upright, w, h)
 
+        // Repack the tight page with an extruded gutter around every cell before upload (krogue-wcw,
+        // ADR-0044): the page is Linear-filtered, so a cell drawn at a magnifying scale samples past its
+        // region edge, and in a tight page that is the neighbouring CP437 slot's ink. Everything above
+        // works on the tight page — the per-cell scissor, the downsample strides, the brightness curve —
+        // so the gutter is added once, here, where the atlas becomes a texture.
+        val page =
+            try {
+                GlyphAtlasPadding.padded(upright, COLUMNS, ROWS, w, h)
+            } finally {
+                upright.dispose()
+            }
         val newAtlas =
-            Texture(upright).apply { setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear) }
-        upright.dispose()
+            try {
+                Texture(page).apply { setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear) }
+            } finally {
+                page.dispose()
+            }
 
         atlas?.dispose()
         atlas = newAtlas
         regions =
             (0 until GLYPH_COUNT).map { slot ->
-                TextureRegion(newAtlas, (slot % COLUMNS) * w, (slot / COLUMNS) * h, w, h)
+                TextureRegion(
+                    newAtlas,
+                    GlyphAtlasPadding.cellOriginPx(slot % COLUMNS, w),
+                    GlyphAtlasPadding.cellOriginPx(slot / COLUMNS, h),
+                    w,
+                    h,
+                )
             }
         charWidthPx = w
         charHeightPx = h

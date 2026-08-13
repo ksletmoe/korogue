@@ -7,8 +7,10 @@ import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
+import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.PixmapIO
+import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.glutils.FrameBuffer
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
 import com.sletmoe.kotile.display.ascii.StaticAsciiTile
@@ -70,6 +72,12 @@ private class TileSheetManualVerify : ApplicationAdapter() {
             Check("PRESERVE_ASPECT letterboxes a square tile", 16, 32, ::preserveAspectCheck),
             Check("prepareForCellSize re-downscales; same size is a no-op", 1, 1, ::resizeCheck),
             Check("a sheet that doesn't divide into whole tiles is rejected", 1, 1, ::rejectCheck),
+            Check(
+                "a magnified tile takes no ink from its atlas neighbour",
+                BLEED_TILE_SPAN,
+                BLEED_TILE_SPAN,
+                ::atlasGutterCheck,
+            ),
         )
 
     override fun render() {
@@ -289,6 +297,91 @@ private class TileSheetManualVerify : ApplicationAdapter() {
             message == "sheet 128x128 does not divide into 5x2 whole tiles",
             "message=$message",
         )
+    }
+
+    /**
+     * Mirrors "a magnified tile neither takes nor loses ink at its edges" (krogue-wcw). That spec's
+     * `renderMagnifiedTile` blits ONE atlas region, magnified [BLEED_TILE_SCALE]×, into a
+     * [BLEED_TILE_SPAN]-square capture FBO through a [BLEED_TILE_SPAN] ortho camera, and measures with the
+     * shared [peakIn] / [averageColor] against the shared [BLEED_CLEAR_PEAK] / [BLEED_SOLID_MEAN].
+     *
+     * The one place this departs from [capture] is [hidpi]: it is deliberately **not** applied. Both sides
+     * draw through a camera sized from the capture FBO, so the geometry never touches `Gdx.graphics` —
+     * scaling the FBO alone would magnify by `BLEED_TILE_SCALE × hidpi` and read a different bleed weight
+     * than CI does. The check still runs at the spec's window size (above) so the harness's own
+     * geometry-parity rule holds.
+     */
+    private fun atlasGutterCheck(hidpi: Int) {
+        val span = BLEED_TILE_SPAN
+
+        fun magnified(slot: Int): Pixmap {
+            val source = TileSheetGlyphSource(sheet(), columns = 2, rows = 2, BLEED_TILE_CELL, BLEED_TILE_CELL)
+            Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, 0)
+            val fbo = FrameBuffer(Pixmap.Format.RGBA8888, span, span, false)
+            var begun = false
+            try {
+                fbo.begin()
+                begun = true
+                Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
+                Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
+                val batch = SpriteBatch()
+                val cam =
+                    OrthographicCamera().apply {
+                        setToOrtho(false, span.toFloat(), span.toFloat())
+                        update()
+                    }
+                batch.projectionMatrix = cam.combined
+                batch.color = Color.WHITE
+                batch.begin()
+                try {
+                    source.glyph(Char(slot))?.let { batch.draw(it, 0f, 0f, span.toFloat(), span.toFloat()) }
+                } finally {
+                    batch.end()
+                    batch.dispose()
+                }
+                val raw = Pixmap.createFromFrameBuffer(0, 0, span, span)
+                return try {
+                    flipY(raw)
+                } finally {
+                    raw.dispose()
+                }
+            } finally {
+                try {
+                    if (begun) fbo.end()
+                } finally {
+                    fbo.dispose()
+                    source.dispose()
+                }
+            }
+        }
+
+        // Slot 1 (the centred square, clear margin) sits directly right of slot 0 (full-bleed solid), so
+        // ink in that margin is slot 0's, sampled across the seam.
+        val sprite = magnified(1)
+        val margin = peakIn(sprite, 0, 0, span / 4 - BLEED_TILE_SCALE, span)
+        val third = span / 3
+        val centre = sprite.averageColor(third, third, span - third, span - third).r.toDouble()
+        shots += "gutter-sprite" to sprite
+        report(checks[index].name, margin < BLEED_CLEAR_PEAK, "leftMarginPeak=$margin")
+        report("wcw: the magnified tile's own square is solid", centre > BLEED_SOLID_MEAN, "centre=$centre")
+
+        // Slot 0 is full-bleed: its right/bottom neighbours are empty, so an un-fixed sample past those
+        // edges DIMS them (as a merely transparent gutter would). Its left/top edges are the page border,
+        // where clamp-to-edge already did this job.
+        val wall = magnified(0)
+        val strips =
+            mapOf(
+                "left" to listOf(0, 0, BLEED_TILE_SCALE, span),
+                "right" to listOf(span - BLEED_TILE_SCALE, 0, span, span),
+                "top" to listOf(0, 0, span, BLEED_TILE_SCALE),
+                "bottom" to listOf(0, span - BLEED_TILE_SCALE, span, span),
+            )
+        val means = strips.mapValues { (_, r) -> wall.averageColor(r[0], r[1], r[2], r[3]).r.toDouble() }
+        shots += "gutter-wall" to wall
+        means.forEach { (edge, mean) ->
+            report("wcw: the full-bleed tile stays solid along its $edge edge", mean > BLEED_SOLID_MEAN, "mean=$mean")
+        }
+        println("  GUTTER hidpi=$hidpi sprite[margin=$margin centre=$centre]  wall$means")
     }
 
     // ── Harness plumbing (mirrors HeadlessGl.render) ───────────────────────────────────────────────

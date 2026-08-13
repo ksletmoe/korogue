@@ -469,6 +469,28 @@ then given a tested ECS foundation:
   frames and dump a PNG instead of waiting for input.
   **Deferred:** a per-tile processing table (krogue-itq) and unifying the two shift-search
   implementations (krogue-8gy).
+- **Glyph atlases carry a per-cell gutter (krogue-wcw, ADR-0044).** Both resolution-independent
+  pages — `FreeTypeGlyphSource`'s CP437 page and `TileSheetGlyphSource`'s tile page — are
+  `Linear`-filtered, so a cell drawn at any scale other than 1:1 (`FitScale` / `fitToWindow` /
+  sharp-bilinear, or a free-layer `drawSprite` at its own size) samples up to **half a texel past
+  its region edge**. Packed tight, that half texel was the *neighbouring* cell — harmless while
+  glyphs were ink-centred, not once ADR-0040 edge-snapped the block/box-drawing class and ADR-0043
+  made full-bleed tiles the norm. Measured un-fixed at a 16px cell drawn 8×: `▄`'s empty half took
+  48/25/9 of 255 in from the seam it shares with `█`, and `█`'s own edges were *dimmed* to 0.78–0.88
+  of solid. Both pages now pack each cell with a **one-texel gutter holding a copy of the cell's own
+  edge row/column** (`GlyphAtlasPadding`) — what `CLAMP_TO_EDGE` gives a whole texture, emulated at each
+  *cell* boundary (the wrap mode is per texture object, so on an atlas it guards only the page's outer
+  border); no shader, no per-cell texture.
+  Extruded rather than cleared: a transparent gutter would fix the fringe and keep the gap. Added
+  once at upload, so every stride upstream (per-cell scissor, downsample/SAT, shift search,
+  brightness curve) still works on a tight page; the cost is +2 px per cell per axis (a 384² CP437
+  atlas becomes 416²) and one pixmap copy per rasterise. Pinned by a magnified-draw GL spec per
+  source (`FreeTypeGlyphSourceIntegrationTest`, `TileSheetGlyphSourceIntegrationTest`), each mirrored
+  by its own macOS harness. **Those specs run on CI only** — what was executed locally is the two
+  mirrors, each at its spec's FBO size, camera, draw and sample rects: `freetypeVerify` went **5 of 6
+  checks FAIL → ALL PASS** and `tileSheetVerify` **3 of 6 FAIL → ALL PASS**, un-fixed vs fixed (the
+  un-fixed column is a real run with the change stashed, so the checks are proven able to fail). Tier 1
+  (`Font`/`TileSheet`) is unchanged: it magnifies with a nearest filter, where no bleed exists.
 - **Layer model — grid + free (pixel-space) layers (ADR-0018).** `KotileCanvas.drawSprite(pxX,
   pxY, region, w, h, tint)` is the real drawing primitive (`drawTile` is grid-snapped sugar
   over it); a frame is an ordered list of `Layer`s composited back-to-front by a `LayerStack`

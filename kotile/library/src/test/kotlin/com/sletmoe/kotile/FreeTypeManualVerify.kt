@@ -111,6 +111,7 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         verifyBandScaleCommittedShape()
         verifyTopClipCommittedShape()
         verifyCellFillSeamsCommittedShape()
+        verifyAtlasGutterCommittedShape()
         verifyStrokeSnapCommittedShape()
         verifyShiftCacheCommittedShape()
         renderDemoComparison(outPath)
@@ -1113,6 +1114,112 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
         tileChart.dispose()
         brightChart.dispose()
         bright4Chart.dispose()
+    }
+
+    /**
+     * krogue-wcw: reproduces the committed atlas-gutter GL spec's shape on macOS (which the Kotest GL suite
+     * cannot run here). That spec's `renderMagnifiedSlot` blits ONE atlas region, magnified [BLEED_SCALE]×,
+     * into a [BLEED_SPAN]-square capture FBO through a [BLEED_SPAN] ortho camera — so the mirror below uses
+     * the same FBO size, the same camera, the same single draw, and the same measurements ([peakIn] /
+     * [averageColor], shared with the spec) against the same shared thresholds.
+     *
+     * Neither side's geometry depends on the window: the draw goes into a capture FBO (whose `begin()` sets
+     * the GL viewport to the FBO) through a camera sized from the FBO, never from `Gdx.graphics`. That is
+     * also why nothing here is scaled by [hidpi] — scaling the FBO but not the camera would magnify by
+     * `BLEED_SCALE × hidpi` and read a different bleed weight than CI does.
+     *
+     * Magnification is what makes the packing observable at all: at 1:1 every sample lands on a texel
+     * centre. With the tight page this reads ~112/255 of the neighbour's ink in the empty half of '▄' and
+     * drops '█'s dimmed edge strips to ~0.58 of solid; with the extruded gutter, 0 and ~1.0.
+     */
+    private fun verifyAtlasGutterCommittedShape() {
+        // Each native resource is owned from the statement that creates it, and the capture framebuffer is
+        // only ended if it was begun. This harness catches per check and moves on, so a throw that left
+        // this FBO bound would silently redirect every LATER check's capture into it — the same discipline
+        // TileSheetManualVerify.capture keeps, for the same reason.
+        fun magnified(slot: Int): Pixmap {
+            val span = BLEED_SPAN
+            val source = Fonts.cascadiaMono(BLEED_CELL, BLEED_CELL)
+            try {
+                Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, 0)
+                val fbo = FrameBuffer(Pixmap.Format.RGBA8888, span, span, false)
+                var begun = false
+                try {
+                    fbo.begin()
+                    begun = true
+                    Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
+                    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
+                    val batch = SpriteBatch()
+                    try {
+                        val cam =
+                            OrthographicCamera().apply {
+                                setToOrtho(false, span.toFloat(), span.toFloat())
+                                update()
+                            }
+                        batch.projectionMatrix = cam.combined
+                        batch.color = Color.WHITE
+                        batch.begin()
+                        try {
+                            source.glyph(Char(slot))?.let { batch.draw(it, 0f, 0f, span.toFloat(), span.toFloat()) }
+                        } finally {
+                            batch.end()
+                        }
+                    } finally {
+                        batch.dispose()
+                    }
+                    val raw = Pixmap.createFromFrameBuffer(0, 0, span, span)
+                    return try {
+                        // FBO pixels are bottom-up; the caller wants the spec's top-left origin.
+                        val upright =
+                            Pixmap(span, span, Pixmap.Format.RGBA8888).apply { blending = Pixmap.Blending.None }
+                        try {
+                            for (yy in 0 until span) upright.drawPixmap(raw, 0, yy, 0, span - 1 - yy, span, 1)
+                        } catch (t: Throwable) {
+                            upright.dispose() // nobody owns it yet
+                            throw t
+                        }
+                        upright
+                    } finally {
+                        raw.dispose()
+                    }
+                } finally {
+                    try {
+                        if (begun) fbo.end()
+                    } finally {
+                        fbo.dispose()
+                    }
+                }
+            } finally {
+                source.dispose()
+            }
+        }
+
+        // '▄' (220): its own top half is empty and both its horizontal neighbours ('█' 219, '▌' 221) are
+        // inked along the edge they share with it, so any ink up there came from another atlas cell.
+        val lower = magnified(220)
+        val empty = peakIn(lower, 0, 0, BLEED_SPAN, BLEED_SPAN / 2 - BLEED_SCALE)
+        val ownHalf =
+            lower.averageColor(0, BLEED_SPAN / 2 + BLEED_SCALE, BLEED_SPAN, BLEED_SPAN).r.toDouble()
+        lower.dispose()
+        report("wcw: '▄' takes no ink from its atlas neighbours", empty < BLEED_CLEAR_PEAK, "peak=$empty")
+        report("wcw: '▄' still inks its own half, magnified", ownHalf > BLEED_SOLID_MEAN, "mean=$ownHalf")
+
+        // '█' (219): solid to all four edges, with empty neighbours beyond three of them — un-fixed, the
+        // sample past its edge DIMS the strip (which a merely-transparent gutter would do too).
+        val block = magnified(219)
+        val strips =
+            mapOf(
+                "left" to listOf(0, 0, BLEED_SCALE, BLEED_SPAN),
+                "right" to listOf(BLEED_SPAN - BLEED_SCALE, 0, BLEED_SPAN, BLEED_SPAN),
+                "top" to listOf(0, 0, BLEED_SPAN, BLEED_SCALE),
+                "bottom" to listOf(0, BLEED_SPAN - BLEED_SCALE, BLEED_SPAN, BLEED_SPAN),
+            )
+        val means = strips.mapValues { (_, r) -> block.averageColor(r[0], r[1], r[2], r[3]).r.toDouble() }
+        block.dispose()
+        means.forEach { (edge, mean) ->
+            report("wcw: '█' stays solid along its $edge edge", mean > BLEED_SOLID_MEAN, "mean=$mean")
+        }
+        println("  GUTTER ▄[emptyPeak=$empty ownHalf=$ownHalf]  █$means")
     }
 
     /**
