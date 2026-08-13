@@ -99,7 +99,12 @@ class TileSheetGlyphSourceIntegrationTest : FunSpec({
                     inked.b.toDouble() shouldBe (0.0 plusOrMinus 0.05)
                 }
                 withClue("the transparent tile inks nothing") {
-                    pixels.averageColor(16, 0, 32, 16).r.toDouble() shouldBe (0.0 plusOrMinus 0.05)
+                    // All three channels, not just red: a leak that tinted the empty cell green or
+                    // blue would otherwise pass, since the cell's foreground here is pure red.
+                    val empty = pixels.averageColor(16, 0, 32, 16)
+                    empty.r.toDouble() shouldBe (0.0 plusOrMinus 0.05)
+                    empty.g.toDouble() shouldBe (0.0 plusOrMinus 0.05)
+                    empty.b.toDouble() shouldBe (0.0 plusOrMinus 0.05)
                 }
             } finally {
                 pixels.dispose()

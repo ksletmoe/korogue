@@ -18,6 +18,7 @@ import com.sletmoe.kotile.display.ascii.TileSheetGlyphSource
 import java.io.File
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlin.system.exitProcess
 
 /**
  * macOS-only manual verification for the artist-tilesheet glyph source (krogue-9x7.7). The Kotest GL specs
@@ -48,7 +49,14 @@ private class TileSheetManualVerify : ApplicationAdapter() {
         val run: (Int) -> Unit,
     )
 
-    private var failures = 0
+    /** Read by [main] once the GL loop ends, so a failed check fails the Gradle task. */
+    var failures = 0
+        private set
+
+    /** False if the loop ended early (a crash, or the window never came up), which is also a failure. */
+    var completed = false
+        private set
+
     private var index = 0
     private var settled = 0
     private var waited = 0
@@ -67,6 +75,7 @@ private class TileSheetManualVerify : ApplicationAdapter() {
     override fun render() {
         if (index >= checks.size) {
             dumpShots()
+            completed = true
             println(if (failures == 0) "TSVERIFY: ALL PASSED" else "TSVERIFY: $failures FAILED")
             Gdx.app.exit()
             return
@@ -74,20 +83,29 @@ private class TileSheetManualVerify : ApplicationAdapter() {
         val check = checks[index]
         // Resize and let the resize settle, so each check runs at its spec's window size (HeadlessGl
         // resizes the shared window the same way before every render). A window manager is free to refuse
-        // a size — the 1x1 checks are the obvious candidates, since most WMs clamp to a minimum — so give
-        // up waiting after a deadline and run anyway rather than spinning here forever. The capture FBO is
-        // sized from the check, not the window, so a refused size only costs the geometry parity the
-        // harness is otherwise careful about; it is reported so a mismatched result is never read as clean.
+        // a size — the 1x1 checks are the obvious candidates, since most WMs clamp to a minimum — so stop
+        // waiting after a deadline rather than spinning here forever.
         if (Gdx.graphics.width != check.width || Gdx.graphics.height != check.height) {
             if (waited++ < RESIZE_FRAMES) {
                 Gdx.graphics.setWindowedMode(check.width, check.height)
                 settled = 0
                 return
             }
-            println(
-                "TSVERIFY NOTE: window stayed ${Gdx.graphics.width}x${Gdx.graphics.height}, " +
-                    "wanted ${check.width}x${check.height} for '${check.name}' -- running anyway",
+            // Do NOT run the check at the wrong size. The capture FBO is sized from the check rather than
+            // the window, so the pixels might still come out right — but geometry parity is the entire
+            // reason this harness exists: a 40x40 window once turned the resize(40, 40) under test into a
+            // no-op and nearly produced a confidently wrong rebuttal to a reviewer. A check that could not
+            // be run at its spec's size is a failure, not a footnote under "ALL PASSED".
+            report(
+                check.name,
+                false,
+                "not run: window stayed ${Gdx.graphics.width}x${Gdx.graphics.height}, wanted " +
+                    "${check.width}x${check.height} after $RESIZE_FRAMES frames -- geometry parity lost",
             )
+            index++
+            settled = 0
+            waited = 0
+            return
         }
         if (settled++ < 2) return
         waited = 0
@@ -153,9 +171,11 @@ private class TileSheetManualVerify : ApplicationAdapter() {
                 near(inked.r, 1f) &&
                 near(inked.g, 0f) &&
                 near(inked.b, 0f) &&
-                near(empty.r, 0f),
+                near(empty.r, 0f) &&
+                near(empty.g, 0f) &&
+                near(empty.b, 0f),
             "region=$regionSize master=$masterSize tiles=$tiles outOfRange=$outOfRange " +
-                "inked=(${inked.r}, ${inked.g}, ${inked.b}) emptyR=${empty.r}",
+                "inked=(${inked.r}, ${inked.g}, ${inked.b}) empty=(${empty.r}, ${empty.g}, ${empty.b})",
         )
     }
 
@@ -258,10 +278,11 @@ private class TileSheetManualVerify : ApplicationAdapter() {
     private fun rejectCheck(hidpi: Int) {
         var message: String? = null
         capture(1, 1, hidpi) {
-            message =
-                runCatching {
-                    TileSheetGlyphSource(sheet(), columns = 5, rows = 2, 16, 16)
-                }.exceptionOrNull()?.message
+            val attempt = runCatching { TileSheetGlyphSource(sheet(), columns = 5, rows = 2, 16, 16) }
+            // Construction is supposed to fail. If validation ever regresses and it succeeds, the
+            // instance owns a GL atlas texture — release it rather than leak it on the way to FAIL.
+            attempt.getOrNull()?.dispose()
+            message = attempt.exceptionOrNull()?.message
         }.dispose()
         report(
             checks[index].name,
@@ -314,8 +335,14 @@ private class TileSheetManualVerify : ApplicationAdapter() {
 
     private fun flipY(src: Pixmap): Pixmap {
         val dst = Pixmap(src.width, src.height, Pixmap.Format.RGBA8888).apply { blending = Pixmap.Blending.None }
-        for (y in 0 until src.height) {
-            dst.drawPixmap(src, 0, y, 0, src.height - 1 - y, src.width, 1)
+        // The caller owns dst on success; if a row copy throws, nobody does, so free it here.
+        try {
+            for (y in 0 until src.height) {
+                dst.drawPixmap(src, 0, y, 0, src.height - 1 - y, src.width, 1)
+            }
+        } catch (t: Throwable) {
+            dst.dispose()
+            throw t
         }
         return dst
     }
@@ -387,5 +414,14 @@ fun main() {
             disableAudio(true)
             setIdleFPS(60)
         }
-    Lwjgl3Application(TileSheetManualVerify(), config)
+    val harness = TileSheetManualVerify()
+    Lwjgl3Application(harness, config)
+    // Gdx.app.exit() alone returns normally, so the Gradle task went green no matter what the checks
+    // said — a harness that reports FAIL and still exits 0 is worse than no harness, because the build
+    // reads as clean. Exit non-zero on any failure, and on an early exit that never ran every check.
+    if (!harness.completed) {
+        println("TSVERIFY: INCOMPLETE -- the run ended before every check reported")
+        exitProcess(1)
+    }
+    if (harness.failures > 0) exitProcess(1)
 }
