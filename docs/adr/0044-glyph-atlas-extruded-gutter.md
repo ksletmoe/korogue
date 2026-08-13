@@ -68,7 +68,11 @@ machinery for no observable gain, and that machinery is verifiable only on CI.
   an over-large cell uploaded as garbage) and gained one, which closes the
   pre-existing hole this change would otherwise have widened by 32 px (krogue-y1o).
   Both are `check`s: a cell too large for the GPU is now a thrown failure rather
-  than a texture the driver silently refuses.
+  than a texture the driver silently refuses. The spans are computed as `Long`,
+  so a cell size large enough to wrap an `Int` product cannot slip under the limit
+  as a negative — the one way an oversized page could still get past the guard.
+  That arithmetic is pure, so unlike everything else here it is unit-tested
+  GL-free (`GlyphAtlasPaddingTest`) and runs on macOS.
 - One extra cell-resolution pixmap copy per rasterise — negligible beside the
   supersampled render and the CPU downsample it follows, but it is per resize
   step on the `resolutionIndependent` path.

@@ -38,11 +38,19 @@ internal object GlyphAtlasPadding {
     /** Width of the extruded border around every cell, in texels. See the object doc for why it is 1. */
     const val GUTTER_PX = 1
 
-    /** The page span, in px, holding [count] cells of [cellPx] each with their gutters. */
+    /**
+     * The page span, in px, holding [count] cells of [cellPx] each with their gutters.
+     *
+     * A `Long`, because this is what the `GL_MAX_TEXTURE_SIZE` guards in both sources compare against and
+     * an `Int` product wraps for an absurd cell size (a 16-column page needs only `cellPx > ~134M`) —
+     * a wrapped, negative span would slip *under* the limit and let the oversized page through, which is
+     * the one thing the guard exists to stop. Every span a guard accepts is far inside `Int` range, so
+     * [padded] narrows it back for the pixmap it allocates.
+     */
     fun pageSpanPx(
         cellPx: Int,
         count: Int,
-    ): Int = count * (cellPx + 2 * GUTTER_PX)
+    ): Long = count.toLong() * (cellPx.toLong() + 2L * GUTTER_PX)
 
     /** Where cell [index] starts in a padded page of [cellPx] cells — the origin of its texture region. */
     fun cellOriginPx(
@@ -58,6 +66,9 @@ internal object GlyphAtlasPadding {
      * The page is straight-alpha (white RGB, coverage in alpha, or full-colour tile art), so blending is
      * off throughout: every copy here must reproduce the source texel verbatim, including a transparent
      * one, rather than compositing it over the cleared page.
+     *
+     * Callers must have checked the padded span against `GL_MAX_TEXTURE_SIZE` first (both do, before any
+     * rasterising) — that bounds it well inside `Int` range, which is what makes the narrowing below safe.
      */
     fun padded(
         tight: Pixmap,
@@ -72,8 +83,8 @@ internal object GlyphAtlasPadding {
         }
         val page =
             Pixmap(
-                pageSpanPx(cellWidthPx, columns),
-                pageSpanPx(cellHeightPx, rows),
+                pageSpanPx(cellWidthPx, columns).toInt(),
+                pageSpanPx(cellHeightPx, rows).toInt(),
                 Pixmap.Format.RGBA8888,
             ).apply {
                 blending = Pixmap.Blending.None

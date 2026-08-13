@@ -217,7 +217,8 @@ class TileSheetGlyphSource(
         // renders as garbage — so say plainly what exceeded what, and what the consumer can change.
         val maxTexture = maxTextureSize()
         // Measured on the PADDED page, since that is what gets uploaded (the per-cell gutter costs two px
-        // per cell per axis) — checking the tight size would pass a page the GPU then refuses.
+        // per cell per axis) — checking the tight size would pass a page the GPU then refuses. Long spans,
+        // so a sheet/cell large enough to wrap an Int product cannot slip under the limit as a negative.
         val pageWidth = GlyphAtlasPadding.pageSpanPx(w, columns)
         val pageHeight = GlyphAtlasPadding.pageSpanPx(h, rows)
         check(pageWidth <= maxTexture && pageHeight <= maxTexture) {

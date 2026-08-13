@@ -323,15 +323,12 @@ class FreeTypeGlyphSource internal constructor(
         w: Int,
         h: Int,
     ) {
-        val atlasW = w * COLUMNS
-        val atlasH = h * ROWS
-        // Supersample only if the linear-light downsampler is available; otherwise 1:1 at the cell px.
-        var ss = if (supersample > 1 && ensureDownsampleShader()) supersample else 1
         val maxTex = maxTextureSize()
         // The PADDED page is what finally gets uploaded, and no amount of dropping supersample shrinks it
-        // — so a cell too large for the GPU is a hard failure, checked before any of the work below rather
-        // than left to upload as garbage (krogue-y1o; mirrors TileSheetGlyphSource's own check). The gutter
-        // costs two px per cell per axis, so the boundary sits COLUMNS*2 px below the tight page's.
+        // — so a cell too large for the GPU is a hard failure, checked before ANY of the arithmetic or
+        // allocation below (krogue-y1o; mirrors TileSheetGlyphSource's own check). The gutter costs two px
+        // per cell per axis, so the boundary sits COLUMNS*2 px below the tight page's. Long spans, so a
+        // cell size large enough to wrap an Int product cannot slip under the limit as a negative.
         val pageW = GlyphAtlasPadding.pageSpanPx(w, COLUMNS)
         val pageH = GlyphAtlasPadding.pageSpanPx(h, ROWS)
         check(pageW <= maxTex && pageH <= maxTex) {
@@ -339,6 +336,11 @@ class FreeTypeGlyphSource internal constructor(
                 "(a ${COLUMNS}x$ROWS page, each cell gutter-padded by ${GlyphAtlasPadding.GUTTER_PX}px); " +
                 "use a smaller cell"
         }
+        // Past the guard every span fits an Int comfortably, so the tight master's arithmetic is safe.
+        val atlasW = w * COLUMNS
+        val atlasH = h * ROWS
+        // Supersample only if the linear-light downsampler is available; otherwise 1:1 at the cell px.
+        var ss = if (supersample > 1 && ensureDownsampleShader()) supersample else 1
         // Cap so the whole-page master atlas stays within GL_MAX_TEXTURE_SIZE — a master that exceeds it
         // fails to allocate and renders garbage. Halve until it fits (keeps the 2:1 downsample exact).
         while (ss > 1 && (atlasW * ss > maxTex || atlasH * ss > maxTex)) {
