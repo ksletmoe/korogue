@@ -24,7 +24,9 @@ import com.badlogic.gdx.graphics.Pixmap
  *
  * Each cell is packed with a [GUTTER_PX]-texel border, filled by **extruding the cell's own edge row and
  * column** into it rather than leaving it transparent. That makes the sample that reaches past the region
- * edge read the edge texel again — GL's `CLAMP_TO_EDGE`, per cell, without per-cell textures or a shader.
+ * edge read the edge texel again — the behaviour `CLAMP_TO_EDGE` gives a whole texture, emulated at each
+ * *cell* boundary. (The wrap mode itself is per texture object, so on an atlas it only guards the page's
+ * outer border.) No per-cell textures, no shader.
  * Extruding rather than clearing is the point: a transparent gutter would fix the bleed by fading a
  * full-bleed tile out at its border, re-opening the very seam ADR-0040/0043 close.
  *

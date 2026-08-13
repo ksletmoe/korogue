@@ -37,8 +37,10 @@ as a fringe on one side of the seam and a gap on the other.
 **Both pages pack every cell with a one-texel gutter, filled by extruding the
 cell's own edge row and column into it** (`GlyphAtlasPadding`, shared by both
 sources). A sample that reaches past a region edge then reads a copy of that
-edge texel: GL's `CLAMP_TO_EDGE`, applied per cell, without per-cell textures or
-a shader.
+edge texel — the behaviour `CLAMP_TO_EDGE` gives a whole texture, emulated at
+each *cell* boundary. (`CLAMP_TO_EDGE` itself is per texture object: on an atlas
+it only guards the page's outer border, which is why the tilesheet page's own
+left/top edges never showed this.) No per-cell textures, no shader.
 
 **Extruded, not cleared.** A transparent gutter fixes the fringe and keeps the
 gap: it would fade a full-bleed cell out at its border, re-opening the very seam
@@ -59,9 +61,14 @@ machinery for no observable gain, and that machinery is verifiable only on CI.
 ## Consequences
 
 - A page grows by `2 px` per cell per axis: 32 px on a 16×16 CP437 page, i.e.
-  a 384×384 atlas becomes 416×416 (+17% texels). `TileSheetGlyphSource`'s
-  `GL_MAX_TEXTURE_SIZE` check now measures the padded page, since that is what
-  gets uploaded.
+  a 384×384 atlas becomes 416×416 (+17% texels). Both sources check the **padded**
+  page against `GL_MAX_TEXTURE_SIZE`, since that is what gets uploaded —
+  `TileSheetGlyphSource` already had such a check and now measures the padded size;
+  `FreeTypeGlyphSource` had none at all (it capped only its supersampled master, so
+  an over-large cell uploaded as garbage) and gained one, which closes the
+  pre-existing hole this change would otherwise have widened by 32 px (krogue-y1o).
+  Both are `check`s: a cell too large for the GPU is now a thrown failure rather
+  than a texture the driver silently refuses.
 - One extra cell-resolution pixmap copy per rasterise — negligible beside the
   supersampled render and the CPU downsample it follows, but it is per resize
   step on the `resolutionIndependent` path.
@@ -73,9 +80,12 @@ machinery for no observable gain, and that machinery is verifiable only on CI.
   minification case is mipmap halo, a different defect with an existing
   documented mitigation (`spacing`/`useMipMaps=false`).
 - The regression is pinned by a GL spec per source that draws one region magnified
-  8× — magnification being the only way to observe the packing at all — with macOS
-  mirrors in `freetypeVerify` / `tileSheetVerify`, both confirmed to fail against
-  the un-fixed code (5 of 6 and 3 of 6 checks) and pass with it.
+  8× — bleed exists at any scale off 1:1, and magnification is what makes it large
+  enough to measure (0.4375 of a texel out at 8×, against a 1:1 draw that lands on
+  the texel centre and shows nothing). Those specs run on CI; each has a macOS
+  mirror at its own FBO size, camera, draw and sample rects, and it is the mirrors
+  that were run locally — `freetypeVerify` 5 of 6 checks FAIL → ALL PASS,
+  `tileSheetVerify` 3 of 6 FAIL → ALL PASS, un-fixed vs fixed.
 
 ## Alternatives considered
 

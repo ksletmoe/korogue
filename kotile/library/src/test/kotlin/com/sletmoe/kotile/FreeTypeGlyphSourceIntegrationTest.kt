@@ -587,7 +587,8 @@ class FreeTypeGlyphSourceIntegrationTest : FunSpec({
 
     // --- krogue-wcw: the page is Linear-filtered, so a cell drawn at a magnifying scale samples up to half
     // a texel past its region edge. Packed tight, that half texel is the NEIGHBOURING CP437 slot; with the
-    // ADR-0044 extruded gutter it is a copy of the cell's own edge, i.e. clamp-to-edge per cell. ---
+    // ADR-0044 extruded gutter it is a copy of the cell's own edge — clamp-to-edge behaviour emulated per
+    // cell (the GL wrap mode is per texture, so it guards only the page's outer border). ---
 
     test("FreeTypeGlyphSource: a magnified cell-filling glyph neither takes nor loses ink at its edges (krogue-wcw)")
         .config(enabled = HeadlessGl.available) {
@@ -662,23 +663,32 @@ internal const val BLEED_SOLID_MEAN = 0.95
  */
 private fun renderMagnifiedSlot(slot: Int): Pixmap =
     HeadlessGl.render(BLEED_SPAN, BLEED_SPAN, Color.BLACK) {
+        // Each native resource is owned from the statement that creates it: HeadlessGl's GL context is
+        // shared and outlives this test, so anything that throws between two allocations (a SpriteBatch
+        // compiles a shader; begin() can fail) must not strand the earlier one in it.
         val source = Fonts.cascadiaMono(BLEED_CELL, BLEED_CELL)
-        val batch = SpriteBatch()
-        val cam =
-            OrthographicCamera().apply {
-                setToOrtho(false, BLEED_SPAN.toFloat(), BLEED_SPAN.toFloat())
-                update()
-            }
-        batch.projectionMatrix = cam.combined
-        batch.color = Color.WHITE
-        batch.begin()
         try {
-            source.glyph(Char(slot))?.let { region ->
-                batch.draw(region, 0f, 0f, BLEED_SPAN.toFloat(), BLEED_SPAN.toFloat())
+            val batch = SpriteBatch()
+            try {
+                val cam =
+                    OrthographicCamera().apply {
+                        setToOrtho(false, BLEED_SPAN.toFloat(), BLEED_SPAN.toFloat())
+                        update()
+                    }
+                batch.projectionMatrix = cam.combined
+                batch.color = Color.WHITE
+                batch.begin()
+                try {
+                    source.glyph(Char(slot))?.let { region ->
+                        batch.draw(region, 0f, 0f, BLEED_SPAN.toFloat(), BLEED_SPAN.toFloat())
+                    }
+                } finally {
+                    batch.end()
+                }
+            } finally {
+                batch.dispose()
             }
         } finally {
-            batch.end()
-            batch.dispose()
             source.dispose()
         }
     }

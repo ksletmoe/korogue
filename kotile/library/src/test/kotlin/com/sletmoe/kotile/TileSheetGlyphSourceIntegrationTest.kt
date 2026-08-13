@@ -325,24 +325,33 @@ private fun renderMagnifiedTile(
     sheet: () -> FileHandle,
 ): Pixmap =
     HeadlessGl.render(BLEED_TILE_SPAN, BLEED_TILE_SPAN, Color.BLACK) {
+        // Each native resource is owned from the statement that creates it: HeadlessGl's GL context is
+        // shared and outlives this test, so anything that throws between two allocations (a SpriteBatch
+        // compiles a shader; begin() can fail) must not strand the earlier one in it.
         val source =
             TileSheetGlyphSource(sheet(), columns = 2, rows = 2, BLEED_TILE_CELL, BLEED_TILE_CELL)
-        val batch = SpriteBatch()
-        val cam =
-            OrthographicCamera().apply {
-                setToOrtho(false, BLEED_TILE_SPAN.toFloat(), BLEED_TILE_SPAN.toFloat())
-                update()
-            }
-        batch.projectionMatrix = cam.combined
-        batch.color = Color.WHITE
-        batch.begin()
         try {
-            source.glyph(Char(slot))?.let { region ->
-                batch.draw(region, 0f, 0f, BLEED_TILE_SPAN.toFloat(), BLEED_TILE_SPAN.toFloat())
+            val batch = SpriteBatch()
+            try {
+                val cam =
+                    OrthographicCamera().apply {
+                        setToOrtho(false, BLEED_TILE_SPAN.toFloat(), BLEED_TILE_SPAN.toFloat())
+                        update()
+                    }
+                batch.projectionMatrix = cam.combined
+                batch.color = Color.WHITE
+                batch.begin()
+                try {
+                    source.glyph(Char(slot))?.let { region ->
+                        batch.draw(region, 0f, 0f, BLEED_TILE_SPAN.toFloat(), BLEED_TILE_SPAN.toFloat())
+                    }
+                } finally {
+                    batch.end()
+                }
+            } finally {
+                batch.dispose()
             }
         } finally {
-            batch.end()
-            batch.dispose()
             source.dispose()
         }
     }

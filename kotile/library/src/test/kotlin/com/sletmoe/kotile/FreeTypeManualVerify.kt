@@ -1133,34 +1133,65 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
      * drops '█'s dimmed edge strips to ~0.58 of solid; with the extruded gutter, 0 and ~1.0.
      */
     private fun verifyAtlasGutterCommittedShape() {
+        // Each native resource is owned from the statement that creates it, and the capture framebuffer is
+        // only ended if it was begun. This harness catches per check and moves on, so a throw that left
+        // this FBO bound would silently redirect every LATER check's capture into it — the same discipline
+        // TileSheetManualVerify.capture keeps, for the same reason.
         fun magnified(slot: Int): Pixmap {
             val span = BLEED_SPAN
             val source = Fonts.cascadiaMono(BLEED_CELL, BLEED_CELL)
-            Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, 0)
-            val fbo = FrameBuffer(Pixmap.Format.RGBA8888, span, span, false)
-            fbo.begin()
-            Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
-            Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
-            val batch = SpriteBatch()
-            val cam =
-                OrthographicCamera().apply {
-                    setToOrtho(false, span.toFloat(), span.toFloat())
-                    update()
+            try {
+                Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, 0)
+                val fbo = FrameBuffer(Pixmap.Format.RGBA8888, span, span, false)
+                var begun = false
+                try {
+                    fbo.begin()
+                    begun = true
+                    Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
+                    Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
+                    val batch = SpriteBatch()
+                    try {
+                        val cam =
+                            OrthographicCamera().apply {
+                                setToOrtho(false, span.toFloat(), span.toFloat())
+                                update()
+                            }
+                        batch.projectionMatrix = cam.combined
+                        batch.color = Color.WHITE
+                        batch.begin()
+                        try {
+                            source.glyph(Char(slot))?.let { batch.draw(it, 0f, 0f, span.toFloat(), span.toFloat()) }
+                        } finally {
+                            batch.end()
+                        }
+                    } finally {
+                        batch.dispose()
+                    }
+                    val raw = Pixmap.createFromFrameBuffer(0, 0, span, span)
+                    return try {
+                        // FBO pixels are bottom-up; the caller wants the spec's top-left origin.
+                        val upright =
+                            Pixmap(span, span, Pixmap.Format.RGBA8888).apply { blending = Pixmap.Blending.None }
+                        try {
+                            for (yy in 0 until span) upright.drawPixmap(raw, 0, yy, 0, span - 1 - yy, span, 1)
+                        } catch (t: Throwable) {
+                            upright.dispose() // nobody owns it yet
+                            throw t
+                        }
+                        upright
+                    } finally {
+                        raw.dispose()
+                    }
+                } finally {
+                    try {
+                        if (begun) fbo.end()
+                    } finally {
+                        fbo.dispose()
+                    }
                 }
-            batch.projectionMatrix = cam.combined
-            batch.color = Color.WHITE
-            batch.begin()
-            source.glyph(Char(slot))?.let { batch.draw(it, 0f, 0f, span.toFloat(), span.toFloat()) }
-            batch.end()
-            val raw = Pixmap.createFromFrameBuffer(0, 0, span, span)
-            fbo.end()
-            val flipped = Pixmap(span, span, Pixmap.Format.RGBA8888).apply { blending = Pixmap.Blending.None }
-            for (yy in 0 until span) for (xx in 0 until span) flipped.drawPixel(xx, yy, raw.getPixel(xx, span - 1 - yy))
-            raw.dispose()
-            fbo.dispose()
-            batch.dispose()
-            source.dispose()
-            return flipped
+            } finally {
+                source.dispose()
+            }
         }
 
         // '▄' (220): its own top half is empty and both its horizontal neighbours ('█' 219, '▌' 221) are
