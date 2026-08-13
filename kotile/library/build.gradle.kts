@@ -115,6 +115,25 @@ tasks.register<JavaExec>("freetypeVerify") {
     doFirst { logger.lifecycle("Rendering freetype chart to: $outFile") }
 }
 
+// macOS-only manual verification for the artist tilesheet glyph source (krogue-9x7.7): reproduces the
+// committed GL specs' geometry and GL state (per-check window size, capture FBO, sample rects), prints
+// PASS/FAIL, and dumps each capture as a PNG to eyeball. Forks a JVM with -XstartOnFirstThread and uses
+// the test runtime classpath. On Linux/CI run the real specs via `xvfb-run -a ./gradlew :kotile:library:test`.
+tasks.register<JavaExec>("tileSheetVerify") {
+    group = "verification"
+    description = "Verifies TileSheetGlyphSource on real pixels and dumps captures (macOS main-thread GL)."
+    mainClass.set("com.sletmoe.kotile.TileSheetManualVerifyKt")
+    classpath = sourceSets["test"].runtimeClasspath
+    if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
+        jvmArgs("-XstartOnFirstThread")
+    }
+    val outFile =
+        (project.findProperty("outFile") as? String)
+            ?: layout.buildDirectory.file("tilesheet-verify.png").get().asFile.absolutePath
+    systemProperty("kotile.tsverify.out", outFile)
+    doFirst { logger.lifecycle("Writing tilesheet captures next to: $outFile") }
+}
+
 // macOS-only font-evaluation harness (krogue-9x7.8): renders candidate faces through FreeTypeGlyphSource
 // at small cell sizes with snap on, prints crispness/weight metrics, and dumps comparison PNGs. Throwaway
 // tooling — not part of the shipped suite. Fonts are read from an absolute -PfontsDir.

@@ -428,6 +428,47 @@ then given a tested ECS foundation:
   Still no *offline* all-sizes precompute (Brogue's `optimizeTiles` startup pass); this
   cache is per-instance and fills as sizes are visited. **Rationale:** ADR-0037 (shift
   search) + ADR-0038 (band scaling) + ADR-0040 (cell-filling) + ADR-0041 (stroke edge snap).
+- **Artist tilesheet glyph source (krogue-9x7.7, ADR-0043).** `TileSheetGlyphSource` is the
+  third way to author a cell, next to the bitmap `Font` and the freetype face: one
+  **high-resolution** hand-drawn PNG (Brogue's route — its `tiles.png` is 128x232 px per
+  tile) downscaled to whatever the cell currently is, so a textured wall or a monster
+  silhouette stays crisp at any window size without a sheet per size. Tiles are indexed
+  row-major by `char.code` like `Font`'s code page, so a CP437-laid-out sheet is a drop-in;
+  a bigger sheet is addressable past 255. **Ink (the decision to make deliberately):**
+  `TileInk.COVERAGE` (default) reads the sheet as a mask — `luma x alpha`, so light-on-black
+  *and* white-on-transparent sheets both work — and builds a white-RGB/alpha atlas, so tiles
+  **tint per cell** exactly like glyphs; `TileInk.FULL_COLOR` carries RGB through instead, at
+  the cost of the tint (it multiplies — paint those cells white) and of weaker alignment.
+  **Downscale:** a **fractional box filter** on the CPU, not the GPU 2:1 halving chain — an
+  artist master is a fixed resolution against an arbitrary cell (128 -> 14 px is 9.14 master
+  px per output px), which halving cannot express. Each output pixel area-averages its
+  fractional source rect, O(1) via a per-cell summed-area table sampled bilinearly at the
+  corners (exact, not approximate). Coverage averages straight (it is linear, like alpha);
+  FULL_COLOR averages RGB in **linear light weighted by alpha** — `GammaDownsample`'s
+  arithmetic restated for a fractional footprint. `snapToPixelGrid` reuses ADR-0037's
+  min-blur shift search with fractional offsets, gated **per axis** by *detected* full-bleed
+  edges (ink on the tile's own border → no translation on that axis, or the seam re-opens —
+  the ADR-0040 exemption, detected from pixels rather than a per-tile table). `TileScaling`
+  is the coarse stand-in for Brogue's `TileProcessing`: `STRETCH` (default, terrain must fill
+  its cell) or `PRESERVE_ASPECT` (centred/letterboxed, for figures). Cost is a whole-sheet
+  CPU resample per changed `prepareForCellSize`, scaling with the master's pixel count — the
+  case to keep a fixed cell size or leave snapping off. The resampler is **pure** (arrays in,
+  arrays out), so its maths is unit-tested **GL-free and runs on macOS**
+  (`TileSheetResampleTest`, 20 specs: fractional area-weighting, straight-vs-gamma averaging,
+  ink conservation at Brogue's ratio, alpha-weighted no-bleed, the shift search turning two
+  half-lit columns into one solid one, the edge detector per axis); the atlas upload, regions,
+  tint, letterbox, and resize are GL-gated (`TileSheetGlyphSourceIntegrationTest`) with a
+  macOS mirror at `:kotile:library:tileSheetVerify` (per-check window resize + capture FBO,
+  same sample rects; PASSES locally at hidpi=2, and dumps each capture as a PNG). Two demos share one
+  procedurally-drawn sheet (`DemoTileSheet.kt`: eight hard-edged 128px masters, so every soft edge in
+  the output is the downscale's — kotile bundles no artist sheet): `:kotile:demo:tileSheetHarness`
+  charts it at eight cell sizes, tinted, in FULL_COLOR, snap off vs on at x5 zoom, and STRETCH vs
+  PRESERVE_ASPECT; `:kotile:demo:tileSheetDemo` is the **live** one — a resizable
+  `resolutionIndependent` map where each drag re-resolves the masters at the new cell px (printed to
+  the console), SPACE toggles snap and C toggles the ink. Pass `-Psnapshot=<path>` to render three
+  frames and dump a PNG instead of waiting for input.
+  **Deferred:** a per-tile processing table (krogue-itq) and unifying the two shift-search
+  implementations (krogue-8gy).
 - **Layer model — grid + free (pixel-space) layers (ADR-0018).** `KotileCanvas.drawSprite(pxX,
   pxY, region, w, h, tint)` is the real drawing primitive (`drawTile` is grid-snapped sugar
   over it); a frame is an ordered list of `Layer`s composited back-to-front by a `LayerStack`
