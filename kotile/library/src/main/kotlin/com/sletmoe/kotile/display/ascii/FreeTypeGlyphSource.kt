@@ -315,8 +315,9 @@ class FreeTypeGlyphSource internal constructor(
      * high-resolution master downsampled in linear light, *not* stems hinted onto the pixel grid — this
      * rasterises the page at [supersample]× the cell size with **hinting off**, then shrinks it to cell
      * resolution by repeated **gamma-correct 2:1 halving** ([GammaDownsample]). If the downsample shader
-     * is unavailable it falls back to rasterising directly at the cell px. The result is read into an
-     * upright texture whose 256 cell regions become [regions].
+     * is unavailable it falls back to rasterising directly at the cell px. The result is read back upright,
+     * repacked with a per-cell gutter ([GlyphAtlasPadding]), and uploaded as the texture whose 256 cell
+     * regions become [regions].
      */
     private fun rasterize(
         w: Int,
@@ -414,15 +415,35 @@ class FreeTypeGlyphSource internal constructor(
         // glyphs aren't dim. Runs on the small cell-resolution atlas, once per rasterise; 1f = no-op.
         if (glyphBrightness > 1f) applyPerGlyphBrightness(upright, w, h)
 
+        // Repack the tight page with an extruded gutter around every cell before upload (krogue-wcw,
+        // ADR-0044): the page is Linear-filtered, so a cell drawn at a magnifying scale samples past its
+        // region edge, and in a tight page that is the neighbouring CP437 slot's ink. Everything above
+        // works on the tight page — the per-cell scissor, the downsample strides, the brightness curve —
+        // so the gutter is added once, here, where the atlas becomes a texture.
+        val page =
+            try {
+                GlyphAtlasPadding.padded(upright, COLUMNS, ROWS, w, h)
+            } finally {
+                upright.dispose()
+            }
         val newAtlas =
-            Texture(upright).apply { setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear) }
-        upright.dispose()
+            try {
+                Texture(page).apply { setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear) }
+            } finally {
+                page.dispose()
+            }
 
         atlas?.dispose()
         atlas = newAtlas
         regions =
             (0 until GLYPH_COUNT).map { slot ->
-                TextureRegion(newAtlas, (slot % COLUMNS) * w, (slot / COLUMNS) * h, w, h)
+                TextureRegion(
+                    newAtlas,
+                    GlyphAtlasPadding.cellOriginPx(slot % COLUMNS, w),
+                    GlyphAtlasPadding.cellOriginPx(slot / COLUMNS, h),
+                    w,
+                    h,
+                )
             }
         charWidthPx = w
         charHeightPx = h

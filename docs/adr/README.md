@@ -57,3 +57,4 @@ Point-in-time records of **why** significant or hard-to-reverse decisions were m
 | [0041](0041-cell-filling-stroke-edge-snap.md) | Cell-filling glyphs snap their stroke edges by a cell-edge-pinning warp | Accepted (completes ADR-0040) |
 | [0042](0042-bundled-faces-stay-unsubset.md) | The bundled vector faces stay whole — no CP437 subsetting | Accepted (settles ADR-0039's open trade) |
 | [0043](0043-artist-tilesheet-glyph-source.md) | An artist tilesheet is a coverage mask, downscaled by a fractional box filter | Accepted (extends ADR-0036) |
+| [0044](0044-glyph-atlas-extruded-gutter.md) | Glyph atlas cells are packed with an extruded one-texel gutter | Accepted (completes ADR-0040/0043) |

@@ -109,12 +109,10 @@ enum class TileScaling {
  * life of the source so resizes need no re-read; a coverage sheet keeps one byte per master pixel, a
  * full-colour sheet four. Owns a GPU texture; [dispose] releases it and the master.
  *
- * The atlas is one cell-resolution page of the whole sheet (`columns × cell` by `rows × cell`), so a
- * large grid at a large cell can exceed `GL_MAX_TEXTURE_SIZE`; that is checked and reported rather than
- * left to render as garbage. Tiles are packed with **no gutter** and the page is `Linear`-filtered, which
- * matches [FreeTypeGlyphSource] and carries the same known limitation (krogue-wcw): drawn at a scale other
- * than 1:1, a bilinear sample at a full-bleed tile's outer edge can reach a texel into its neighbour. The
- * resolution-independent path is exact and unaffected; the fix belongs to both atlases at once.
+ * The atlas is one cell-resolution page of the whole sheet, each tile packed with the one-texel extruded
+ * gutter of [GlyphAtlasPadding] (ADR-0044) so a full-bleed tile drawn at a magnifying scale cannot sample
+ * its neighbour's ink — the same packing [FreeTypeGlyphSource] uses. A large grid at a large cell can
+ * still exceed `GL_MAX_TEXTURE_SIZE`; that is checked and reported rather than left to render as garbage.
  *
  * @param sheet the tilesheet PNG (any format libGDX can read; converted to RGBA8888 on load). Read once at
  *   construction — the caller may free the handle after.
@@ -218,8 +216,12 @@ class TileSheetGlyphSource(
         // outgrow what the GPU will allocate. That failure is otherwise silent — an over-sized texture
         // renders as garbage — so say plainly what exceeded what, and what the consumer can change.
         val maxTexture = maxTextureSize()
-        check(columns * w <= maxTexture && rows * h <= maxTexture) {
-            "tilesheet atlas ${columns * w}x${rows * h} exceeds GL_MAX_TEXTURE_SIZE ($maxTexture) at a " +
+        // Measured on the PADDED page, since that is what gets uploaded (the per-cell gutter costs two px
+        // per cell per axis) — checking the tight size would pass a page the GPU then refuses.
+        val pageWidth = GlyphAtlasPadding.pageSpanPx(w, columns)
+        val pageHeight = GlyphAtlasPadding.pageSpanPx(h, rows)
+        check(pageWidth <= maxTexture && pageHeight <= maxTexture) {
+            "tilesheet atlas ${pageWidth}x$pageHeight exceeds GL_MAX_TEXTURE_SIZE ($maxTexture) at a " +
                 "${w}x$h cell; use a smaller cell, or split the ${columns}x$rows sheet across sources"
         }
         val fit = fitRect(w, h)
@@ -240,13 +242,29 @@ class TileSheetGlyphSource(
                     TileInk.FULL_COLOR -> emitColorTile(page, srcX, srcY, destX, destY, fit)
                 }
             }
+            // Repack with an extruded gutter around every tile before upload (krogue-wcw, ADR-0044): the
+            // page is Linear-filtered, so a full-bleed tile drawn at a magnifying scale would otherwise
+            // sample its neighbour's ink half a texel past its own edge.
+            val padded = GlyphAtlasPadding.padded(page, columns, rows, w, h)
             val newAtlas =
-                Texture(page).apply { setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear) }
+                try {
+                    Texture(padded).apply {
+                        setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
+                    }
+                } finally {
+                    padded.dispose()
+                }
             atlas?.dispose()
             atlas = newAtlas
             regions =
                 (0 until tileCount).map { slot ->
-                    TextureRegion(newAtlas, (slot % columns) * w, (slot / columns) * h, w, h)
+                    TextureRegion(
+                        newAtlas,
+                        GlyphAtlasPadding.cellOriginPx(slot % columns, w),
+                        GlyphAtlasPadding.cellOriginPx(slot / columns, h),
+                        w,
+                        h,
+                    )
                 }
         } finally {
             page.dispose()

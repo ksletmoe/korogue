@@ -1,9 +1,12 @@
 package com.sletmoe.kotile
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.PixmapIO
+import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.sletmoe.kotile.display.ascii.AsciiTileWindow
 import com.sletmoe.kotile.display.ascii.StaticAsciiTile
 import com.sletmoe.kotile.display.ascii.TileInk
@@ -12,6 +15,8 @@ import com.sletmoe.kotile.display.ascii.TileSheetGlyphSource
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.doubles.plusOrMinus
+import io.kotest.matchers.doubles.shouldBeGreaterThan
+import io.kotest.matchers.ints.shouldBeLessThan
 import io.kotest.matchers.shouldBe
 import java.io.File
 
@@ -29,7 +34,7 @@ import java.io.File
 class TileSheetGlyphSourceIntegrationTest : FunSpec({
 
     /** Writes the 128x128 synthetic sheet described above and returns its handle. */
-    fun writeSheet(): com.badlogic.gdx.files.FileHandle {
+    fun writeSheet(): FileHandle {
         val pixmap =
             Pixmap(128, 128, Pixmap.Format.RGBA8888).apply {
                 blending = Pixmap.Blending.None
@@ -225,6 +230,58 @@ class TileSheetGlyphSourceIntegrationTest : FunSpec({
             regionAfter shouldBe (24 to 28)
         }
 
+    test("TileSheetGlyphSource: a magnified tile neither takes nor loses ink at its edges (krogue-wcw)")
+        .config(enabled = HeadlessGl.available) {
+            // The atlas is Linear-filtered, so a tile drawn at a magnifying scale samples up to half a
+            // texel past its region edge — the neighbouring tile, in a tightly packed page. Slot 1 (the
+            // centred square, clear margin all round) sits directly right of slot 0 (full-bleed solid), so
+            // any ink in that left margin is slot 0's. Un-fixed the outermost drawn column carries
+            // `0.5 - 0.5/scale` of it: 0.4375 at BLEED_TILE_SCALE, i.e. ~112 of 255.
+            val sprite = renderMagnifiedTile(1, ::writeSheet)
+            try {
+                // The master's margin is a quarter of the tile; sample most of it, clear of the square's edge.
+                val margin = BLEED_TILE_SPAN / 4 - BLEED_TILE_SCALE
+                withClue("slot 1's left margin is empty; ink there is slot 0 bleeding across the seam") {
+                    peakIn(sprite, 0, 0, margin, BLEED_TILE_SPAN) shouldBeLessThan BLEED_CLEAR_PEAK
+                }
+                withClue("...and the tile really is drawn, magnified: its centre square is solid") {
+                    val third = BLEED_TILE_SPAN / 3
+                    sprite
+                        .averageColor(third, third, BLEED_TILE_SPAN - third, BLEED_TILE_SPAN - third)
+                        .r
+                        .toDouble() shouldBeGreaterThan BLEED_SOLID_MEAN
+                }
+            } finally {
+                sprite.dispose()
+            }
+
+            // The other side of the same defect, and why the gutter is EXTRUDED rather than cleared: slot 0
+            // is full-bleed (a wall tile — it must meet its neighbours edge to edge) and what sits beside
+            // it in the page is empty: slot 1's clear margin to its right, the transparent slot 2 below.
+            // Un-fixed those two edges are dimmed, not brightened; a transparent gutter would dim them
+            // just the same. Its left and top edges are the page's own border, where the texture's
+            // clamp-to-edge wrap already did this job — asserted with the rest because the property is
+            // "solid all round", but they are not what discriminates the fix.
+            val wall = renderMagnifiedTile(0, ::writeSheet)
+            try {
+                val strips =
+                    mapOf(
+                        "left" to listOf(0, 0, BLEED_TILE_SCALE, BLEED_TILE_SPAN),
+                        "right" to listOf(BLEED_TILE_SPAN - BLEED_TILE_SCALE, 0, BLEED_TILE_SPAN, BLEED_TILE_SPAN),
+                        "top" to listOf(0, 0, BLEED_TILE_SPAN, BLEED_TILE_SCALE),
+                        "bottom" to listOf(0, BLEED_TILE_SPAN - BLEED_TILE_SCALE, BLEED_TILE_SPAN, BLEED_TILE_SPAN),
+                    )
+                strips.forEach { (edge, r) ->
+                    withClue("the full-bleed tile must stay solid along its $edge edge") {
+                        wall.averageColor(r[0], r[1], r[2], r[3]).r.toDouble() shouldBeGreaterThan
+                            BLEED_SOLID_MEAN
+                    }
+                }
+            } finally {
+                wall.dispose()
+            }
+        }
+
     test("TileSheetGlyphSource: a sheet that does not divide into whole tiles is rejected")
         .config(enabled = HeadlessGl.available) {
             var message: String? = null
@@ -246,3 +303,46 @@ class TileSheetGlyphSourceIntegrationTest : FunSpec({
             message shouldBe "sheet 128x128 does not divide into 5x2 whole tiles"
         }
 })
+
+// The krogue-wcw magnified-draw geometry for this sheet: a 16px cell blown up 8×, matching the freetype
+// spec's [BLEED_SCALE] (and reusing its [BLEED_CLEAR_PEAK] / [BLEED_SOLID_MEAN] thresholds) because the
+// packing under test is the same packing — one defect, one fix, one set of literals.
+internal const val BLEED_TILE_CELL = 16
+internal const val BLEED_TILE_SCALE = 8
+internal const val BLEED_TILE_SPAN = BLEED_TILE_CELL * BLEED_TILE_SCALE
+
+/**
+ * Renders tile [slot] of the synthetic sheet alone, magnified [BLEED_TILE_SCALE]× from a
+ * [BLEED_TILE_CELL] atlas cell, by blitting the source's region **directly** into the capture FBO (a
+ * SpriteBatch, no AsciiTileWindow), white on black.
+ *
+ * Magnification is the whole point: at 1:1 the sample lands on the texel centre and no packing defect can
+ * show. One region alone, so anything it picks up came from the ATLAS's neighbour rather than from another
+ * quad drawn beside it. [sheet] is the same 2x2 master the other specs use.
+ */
+private fun renderMagnifiedTile(
+    slot: Int,
+    sheet: () -> FileHandle,
+): Pixmap =
+    HeadlessGl.render(BLEED_TILE_SPAN, BLEED_TILE_SPAN, Color.BLACK) {
+        val source =
+            TileSheetGlyphSource(sheet(), columns = 2, rows = 2, BLEED_TILE_CELL, BLEED_TILE_CELL)
+        val batch = SpriteBatch()
+        val cam =
+            OrthographicCamera().apply {
+                setToOrtho(false, BLEED_TILE_SPAN.toFloat(), BLEED_TILE_SPAN.toFloat())
+                update()
+            }
+        batch.projectionMatrix = cam.combined
+        batch.color = Color.WHITE
+        batch.begin()
+        try {
+            source.glyph(Char(slot))?.let { region ->
+                batch.draw(region, 0f, 0f, BLEED_TILE_SPAN.toFloat(), BLEED_TILE_SPAN.toFloat())
+            }
+        } finally {
+            batch.end()
+            batch.dispose()
+            source.dispose()
+        }
+    }

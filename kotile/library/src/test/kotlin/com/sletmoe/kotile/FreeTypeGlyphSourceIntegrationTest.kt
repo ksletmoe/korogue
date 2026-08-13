@@ -584,7 +584,127 @@ class FreeTypeGlyphSourceIntegrationTest : FunSpec({
                 after.dispose()
             }
         }
+
+    // --- krogue-wcw: the page is Linear-filtered, so a cell drawn at a magnifying scale samples up to half
+    // a texel past its region edge. Packed tight, that half texel is the NEIGHBOURING CP437 slot; with the
+    // ADR-0044 extruded gutter it is a copy of the cell's own edge, i.e. clamp-to-edge per cell. ---
+
+    test("FreeTypeGlyphSource: a magnified cell-filling glyph neither takes nor loses ink at its edges (krogue-wcw)")
+        .config(enabled = HeadlessGl.available) {
+            // '▄' (220) sits directly right of '█' (219) and directly left of '▌' (221) in the page, and
+            // both neighbours are inked along the edge they share with it. Its own top half is empty, so
+            // ANY ink up there came from another atlas cell. Un-fixed, the outermost drawn column carries
+            // `0.5 - 0.5/scale` of the neighbour's coverage — 0.4375 at BLEED_SCALE, i.e. ~112 of 255 — for
+            // every row of that empty half.
+            val lower = renderMagnifiedSlot(220)
+            try {
+                // Stop one magnified row short of the midpoint, where the half block's own edge lands.
+                val emptyBelow = BLEED_SPAN / 2 - BLEED_SCALE
+                withClue("'▄' has an empty top half; ink there is the neighbouring slot's") {
+                    peakIn(lower, 0, 0, BLEED_SPAN, emptyBelow) shouldBeLessThan BLEED_CLEAR_PEAK
+                }
+                withClue("...and the glyph really is drawn, magnified: its own half is solid edge to edge") {
+                    lower
+                        .averageColor(0, BLEED_SPAN / 2 + BLEED_SCALE, BLEED_SPAN, BLEED_SPAN)
+                        .r
+                        .toDouble() shouldBeGreaterThan BLEED_SOLID_MEAN
+                }
+            } finally {
+                lower.dispose()
+            }
+
+            // The same defect seen from the other side, and the reason the gutter is EXTRUDED rather than
+            // cleared: '█' (219) is solid to all four edges, while the neighbours it samples into are
+            // empty at that border ('┌' 218 left, '▄' 220's top half right, 'δ' 235 below). Un-fixed those
+            // edge strips are dimmed, not brightened — a transparent gutter would dim them just the same.
+            val block = renderMagnifiedSlot(219)
+            try {
+                val strips =
+                    mapOf(
+                        "left" to listOf(0, 0, BLEED_SCALE, BLEED_SPAN),
+                        "right" to listOf(BLEED_SPAN - BLEED_SCALE, 0, BLEED_SPAN, BLEED_SPAN),
+                        "top" to listOf(0, 0, BLEED_SPAN, BLEED_SCALE),
+                        "bottom" to listOf(0, BLEED_SPAN - BLEED_SCALE, BLEED_SPAN, BLEED_SPAN),
+                    )
+                strips.forEach { (edge, r) ->
+                    withClue("'█' must stay solid along its $edge edge") {
+                        block.averageColor(r[0], r[1], r[2], r[3]).r.toDouble() shouldBeGreaterThan
+                            BLEED_SOLID_MEAN
+                    }
+                }
+            } finally {
+                block.dispose()
+            }
+        }
 })
+
+// The committed atlas-gutter shape (krogue-wcw). A magnified draw is the case that samples past a region
+// edge at all: at BLEED_SCALE the outermost drawn pixels reach past it, so a tight page puts the
+// neighbour's ink there and a padded one puts the cell's own edge texel. The thresholds sit either side of
+// that gulf, measured on real pixels (macOS, `freetypeVerify`): un-fixed, '▄'s empty half reads a decaying
+// 48/25/9 in from its edge and '█'s edge strips drop to 0.78-0.88 of solid; with the gutter, 0 and 0.99+. A small cell keeps the
+// capture (BLEED_SPAN square) cheap — this spec is about the packing, not about glyph shape, which the
+// crispness specs above own at their own sizes. Internal so the macOS `freetypeVerify` harness mirror
+// measures the same geometry from the same literals.
+internal const val BLEED_CELL = 16
+internal const val BLEED_SCALE = 8
+internal const val BLEED_SPAN = BLEED_CELL * BLEED_SCALE
+internal const val BLEED_CLEAR_PEAK = 16
+internal const val BLEED_SOLID_MEAN = 0.95
+
+/**
+ * Renders CP437 [slot] alone, magnified [BLEED_SCALE]× from a [BLEED_CELL] atlas cell, by blitting the
+ * source's region **directly** into the capture FBO (a SpriteBatch, no AsciiTileWindow), white on black.
+ *
+ * Magnification is the whole point: at 1:1 the sample lands on the texel centre and no packing defect can
+ * show. Drawing the region alone (rather than a grid of them) is deliberate too — what the cell may sample
+ * has to come from the ATLAS's neighbour, not from another quad drawn beside it.
+ */
+private fun renderMagnifiedSlot(slot: Int): Pixmap =
+    HeadlessGl.render(BLEED_SPAN, BLEED_SPAN, Color.BLACK) {
+        val source = Fonts.cascadiaMono(BLEED_CELL, BLEED_CELL)
+        val batch = SpriteBatch()
+        val cam =
+            OrthographicCamera().apply {
+                setToOrtho(false, BLEED_SPAN.toFloat(), BLEED_SPAN.toFloat())
+                update()
+            }
+        batch.projectionMatrix = cam.combined
+        batch.color = Color.WHITE
+        batch.begin()
+        try {
+            source.glyph(Char(slot))?.let { region ->
+                batch.draw(region, 0f, 0f, BLEED_SPAN.toFloat(), BLEED_SPAN.toFloat())
+            }
+        } finally {
+            batch.end()
+            batch.dispose()
+            source.dispose()
+        }
+    }
+
+/**
+ * Peak intensity (0–255) over the half-open rectangle `[x0, x1) x [y0, y1)` of [pix] — a *peak* rather than
+ * a mean because a bleed that touches only the outermost column would average away to nothing.
+ *
+ * Internal so the macOS `freetypeVerify` harness measures the gutter exactly as the committed spec does.
+ */
+internal fun peakIn(
+    pix: Pixmap,
+    x0: Int,
+    y0: Int,
+    x1: Int,
+    y1: Int,
+): Int {
+    var peak = 0
+    for (y in y0 until y1) {
+        for (x in x0 until x1) {
+            val v = pix.getPixel(x, y) ushr 24 and 0xFF
+            if (v > peak) peak = v
+        }
+    }
+    return peak
+}
 
 // Cell sizes for the krogue-9x7.6 cache round trip: build at CACHE_CELL, resize away to CACHE_OTHER_CELL,
 // then back. Small (a 16px cell is a 256x256 page at ss=4) because the assertion is about *whether* the
