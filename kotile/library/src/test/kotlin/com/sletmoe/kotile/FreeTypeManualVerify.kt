@@ -1292,6 +1292,37 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
             "  CELLFILL blocks  █=$blockFill  ▄[bottom=$lowerBottom top=$lowerTop]" +
                 " ▀[top=$upperTop bottom=$upperBottom]",
         )
+
+        // krogue-5uw: the SAME two checks with snap ON — mirroring the committed
+        // "half blocks keep their orientation" spec, from the same `grid` helper, cell size and sample
+        // rects, differing only in `snap = true`. This is the pair that reads the master through
+        // `bottomUpRowStart`; the plain pair above never runs that code, so only these go red if the row
+        // inversion is dropped and the page comes out vertically mirrored.
+        val snapLower = grid(listOf(220), cols = 1, rows = 1, snap = true)
+        val snapLowerBottom = snapLower.averageColor(0, half + 1, SEAM_CELL, SEAM_CELL).r
+        val snapLowerTop = snapLower.averageColor(0, 0, SEAM_CELL, half - 1).r
+        snapLower.dispose()
+        report(
+            "5uw [snap]: '▄' inks the cell's bottom half (>0.95)",
+            snapLowerBottom > 0.95f,
+            "bottom=$snapLowerBottom",
+        )
+        report("5uw [snap]: '▄' leaves the top half empty (<0.05)", snapLowerTop < 0.05f, "top=$snapLowerTop")
+
+        val snapUpper = grid(listOf(223), cols = 1, rows = 1, snap = true)
+        val snapUpperTop = snapUpper.averageColor(0, 0, SEAM_CELL, half - 1).r
+        val snapUpperBottom = snapUpper.averageColor(0, half + 1, SEAM_CELL, SEAM_CELL).r
+        snapUpper.dispose()
+        report("5uw [snap]: '▀' inks the cell's top half (>0.95)", snapUpperTop > 0.95f, "top=$snapUpperTop")
+        report(
+            "5uw [snap]: '▀' leaves the bottom half empty (<0.05)",
+            snapUpperBottom < 0.05f,
+            "bottom=$snapUpperBottom",
+        )
+        println(
+            "  CELLFILL blocks [snap]  ▄[bottom=$snapLowerBottom top=$snapLowerTop]" +
+                " ▀[top=$snapUpperTop bottom=$snapUpperBottom]",
+        )
     }
 
     /**
