@@ -260,6 +260,57 @@ class FreeTypeGlyphSource internal constructor(
         private set
 
     /**
+     * Wall-clock nanos the **last** [rasterize] spent in each of its stages (krogue-4jh). Exposed
+     * (module-internal) for the profiling harness: krogue-9x7.6 measured that the shift search is a
+     * minority of a resize's cost, and the only way to find where the rest goes is from inside
+     * [rasterize] — every stage below is private. Stages that did not run for a given configuration stay
+     * 0 (e.g. [halveNanos] on the snap path, [downsampleNanos] on the GPU path), so they sum to at most
+     * [totalNanos]; the remainder is the un-attributed glue (FBO allocation, region rebuild).
+     *
+     * **These are only attributable when [profileSyncGl] is set.** GL commands queue asynchronously, so
+     * without a sync point at each boundary the GPU work bills to whichever later stage happens to block
+     * on it — which for this pipeline is the `glReadPixels` inside [readbackNanos], making the render
+     * look free and the read-back look enormous.
+     */
+    internal class RasterizeTiming {
+        var fontGenNanos = 0L
+        var renderNanos = 0L
+        var halveNanos = 0L
+        var readbackNanos = 0L
+        var flipNanos = 0L
+        var downsampleNanos = 0L
+        var brightnessNanos = 0L
+        var padNanos = 0L
+        var uploadNanos = 0L
+        var totalNanos = 0L
+    }
+
+    /** Per-stage timings of the last [rasterize]; see [RasterizeTiming]. */
+    internal val lastTiming = RasterizeTiming()
+
+    /**
+     * When set, [rasterize] issues a `glFinish` at every stage boundary so each stage is billed the GPU
+     * work it actually caused (see [RasterizeTiming]). Costs a full pipeline stall per stage, so it is
+     * for the profiling harness only — never set in production.
+     */
+    internal var profileSyncGl: Boolean = false
+
+    /**
+     * Runs [block], then (under [profileSyncGl]) drains the GL pipeline, and reports the elapsed nanos to
+     * [sink]. Inline so the timing wrapper adds no allocation or call overhead to the measured stage.
+     */
+    private inline fun <T> timed(
+        sink: (Long) -> Unit,
+        block: () -> T,
+    ): T {
+        val start = System.nanoTime()
+        val result = block()
+        if (profileSyncGl) Gdx.gl.glFinish()
+        sink(System.nanoTime() - start)
+        return result
+    }
+
+    /**
      * Per-glyph shift-search results, keyed by the rasterise geometry (krogue-9x7.6). The search is a
      * deterministic function of the supersampled master, and for a fixed face that master is determined by
      * the cell size and the effective supersample — so a size this source has rasterised before can reuse
@@ -348,6 +399,19 @@ class FreeTypeGlyphSource internal constructor(
         }
         effectiveSupersample = ss
         lastShiftSearchCount = 0
+        val rasterizeStart = System.nanoTime()
+        with(lastTiming) {
+            fontGenNanos = 0L
+            renderNanos = 0L
+            halveNanos = 0L
+            readbackNanos = 0L
+            flipNanos = 0L
+            downsampleNanos = 0L
+            brightnessNanos = 0L
+            padNanos = 0L
+            uploadNanos = 0L
+            totalNanos = 0L
+        }
 
         // TEXT fit centres the font's *full ink box* (ascender-to-descender, incl. ring/accented caps) in
         // the cell (see [drawTextGlyph]). That box is taller than the em for typical faces, so rasterising
@@ -356,7 +420,7 @@ class FreeTypeGlyphSource internal constructor(
         // clip). Shrink the rasterised em so the ink box fits. TILE fit already scale-fits each glyph per
         // cell, so it keeps the full em — a smaller master would only blur its per-glyph upscale.
         val em = if (fit == GlyphFit.TEXT) textEmSize(h * ss) else h * ss
-        val font = generateGlyphFont(em, ss)
+        val font = timed({ lastTiming.fontGenNanos = it }) { generateGlyphFont(em, ss) }
 
         // Each intermediate FBO / the font / the read-back pixmap is released even if a GL step throws
         // (an allocation or incomplete-FBO GdxRuntimeException) — the caller has no handle to these.
@@ -366,52 +430,61 @@ class FreeTypeGlyphSource internal constructor(
                     // 1. Render every glyph centred in its ss-sized cell.
                     var buffer = FrameBuffer(Pixmap.Format.RGBA8888, atlasW * ss, atlasH * ss, false)
                     try {
-                        renderGlyphs(buffer, font, w * ss, h * ss)
+                        timed({ lastTiming.renderNanos = it }) { renderGlyphs(buffer, font, w * ss, h * ss) }
                         if (snapToPixelGrid && ss > 1) {
                             // 2a. Per-glyph shift-search downsample (Brogue's optimizeTiles technique): read
                             // the supersampled master back and align each glyph to the output-pixel grid on
                             // the CPU (see shiftSearchDownsample). Bypasses the GPU halving passes.
-                            buffer.begin()
-                            val rawMaster = Pixmap.createFromFrameBuffer(0, 0, atlasW * ss, atlasH * ss)
-                            buffer.end()
-                            val masterUp =
-                                try {
-                                    flipY(rawMaster)
-                                } finally {
-                                    rawMaster.dispose()
+                            // The read-back is left BOTTOM-UP and handed over as-is: the downsamplers index
+                            // the master by hand, so they invert the row for free (krogue-5uw) rather than
+                            // paying a whole flipY copy of a pixmap that is ss² times the atlas's area.
+                            val master =
+                                timed({ lastTiming.readbackNanos = it }) {
+                                    buffer.begin()
+                                    val px = Pixmap.createFromFrameBuffer(0, 0, atlasW * ss, atlasH * ss)
+                                    buffer.end()
+                                    px
                                 }
                             try {
-                                if (bandScale) {
-                                    bandScaleDownsample(masterUp, w, h, ss)
-                                } else {
-                                    shiftSearchDownsample(masterUp, w, h, ss)
+                                timed({ lastTiming.downsampleNanos = it }) {
+                                    if (bandScale) {
+                                        bandScaleDownsample(master, w, h, ss)
+                                    } else {
+                                        shiftSearchDownsample(master, w, h, ss)
+                                    }
                                 }
                             } finally {
-                                masterUp.dispose()
+                                master.dispose()
                             }
                         } else {
                             // 2b. Halve — gamma-correct, in linear light — until the atlas is at cell resolution.
-                            var scale = ss
-                            while (scale > 1) {
-                                val half =
-                                    FrameBuffer(Pixmap.Format.RGBA8888, buffer.width / 2, buffer.height / 2, false)
-                                var halved = false
-                                try {
-                                    gammaHalve(half, buffer)
-                                    halved = true
-                                } finally {
-                                    if (!halved) half.dispose() // gammaHalve threw; don't leak this FBO
+                            timed({ lastTiming.halveNanos = it }) {
+                                var scale = ss
+                                while (scale > 1) {
+                                    val half =
+                                        FrameBuffer(Pixmap.Format.RGBA8888, buffer.width / 2, buffer.height / 2, false)
+                                    var halved = false
+                                    try {
+                                        gammaHalve(half, buffer)
+                                        halved = true
+                                    } finally {
+                                        if (!halved) half.dispose() // gammaHalve threw; don't leak this FBO
+                                    }
+                                    buffer.dispose()
+                                    buffer = half
+                                    scale /= 2
                                 }
-                                buffer.dispose()
-                                buffer = half
-                                scale /= 2
                             }
                             // 3. Read the cell-resolution atlas back, upright (FBO pixels are bottom-up).
-                            buffer.begin()
-                            val raw = Pixmap.createFromFrameBuffer(0, 0, atlasW, atlasH)
-                            buffer.end()
+                            val raw =
+                                timed({ lastTiming.readbackNanos = it }) {
+                                    buffer.begin()
+                                    val px = Pixmap.createFromFrameBuffer(0, 0, atlasW, atlasH)
+                                    buffer.end()
+                                    px
+                                }
                             try {
-                                flipY(raw)
+                                timed({ lastTiming.flipNanos = it }) { flipY(raw) }
                             } finally {
                                 raw.dispose()
                             }
@@ -426,7 +499,9 @@ class FreeTypeGlyphSource internal constructor(
 
         // Per-glyph brightness curve (krogue-9x7.3): lift each cell's ink toward full opacity so thin
         // glyphs aren't dim. Runs on the small cell-resolution atlas, once per rasterise; 1f = no-op.
-        if (glyphBrightness > 1f) applyPerGlyphBrightness(upright, w, h)
+        if (glyphBrightness > 1f) {
+            timed({ lastTiming.brightnessNanos = it }) { applyPerGlyphBrightness(upright, w, h) }
+        }
 
         // Repack the tight page with an extruded gutter around every cell before upload (krogue-wcw,
         // ADR-0044): the page is Linear-filtered, so a cell drawn at a magnifying scale samples past its
@@ -434,16 +509,20 @@ class FreeTypeGlyphSource internal constructor(
         // works on the tight page — the per-cell scissor, the downsample strides, the brightness curve —
         // so the gutter is added once, here, where the atlas becomes a texture.
         val page =
-            try {
-                GlyphAtlasPadding.padded(upright, COLUMNS, ROWS, w, h)
-            } finally {
-                upright.dispose()
+            timed({ lastTiming.padNanos = it }) {
+                try {
+                    GlyphAtlasPadding.padded(upright, COLUMNS, ROWS, w, h)
+                } finally {
+                    upright.dispose()
+                }
             }
         val newAtlas =
-            try {
-                Texture(page).apply { setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear) }
-            } finally {
-                page.dispose()
+            timed({ lastTiming.uploadNanos = it }) {
+                try {
+                    Texture(page).apply { setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear) }
+                } finally {
+                    page.dispose()
+                }
             }
 
         atlas?.dispose()
@@ -460,6 +539,7 @@ class FreeTypeGlyphSource internal constructor(
             }
         charWidthPx = w
         charHeightPx = h
+        lastTiming.totalNanos = System.nanoTime() - rasterizeStart
     }
 
     /**
@@ -954,15 +1034,36 @@ class FreeTypeGlyphSource internal constructor(
     }
 
     /**
+     * Byte-buffer index of the first pixel of **upright** row [uprightRow] in a [masterW]x[masterH]
+     * **bottom-up** master.
+     *
+     * An FBO read-back is stored bottom-up, and the snap path used to spend a whole `flipY` copy of the
+     * *supersampled* master (a 3072x3072 RGBA pixmap at a 48px cell) just to correct that — 26–38% of a
+     * rasterise, per the krogue-4jh profile. Its only consumers index the master by hand, so krogue-5uw
+     * keeps the read-back in its native orientation and inverts the row here instead: one subtraction
+     * per row, no copy and no allocation. This is the single place the orientation is handled — every
+     * caller below thinks in upright rows.
+     */
+    private fun bottomUpRowStart(
+        uprightRow: Int,
+        masterW: Int,
+        masterH: Int,
+    ): Int = (masterH - 1 - uprightRow) * masterW
+
+    /**
      * Fills [sat] (size `(mW+1)·(mH+1)`, cleared first) with the per-cell summed-area table of master
-     * alpha for the cell at master origin ([mx0], [my0]) in the [masterW]-wide [buf]: `sat[y·(mW+1)+x] =
-     * Σ alpha over master `[0,x) × [0,y)``, so any axis-aligned box average over the cell is O(1). Shared
-     * by [shiftSearchDownsample] and [bandScaleDownsample].
+     * alpha for the cell at **upright** master origin ([mx0], [my0]) in the [masterW]x[masterH] [buf]:
+     * `sat[y·(mW+1)+x] = Σ alpha over master `[0,x) × [0,y)``, so any axis-aligned box average over the
+     * cell is O(1). Shared by [shiftSearchDownsample] and [bandScaleDownsample].
+     *
+     * [buf] is the **bottom-up** read-back (see [bottomUpRowStart]); `sat` comes out in upright rows, so
+     * everything downstream of it is orientation-free.
      */
     private fun buildCellSat(
         buf: java.nio.ByteBuffer,
         sat: IntArray,
         masterW: Int,
+        masterH: Int,
         mx0: Int,
         my0: Int,
         mW: Int,
@@ -971,7 +1072,7 @@ class FreeTypeGlyphSource internal constructor(
         val satW = mW + 1
         java.util.Arrays.fill(sat, 0)
         for (my in 0 until mH) {
-            val srcBase = (my0 + my) * masterW + mx0
+            val srcBase = bottomUpRowStart(my0 + my, masterW, masterH) + mx0
             val satRow = (my + 1) * satW
             val satPrev = my * satW
             var rowSum = 0
@@ -1046,19 +1147,22 @@ class FreeTypeGlyphSource internal constructor(
      * non-copyrightable method — **no Brogue code is copied**, so it does not trigger AGPL. The credit is
      * provenance, not a licence grant. See docs/adr/0037 for the full reasoning.
      *
-     * For each CP437 cell of the supersampled [masterUp] (white glyph, coverage in alpha) it tries a grid
+     * For each CP437 cell of the supersampled [master] (white glyph, coverage in alpha) it tries a grid
      * of sub-pixel offsets, box-downsamples the master cell to [w]x[h] at each, and keeps the offset that
      * **minimises Brogue's blur metric** `Σ sin(π·coverage)` — the sum is smallest when the fewest pixels
      * are half-lit (grey-edged), i.e. when stems land squarely on output pixels. A per-cell summed-area
      * table makes each box average O(1), so the whole search is one CPU pass rather than [ss]² GL
-     * readbacks. Coverage is straight-averaged, matching [GammaDownsample]'s alpha handling. Returns the
-     * cell-resolution atlas (white RGB, aligned alpha), upright.
+     * readbacks. Coverage is straight-averaged, matching [GammaDownsample]'s alpha handling.
+     *
+     * [master] is the raw **bottom-up** FBO read-back — the row inversion happens for free inside
+     * [buildCellSat] (krogue-5uw) — and the returned cell-resolution atlas (white RGB, aligned alpha) is
+     * **upright**.
      *
      * The winning offsets are memoised in [shiftCache] under this geometry (krogue-9x7.6): a repeat of a
      * cell size skips the search and goes straight to [emitCell] with the offsets it won last time.
      */
     private fun shiftSearchDownsample(
-        masterUp: Pixmap,
+        master: Pixmap,
         w: Int,
         h: Int,
         ss: Int,
@@ -1073,8 +1177,9 @@ class FreeTypeGlyphSource internal constructor(
             }
         val mW = w * ss // master cell width
         val mH = h * ss // master cell height
-        val masterW = masterUp.width
-        val buf = masterUp.pixels // RGBA8888 ByteBuffer; alpha is the 4th byte of each pixel
+        val masterW = master.width
+        val masterH = master.height
+        val buf = master.pixels // RGBA8888 ByteBuffer; alpha is the 4th byte of each pixel
         val ssArea = (ss * ss).toFloat()
         val step = (ss / 4).coerceAtLeast(1) // sub-pixel search resolution: quarter of an output pixel
         val satW = mW + 1
@@ -1091,7 +1196,7 @@ class FreeTypeGlyphSource internal constructor(
             val mx0 = col * mW
             val my0 = row * mH
 
-            buildCellSat(buf, sat, masterW, mx0, my0, mW, mH)
+            buildCellSat(buf, sat, masterW, masterH, mx0, my0, mW, mH)
 
             // Cell-filling glyphs sit out the translation search — it would slide ink off a pinned cell
             // edge — and get the edge-pinning stroke warp instead (see [emitCellFillingCell]).
@@ -1524,17 +1629,19 @@ class FreeTypeGlyphSource internal constructor(
      * search** (Brogue keeps the horizontal search active for text). Each output pixel is a box average
      * over an integer-width x-span and a **fractional-height** y-band (linearly interpolated through the
      * per-cell summed-area table), divided by the actual box area. If `x` has no measurable ink it falls
-     * back to the uniform [shiftSearchDownsample]. Returns the cell-resolution atlas, upright.
+     * back to the uniform [shiftSearchDownsample]. [master] is the raw **bottom-up** FBO read-back (the
+     * row inversion lives in [buildCellSat] / [measureXBand], krogue-5uw); the returned cell-resolution
+     * atlas is **upright**.
      */
     private fun bandScaleDownsample(
-        masterUp: Pixmap,
+        master: Pixmap,
         w: Int,
         h: Int,
         ss: Int,
     ): Pixmap {
         val mW = w * ss
         val mH = h * ss
-        val xBand = measureXBand(masterUp, mW, mH) ?: return shiftSearchDownsample(masterUp, w, h, ss)
+        val xBand = measureXBand(master, mW, mH) ?: return shiftSearchDownsample(master, w, h, ss)
 
         // Source (master) rows of the x-height top and baseline, shared by every cell. Baseline sits just
         // below the bottom inked row of `x`.
@@ -1572,8 +1679,9 @@ class FreeTypeGlyphSource internal constructor(
                 setColor(0f, 0f, 0f, 0f)
                 fill()
             }
-        val masterW = masterUp.width
-        val buf = masterUp.pixels
+        val masterW = master.width
+        val masterH = master.height
+        val buf = master.pixels
         val step = (ss / 4).coerceAtLeast(1) // horizontal sub-pixel search resolution: quarter of a pixel
         val sxs = (0 until ss step step).toList()
         val satW = mW + 1
@@ -1595,7 +1703,7 @@ class FreeTypeGlyphSource internal constructor(
             val mx0 = col * mW
             val my0 = row * mH
 
-            buildCellSat(buf, sat, masterW, mx0, my0, mW, mH)
+            buildCellSat(buf, sat, masterW, masterH, mx0, my0, mW, mH)
 
             // Cell-filling glyphs sit out both the band warp and the shift search: their cell edges are
             // already pinned to the cell rect, and either transform would pull ink off one of them — see
@@ -1664,9 +1772,12 @@ class FreeTypeGlyphSource internal constructor(
      * outline. The half-peak threshold locks onto the solid stroke rather than faint anti-aliased tails,
      * so the measured band matches the visible x-height. Since [drawTextGlyph] shares a baseline across
      * all glyphs, this one measurement fixes the band for the whole page.
+     *
+     * [master] is the **bottom-up** read-back; the returned rows are cell-local **upright** rows (see
+     * [bottomUpRowStart]).
      */
     private fun measureXBand(
-        masterUp: Pixmap,
+        master: Pixmap,
         mW: Int,
         mH: Int,
     ): Pair<Int, Int>? {
@@ -1674,11 +1785,12 @@ class FreeTypeGlyphSource internal constructor(
         val row = X_SLOT / COLUMNS
         val mx0 = col * mW
         val my0 = row * mH
-        val masterW = masterUp.width
-        val buf = masterUp.pixels
+        val masterW = master.width
+        val masterH = master.height
+        val buf = master.pixels
         var peak = 0
         for (my in 0 until mH) {
-            val base = (my0 + my) * masterW + mx0
+            val base = bottomUpRowStart(my0 + my, masterW, masterH) + mx0
             for (mx in 0 until mW) {
                 val a = buf.get((base + mx) * 4 + 3).toInt() and 0xFF
                 if (a > peak) peak = a
@@ -1689,7 +1801,7 @@ class FreeTypeGlyphSource internal constructor(
         var top = -1
         var bottom = -1
         for (my in 0 until mH) {
-            val base = (my0 + my) * masterW + mx0
+            val base = bottomUpRowStart(my0 + my, masterW, masterH) + mx0
             var rowMax = 0
             for (mx in 0 until mW) {
                 val a = buf.get((base + mx) * 4 + 3).toInt() and 0xFF
@@ -1703,7 +1815,13 @@ class FreeTypeGlyphSource internal constructor(
         return if (top < 0) null else top to bottom
     }
 
-    /** Returns a vertically flipped copy of [src], one row per native blit (not per pixel). */
+    /**
+     * Returns a vertically flipped copy of [src], one row per native blit (not per pixel).
+     *
+     * Only the GPU-halving path uses this, where [src] is the small **cell-resolution** atlas. The snap
+     * path deliberately does not: its read-back is the *supersampled* master (ss² times the area), and
+     * copying it cost 26–38% of a rasterise until krogue-5uw folded the flip into [bottomUpRowStart].
+     */
     private fun flipY(src: Pixmap): Pixmap {
         val dst = Pixmap(src.width, src.height, Pixmap.Format.RGBA8888).apply { blending = Pixmap.Blending.None }
         for (y in 0 until src.height) {

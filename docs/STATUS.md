@@ -428,6 +428,50 @@ then given a tested ECS foundation:
   Still no *offline* all-sizes precompute (Brogue's `optimizeTiles` startup pass); this
   cache is per-instance and fills as sizes are visited. **Rationale:** ADR-0037 (shift
   search) + ADR-0038 (band scaling) + ADR-0040 (cell-filling) + ADR-0041 (stroke edge snap).
+  **Where a rasterise's time actually goes (krogue-4jh, done).** `rasterize` now records
+  per-stage nanos (`lastTiming`, module-internal, like `lastShiftSearchCount`), and
+  `:kotile:library:freetypeProfile` prints the split. GL queues asynchronously, so the
+  harness sets `profileSyncGl` to `glFinish` at every stage boundary — without it the GPU
+  work bills to whichever later call blocks on it (the read-back), making the render look
+  free; the *unsynced* total is reported alongside as the honest end-to-end number. M1 Pro,
+  `snapToPixelGrid`, ss=4, median of 5 fresh-source (cache-miss) rasterises — **measurement,
+  not a benchmark**:
+
+  | stage | TEXT 20px | TEXT 32px | TEXT 48px | TILE 48px |
+  |---|---|---|---|---|
+  | freetype `generateFont` | 10.9ms (40%) | 20.0ms (37%) | 39.2ms (34%) | 60.5ms (36%) |
+  | GL render of master | 1.9ms (7%) | 2.2ms (4%) | 4.6ms (4%) | 3.7ms (2%) |
+  | read-back (`glReadPixels`) | 1.5ms (5%) | 1.1ms (2%) | 2.0ms (2%) | 2.0ms (1%) |
+  | **`flipY`** | **7.8ms (29%)** | **19.2ms (36%)** | **44.1ms (38%)** | **44.1ms (26%)** |
+  | CPU downsample + search | 4.8ms (17%) | 10.8ms (20%) | 23.2ms (20%) | 57.3ms (34%) |
+  | atlas texture upload | 0.2ms | 0.3ms | 0.6ms | 0.6ms |
+  | **total (unsynced)** | **26.9ms** | **54.1ms** | **114.1ms** | **168.8ms** |
+
+  Three findings. (1) The bead's two named suspects were **wrong**: the read-back is 1–5%
+  and the texture upload under 1%, so a 3072x3072 `glReadPixels` is simply not the problem —
+  don't optimise it. (2) **`flipY` was the surprise** — 26–38% of a rasterise, and a *pure
+  memory copy* of the supersampled master (one `drawPixmap` per row of a 3072x3072 RGBA
+  pixmap at a 48px cell) that existed only to invert a row index → fixed, see below.
+  (3) `generateFont` is the largest single stage at every size and is **not** covered by the
+  shift cache, so it is paid in full even on a revisited size — which is why a cached
+  rasterise is only ~10–15% cheaper than a searching one (25.4 vs 26.9ms at 20px TEXT) →
+  **krogue-21z**. The GPU gamma-halving row is absent because the snap path bypasses it, and
+  the brightness curve is a no-op at the default 1f.
+  **The flip is gone (krogue-5uw, done).** The snap path now hands the raw **bottom-up**
+  read-back straight to the downsamplers; the row inversion lives in one private
+  `bottomUpRowStart(uprightRow, masterW, masterH)`, called from the only two places that
+  read the master by index (`buildCellSat`, `measureXBand`). One subtraction per row instead
+  of a whole-master copy — everything downstream still thinks in upright rows, and the
+  emitted atlas is unchanged. `flipY` survives for the GPU-halving path, where the pixmap is
+  the small *cell-resolution* atlas rather than the ss²-times-larger master. A resize now
+  costs **19.6ms at 20px TEXT (was 26.9), 70.1ms at 48px TEXT (was 114.1), and 123.7ms at
+  48px TILE (was 168.8)** — 27–39% off, with `generateFont` now the majority stage (48–57%).
+  Verified by rendering every `freetypeVerify` PNG before and after the change and comparing
+  them **byte-for-byte**: all 11 identical, including the snap-path dumps
+  (`freetype-brogue`, `freetype-bandscale`, `freetype-9x7.3-demo`), with `ALL PASSED` on both
+  runs. That exact-diff is the check that matters here — a wrong inversion would shift every
+  glyph one master row (a quarter of an output pixel at ss=4), which is a crispness
+  regression, not a crash.
 - **Artist tilesheet glyph source (krogue-9x7.7, ADR-0043).** `TileSheetGlyphSource` is the
   third way to author a cell, next to the bitmap `Font` and the freetype face: one
   **high-resolution** hand-drawn PNG (Brogue's route — its `tiles.png` is 128x232 px per
