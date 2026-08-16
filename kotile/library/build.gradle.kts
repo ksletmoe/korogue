@@ -115,6 +115,19 @@ tasks.register<JavaExec>("freetypeVerify") {
     doFirst { logger.lifecycle("Rendering freetype chart to: $outFile") }
 }
 
+// Stage-level profile of FreeTypeGlyphSource.rasterize (krogue-4jh): prints where a resize's wall-clock
+// actually goes (freetype generateFont / GL render / read-back / CPU downsample / upload), synced with
+// glFinish so GPU work bills to its own stage. Measurement tooling, not a gate — nothing asserts.
+tasks.register<JavaExec>("freetypeProfile") {
+    group = "verification"
+    description = "Attributes FreeTypeGlyphSource.rasterize's time per stage (macOS main-thread GL)."
+    mainClass.set("com.sletmoe.kotile.FreeTypeProfileKt")
+    classpath = sourceSets["test"].runtimeClasspath
+    if (org.gradle.internal.os.OperatingSystem.current().isMacOsX) {
+        jvmArgs("-XstartOnFirstThread")
+    }
+}
+
 // macOS-only manual verification for the artist tilesheet glyph source (krogue-9x7.7): reproduces the
 // committed GL specs' geometry and GL state (per-check window size, capture FBO, sample rects), prints
 // PASS/FAIL, and dumps each capture as a PNG to eyeball. Forks a JVM with -XstartOnFirstThread and uses

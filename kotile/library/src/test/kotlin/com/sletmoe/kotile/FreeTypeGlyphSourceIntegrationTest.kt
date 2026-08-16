@@ -525,6 +525,41 @@ class FreeTypeGlyphSourceIntegrationTest : FunSpec({
             }
         }
 
+    // --- krogue-5uw: the snap path reads the framebuffer read-back in its native BOTTOM-UP orientation and
+    // inverts the row as it goes (`bottomUpRowStart`) instead of materialising a flipped copy of the
+    // supersampled master. Orientation is the one thing that regression can break, and none of the specs
+    // above can see it: the half-block spec that *does* assert orientation runs with snapToPixelGrid off,
+    // so it never executes the code that reads the master at all. ---
+
+    test("FreeTypeGlyphSource snapToPixelGrid: half blocks keep their orientation (krogue-5uw)")
+        .config(enabled = HeadlessGl.available) {
+            // Drop the inversion in `bottomUpRowStart` and the whole page comes out vertically mirrored:
+            // '▄' inks the cell's TOP half and '▀' its bottom. It still fills exactly half a cell, with the
+            // seams and extents intact, so every fill/coverage/seam assertion in this file stays green —
+            // only the orientation moves. Snap routes these two through `emitCellFillingCell`'s edge-pinning
+            // warp, but that reads the same per-cell SAT `buildCellSat` fills, so the mirrored master
+            // reaches it either way.
+            val half = SEAM_CELL / 2
+            val lower = renderSlotGrid(listOf(220), cols = 1, rows = 1, snapToPixelGrid = true)
+            try {
+                withClue("'▄' under snap must ink the BOTTOM half — a mirrored master inks the top") {
+                    lower.averageColor(0, half + 1, SEAM_CELL, SEAM_CELL).r.toDouble() shouldBeGreaterThan 0.95
+                    lower.averageColor(0, 0, SEAM_CELL, half - 1).r.toDouble() shouldBeLessThan 0.05
+                }
+            } finally {
+                lower.dispose()
+            }
+            val upper = renderSlotGrid(listOf(223), cols = 1, rows = 1, snapToPixelGrid = true)
+            try {
+                withClue("'▀' under snap must ink the TOP half — a mirrored master inks the bottom") {
+                    upper.averageColor(0, 0, SEAM_CELL, half - 1).r.toDouble() shouldBeGreaterThan 0.95
+                    upper.averageColor(0, half + 1, SEAM_CELL, SEAM_CELL).r.toDouble() shouldBeLessThan 0.05
+                }
+            } finally {
+                upper.dispose()
+            }
+        }
+
     // --- krogue-9x7.6: the per-glyph shift search is memoised per rasterise geometry, so a resize back to a
     // cell size this source has already built pays only the downsample. It is a pure memoisation — the atlas
     // is unchanged, so `lastShiftSearchCount` is the only place a hit is visible, and the exact pixel
