@@ -435,7 +435,9 @@ then given a tested ECS foundation:
   work bills to whichever later call blocks on it (the read-back), making the render look
   free; the *unsynced* total is reported alongside as the honest end-to-end number. M1 Pro,
   `snapToPixelGrid`, ss=4, median of 5 fresh-source (cache-miss) rasterises — **measurement,
-  not a benchmark**:
+  not a benchmark**. This is the **pre-fix** profile, and predates ADR-0044's gutter repack;
+  it is the diagnostic that motivated the change below, not the current cost (for which see
+  the same-base before/after further down):
 
   | stage | TEXT 20px | TEXT 32px | TEXT 48px | TILE 48px |
   |---|---|---|---|---|
@@ -463,15 +465,29 @@ then given a tested ECS foundation:
   read the master by index (`buildCellSat`, `measureXBand`). One subtraction per row instead
   of a whole-master copy — everything downstream still thinks in upright rows, and the
   emitted atlas is unchanged. `flipY` survives for the GPU-halving path, where the pixmap is
-  the small *cell-resolution* atlas rather than the ss²-times-larger master. A resize now
-  costs **19.6ms at 20px TEXT (was 26.9), 70.1ms at 48px TEXT (was 114.1), and 123.7ms at
-  48px TILE (was 168.8)** — 27–39% off, with `generateFont` now the majority stage (48–57%).
-  Verified by rendering every `freetypeVerify` PNG before and after the change and comparing
-  them **byte-for-byte**: all 11 identical, including the snap-path dumps
+  the small *cell-resolution* atlas rather than the ss²-times-larger master.
+
+  Measured **same-base** — both sides on this tree, ADR-0044's gutter included, differing
+  only in the flip (the "before" side reinstates it and was confirmed to reproduce mainline's
+  output byte-for-byte first, so it is a faithful control rather than an older commit):
+
+  | | before | after |
+  |---|---|---|
+  | TEXT 20px | 27.8ms | **19.8ms** (−29%) |
+  | TEXT 48px | 117.4ms | **73.1ms** (−38%) |
+  | TILE 48px | 174.4ms | **127.9ms** (−27%) |
+
+  `generateFont` is now the majority stage (47–55%) → **krogue-21z**. ADR-0044's gutter
+  repack shows up as its own stage at 0.7–3.2ms (2.5–4.4%) — a whole-page copy, but of the
+  *cell-resolution* page, which is exactly why it costs a fraction of what flipping the
+  supersampled master did.
+
+  Verified by rendering every `freetypeVerify` PNG from plain `mainline` and from this branch
+  and comparing them **byte-for-byte**: all 11 identical, including the snap-path dumps
   (`freetype-brogue`, `freetype-bandscale`, `freetype-9x7.3-demo`), with `ALL PASSED` on both
   runs. That exact-diff is the check that matters here — a wrong inversion would shift every
   glyph one master row (a quarter of an output pixel at ss=4), which is a crispness
-  regression, not a crash.
+  regression, not a crash, and no smoke assertion would catch it.
 - **Artist tilesheet glyph source (krogue-9x7.7, ADR-0043).** `TileSheetGlyphSource` is the
   third way to author a cell, next to the bitmap `Font` and the freetype face: one
   **high-resolution** hand-drawn PNG (Brogue's route — its `tiles.png` is 128x232 px per
