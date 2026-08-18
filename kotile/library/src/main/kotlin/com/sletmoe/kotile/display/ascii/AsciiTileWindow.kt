@@ -181,6 +181,15 @@ class AsciiTileWindow private constructor(
     private var lastWidthPx: Int = 0
     private var lastHeightPx: Int = 0
 
+    // The mounted source's cell px *before* any [cellSizePx] re-rasterise. A size-parametric source
+    // overwrites charWidthPx when prepared for a chosen cell, so its original size is not otherwise
+    // recoverable — and clearing [cellSizePx] has to put it back.
+    private var nativeCellW: Int = initialGlyphSource.charWidthPx
+    private var nativeCellH: Int = initialGlyphSource.charHeightPx
+
+    // Whether the last layout came from [cellSizePx], so clearing it can undo the retile it did.
+    private var sizedByCellSizePx: Boolean = false
+
     /**
      * The on-screen cell size in **logical points**, or `null` to size cells automatically.
      *
@@ -289,10 +298,21 @@ class AsciiTileWindow private constructor(
         // Resolution-independent mode is a fixed grid too, but scaled by IntegerScale so that after
         // re-rasterising the glyph source to the on-screen cell px the grid renders 1:1 (scale 1), not
         // re-scaled. The first re-rasterise happens on the first resize.
+        applyAutomaticLayoutMode()
+    }
+
+    /**
+     * Puts the canvas into the layout mode this window's construction-time flags ask for. Called at
+     * construction, and again when [cellSizePx] is cleared — which reverts to exactly this sizing, so the
+     * two must not drift apart.
+     */
+    private fun applyAutomaticLayoutMode() {
         if (resolutionIndependent) {
-            canvas.useFixedGrid(this.widthInTiles, this.heightInTiles, IntegerScale)
+            canvas.useFixedGrid(widthInTiles, heightInTiles, IntegerScale)
         } else if (!fitToWindow) {
-            canvas.useFixedGrid(this.widthInTiles, this.heightInTiles, scalePolicy)
+            canvas.useFixedGrid(widthInTiles, heightInTiles, scalePolicy)
+        } else {
+            canvas.useReflow()
         }
     }
 
@@ -783,6 +803,18 @@ class AsciiTileWindow private constructor(
             resizeAtCellSize(widthPx, heightPx, chosenCell)
             return
         }
+        // Returning to automatic sizing after a chosen cell: undo that path's retile and re-rasterise,
+        // or the grid would keep reflowing at the last chosen size against a source still prepared for it.
+        if (sizedByCellSizePx) {
+            sizedByCellSizePx = false
+            glyphSource.prepareForCellSize(nativeCellW, nativeCellH)
+            if (glyphSource.charWidthPx != compositeCacheTileW || glyphSource.charHeightPx != compositeCacheTileH) {
+                rebuildCaches()
+            }
+            canvas.setNativeTileSize(glyphSource.charWidthPx, glyphSource.charHeightPx)
+            applyAutomaticLayoutMode()
+            compositeCache.markAllDirty()
+        }
         if (resolutionIndependent) {
             resizeResolutionIndependent(widthPx, heightPx)
             return
@@ -867,7 +899,12 @@ class AsciiTileWindow private constructor(
         // The chosen size is the *layout* size, not the atlas size: a source whose atlas came back
         // smaller (a bitmap page) is magnified into it by the blit rather than shrinking the cell.
         canvas.setNativeTileSize(cellLogical, cellLogical)
+        // The cell count has to follow the window here, so this path owns the layout mode: a window
+        // constructed resolutionIndependent or fitToWindow=false left the canvas on a fixed grid, whose
+        // scale policy would override the very cell size being requested.
+        canvas.useReflow()
         canvas.resize(widthPx, heightPx)
+        sizedByCellSizePx = true
         reflowGridToLayout()
         compositeCache.markAllDirty()
     }
@@ -944,20 +981,24 @@ class AsciiTileWindow private constructor(
         source: GlyphSource,
         owns: Boolean = true,
     ) {
+        if (disposed) return
         if (source === glyphSource) return
         // Mount first, release second: if the outgoing source throws on dispose, the window is already
         // holding the live replacement rather than a disposed one.
         val outgoing = glyphSource.takeIf { ownsGlyphSource }
         glyphSource = source
         ownsGlyphSource = owns
+        nativeCellW = source.charWidthPx
+        nativeCellH = source.charHeightPx
         outgoing?.dispose()
-        // Retile to the incoming source's native px, then resize the caches to match it.
         canvas.setNativeTileSize(source.charWidthPx, source.charHeightPx) // no-op if unchanged
-        rebuildCaches()
-        // Re-run the real sizing path so a size-parametric source is prepared for the on-screen cell
-        // (and the canvas layout follows). Skipped before the first resize, when there is no size yet —
-        // the imminent first resize will do it.
+        // Size first, rebuild after. The sizing path may re-rasterise a size-parametric source to a
+        // different atlas px than it arrived with, so rebuilding the caches before it would allocate a
+        // framebuffer pair that the resize then immediately replaces.
         if (lastWidthPx > 0 && lastHeightPx > 0) resize(lastWidthPx, lastHeightPx)
+        if (glyphSource.charWidthPx != compositeCacheTileW || glyphSource.charHeightPx != compositeCacheTileH) {
+            rebuildCaches()
+        }
         compositeCache.markAllDirty()
     }
 
@@ -1123,6 +1164,12 @@ class AsciiTileWindow private constructor(
             // pane retile it would silently invalidate the others. Not supported via this factory.
             require(!config.resolutionIndependent) {
                 "resolutionIndependent is not supported with a shared/external canvas (createWithCanvas); " +
+                    "use create { } so the window owns its canvas."
+            }
+            // Same reason: a chosen cell size retiles the canvas (and takes over its layout mode), which
+            // one pane must not do to a canvas its neighbours share.
+            require(config.cellSizePx == null) {
+                "cellSizePx is not supported with a shared/external canvas (createWithCanvas); " +
                     "use create { } so the window owns its canvas."
             }
             return AsciiTileWindow(

@@ -52,6 +52,9 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
 
     /** The textFill korogue-rogue's Brogue mode uses; the wall-seam check verifies the sizes it draws at. */
     private val rogueTextFill = 1.28f
+
+    /** The step krogue-4ari currently produces at a 48px cell. A worsening result must fail, not print. */
+    private val knownBottomSeamStep = 1
     private var hidpi = 1
 
     override fun render() {
@@ -1619,7 +1622,7 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
      */
     private fun verifyBoxAlignedGlyphs() {
         val cell = 48
-        val plus = '+'.code
+        val plus = '+'.code // CP437 slot 0x2B; ASCII slots and code points coincide, so this is both
 
         fun centroidsAt(boxAligned: Set<Int>): Pair<Double, Double> {
             val source =
@@ -1719,9 +1722,14 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
             val bottom = stepForCell(cs, 0xC0, 0xC4, 0xD9, rogueTextFill) // └ ─ ─ ┘
             report("wall seam, top, ${cs}px cell", top == 0, "misaligns by ${top}px")
             if (cs == 48) {
-                // krogue-4ari: this size steps at every textFill, including the default. Reported but not
-                // counted, so it cannot mask a new regression at the other sizes.
-                println("  [KNOWN] wall seam, bottom, ${cs}px cell — misaligns by ${bottom}px (krogue-4ari)")
+                // krogue-4ari: this size steps at every textFill, including the default. Bounded rather
+                // than merely printed — asserting only `== 0` elsewhere would let this one grow from a
+                // 1px step to a 6px one and still report green.
+                report(
+                    "wall seam, bottom, ${cs}px cell (known, krogue-4ari)",
+                    bottom <= knownBottomSeamStep,
+                    "misaligns by ${bottom}px, known ceiling ${knownBottomSeamStep}px",
+                )
             } else {
                 report("wall seam, bottom, ${cs}px cell", bottom == 0, "misaligns by ${bottom}px")
             }

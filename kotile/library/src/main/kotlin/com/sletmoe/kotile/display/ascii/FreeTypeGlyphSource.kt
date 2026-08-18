@@ -160,8 +160,12 @@ class FreeTypeGlyphSource internal constructor(
     private val snapToPixelGrid: Boolean = false,
     textFill: Float = 1f,
     /**
-     * Extra **Unicode code points** to place on the box-drawing grid rather than by the [fit]'s
-     * baseline-relative rules — see [isCellFilling].
+     * Extra **CP437 slots** to place on the box-drawing grid rather than by the [fit]'s baseline-relative
+     * rules — see [isCellFilling].
+     *
+     * Slots, not Unicode code points, because that is what every glyph-facing contract here takes:
+     * [glyph] indexes by `char.code` as a slot, and [BoxDrawing] returns slots. A caller drawing
+     * connected walls with that helper and wanting a door aligned to them passes the same kind of value.
      *
      * Box-drawing and block glyphs are positioned by mapping one design cell onto the cell
      * ([drawCellFillingGlyph]) so they tile; every other glyph is placed from text metrics. Those two
@@ -180,7 +184,7 @@ class FreeTypeGlyphSource internal constructor(
      * The trade is that the same glyph is then placed off the text baseline everywhere *else* it appears,
      * so name only glyphs whose grid alignment matters more than their alignment in prose.
      */
-    private val boxAlignedGlyphs: Set<Int> = emptySet(),
+    boxAlignedGlyphs: Set<Int> = emptySet(),
     // Module-internal test seam (krogue-9x7.5): force the translation-only shift search even for TEXT,
     // bypassing the x-height/baseline band scaling, so a same-module spec can A/B the two paths and prove
     // band scaling is what reduces lowercase blur. It is a *required* (named) argument so production can
@@ -220,6 +224,12 @@ class FreeTypeGlyphSource internal constructor(
 
     // The per-glyph peak-normalisation cap (see the constructor doc). Clamped to a sane range; 1 = off.
     private val glyphBrightness: Float = glyphBrightness.coerceIn(1f, 4f)
+
+    /**
+     * [boxAlignedGlyphs] resolved from CP437 slots to the Unicode code points [isCellFilling] compares,
+     * once at construction rather than per glyph per rasterise.
+     */
+    private val boxAlignedCodePoints: Set<Int> = boxAlignedGlyphs.map { Cp437.toUnicode(it) }.toSet()
 
     /**
      * How much of the cell [GlyphFit.TEXT] glyphs are grown to fill, as a multiple of the size at which
@@ -925,7 +935,7 @@ class FreeTypeGlyphSource internal constructor(
      * *stroke* edges inside the cell without moving the cell edges.
      */
     private fun isCellFilling(codePoint: Int): Boolean =
-        codePoint in BOX_DRAWING_FIRST..BLOCK_ELEMENTS_LAST || codePoint in boxAlignedGlyphs
+        codePoint in BOX_DRAWING_FIRST..BLOCK_ELEMENTS_LAST || codePoint in boxAlignedCodePoints
 
     /** [isCellFilling] by CP437 slot — the form the per-slot downsample loops need. */
     private fun isCellFillingSlot(slot: Int): Boolean = isCellFilling(Cp437.toUnicode(slot))
@@ -1438,16 +1448,6 @@ class FreeTypeGlyphSource internal constructor(
     ): DoubleArray? {
         val n = if (vertical) mH else mW
         val edges = strokeEdges(axisProfile(sat, mW, mH, vertical)) ?: return null
-        return strokeSnapMapFrom(edges, outN, ss, n)
-    }
-
-    /** [strokeSnapMap]'s tail, for callers that already measured [edges] (and may reuse their count). */
-    private fun strokeSnapMapFrom(
-        edges: StrokeEdges,
-        outN: Int,
-        ss: Int,
-        n: Int,
-    ): DoubleArray? {
         val outK = snapEdgesToOutput(edges, outN, ss) ?: return null
         return piecewiseMap(edges.at, outK, outN, n)
     }
@@ -1960,9 +1960,6 @@ class FreeTypeGlyphSource internal constructor(
         // The cell-filling glyph class (krogue-9x7.4, [isCellFilling]): Unicode's Box Drawing block through
         // the end of Block Elements, i.e. U+2500–U+259F — contiguous, so one range covers both.
         const val BOX_DRAWING_FIRST = 0x2500
-
-        /** Last box-drawing code point; block/shade elements start at U+2580 and are snapped per glyph. */
-        const val BOX_DRAWING_LAST = 0x257F
 
         const val BLOCK_ELEMENTS_LAST = 0x259F
 

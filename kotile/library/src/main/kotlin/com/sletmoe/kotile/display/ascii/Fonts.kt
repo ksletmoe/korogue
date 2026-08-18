@@ -342,7 +342,7 @@ object Fonts {
      *   `false`); see [FreeTypeGlyphSource]
      * @param textFill how much of the cell TEXT glyphs fill, as a multiple of the conservative
      *   whole-ink-box fit (default `1f` = that fit, nothing clips); see [FreeTypeGlyphSource.textFill]
-     * @param boxAlignedGlyphs extra code points placed on the box-drawing grid instead of the text
+     * @param boxAlignedGlyphs extra **CP437 slots** placed on the box-drawing grid instead of the text
      *   baseline, so they meet box-drawing neighbours; see [FreeTypeGlyphSource.boxAlignedGlyphs]
      */
     private fun freeType(

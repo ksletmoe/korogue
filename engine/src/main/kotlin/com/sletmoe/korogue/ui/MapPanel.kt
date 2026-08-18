@@ -57,7 +57,7 @@ class MapPanel(
     // or recolour remembered terrain arbitrarily (different glyph/hue), or return null to leave a
     // remembered tile undrawn. Currently-perceived (lit) cells are unaffected by this seam.
     private val rememberedRenderer: (Tile) -> RenderedCell? = DEFAULT_REMEMBERED_RENDERER,
-    // How a terrain tile is resolved *before* it is drawn, given its position (krogue-k8t). Unlike
+    // How a terrain tile is resolved *before* it is drawn, given its [TerrainRender] context (krogue-k8t). Unlike
     // [rememberedRenderer], which sees only a [Tile] and only the remembered branch, this seam is
     // position-aware and applies to lit and remembered cells alike — so a substitution stays
     // consistent as a cell moves in and out of view. It exists for looks a tile cannot express on its
@@ -65,7 +65,7 @@ class MapPanel(
     // of `-`/`|`), autotiled floors, damaged/variant terrain. Returning a different [Tile] changes
     // only what is drawn — the zone's terrain, and so the game's save data, is never touched.
     // Defaults to identity.
-    private val terrainMapper: (Tile, Int, Int, Zone) -> Tile = DEFAULT_TERRAIN_MAPPER,
+    private val terrainMapper: (TerrainRender) -> Tile = DEFAULT_TERRAIN_MAPPER,
     // How a currently-perceived occupant is drawn: remap its glyph/foreground at render time, or
     // return null to suppress it. Defaults to drawing the occupant's own [Renderable] unchanged. The
     // background stays engine-computed (see [backgroundAt]) so a remapped occupant can't desync from
@@ -208,7 +208,7 @@ class MapPanel(
             // glyph's color still tracks the terrain tint beneath it either way.
             // The tile handed to the seam is the *drawn* one (through [terrainMapper]), so a game that
             // autotiles terrain sees beneath an occupant what it painted around it.
-            val beneath = terrainMapper(zone.tiles[pos.x, pos.y], pos.x, pos.y, zone)
+            val beneath = terrainMapper(TerrainRender(zone.tiles[pos.x, pos.y], pos.x, pos.y, zone))
             val context = OccupantRender(entity, renderable, beneath, perceived = true)
             val rendered = occupantRenderer(context) ?: continue
             val flicker = flickerFactorAt(pos.x, pos.y, flickerSources, elapsedMs)
@@ -228,7 +228,7 @@ class MapPanel(
                 renderable.layer.zIndex,
                 rendered.glyph,
                 fg,
-                backgroundAt(zone, pos.x, pos.y, perceived, flicker),
+                backgroundAt(beneath, zone, pos.x, pos.y, perceived, flicker),
             )
         }
     }
@@ -251,6 +251,21 @@ class MapPanel(
     class RenderedGlyph(
         val glyph: Char,
         val fg: Color,
+    )
+
+    /**
+     * What the [terrainMapper] seam is told about a terrain cell it may substitute: the [tile] the zone
+     * stores there, its [x]/[y] in zone coordinates, and the [zone] itself.
+     *
+     * A context rather than positional arguments, matching [OccupantRender]: two adjacent `Int`s invite a
+     * silent x/y swap at a call site, and a named shape can gain a field later without breaking every
+     * game that implements the seam.
+     */
+    class TerrainRender(
+        val tile: Tile,
+        val x: Int,
+        val y: Int,
+        val zone: Zone,
     )
 
     /**
@@ -279,7 +294,7 @@ class MapPanel(
     ): RenderedCell? {
         // Resolve the tile through the position-aware seam first, so the lit and remembered branches
         // below both draw the substituted glyph (krogue-k8t). Identity unless a game opts in.
-        val tile = terrainMapper(zone.tiles[x, y], x, y, zone)
+        val tile = terrainMapper(TerrainRender(zone.tiles[x, y], x, y, zone))
         return when {
             perceived.sees(x, y) ->
                 RenderedCell(
@@ -300,6 +315,7 @@ class MapPanel(
      * around it.
      */
     private fun backgroundAt(
+        tile: Tile,
         zone: Zone,
         x: Int,
         y: Int,
@@ -307,9 +323,10 @@ class MapPanel(
         flicker: Double,
     ): Color {
         if (!perceived.sees(x, y)) return Color.BLACK
-        // Through the same seam as [terrainCell], so a substituted tile's background tint is what an
-        // occupant standing on it sits against — otherwise the two would disagree on that cell.
-        return litColor(terrainMapper(zone.tiles[x, y], x, y, zone).backgroundColor, zone, x, y, flicker)
+        // [tile] is the already-mapped one the caller drew this occupant against, so the two cannot
+        // disagree on the cell — and the seam, which may be neighbourhood-dependent and so is not
+        // guaranteed cheap, runs once per occupant rather than twice.
+        return litColor(tile.backgroundColor, zone, x, y, flicker)
     }
 
     /**
@@ -363,6 +380,6 @@ class MapPanel(
             { RenderedGlyph(it.renderable.glyph, it.renderable.color.toColor()) }
 
         /** The engine default terrain mapping: draw each tile exactly as the zone stores it. */
-        val DEFAULT_TERRAIN_MAPPER: (Tile, Int, Int, Zone) -> Tile = { tile, _, _, _ -> tile }
+        val DEFAULT_TERRAIN_MAPPER: (TerrainRender) -> Tile = { it.tile }
     }
 }
