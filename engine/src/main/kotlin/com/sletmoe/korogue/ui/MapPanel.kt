@@ -57,6 +57,15 @@ class MapPanel(
     // or recolour remembered terrain arbitrarily (different glyph/hue), or return null to leave a
     // remembered tile undrawn. Currently-perceived (lit) cells are unaffected by this seam.
     private val rememberedRenderer: (Tile) -> RenderedCell? = DEFAULT_REMEMBERED_RENDERER,
+    // How a terrain tile is resolved *before* it is drawn, given its position (krogue-k8t). Unlike
+    // [rememberedRenderer], which sees only a [Tile] and only the remembered branch, this seam is
+    // position-aware and applies to lit and remembered cells alike — so a substitution stays
+    // consistent as a cell moves in and out of view. It exists for looks a tile cannot express on its
+    // own because they depend on the *neighbourhood*: neighbour-connected walls (box-drawing instead
+    // of `-`/`|`), autotiled floors, damaged/variant terrain. Returning a different [Tile] changes
+    // only what is drawn — the zone's terrain, and so the game's save data, is never touched.
+    // Defaults to identity.
+    private val terrainMapper: (Tile, Int, Int, Zone) -> Tile = DEFAULT_TERRAIN_MAPPER,
     // How a currently-perceived occupant is drawn: remap its glyph/foreground at render time, or
     // return null to suppress it. Defaults to drawing the occupant's own [Renderable] unchanged. The
     // background stays engine-computed (see [backgroundAt]) so a remapped occupant can't desync from
@@ -197,7 +206,10 @@ class MapPanel(
             // then engine-computed on top (krogue-0w3: fg used to skip this, so a creature kept
             // its full undimmed color while the floor around it darkened/flickered), so a remapped
             // glyph's color still tracks the terrain tint beneath it either way.
-            val context = OccupantRender(entity, renderable, zone.tiles[pos.x, pos.y], perceived = true)
+            // The tile handed to the seam is the *drawn* one (through [terrainMapper]), so a game that
+            // autotiles terrain sees beneath an occupant what it painted around it.
+            val beneath = terrainMapper(zone.tiles[pos.x, pos.y], pos.x, pos.y, zone)
+            val context = OccupantRender(entity, renderable, beneath, perceived = true)
             val rendered = occupantRenderer(context) ?: continue
             val flicker = flickerFactorAt(pos.x, pos.y, flickerSources, elapsedMs)
             val fg =
@@ -265,7 +277,9 @@ class MapPanel(
         fog: Grid<Boolean>,
         flicker: Double,
     ): RenderedCell? {
-        val tile = zone.tiles[x, y]
+        // Resolve the tile through the position-aware seam first, so the lit and remembered branches
+        // below both draw the substituted glyph (krogue-k8t). Identity unless a game opts in.
+        val tile = terrainMapper(zone.tiles[x, y], x, y, zone)
         return when {
             perceived.sees(x, y) ->
                 RenderedCell(
@@ -293,7 +307,9 @@ class MapPanel(
         flicker: Double,
     ): Color {
         if (!perceived.sees(x, y)) return Color.BLACK
-        return litColor(zone.tiles[x, y].backgroundColor, zone, x, y, flicker)
+        // Through the same seam as [terrainCell], so a substituted tile's background tint is what an
+        // occupant standing on it sits against — otherwise the two would disagree on that cell.
+        return litColor(terrainMapper(zone.tiles[x, y], x, y, zone).backgroundColor, zone, x, y, flicker)
     }
 
     /**
@@ -345,5 +361,8 @@ class MapPanel(
         /** The engine default occupant look: draw the occupant's own [Renderable] glyph/color unchanged. */
         val DEFAULT_OCCUPANT_RENDERER: (OccupantRender) -> RenderedGlyph? =
             { RenderedGlyph(it.renderable.glyph, it.renderable.color.toColor()) }
+
+        /** The engine default terrain mapping: draw each tile exactly as the zone stores it. */
+        val DEFAULT_TERRAIN_MAPPER: (Tile, Int, Int, Zone) -> Tile = { tile, _, _, _ -> tile }
     }
 }
