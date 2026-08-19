@@ -1722,6 +1722,53 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
             aspect in 0.75..1.35,
             "ink w/h = ${"%.2f".format(aspect)} (anisotropic design-cell stretch would read ~2.3)",
         )
+
+        // Aligning must not resize either. Aspect cannot catch that — it is scale-invariant, so a glyph
+        // shrunk uniformly still reads ~0.95 — which is how krogue-okx2 shipped: the design cell is
+        // taller than the em, so scaling by it drew every aligned glyph at ~75% of its size in prose.
+        // Compare against the same glyph unaligned, which is by definition its natural size.
+        val plainHeight = inkHeightOf(0x2B, cell, emptySet())
+        val alignedHeight = inkHeightOf(0x2B, cell, setOf(plus))
+        val sizeRatio = alignedHeight.toDouble() / plainHeight
+        report(
+            "boxAlignedGlyphs on: '+' keeps its size",
+            sizeRatio in 0.9..1.1,
+            "aligned ink is ${alignedHeight}px vs ${plainHeight}px unaligned " +
+                "(${"%.2f".format(sizeRatio)}x; scaling by the design cell would read ~0.75)",
+        )
+    }
+
+    /**
+     * Ink height in px of one [slot] rendered at a [cell]-px cell with [boxAligned] named.
+     *
+     * At [rogueTextFill], not the default fill: the design cell scales with the em, so at `1f` it is only
+     * ~1.04 cells and scaling by it shrinks a glyph by ~4% — too little to separate from rounding. At the
+     * fill a consumer actually ships it is ~1.33 cells and the shrink is ~25%, which is the defect.
+     */
+    private fun inkHeightOf(
+        slot: Int,
+        cell: Int,
+        boxAligned: Set<Int>,
+    ): Int {
+        val source =
+            FreeTypeGlyphSource(
+                Gdx.files.classpath("fonts/CascadiaMono-Bold.ttf"),
+                cell,
+                cell,
+                snapToPixelGrid = true,
+                textFill = rogueTextFill,
+                boxAlignedGlyphs = boxAligned,
+            )
+        val map = renderGrid(source, 1, 1, cell, cell, listOf(Placed(0, 0, slot, Color.WHITE)), bg = Color.BLACK)
+        return try {
+            val rows =
+                (0 until cell).filter { y ->
+                    (0 until cell).any { x -> ((map.getPixel(x, y) ushr 24) and 0xFF) > 24 }
+                }
+            if (rows.isEmpty()) 0 else rows.max() - rows.min() + 1
+        } finally {
+            map.dispose()
+        }
     }
 
     /** Width/height of the inked box in a single [cell]-px cell at (0,0) of [map]. */

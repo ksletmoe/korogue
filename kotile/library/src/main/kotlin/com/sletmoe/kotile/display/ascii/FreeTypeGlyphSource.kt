@@ -1028,21 +1028,29 @@ class FreeTypeGlyphSource internal constructor(
 
         // A true cell-filling glyph is stretched to the cell on both axes: that is what makes its strokes
         // meet its neighbours' at the shared edge, and a line stretched along its own length is still the
-        // same line. A glyph merely *aligned* to this grid ([boxAlignedGlyphs]) has a shape to preserve,
-        // and the design cell is far from square — a tall advance-by-line-height box — so stretching it to
-        // a square cell would visibly squash it (a `+` came out 2.33:1). Such a glyph therefore takes the
-        // vertical scale on both axes, which is the axis that decides whether it lands on the box grid,
-        // and is centred across the cell rather than positioned from the design cell's left edge.
+        // same line.
+        //
+        // A glyph merely *aligned* to this grid ([boxAlignedGlyphs]) is a different case. It needs the
+        // design cell's **position** — that is what puts its crossbar on the wall stroke — but not the
+        // design cell's **scale**: the design cell is taller than the em (1.346em for a typical face), so
+        // scaling by it shrinks the glyph to about three quarters of the size the same character has in
+        // prose. Such a glyph is therefore drawn at its natural em size and merely *moved*, so that its
+        // ink centre lands where the design-cell mapping would have put it (krogue-okx2). Scaling it to
+        // the cell on both axes would also squash it, the design cell being far from square.
+        val cellFloor = atlasH - (row + 1) * h // y-up
         val scaleY = h / cell.h
-        val uniform = codePoint !in BOX_DRAWING_FIRST..BLOCK_ELEMENTS_LAST
-        val scaleX = if (uniform) scaleY else w / cell.w
-        val drawX =
-            if (uniform) {
-                (col * w) + (w - glyph.width * scaleX) / 2f
-            } else {
-                (col * w) + (glyph.xoffset - cell.x) * scaleX
-            }
-        val drawY = (atlasH - (row + 1) * h) + (glyph.yoffset - cell.y) * scaleY // y-up from the cell's floor
+        val alignOnly = codePoint !in BOX_DRAWING_FIRST..BLOCK_ELEMENTS_LAST
+        if (alignOnly) {
+            // Where the design-cell mapping would centre this glyph's ink, then the same centre at scale 1.
+            val mappedCentreY = (glyph.yoffset - cell.y + glyph.height / 2f) * scaleY
+            val drawX = (col * w) + (w - glyph.width) / 2f
+            val drawY = cellFloor + mappedCentreY - glyph.height / 2f
+            batch.draw(glyphRegion(font, glyph), drawX, drawY, glyph.width.toFloat(), glyph.height.toFloat())
+            return true
+        }
+        val scaleX = w / cell.w
+        val drawX = (col * w) + (glyph.xoffset - cell.x) * scaleX
+        val drawY = cellFloor + (glyph.yoffset - cell.y) * scaleY
         batch.draw(glyphRegion(font, glyph), drawX, drawY, glyph.width * scaleX, glyph.height * scaleY)
         return true
     }
