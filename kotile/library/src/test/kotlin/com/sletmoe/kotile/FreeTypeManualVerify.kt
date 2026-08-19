@@ -134,7 +134,14 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
 
         pixels.dispose()
         // `source` was consumed (and disposed) by its renderChart window above.
-        Gdx.app.exit()
+        // Fail the task, don't merely report: printing "N FAILED" and exiting 0 let `freetypeVerify`
+        // finish BUILD SUCCESSFUL with checks red, which is how a regression would slip through a run
+        // that looked green. Thrown before exit so the JavaExec sees a non-zero result.
+        try {
+            check(failures == 0) { "FTVERIFY: $failures FAILED" }
+        } finally {
+            Gdx.app.exit()
+        }
     }
 
     /**
@@ -1675,6 +1682,41 @@ private class FreeTypeManualVerify(private val outPath: String) : ApplicationAda
             } finally {
                 map.dispose()
             }
+        // '+' cannot prove the slot/code-point distinction: 0x2B is the same number either way, so the
+        // older implementation that read this set as Unicode behaves identically on it. Slot 0xE0 renders
+        // α (U+03B1), so naming it only has an effect when the set is compared as CP437 slots — this
+        // check fails against that implementation and passes against this one.
+        val alphaSlot = 0xE0
+
+        fun centroidOfSlot(
+            slot: Int,
+            boxAligned: Set<Int>,
+        ): Double {
+            val source =
+                FreeTypeGlyphSource(
+                    Gdx.files.classpath("fonts/CascadiaMono-Bold.ttf"),
+                    cell,
+                    cell,
+                    snapToPixelGrid = true,
+                    boxAlignedGlyphs = boxAligned,
+                )
+            val map = renderGrid(source, 1, 1, cell, cell, listOf(Placed(0, 0, slot, Color.WHITE)), bg = Color.BLACK)
+            return try {
+                verticalCentroid(map, 0, cell)
+            } finally {
+                map.dispose()
+            }
+        }
+
+        val alphaPlain = centroidOfSlot(alphaSlot, emptySet())
+        val alphaNamed = centroidOfSlot(alphaSlot, setOf(alphaSlot))
+        report(
+            "boxAlignedGlyphs is keyed by CP437 slot, not Unicode",
+            kotlin.math.abs(alphaNamed - alphaPlain) > 0.5,
+            "naming slot 0x${alphaSlot.toString(16)} (U+03B1) moved it " +
+                "${"%.2f".format(alphaNamed - alphaPlain)}px; keyed by code point it would not move",
+        )
+
         report(
             "boxAlignedGlyphs on: '+' keeps its aspect",
             aspect in 0.75..1.35,

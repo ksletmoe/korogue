@@ -203,6 +203,13 @@ class AsciiTileWindow private constructor(
      */
     var cellSizePx: Int? = null
         set(value) {
+            // Same rule createWithCanvas enforces at construction, applied to the runtime door: this
+            // retiles the canvas and takes over its layout mode, which a pane sharing a caller-owned
+            // canvas must not do to its neighbours. Clearing it is always allowed.
+            require(value == null || ownsCanvas) {
+                "cellSizePx is not supported on a window sharing a caller-owned canvas; " +
+                    "build it with create { } so the window owns its canvas."
+            }
             val sanitised = value?.coerceAtLeast(1)
             if (sanitised == field) return
             field = sanitised
@@ -983,6 +990,16 @@ class AsciiTileWindow private constructor(
     ) {
         if (disposed) return
         if (source === glyphSource) return
+        // A differently-sized source retiles the canvas below, so on a caller-owned (typically shared)
+        // canvas only a same-sized swap is safe — the neighbours' layout is not this pane's to change.
+        val sameCell =
+            source.charWidthPx == glyphSource.charWidthPx &&
+                source.charHeightPx == glyphSource.charHeightPx
+        require(ownsCanvas || sameCell) {
+            "swapping to a glyph source with different cell dimensions would retile a caller-owned " +
+                "canvas shared with other panes: ${source.charWidthPx}x${source.charHeightPx} " +
+                "replacing ${glyphSource.charWidthPx}x${glyphSource.charHeightPx}"
+        }
         // Mount first, release second: if the outgoing source throws on dispose, the window is already
         // holding the live replacement rather than a disposed one.
         val outgoing = glyphSource.takeIf { ownsGlyphSource }
