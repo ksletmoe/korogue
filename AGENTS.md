@@ -78,6 +78,24 @@ workflow and sync details are in the "Beads Issue Tracker" section below and via
   harness's: a test that cannot fail against the un-fixed code is worse than
   no test, because it reads as coverage. And never report a harness result as
   though it were the test's.
+
+  **Prove it by reverting the fix and running the check** — that is the only way
+  to know. Stating the principle is not enough; three checks written *against*
+  this rule in one session still could not fail, each for a different reason,
+  and each was caught only by reintroducing the defect:
+  - **an input where the buggy and fixed behaviour coincide.** A check for
+    `boxAlignedGlyphs` being keyed by CP437 slot rather than Unicode named `'+'`
+    — slot `0x2B`, the same number either way — so both implementations agreed on
+    it. Fixed by naming slot `0xE0` (α, U+03B1), where they differ.
+  - **a configuration where the defect is too small to see.** The check that the
+    same feature does not resize a glyph measured at the default `textFill = 1f`,
+    where the design cell is ~1.04 cells and the shrink is ~4% — lost in
+    rounding. At the fill a consumer ships (1.28) it is ~25%. Measure at the
+    values that ship, not the defaults.
+  - **a property the defect does not change.** The same glyph already had drift
+    and aspect-ratio checks, and neither could see a size bug: drift measures
+    *position*, and aspect is *scale-invariant* — a uniformly shrunk glyph still
+    reads 0.95. Assert the quantity that actually moves.
 - **The Rogue example is a faithful recreation — don't deviate on gameplay.**
   Reproduce original Rogue's behavior, rules, and data exactly (the canonical
   BSD 5.4.4 C source is at `~/Downloads/rogue5.4.4`; transcribe tables and port
