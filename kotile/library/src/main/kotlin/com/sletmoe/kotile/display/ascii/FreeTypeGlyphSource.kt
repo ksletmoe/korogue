@@ -158,6 +158,33 @@ class FreeTypeGlyphSource internal constructor(
     private val fit: GlyphFit = GlyphFit.TEXT,
     glyphBrightness: Float = 1f,
     private val snapToPixelGrid: Boolean = false,
+    textFill: Float = 1f,
+    /**
+     * Extra **CP437 slots** to place on the box-drawing grid rather than by the [fit]'s baseline-relative
+     * rules — see [isCellFilling].
+     *
+     * Slots, not Unicode code points, because that is what every glyph-facing contract here takes:
+     * [glyph] indexes by `char.code` as a slot, and [BoxDrawing] returns slots. A caller drawing
+     * connected walls with that helper and wanting a door aligned to them passes the same kind of value.
+     *
+     * Box-drawing and block glyphs are positioned by mapping one design cell onto the cell
+     * ([drawCellFillingGlyph]) so they tile; every other glyph is placed from text metrics. Those two
+     * rules are independent and generally disagree, which is invisible until a glyph from the second
+     * group has to *meet* one from the first. The case that motivated this is a roguelike drawing a door
+     * as `+` inside a run of connected wall: measured on Cascadia Mono Bold at a 48px cell, `+` centres
+     * on row 23.18 and `─` on 26.44, so the door floats 3.26px — nearly 7% of the cell — above the wall
+     * it is set into.
+     *
+     * Naming a code point here routes it through the cell-filling placement, onto the same grid. It does
+     * not make the glyph fill its cell or change its shape: the placement is one shared linear transform,
+     * so a glyph the *face* already aligns with the box strokes lands exactly on them (`+` and `─` share
+     * a vertical centre of 0.346em in Cascadia), and the [snapToPixelGrid] emit for this class pins the
+     * cell edges while snapping only interior stroke edges.
+     *
+     * The trade is that the same glyph is then placed off the text baseline everywhere *else* it appears,
+     * so name only glyphs whose grid alignment matters more than their alignment in prose.
+     */
+    boxAlignedGlyphs: Set<Int> = emptySet(),
     // Module-internal test seam (krogue-9x7.5): force the translation-only shift search even for TEXT,
     // bypassing the x-height/baseline band scaling, so a same-module spec can A/B the two paths and prove
     // band scaling is what reduces lowercase blur. It is a *required* (named) argument so production can
@@ -178,6 +205,8 @@ class FreeTypeGlyphSource internal constructor(
         fit: GlyphFit = GlyphFit.TEXT,
         glyphBrightness: Float = 1f,
         snapToPixelGrid: Boolean = false,
+        textFill: Float = 1f,
+        boxAlignedGlyphs: Set<Int> = emptySet(),
     ) : this(
         ttf,
         cellWidthPx,
@@ -186,6 +215,8 @@ class FreeTypeGlyphSource internal constructor(
         fit,
         glyphBrightness,
         snapToPixelGrid,
+        textFill,
+        boxAlignedGlyphs,
         disableBandScale = false,
     )
 
@@ -193,6 +224,32 @@ class FreeTypeGlyphSource internal constructor(
 
     // The per-glyph peak-normalisation cap (see the constructor doc). Clamped to a sane range; 1 = off.
     private val glyphBrightness: Float = glyphBrightness.coerceIn(1f, 4f)
+
+    /**
+     * [boxAlignedGlyphs] resolved from CP437 slots to the Unicode code points [isCellFilling] compares,
+     * once at construction rather than per glyph per rasterise.
+     */
+    private val boxAlignedCodePoints: Set<Int> = boxAlignedGlyphs.map { Cp437.toUnicode(it) }.toSet()
+
+    /**
+     * How much of the cell [GlyphFit.TEXT] glyphs are grown to fill, as a multiple of the size at which
+     * the face's whole ink box fits. `1` (the default) is that conservative fit: cap height, the
+     * accent headroom above it, and the descender all sit inside the cell, so nothing can ever clip.
+     *
+     * The catch is that the headroom is charged to *every* cell whether or not anything uses it. For a
+     * typical face the reserved box is ~1.16em against a 0.69em capital, so a capital ends up barely
+     * over half the cell — while a cell-filling bitmap page draws its capitals at ~0.875 of the cell.
+     * A game that offers both looks sees the vector one as dramatically smaller at the same cell size.
+     *
+     * Raising this spends that headroom on glyph size. What it costs is bounded and predictable: the
+     * accent room above the capitals goes first (so diacritics clip before anything else), and only
+     * past roughly `(1 - 2 * marginFrac) / ((capHeight + descent) / em)` — about `1.33` for a typical
+     * mono face — do plain capitals and descenders stop fitting. A game drawing ASCII and box-drawing
+     * can take most of it; one rendering accented text should leave this at `1`.
+     *
+     * Clamped to `[0.5, 2]`.
+     */
+    private val textFill: Float = textFill.coerceIn(0.5f, 2f)
 
     // Snapped to a power of two so the atlas downsamples by exact 2:1 gamma halving passes. Higher =
     // smoother edges (closer to Brogue's high-res-master look) at the cost of a larger transient atlas.
@@ -585,7 +642,9 @@ class FreeTypeGlyphSource internal constructor(
         // em, so we must divide by the true ratio — clamping it to 1 would shrink a face that needs no shrink.)
         if (ratio <= 0f) return masterCellH
         val fitPx = masterCellH * (1f - 2f * TEXT_MARGIN_FRAC)
-        return (fitPx / ratio).toInt().coerceIn(1, masterCellH)
+        // [textFill] spends the reserved headroom on glyph size; the ceiling rises with it, since the
+        // point is to let the em exceed what the full ink box would allow.
+        return (fitPx * textFill / ratio).toInt().coerceIn(1, (masterCellH * textFill).toInt().coerceAtLeast(1))
     }
 
     /**
@@ -875,7 +934,8 @@ class FreeTypeGlyphSource internal constructor(
      * They get their own alignment instead — [emitCellFillingCell]'s edge-pinning warp, which snaps the
      * *stroke* edges inside the cell without moving the cell edges.
      */
-    private fun isCellFilling(codePoint: Int): Boolean = codePoint in BOX_DRAWING_FIRST..BLOCK_ELEMENTS_LAST
+    private fun isCellFilling(codePoint: Int): Boolean =
+        codePoint in BOX_DRAWING_FIRST..BLOCK_ELEMENTS_LAST || codePoint in boxAlignedCodePoints
 
     /** [isCellFilling] by CP437 slot — the form the per-slot downsample loops need. */
     private fun isCellFillingSlot(slot: Int): Boolean = isCellFilling(Cp437.toUnicode(slot))
@@ -966,9 +1026,22 @@ class FreeTypeGlyphSource internal constructor(
         val glyph = font.data.getGlyph(codePoint.toChar()) ?: return false
         if (glyph.width == 0 || glyph.height == 0) return false // no ink (or a missing glyph)
 
-        val scaleX = w / cell.w
+        // A true cell-filling glyph is stretched to the cell on both axes: that is what makes its strokes
+        // meet its neighbours' at the shared edge, and a line stretched along its own length is still the
+        // same line. A glyph merely *aligned* to this grid ([boxAlignedGlyphs]) has a shape to preserve,
+        // and the design cell is far from square — a tall advance-by-line-height box — so stretching it to
+        // a square cell would visibly squash it (a `+` came out 2.33:1). Such a glyph therefore takes the
+        // vertical scale on both axes, which is the axis that decides whether it lands on the box grid,
+        // and is centred across the cell rather than positioned from the design cell's left edge.
         val scaleY = h / cell.h
-        val drawX = (col * w) + (glyph.xoffset - cell.x) * scaleX
+        val uniform = codePoint !in BOX_DRAWING_FIRST..BLOCK_ELEMENTS_LAST
+        val scaleX = if (uniform) scaleY else w / cell.w
+        val drawX =
+            if (uniform) {
+                (col * w) + (w - glyph.width * scaleX) / 2f
+            } else {
+                (col * w) + (glyph.xoffset - cell.x) * scaleX
+            }
         val drawY = (atlasH - (row + 1) * h) + (glyph.yoffset - cell.y) * scaleY // y-up from the cell's floor
         batch.draw(glyphRegion(font, glyph), drawX, drawY, glyph.width * scaleX, glyph.height * scaleY)
         return true
@@ -1887,6 +1960,7 @@ class FreeTypeGlyphSource internal constructor(
         // The cell-filling glyph class (krogue-9x7.4, [isCellFilling]): Unicode's Box Drawing block through
         // the end of Block Elements, i.e. U+2500–U+259F — contiguous, so one range covers both.
         const val BOX_DRAWING_FIRST = 0x2500
+
         const val BLOCK_ELEMENTS_LAST = 0x259F
 
         // U+2588 FULL BLOCK: the glyph that *is* the face's design cell, which [measureDesignCell] measures

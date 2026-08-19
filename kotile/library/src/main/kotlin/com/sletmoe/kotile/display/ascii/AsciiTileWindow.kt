@@ -137,7 +137,7 @@ import kotlin.math.roundToInt
  * @property heightInTiles grid height in cells
  */
 class AsciiTileWindow private constructor(
-    private val glyphSource: GlyphSource,
+    initialGlyphSource: GlyphSource,
     private val canvas: KotileCanvas,
     widthInTiles: Int,
     heightInTiles: Int,
@@ -146,7 +146,7 @@ class AsciiTileWindow private constructor(
     /** When `false` the canvas was supplied externally and [dispose] must not release it. */
     private val ownsCanvas: Boolean = true,
     /** When `false` the glyph source was supplied externally and [dispose] must not release it. */
-    private val ownsGlyphSource: Boolean = true,
+    initialOwnsGlyphSource: Boolean = true,
     /**
      * When `true`, this window composites into a canvas shared with other panes, so its cached
      * composite is blitted with [BlendMode.NORMAL] rather than the default authoritative
@@ -165,6 +165,56 @@ class AsciiTileWindow private constructor(
     private val resolutionIndependent: Boolean = false,
 ) : Disposable {
     private val compositeBlend: BlendMode = if (sharesCanvas) BlendMode.NORMAL else BlendMode.REPLACE
+
+    /**
+     * The glyph source currently mounted. Replaced by [setGlyphSource] — see there for why a window
+     * lets this change at all.
+     */
+    var glyphSource: GlyphSource = initialGlyphSource
+        private set
+
+    /** Whether [dispose] (and a [setGlyphSource] swap) may release the mounted [glyphSource]. */
+    private var ownsGlyphSource: Boolean = initialOwnsGlyphSource
+
+    // The pixel size of the last [resize], so [setGlyphSource] can re-prepare a swapped-in
+    // size-parametric source for the cell it will actually be drawn at. 0 until the first resize.
+    private var lastWidthPx: Int = 0
+    private var lastHeightPx: Int = 0
+
+    // The mounted source's cell px *before* any [cellSizePx] re-rasterise. A size-parametric source
+    // overwrites charWidthPx when prepared for a chosen cell, so its original size is not otherwise
+    // recoverable — and clearing [cellSizePx] has to put it back.
+    private var nativeCellW: Int = initialGlyphSource.charWidthPx
+    private var nativeCellH: Int = initialGlyphSource.charHeightPx
+
+    // Whether the last layout came from [cellSizePx], so clearing it can undo the retile it did.
+    private var sizedByCellSizePx: Boolean = false
+
+    /**
+     * The on-screen cell size in **logical points**, or `null` to size cells automatically.
+     *
+     * Set it and the window reflows at that exact cell size — the cell *count* follows the window
+     * instead of the other way round (see [resizeAtCellSize]); this is the sizing a zoom control wants,
+     * and it renders every glyph source at the same on-screen size. Leave it `null` for the automatic
+     * behaviour: the source's native size under plain reflow, or the largest cell that fits the fixed
+     * grid when [resolutionIndependent]. Takes precedence over both when set.
+     *
+     * Assigning re-lays out immediately at the last known window size.
+     */
+    var cellSizePx: Int? = null
+        set(value) {
+            // Same rule createWithCanvas enforces at construction, applied to the runtime door: this
+            // retiles the canvas and takes over its layout mode, which a pane sharing a caller-owned
+            // canvas must not do to its neighbours. Clearing it is always allowed.
+            require(value == null || ownsCanvas) {
+                "cellSizePx is not supported on a window sharing a caller-owned canvas; " +
+                    "build it with create { } so the window owns its canvas."
+            }
+            val sanitised = value?.coerceAtLeast(1)
+            if (sanitised == field) return
+            field = sanitised
+            if (lastWidthPx > 0 && lastHeightPx > 0) resize(lastWidthPx, lastHeightPx)
+        }
 
     /** Current grid width in cells. Updated by [resize] when [fitToWindow] is `true`. */
     var widthInTiles: Int = widthInTiles
@@ -255,10 +305,21 @@ class AsciiTileWindow private constructor(
         // Resolution-independent mode is a fixed grid too, but scaled by IntegerScale so that after
         // re-rasterising the glyph source to the on-screen cell px the grid renders 1:1 (scale 1), not
         // re-scaled. The first re-rasterise happens on the first resize.
+        applyAutomaticLayoutMode()
+    }
+
+    /**
+     * Puts the canvas into the layout mode this window's construction-time flags ask for. Called at
+     * construction, and again when [cellSizePx] is cleared — which reverts to exactly this sizing, so the
+     * two must not drift apart.
+     */
+    private fun applyAutomaticLayoutMode() {
         if (resolutionIndependent) {
-            canvas.useFixedGrid(this.widthInTiles, this.heightInTiles, IntegerScale)
+            canvas.useFixedGrid(widthInTiles, heightInTiles, IntegerScale)
         } else if (!fitToWindow) {
-            canvas.useFixedGrid(this.widthInTiles, this.heightInTiles, scalePolicy)
+            canvas.useFixedGrid(widthInTiles, heightInTiles, scalePolicy)
+        } else {
+            canvas.useReflow()
         }
     }
 
@@ -742,6 +803,25 @@ class AsciiTileWindow private constructor(
         widthPx: Int,
         heightPx: Int,
     ) {
+        lastWidthPx = widthPx
+        lastHeightPx = heightPx
+        val chosenCell = cellSizePx
+        if (chosenCell != null) {
+            resizeAtCellSize(widthPx, heightPx, chosenCell)
+            return
+        }
+        // Returning to automatic sizing after a chosen cell: undo that path's retile and re-rasterise,
+        // or the grid would keep reflowing at the last chosen size against a source still prepared for it.
+        if (sizedByCellSizePx) {
+            sizedByCellSizePx = false
+            glyphSource.prepareForCellSize(nativeCellW, nativeCellH)
+            if (glyphSource.charWidthPx != compositeCacheTileW || glyphSource.charHeightPx != compositeCacheTileH) {
+                rebuildCaches()
+            }
+            canvas.setNativeTileSize(glyphSource.charWidthPx, glyphSource.charHeightPx)
+            applyAutomaticLayoutMode()
+            compositeCache.markAllDirty()
+        }
         if (resolutionIndependent) {
             resizeResolutionIndependent(widthPx, heightPx)
             return
@@ -751,8 +831,20 @@ class AsciiTileWindow private constructor(
 
         // Follow the canvas's reflow layout so the grid matches the (centered)
         // visible cell count.
-        val newWidthInTiles = canvas.layout.columns
-        val newHeightInTiles = canvas.layout.rows
+        reflowGridToLayout()
+    }
+
+    /**
+     * Resizes the grid to the canvas's current reflow layout, preserving per-layer content for cells
+     * that still fit. Shared by the plain reflow path and [resizeAtCellSize]; a no-op when the cell
+     * count is unchanged.
+     */
+    private fun reflowGridToLayout() {
+        // GridLayout.forReflow floors to 0 when the window is smaller than a single cell; the grids and
+        // composite caches below cannot be built at zero, so keep a 1x1 grid (which the layout then draws
+        // as nothing, the window having no room for it) rather than propagating the degenerate size.
+        val newWidthInTiles = canvas.layout.columns.coerceAtLeast(1)
+        val newHeightInTiles = canvas.layout.rows.coerceAtLeast(1)
         if (newWidthInTiles == widthInTiles && newHeightInTiles == heightInTiles) return
 
         val oldLayeredTiles = layeredTiles
@@ -782,6 +874,45 @@ class AsciiTileWindow private constructor(
                 refreshAnimatedTrackingAt(x, y)
             }
         }
+        compositeCache.markAllDirty()
+    }
+
+    /**
+     * Reflow at a **caller-chosen** cell size (krogue-l23): cells are exactly [cellLogical] logical
+     * points and the cell *count* follows the window, the mirror image of [resizeResolutionIndependent]
+     * (which pins the count and derives the size).
+     *
+     * This is the sizing a zoom control needs, and it is also what makes a glyph-source swap
+     * size-stable: because the canvas is told the cell size directly, **every** source renders at the
+     * same on-screen cell whether or not it can rasterise itself to order. A size-parametric source
+     * ([FreeTypeGlyphSource], [TileSheetGlyphSource]) is prepared at the backbuffer-resolution cell and
+     * draws at full detail; a fixed bitmap [Font] ignores that and keeps its native atlas, which the
+     * composite blit then magnifies to the same cell — by a whole-number factor, through the cache's
+     * nearest-neighbour filter, so it stays crisp rather than blurring.
+     */
+    private fun resizeAtCellSize(
+        widthPx: Int,
+        heightPx: Int,
+        cellLogical: Int,
+    ) {
+        // Rasterise at backbuffer resolution so the grid carries true display detail, exactly as the
+        // resolution-independent path does; the canvas layout stays in logical points.
+        val hidpi = (Gdx.graphics.backBufferWidth.toFloat() / Gdx.graphics.width.coerceAtLeast(1)).coerceAtLeast(1f)
+        val cellPhysical = (cellLogical * hidpi).roundToInt().coerceAtLeast(1)
+        glyphSource.prepareForCellSize(cellPhysical, cellPhysical)
+        if (glyphSource.charWidthPx != compositeCacheTileW || glyphSource.charHeightPx != compositeCacheTileH) {
+            rebuildCaches()
+        }
+        // The chosen size is the *layout* size, not the atlas size: a source whose atlas came back
+        // smaller (a bitmap page) is magnified into it by the blit rather than shrinking the cell.
+        canvas.setNativeTileSize(cellLogical, cellLogical)
+        // The cell count has to follow the window here, so this path owns the layout mode: a window
+        // constructed resolutionIndependent or fitToWindow=false left the canvas on a fixed grid, whose
+        // scale policy would override the very cell size being requested.
+        canvas.useReflow()
+        canvas.resize(widthPx, heightPx)
+        sizedByCellSizePx = true
+        reflowGridToLayout()
         compositeCache.markAllDirty()
     }
 
@@ -816,6 +947,75 @@ class AsciiTileWindow private constructor(
         canvas.setNativeTileSize(layoutW, layoutH) // no-op if unchanged
         if (atlasW != compositeCacheTileW || atlasH != compositeCacheTileH) rebuildCaches()
         canvas.resize(widthPx, heightPx)
+        compositeCache.markAllDirty()
+    }
+
+    /**
+     * Mounts a different [GlyphSource] on this window, in place.
+     *
+     * This is what a **display-mode switch** is made of — the ASCII-versus-tiles option roguelikes
+     * conventionally offer (and, just as usefully, swapping between a bitmap code page and a vector face).
+     * Without it, changing the look means disposing the window and building a new one, which invalidates
+     * every reference a game's UI, input, and screen code holds; with it, the grid, its contents, and the
+     * window identity all survive the switch. The three shipped sources are interchangeable here because
+     * they share one addressing contract — [GlyphSource.glyph] is indexed by `char.code` — so the cells a
+     * game has already written stay meaningful under the new source.
+     *
+     * Sources may differ in native cell px, so this retiles the canvas, reallocates the composite caches
+     * (whose framebuffers are sized from the tile px and cannot resize in place), and re-runs the sizing
+     * path at the last [resize] dimensions — which re-rasterises a size-parametric source
+     * ([FreeTypeGlyphSource], [TileSheetGlyphSource]) for the cell it will actually be drawn at. Every
+     * cell is then marked dirty, since the cached composite depicts the outgoing source's glyphs.
+     *
+     * Swapping to the already-mounted instance is a no-op.
+     *
+     * ## Ownership
+     *
+     * If this window owned the outgoing source it is **disposed** here — so a caller that intends to
+     * swap back must either mount it with [owns] `= false` and dispose it itself, or accept that it is
+     * gone and build a fresh one. [owns] declares the same contract for the incoming [source]: `true`
+     * (the default) hands it to the window, which will dispose it on the next swap or on [dispose];
+     * `false` keeps it the caller's to manage, matching [createWithCanvas]'s external-source rule.
+     *
+     * Building the replacement is not free (a vector face re-renders its whole page, a tilesheet
+     * re-downscales every master), so a game that toggles frequently should keep its sources alive and
+     * mount them with `owns = false` rather than reconstructing them per switch.
+     *
+     * @param source the glyph source to mount
+     * @param owns whether this window may dispose [source]; see the ownership note above
+     */
+    fun setGlyphSource(
+        source: GlyphSource,
+        owns: Boolean = true,
+    ) {
+        if (disposed) return
+        if (source === glyphSource) return
+        // A differently-sized source retiles the canvas below, so on a caller-owned (typically shared)
+        // canvas only a same-sized swap is safe — the neighbours' layout is not this pane's to change.
+        val sameCell =
+            source.charWidthPx == glyphSource.charWidthPx &&
+                source.charHeightPx == glyphSource.charHeightPx
+        require(ownsCanvas || sameCell) {
+            "swapping to a glyph source with different cell dimensions would retile a caller-owned " +
+                "canvas shared with other panes: ${source.charWidthPx}x${source.charHeightPx} " +
+                "replacing ${glyphSource.charWidthPx}x${glyphSource.charHeightPx}"
+        }
+        // Mount first, release second: if the outgoing source throws on dispose, the window is already
+        // holding the live replacement rather than a disposed one.
+        val outgoing = glyphSource.takeIf { ownsGlyphSource }
+        glyphSource = source
+        ownsGlyphSource = owns
+        nativeCellW = source.charWidthPx
+        nativeCellH = source.charHeightPx
+        outgoing?.dispose()
+        canvas.setNativeTileSize(source.charWidthPx, source.charHeightPx) // no-op if unchanged
+        // Size first, rebuild after. The sizing path may re-rasterise a size-parametric source to a
+        // different atlas px than it arrived with, so rebuilding the caches before it would allocate a
+        // framebuffer pair that the resize then immediately replaces.
+        if (lastWidthPx > 0 && lastHeightPx > 0) resize(lastWidthPx, lastHeightPx)
+        if (glyphSource.charWidthPx != compositeCacheTileW || glyphSource.charHeightPx != compositeCacheTileH) {
+            rebuildCaches()
+        }
         compositeCache.markAllDirty()
     }
 
@@ -910,7 +1110,7 @@ class AsciiTileWindow private constructor(
                 config.scalePolicy,
                 sharesCanvas = config.sharesCanvas,
                 resolutionIndependent = config.resolutionIndependent,
-            )
+            ).apply { cellSizePx = config.cellSizePx }
         }
 
         /**
@@ -983,15 +1183,21 @@ class AsciiTileWindow private constructor(
                 "resolutionIndependent is not supported with a shared/external canvas (createWithCanvas); " +
                     "use create { } so the window owns its canvas."
             }
+            // Same reason: a chosen cell size retiles the canvas (and takes over its layout mode), which
+            // one pane must not do to a canvas its neighbours share.
+            require(config.cellSizePx == null) {
+                "cellSizePx is not supported with a shared/external canvas (createWithCanvas); " +
+                    "use create { } so the window owns its canvas."
+            }
             return AsciiTileWindow(
-                glyphSource = glyphSource,
+                initialGlyphSource = glyphSource,
                 canvas = canvas,
                 widthInTiles = config.widthInTiles,
                 heightInTiles = config.heightInTiles,
                 fitToWindow = config.fitToWindow,
                 scalePolicy = config.scalePolicy,
                 ownsCanvas = false,
-                ownsGlyphSource = false,
+                initialOwnsGlyphSource = false,
                 sharesCanvas = config.sharesCanvas,
             )
         }
@@ -1036,6 +1242,12 @@ class AsciiTileWindow private constructor(
  *   built with [AsciiTileWindow.create] (which owns its canvas); with
  *   [AsciiTileWindow.createWithCanvas] the mode is chosen when you construct the
  *   [KotileCanvas].
+ * @property cellSizePx fixes the on-screen cell size in logical points and lets the cell **count**
+ *   reflow to fit, the mirror of [resolutionIndependent]. The size a zoom control sets, and the way to
+ *   make every glyph source draw at the same on-screen size (a bitmap page is magnified into the cell
+ *   by a whole-number factor rather than shrinking it). `null` (the default) leaves sizing automatic.
+ *   Settable at runtime via [AsciiTileWindow.cellSizePx]; takes precedence over [resolutionIndependent]
+ *   and [fitToWindow] when set.
  * @property resolutionIndependent keep a **fixed** cell count but re-rasterise a
  *   size-parametric [glyphSource] at the on-screen cell pixel size on every
  *   [AsciiTileWindow.resize], rendering it 1:1 (ADR-0036 tier 3, krogue-9x7.2). Use
@@ -1053,4 +1265,5 @@ data class AsciiTileWindowConfig(
     var sharesCanvas: Boolean = false,
     var fractionalScaleMode: FractionalScaleMode = FractionalScaleMode.SHARP_BILINEAR,
     var resolutionIndependent: Boolean = false,
+    var cellSizePx: Int? = null,
 )

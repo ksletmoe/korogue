@@ -35,6 +35,23 @@ class RenderPathParityTest : FunSpec({
             // Glyph-and-color content is the ascii path's whole point; the sprite path
             // has no character concept to write a string of.
             "drawText",
+            // The mounted glyph source, and swapping it (krogue-k2o). Ascii-only by
+            // construction rather than by omission: an ascii cell stores a *character* and
+            // the window resolves it to pixels, so one indirection governs the whole grid's
+            // look and can be replaced under it. A sprite cell holds its own TextureRegion,
+            // so the sprite path has no single source to swap — changing that look means
+            // rewriting the tiles, not re-pointing the renderer.
+            "glyphSource",
+            "setGlyphSource",
+            // Choosing the cell size at *runtime* (krogue-l23). The underlying capability — a fixed
+            // tile size with a reflowing tile count — is not ascii-only: the sprite path gets it by
+            // constructing its KotileCanvas with the tile size it wants. What is ascii-only is changing
+            // it while running, because on this path the cell size has to be pushed into a
+            // size-parametric glyph source (re-rasterise, then rebuild the atlas-sized caches) rather
+            // than merely re-laying out fixed art. A runtime equivalent for the sprite path is worth
+            // having and is tracked as krogue-cj5 rather than mirrored here as a stub.
+            "cellSizePx",
+            "setCellSizePx",
         )
     val spriteOnly = emptySet<String>()
 

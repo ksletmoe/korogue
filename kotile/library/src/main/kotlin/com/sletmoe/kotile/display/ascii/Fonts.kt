@@ -275,8 +275,19 @@ object Fonts {
         fit: GlyphFit = GlyphFit.TEXT,
         glyphBrightness: Float = 1f,
         snapToPixelGrid: Boolean = false,
+        textFill: Float = 1f,
+        boxAlignedGlyphs: Set<Int> = emptySet(),
     ): FreeTypeGlyphSource =
-        freeType("fonts/CascadiaMono-Bold.ttf", cellWidthPx, cellHeightPx, fit, glyphBrightness, snapToPixelGrid)
+        freeType(
+            "fonts/CascadiaMono-Bold.ttf",
+            cellWidthPx,
+            cellHeightPx,
+            fit,
+            glyphBrightness,
+            snapToPixelGrid,
+            textFill,
+            boxAlignedGlyphs,
+        )
 
     /**
      * Returns a [FreeTypeGlyphSource] on the bundled **DejaVu Sans Mono** (Bold) TrueType face — a
@@ -299,8 +310,19 @@ object Fonts {
         fit: GlyphFit = GlyphFit.TEXT,
         glyphBrightness: Float = 1f,
         snapToPixelGrid: Boolean = false,
+        textFill: Float = 1f,
+        boxAlignedGlyphs: Set<Int> = emptySet(),
     ): FreeTypeGlyphSource =
-        freeType("fonts/DejaVuSansMono-Bold.ttf", cellWidthPx, cellHeightPx, fit, glyphBrightness, snapToPixelGrid)
+        freeType(
+            "fonts/DejaVuSansMono-Bold.ttf",
+            cellWidthPx,
+            cellHeightPx,
+            fit,
+            glyphBrightness,
+            snapToPixelGrid,
+            textFill,
+            boxAlignedGlyphs,
+        )
 
     /**
      * Shared builder for the bundled vector faces: a [FreeTypeGlyphSource] on the classpath TTF at
@@ -318,6 +340,10 @@ object Fonts {
      * @param glyphBrightness per-glyph brightness-curve cap (default `1f` = off); see [FreeTypeGlyphSource]
      * @param snapToPixelGrid snap glyph placement to whole on-screen pixels for crisper stems (default
      *   `false`); see [FreeTypeGlyphSource]
+     * @param textFill how much of the cell TEXT glyphs fill, as a multiple of the conservative
+     *   whole-ink-box fit (default `1f` = that fit, nothing clips); see [FreeTypeGlyphSource.textFill]
+     * @param boxAlignedGlyphs extra **CP437 slots** placed on the box-drawing grid instead of the text
+     *   baseline, so they meet box-drawing neighbours; see [FreeTypeGlyphSource.boxAlignedGlyphs]
      */
     private fun freeType(
         classpathTtf: String,
@@ -326,6 +352,8 @@ object Fonts {
         fit: GlyphFit,
         glyphBrightness: Float,
         snapToPixelGrid: Boolean,
+        textFill: Float,
+        boxAlignedGlyphs: Set<Int>,
     ): FreeTypeGlyphSource =
         FreeTypeGlyphSource(
             com.badlogic.gdx.Gdx.files.classpath(classpathTtf),
@@ -334,5 +362,7 @@ object Fonts {
             fit = fit,
             glyphBrightness = glyphBrightness,
             snapToPixelGrid = snapToPixelGrid,
+            textFill = textFill,
+            boxAlignedGlyphs = boxAlignedGlyphs,
         )
 }
