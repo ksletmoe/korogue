@@ -43,15 +43,6 @@ class RenderPathParityTest : FunSpec({
             // rewriting the tiles, not re-pointing the renderer.
             "glyphSource",
             "setGlyphSource",
-            // Choosing the cell size at *runtime* (krogue-l23). The underlying capability — a fixed
-            // tile size with a reflowing tile count — is not ascii-only: the sprite path gets it by
-            // constructing its KotileCanvas with the tile size it wants. What is ascii-only is changing
-            // it while running, because on this path the cell size has to be pushed into a
-            // size-parametric glyph source (re-rasterise, then rebuild the atlas-sized caches) rather
-            // than merely re-laying out fixed art. A runtime equivalent for the sprite path is worth
-            // having and is tracked as krogue-cj5 rather than mirrored here as a stub.
-            "cellSizePx",
-            "setCellSizePx",
         )
     val spriteOnly = emptySet<String>()
 
@@ -83,8 +74,8 @@ class RenderPathParityTest : FunSpec({
         val shared =
             listOf(
                 "widthInTiles", "heightInTiles", "tileWidthPx", "tileHeightPx", "layout",
-                "resize", "drawTile", "fill", "clearTile", "clear", "clearLayer",
-                "topTileAt", "render", "asLayer", "dispose",
+                "resize", "cellSizePx", "setCellSizePx", "drawTile", "fill", "clearTile", "clear",
+                "clearLayer", "topTileAt", "render", "asLayer", "dispose",
             )
         spriteApi shouldContainAll shared
         asciiApi shouldContainAll shared

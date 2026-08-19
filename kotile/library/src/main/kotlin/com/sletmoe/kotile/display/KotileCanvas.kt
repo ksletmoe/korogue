@@ -19,6 +19,28 @@ import kotlin.math.ceil
 import kotlin.math.roundToInt
 
 /**
+ * How a [KotileCanvas] places its grid: native-size tiles whose count follows the window
+ * ([Reflow]), or a fixed cell count scaled to the window ([FixedGrid]).
+ *
+ * Exposed (module-internal) as a *restorable snapshot* of [KotileCanvas.useReflow] /
+ * [KotileCanvas.useFixedGrid]. A grid owner that has to take the layout over temporarily —
+ * [com.sletmoe.kotile.rendering.TileRenderer.cellSizePx], which must reflow at a chosen cell size
+ * whatever mode the canvas was configured in — can then put back exactly what it found rather than
+ * assuming the default.
+ */
+internal sealed interface LayoutMode {
+    /** Native-size tiles; the visible cell count follows the window. */
+    data object Reflow : LayoutMode
+
+    /** [columns] x [rows] cells scaled to the window by [policy], centered with letterbox margins. */
+    data class FixedGrid(
+        val columns: Int,
+        val rows: Int,
+        val policy: ScalePolicy,
+    ) : LayoutMode
+}
+
+/**
  * Draws tile-sized texture regions onto the screen via a batched [SpriteBatch].
  *
  * ## Coordinate system
@@ -186,6 +208,13 @@ open class KotileCanvas(
     /** Number of tile rows currently displayed (see [layout]). */
     val height: Int get() = layout.rows
 
+    /**
+     * The layout mode currently in effect — the last [useReflow]/[useFixedGrid] call, or [LayoutMode.Reflow]
+     * (the default) if there has been none. See [LayoutMode] for why this is readable at all.
+     */
+    internal var layoutMode: LayoutMode = LayoutMode.Reflow
+        private set
+
     init {
         resize(widthPx, heightPx)
     }
@@ -206,6 +235,7 @@ open class KotileCanvas(
         rows: Int,
         policy: ScalePolicy = IntegerScale,
     ) {
+        layoutMode = LayoutMode.FixedGrid(columns, rows, policy)
         viewport.useFixedGrid(columns, rows, policy)
         recomputeLayout()
     }
@@ -216,8 +246,17 @@ open class KotileCanvas(
      * the [layout] immediately.
      */
     fun useReflow() {
+        layoutMode = LayoutMode.Reflow
         viewport.useReflow()
         recomputeLayout()
+    }
+
+    /** Re-applies a [layoutMode] snapshot, exactly as the corresponding [useReflow]/[useFixedGrid] call would. */
+    internal fun applyLayoutMode(mode: LayoutMode) {
+        when (mode) {
+            is LayoutMode.Reflow -> useReflow()
+            is LayoutMode.FixedGrid -> useFixedGrid(mode.columns, mode.rows, mode.policy)
+        }
     }
 
     /**
