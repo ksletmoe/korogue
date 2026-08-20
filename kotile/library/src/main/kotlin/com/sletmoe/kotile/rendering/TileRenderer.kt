@@ -229,8 +229,11 @@ abstract class TileRenderer(
      * (krogue-cj5) and means the same thing, but reaches it differently, because the two paths' art
      * differs: the ascii path pushes the chosen size into a size-parametric glyph source, which
      * re-rasterises to order, whereas sprite art is fixed and is instead magnified into the chosen cell
-     * by the composite blit — by a whole-number factor, through the cache's nearest-neighbour filter,
-     * so pixel art stays crisp rather than blurring.
+     * by the composite blit, through the cache's nearest-neighbour filter. Nothing constrains the value
+     * to a multiple of the native tile, so the magnification factor need not be whole: a cell that *is*
+     * a whole-number multiple comes out pixel-exact, and one that is not gets nearest-neighbour's uneven
+     * texel duplication (never a blur). A zoom control over pixel art should therefore offer multiples of
+     * the native size.
      *
      * **Non-square tiles keep their aspect.** The value is the cell's *width*; the height follows the
      * native tile's ratio (so 8x12 art at `cellSizePx = 16` draws 16x24 cells). For square tiles — the

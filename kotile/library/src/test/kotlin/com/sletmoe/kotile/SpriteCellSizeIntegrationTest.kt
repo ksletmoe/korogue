@@ -9,11 +9,10 @@ import com.sletmoe.kotile.rendering.IntegerScale
 import com.sletmoe.kotile.rendering.SpriteTileRenderer
 import com.sletmoe.kotile.tiles.StaticSpriteTile
 import com.sletmoe.kotile.tiles.TileSheet
-import io.kotest.assertions.throwables.shouldNotThrowAny
-import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.doubles.plusOrMinus
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldBeInstanceOf
 import java.io.File
 
 /**
@@ -69,14 +68,20 @@ class SpriteCellSizeIntegrationTest : FunSpec({
                     sheet.dispose()
                 }
 
+            // Sample and release the capture before asserting: a failing assertion must not strand a
+            // native Pixmap in the GL context every later test in this JVM goes on sharing.
+            val cellRed = pixels.averageColor(0, 0, 16, 16).r.toDouble()
+            val rightOfCellRed = pixels.averageColor(16, 0, 32, 16).r.toDouble()
+            val belowCellRed = pixels.averageColor(0, 16, 16, 32).r.toDouble()
+            pixels.dispose()
+
             reflowedTiles shouldBe 8
             chosenTiles shouldBe 4
 
             // The one drawn cell covers exactly 16x16 px: red inside it, background just past it.
-            pixels.averageColor(0, 0, 16, 16).r.toDouble() shouldBe (1.0 plusOrMinus 0.05)
-            pixels.averageColor(16, 0, 32, 16).r.toDouble() shouldBe (0.0 plusOrMinus 0.05)
-            pixels.averageColor(0, 16, 16, 32).r.toDouble() shouldBe (0.0 plusOrMinus 0.05)
-            pixels.dispose()
+            cellRed shouldBe (1.0 plusOrMinus 0.05)
+            rightOfCellRed shouldBe (0.0 plusOrMinus 0.05)
+            belowCellRed shouldBe (0.0 plusOrMinus 0.05)
         }
 
     test("clearing cellSizePx restores the fixed grid the canvas was configured with")
@@ -109,14 +114,17 @@ class SpriteCellSizeIntegrationTest : FunSpec({
                     sheet.dispose()
                 }
 
+            val cellRed = pixels.averageColor(0, 0, 16, 16).r.toDouble()
+            val rightOfCellRed = pixels.averageColor(16, 0, 32, 16).r.toDouble()
+            pixels.dispose()
+
             chosenTiles shouldBe 2 // 64pt window / 32pt cells, reflowed
             restoredTiles shouldBe 4 // back to the fixed grid's own count
             restoredTilePx shouldBe 8 // and to the art's native px, not the chosen cell
 
             // The fixed grid's IntegerScale is back too: the 8px tile is drawn 2x, filling 16x16 px.
-            pixels.averageColor(0, 0, 16, 16).r.toDouble() shouldBe (1.0 plusOrMinus 0.05)
-            pixels.averageColor(16, 0, 32, 16).r.toDouble() shouldBe (0.0 plusOrMinus 0.05)
-            pixels.dispose()
+            cellRed shouldBe (1.0 plusOrMinus 0.05)
+            rightOfCellRed shouldBe (0.0 plusOrMinus 0.05)
         }
 
     test("cellSizePx keeps a non-square tile's aspect ratio")
@@ -147,16 +155,20 @@ class SpriteCellSizeIntegrationTest : FunSpec({
                     sheet.dispose()
                 }
 
+            val cellRed = pixels.averageColor(0, 0, 16, 32).r.toDouble()
+            val belowCellRed = pixels.averageColor(0, 32, 16, 64).r.toDouble()
+            val rightOfCellRed = pixels.averageColor(16, 0, 32, 32).r.toDouble()
+            pixels.dispose()
+
             cellWidthPx shouldBe 16
             cellHeightPx shouldBe 32
             columns shouldBe 4
             rows shouldBe 2
 
             // The drawn cell is 16 wide and 32 tall: red through y=31, background from y=32.
-            pixels.averageColor(0, 0, 16, 32).r.toDouble() shouldBe (1.0 plusOrMinus 0.05)
-            pixels.averageColor(0, 32, 16, 64).r.toDouble() shouldBe (0.0 plusOrMinus 0.05)
-            pixels.averageColor(16, 0, 32, 32).r.toDouble() shouldBe (0.0 plusOrMinus 0.05)
-            pixels.dispose()
+            cellRed shouldBe (1.0 plusOrMinus 0.05)
+            belowCellRed shouldBe (0.0 plusOrMinus 0.05)
+            rightOfCellRed shouldBe (0.0 plusOrMinus 0.05)
         }
 
     test("a resize keeps the chosen cell size and reflows the count around it")
@@ -188,19 +200,30 @@ class SpriteCellSizeIntegrationTest : FunSpec({
         .config(enabled = HeadlessGl.available) {
             // Same rule the ascii path applies to a caller-owned canvas: retiling it and taking over
             // its layout mode would move every neighbouring pane, so a shared-canvas renderer may not.
+            // Everything is recorded inside the render block and asserted after it, so a failing
+            // expectation can't strand this renderer's GL resources in the shared context.
+            var assigning: Result<Unit>? = null
+            var clearing: Result<Unit>? = null
+            var cellSizeAfterRefusal: Int? = -1
+            var tilesAfterRefusal = 0
             HeadlessGl.render(64, 64, Color.BLACK) {
                 val sheet = solidSheet(8, 8, Color.RED)
                 val canvas = KotileCanvas(8, 8)
                 val renderer = SpriteTileRenderer(canvas, sheet, sharesCanvas = true)
 
-                shouldThrow<IllegalArgumentException> { renderer.cellSizePx = 16 }
-                renderer.cellSizePx shouldBe null
-                renderer.widthInTiles shouldBe 8 // untouched: the canvas still reflows at 8px tiles
-                shouldNotThrowAny { renderer.cellSizePx = null } // clearing is always allowed
+                assigning = runCatching { renderer.cellSizePx = 16 }
+                cellSizeAfterRefusal = renderer.cellSizePx
+                tilesAfterRefusal = renderer.widthInTiles
+                clearing = runCatching { renderer.cellSizePx = null }
 
                 renderer.dispose()
                 canvas.dispose()
                 sheet.dispose()
             }.dispose()
+
+            assigning!!.exceptionOrNull().shouldBeInstanceOf<IllegalArgumentException>()
+            cellSizeAfterRefusal shouldBe null
+            tilesAfterRefusal shouldBe 8 // untouched: the canvas still reflows at 8px tiles
+            clearing!!.isSuccess shouldBe true // clearing is always allowed
         }
 })

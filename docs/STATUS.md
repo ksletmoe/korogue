@@ -231,8 +231,9 @@ then given a tested ECS foundation:
   drives — and clearing it restores the canvas's own layout mode (a fixed grid included, via the
   new module-internal `KotileCanvas.layoutMode` snapshot). The paths reach it differently because
   their art does: ascii pushes the size into a size-parametric glyph source that re-rasterises,
-  while fixed sprite art is magnified into the cell by the composite blit (nearest, whole-number
-  factor). Sprite-only wrinkles: the value is the cell *width* and the height follows the native
+  while fixed sprite art is magnified into the cell by the composite blit (nearest — pixel-exact
+  where the chosen cell is a whole-number multiple of the native tile, unevenly duplicated texels
+  in between; never blurred). Sprite-only wrinkles: the value is the cell *width* and the height follows the native
   tile's aspect (non-square sheets aren't squashed), and the composite caches are held at
   `min(art px, the cell's backbuffer px)` so they neither waste VRAM on a zoomed-in cell nor
   outgrow the window on a zoomed-out one. Refused when the renderer was built `sharesCanvas = true`.
