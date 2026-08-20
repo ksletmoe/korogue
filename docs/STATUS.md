@@ -225,6 +225,19 @@ then given a tested ECS foundation:
   classes and fails on unexplained drift, so mirroring is enforced, not remembered. Kept
   asymmetric on purpose: compositing policy (see krogue-8mr) and construction (abstract
   `regionFor` vs the resource-owning `create {}` factory).
+- **Runtime cell sizing is on both paths (krogue-cj5).** `TileRenderer.cellSizePx` joins
+  `AsciiTileWindow.cellSizePx` (krogue-l23): assign it and the grid reflows at exactly that
+  on-screen cell size with the cell *count* following the window — the sizing a zoom control
+  drives — and clearing it restores the canvas's own layout mode (a fixed grid included, via the
+  new module-internal `KotileCanvas.layoutMode` snapshot). The paths reach it differently because
+  their art does: ascii pushes the size into a size-parametric glyph source that re-rasterises,
+  while fixed sprite art is magnified into the cell by the composite blit (nearest — pixel-exact
+  where the chosen cell is a whole-number multiple of the native tile, unevenly duplicated texels
+  in between; never blurred). Sprite-only wrinkles: the value is the cell *width* and the height follows the native
+  tile's aspect (non-square sheets aren't squashed), and the composite caches are held at
+  `min(art px, the cell's backbuffer px)` so they neither waste VRAM on a zoomed-in cell nor
+  outgrow the window on a zoomed-out one. Refused when the renderer was built `sharesCanvas = true`.
+  Only `glyphSource`/`setGlyphSource`/`drawText` remain on `RenderPathParityTest`'s ascii-only list.
 - **`Grid<T>` is the one canonical grid type (krogue-ld1, ADR-0026).** The engine's rival
   `com.sletmoe.korogue.utilities.Grid` is gone; korogue imports
   `com.sletmoe.kotile.utilities.Grid`. kotile's row-major-array version absorbed the general

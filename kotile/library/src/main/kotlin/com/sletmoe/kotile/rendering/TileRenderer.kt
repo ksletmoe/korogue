@@ -1,15 +1,18 @@
 package com.sletmoe.kotile.rendering
 
+import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.utils.Disposable
 import com.sletmoe.kotile.display.BlendMode
 import com.sletmoe.kotile.display.KotileCanvas
+import com.sletmoe.kotile.display.LayoutMode
 import com.sletmoe.kotile.tiles.DynamicSpriteTile
 import com.sletmoe.kotile.tiles.SpriteTile
 import com.sletmoe.kotile.tiles.StaticSpriteTile
 import com.sletmoe.kotile.utilities.LayeredTilemap
 import com.sletmoe.kotile.utilities.Vector2Int
 import com.sletmoe.kotile.utilities.Vector3Int
+import kotlin.math.roundToInt
 
 /**
  * Renders a [LayeredTilemap] of [SpriteTile] tiles to a [KotileCanvas]
@@ -34,8 +37,8 @@ import com.sletmoe.kotile.utilities.Vector3Int
  * This is the sprite sibling of
  * [com.sletmoe.kotile.display.ascii.AsciiTileWindow] (ADR-0028): the two paths
  * deliberately share the same vocabulary — [widthInTiles]/[heightInTiles],
- * [resize], [drawTile]/[clearTile]/[clear]/[clearLayer]/[fill], [topTileAt],
- * [render], [asLayer] — so intuition transfers between them.
+ * [resize], [cellSizePx], [drawTile]/[clearTile]/[clear]/[clearLayer]/[fill],
+ * [topTileAt], [render], [asLayer] — so intuition transfers between them.
  *
  * ## Layer semantics
  *
@@ -98,16 +101,31 @@ import com.sletmoe.kotile.utilities.Vector3Int
  * time (every pane redrawn, or the canvas cleared first), which a multi-pane draw
  * loop does anyway.
  *
+ * ## Choosing the cell size
+ *
+ * By default tiles are drawn at the [canvas]'s tile size, in whatever layout mode the canvas is in.
+ * Set [cellSizePx] to fix the on-screen cell size instead and let the visible cell *count* follow the
+ * window — the sizing a zoom control needs. It is the sprite peer of the ascii path's
+ * [cellSizePx][com.sletmoe.kotile.display.ascii.AsciiTileWindow.cellSizePx] (krogue-cj5).
+ *
  * @param canvas the canvas tiles are drawn to
  * @param sharesCanvas `true` when this renderer composites into a canvas shared
  *   with other panes; blits with [BlendMode.NORMAL] rather than the default
- *   authoritative [BlendMode.REPLACE]. See "Sharing a canvas with other renderers".
+ *   authoritative [BlendMode.REPLACE], and refuses [cellSizePx] (retiling a shared canvas is not one
+ *   pane's to do). See "Sharing a canvas with other renderers".
  */
 abstract class TileRenderer(
     protected val canvas: KotileCanvas,
     sharesCanvas: Boolean = false,
 ) : Disposable {
+    private val sharesCanvas: Boolean = sharesCanvas
     private val compositeBlend: BlendMode = if (sharesCanvas) BlendMode.NORMAL else BlendMode.REPLACE
+
+    // The canvas's tile px at construction -- the size the consumer's art is authored at, and the
+    // sizing [cellSizePx] takes over from and restores to. Not read off the canvas later, because a
+    // chosen cell size overwrites it there.
+    private val nativeTileWidthPx: Int = canvas.tileWidthPx
+    private val nativeTileHeightPx: Int = canvas.tileHeightPx
 
     /**
      * Current grid width in tiles. Reflects the canvas at construction time
@@ -153,7 +171,7 @@ abstract class TileRenderer(
 
     // Per-cell composite cache (krogue-drk/krogue-oxi, ADR-0024): [render] and [asLayer] recomposite
     // only the cells marked dirty since the last call, blitting the persistent result as one sprite.
-    private val compositeCache = GridCompositeCache(canvas.tileWidthPx, canvas.tileHeightPx)
+    private var compositeCache = GridCompositeCache(nativeTileWidthPx, nativeTileHeightPx)
 
     // Separate cache + per-observer dirty tracker for the render(source, viewport) overload
     // (krogue-c0q): source is caller-owned and may be shared across several renderers/panes, so it
@@ -161,8 +179,16 @@ abstract class TileRenderer(
     // this renderer's own drawTile/clearTile). ViewportDirtyTracker instead polls
     // LayeredTilemap.versionAt each call — see its doc for why that is safe for multiple observers
     // where a single consumable dirty flag would not be.
-    private val viewportCache = GridCompositeCache(canvas.tileWidthPx, canvas.tileHeightPx)
-    private val viewportDirtyTracker = ViewportDirtyTracker(viewportCache)
+    private var viewportCache = GridCompositeCache(nativeTileWidthPx, nativeTileHeightPx)
+    private var viewportDirtyTracker = ViewportDirtyTracker(viewportCache)
+
+    // The tile px both caches are currently allocated at (see [ensureCacheTileSize]).
+    private var cacheTileWidthPx: Int = nativeTileWidthPx
+    private var cacheTileHeightPx: Int = nativeTileHeightPx
+
+    // The canvas layout mode [cellSizePx] took over from, so clearing it can put back exactly what it
+    // found; null whenever no chosen cell size is in effect.
+    private var layoutModeBeforeCellSize: LayoutMode? = null
 
     // Positions currently holding a DynamicSpriteTile entry on any z-layer. Recomputed from ground
     // truth (not incrementally counted) on every single-cell write touching that position -- see
@@ -175,12 +201,141 @@ abstract class TileRenderer(
      * Rebuilds the internal tilemap to fit the new pixel dimensions. Tiles
      * outside the new bounds are dropped; those still within bounds are
      * preserved. Call this from the application's resize callback.
+     *
+     * A [cellSizePx] chosen earlier survives a resize: the cells stay that size and the visible
+     * *count* follows the new window.
      */
     fun resize(
         widthPx: Int,
         heightPx: Int,
     ) {
         canvas.resize(widthPx, heightPx)
+        // The chosen cell size is unchanged by a resize, but the backbuffer px behind it is not --
+        // moving a window between a HiDPI and a normal display changes the ratio (see ensureCacheTileSize).
+        ensureCacheTileSize()
+        retileToLayout()
+    }
+
+    /**
+     * The on-screen cell size in **logical points**, or `null` to draw tiles at their native size.
+     *
+     * Set it and the grid reflows at that exact cell size — the cell *count* follows the window
+     * instead of the other way round; this is the sizing a zoom control wants. Leave it `null` for the
+     * automatic behaviour: whatever layout mode the [canvas] is in (reflow at the native tile size, or
+     * a fixed grid scaled to the window), which clearing this restores exactly.
+     *
+     * This is the sprite peer of
+     * [AsciiTileWindow.cellSizePx][com.sletmoe.kotile.display.ascii.AsciiTileWindow.cellSizePx]
+     * (krogue-cj5) and means the same thing, but reaches it differently, because the two paths' art
+     * differs: the ascii path pushes the chosen size into a size-parametric glyph source, which
+     * re-rasterises to order, whereas sprite art is fixed and is instead magnified into the chosen cell
+     * by the composite blit, through the cache's nearest-neighbour filter. Nothing constrains the value
+     * to a multiple of the native tile, so the magnification factor need not be whole: a cell that *is*
+     * a whole-number multiple comes out pixel-exact, and one that is not gets nearest-neighbour's uneven
+     * texel duplication (never a blur). A zoom control over pixel art should therefore offer multiples of
+     * the native size.
+     *
+     * **Non-square tiles keep their aspect.** The value is the cell's *width*; the height follows the
+     * native tile's ratio (so 8x12 art at `cellSizePx = 16` draws 16x24 cells). For square tiles — the
+     * ascii path's only case — that is exactly the ascii behaviour.
+     *
+     * Assigning re-lays out immediately, at the canvas's current window size, and rebuilds the tilemap
+     * the same way [resize] does. Not supported when this renderer was constructed with
+     * `sharesCanvas = true`: retiling and taking over the layout mode is not a shared canvas's pane's
+     * to do to its neighbours (assigning `null` is always allowed).
+     */
+    var cellSizePx: Int? = null
+        set(value) {
+            require(value == null || !sharesCanvas) {
+                "cellSizePx is not supported on a renderer sharing a canvas with other panes; " +
+                    "construct it with sharesCanvas = false so it owns the canvas layout."
+            }
+            val sanitised = value?.coerceAtLeast(1)
+            if (sanitised == field) return
+            field = sanitised
+            applyCellSizing()
+        }
+
+    /**
+     * Retiles the canvas for the current [cellSizePx] (or back to the native sizing when it is `null`)
+     * and rebuilds the tilemap and caches to match.
+     */
+    private fun applyCellSizing() {
+        val cell = cellSizePx
+        if (cell == null) {
+            canvas.setNativeTileSize(nativeTileWidthPx, nativeTileHeightPx)
+            // Back to whatever the consumer had configured -- a fixed grid, if that is what it was.
+            layoutModeBeforeCellSize?.let { canvas.applyLayoutMode(it) }
+            layoutModeBeforeCellSize = null
+        } else {
+            if (layoutModeBeforeCellSize == null) layoutModeBeforeCellSize = canvas.layoutMode
+            // Telling the canvas the cell size directly is what makes the tiles come out at exactly
+            // that size; the count then has to follow the window, so this path owns the layout mode --
+            // a fixed grid's scale policy would override the very cell size being asked for.
+            canvas.setNativeTileSize(cell, cellHeightFor(cell))
+            canvas.applyLayoutMode(LayoutMode.Reflow)
+        }
+        ensureCacheTileSize()
+        retileToLayout()
+    }
+
+    /** The cell height that keeps the native tile's aspect ratio at a chosen cell width of [cellWidth]. */
+    private fun cellHeightFor(cellWidth: Int): Int =
+        (cellWidth * nativeTileHeightPx.toFloat() / nativeTileWidthPx).roundToInt().coerceAtLeast(1)
+
+    /**
+     * Reallocates the composite caches when the tile px they should hold has changed — a
+     * [GridCompositeCache]'s framebuffer is sized from the tile px at construction and cannot resize in
+     * place. No-op (and free of any GL/Gdx access) when the size is unchanged, which is every resize
+     * that has no [cellSizePx] in effect.
+     *
+     * The size to hold is `min(native art px, the cell's backbuffer px)`, on each axis: the cache can
+     * hold no more detail than the art has, and no more than the display will actually show. Under
+     * magnification (a zoomed-in cell) that keeps the cache at the art's own resolution and lets the
+     * blit magnify it — the same pixels as caching the enlarged copy, at a fraction of the VRAM. Under
+     * minification (a zoomed-out cell) it caps the cache at what the backbuffer shows, so the buffer
+     * tracks the window rather than growing with the cell count and eventually overrunning
+     * `GL_MAX_TEXTURE_SIZE`.
+     */
+    private fun ensureCacheTileSize() {
+        val cell = cellSizePx
+        val wantWidth: Int
+        val wantHeight: Int
+        if (cell == null) {
+            wantWidth = nativeTileWidthPx
+            wantHeight = nativeTileHeightPx
+        } else {
+            // Logical points set the canvas layout; the cache holds the *backbuffer* px behind them, so
+            // that on a HiDPI display the blit lands 1:1 at full display detail (as the ascii path's
+            // resolution-independent sizing does).
+            val hidpi = (Gdx.graphics.backBufferWidth.toFloat() / Gdx.graphics.width.coerceAtLeast(1)).coerceAtLeast(1f)
+            wantWidth = minOf(nativeTileWidthPx, (canvas.tileWidthPx * hidpi).roundToInt().coerceAtLeast(1))
+            wantHeight = minOf(nativeTileHeightPx, (canvas.tileHeightPx * hidpi).roundToInt().coerceAtLeast(1))
+        }
+        if (wantWidth == cacheTileWidthPx && wantHeight == cacheTileHeightPx) return
+        rebuildCaches(wantWidth, wantHeight)
+    }
+
+    /**
+     * Disposes and reallocates both composite caches at [cacheWidthPx] x [cacheHeightPx] per cell. The
+     * per-observer [ViewportDirtyTracker] is rebuilt with the fresh cache, since the versions it
+     * recorded describe pixels that no longer exist.
+     */
+    private fun rebuildCaches(
+        cacheWidthPx: Int,
+        cacheHeightPx: Int,
+    ) {
+        cacheTileWidthPx = cacheWidthPx
+        cacheTileHeightPx = cacheHeightPx
+        compositeCache.dispose()
+        compositeCache = GridCompositeCache(cacheWidthPx, cacheHeightPx)
+        viewportCache.dispose()
+        viewportCache = GridCompositeCache(cacheWidthPx, cacheHeightPx)
+        viewportDirtyTracker = ViewportDirtyTracker(viewportCache)
+    }
+
+    /** Rebuilds the internal tilemap to the canvas's current cell count and marks the whole grid stale. */
+    private fun retileToLayout() {
         tilemap = LayeredTilemap(widthInTiles, heightInTiles)
         animatedPositions.clear()
         compositeCache.markAllDirty()

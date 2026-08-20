@@ -887,8 +887,9 @@ class AsciiTileWindow private constructor(
      * same on-screen cell whether or not it can rasterise itself to order. A size-parametric source
      * ([FreeTypeGlyphSource], [TileSheetGlyphSource]) is prepared at the backbuffer-resolution cell and
      * draws at full detail; a fixed bitmap [Font] ignores that and keeps its native atlas, which the
-     * composite blit then magnifies to the same cell — by a whole-number factor, through the cache's
-     * nearest-neighbour filter, so it stays crisp rather than blurring.
+     * composite blit then magnifies to the same cell through the cache's nearest-neighbour filter — so it
+     * stays crisp rather than blurring, pixel-exact where the chosen cell is a whole-number multiple of
+     * the atlas's own px and unevenly duplicated in between.
      */
     private fun resizeAtCellSize(
         widthPx: Int,
